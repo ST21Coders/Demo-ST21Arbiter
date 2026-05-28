@@ -1,5 +1,7 @@
 # ARBITER (ST21)
 
+This is main repo, keep it clean and always in working state!!!
+
 A multi-agent AI governance demo. A React SPA talks to a Lambda API that
 orchestrates four Bedrock AgentCore Runtimes (1 master + 3 specialists),
 backed by a Bedrock Knowledge Base, OpenSearch Serverless vector store, and
