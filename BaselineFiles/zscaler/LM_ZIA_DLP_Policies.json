@@ -1,0 +1,15 @@
+{
+  "dlpPolicies": [
+    {
+      "id": "LM-ZIA-DLP-001",
+      "name": "SSN and DOB Block",
+      "description": "Block SSN and date-of-birth transmission to external domains",
+      "patterns": [
+        "\\b\\d{3}-\\d{2}-\\d{4}\\b",
+        "\\b\\d{2}/\\d{2}/\\d{4}\\b"
+      ],
+      "action": "BLOCK",
+      "exceptedDomains": []
+    }
+  ]
+}

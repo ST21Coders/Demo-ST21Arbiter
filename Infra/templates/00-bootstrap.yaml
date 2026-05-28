@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  ARBITER – Bootstrap (DEMO trim): SAM template bucket + CloudFormation
+  service role. Dropped: deployer IAM user + access key (admin runs
+  deploy.sh directly with personal credentials in demo).
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+
+Resources:
+  # ──────────────────────────── SAM / CF Template Bucket ───────
+  # No Retain policy: this bucket only holds SAM/CF artifacts that are
+  # re-uploaded on every deploy. Retaining it on rollback leaks the
+  # bucket and breaks the next bootstrap attempt with AlreadyExists.
+  TemplateBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Environment}-${ProjectName}-cfn-templates"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-cfn-templates"
+
+  # ──────────────────────────── CloudFormation Service Role ────
+  # No Retain policy: same reason as TemplateBucket. The role is
+  # trivially recreated; retaining it on rollback collides on retry.
+  CloudFormationServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-cfn-service-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-cfn-service-role"
+
+Outputs:
+  CloudFormationServiceRoleArn:
+    Value: !GetAtt CloudFormationServiceRole.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-CFNServiceRoleArn"
+  TemplateBucketName:
+    Value: !Ref TemplateBucket
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-TemplateBucketName"

@@ -1,0 +1,243 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  ARBITER – Identity (DEMO trim): Cognito User Pool + SPA client (no secret)
+  + 1 Secrets Manager entry for Zscaler API credentials.
+  Dropped: SAML federation block (kept commented for prod), Okta/MS-Graph/
+  GitHub/Slack secrets (re-add per integration when needed).
+  Auth flow for the UI: USER_PASSWORD_AUTH for the demo smoke test,
+  Authorization Code (hosted UI) for interactive login.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+  CognitoDomainPrefix:
+    Type: String
+    Default: poc-st21arbiter
+  UICallbackURL:
+    Type: String
+    Description: Browser callback URL after Cognito login (CloudFront domain).
+    Default: "https://example.cloudfront.net/callback"
+  UILogoutURL:
+    Type: String
+    Default: "https://example.cloudfront.net/"
+
+Resources:
+  # ──────────────────────────── Cognito User Pool ──────────────
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${Environment}-${ProjectName}-userpool"
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      MfaConfiguration: "OFF"
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 14
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      Schema:
+        - Name: role
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+          StringAttributeConstraints:
+            MinLength: "1"
+            MaxLength: "64"
+      UserPoolTags:
+        Name: !Sub "${Environment}-${ProjectName}-userpool"
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref CognitoDomainPrefix
+      UserPoolId: !Ref UserPool
+
+  # ──────────────────────────── App Client (public SPA) ────────
+  # GenerateSecret MUST be false for browser-based apps. The UI uses
+  # the Authorization Code flow with PKCE via the hosted UI, OR
+  # USER_PASSWORD_AUTH for the headless smoke test.
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "${Environment}-${ProjectName}-spa-client"
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      SupportedIdentityProviders:
+        - COGNITO
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+        - !Ref UICallbackURL
+      LogoutURLs:
+        - !Ref UILogoutURL
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 7
+
+  # ──────────────────────────── Persona Groups ────────────────
+  # Group names match persona ids in ui/src/contexts/PersonaContext.jsx so the
+  # UI can read cognito:groups from the IdToken and pin personaId directly.
+  # Lower precedence wins if a user ends up in multiple groups.
+  CisoGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: ciso
+      Description: CISO — full access including LLM Control, Data Pipeline, MCP Admin.
+      Precedence: 10
+  SocGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: soc
+      Description: SOC Analyst — dashboard, findings, heatmap, actions, audit, analyst chat.
+      Precedence: 20
+  GrcGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: grc
+      Description: GRC Analyst — dashboard, findings, heatmap, governance, audit, analyst chat.
+      Precedence: 30
+  EmployeeGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: employee
+      Description: Employee — analyst chat only.
+      Precedence: 40
+
+  # ──────────────────────────── Demo Users (4) ─────────────────
+  # Created in FORCE_CHANGE_PASSWORD state; deploy.sh runs
+  # `admin-set-user-password --permanent` per user using the shared
+  # DEMO_PASSWORD env var (never embedded in this template).
+  CisoUser:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: ciso_diana@meridianinsurance.com
+      MessageAction: SUPPRESS
+      UserAttributes:
+        - Name: email
+          Value: ciso_diana@meridianinsurance.com
+        - Name: email_verified
+          Value: "true"
+  SocUser:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: soc_marcus@meridianinsurance.com
+      MessageAction: SUPPRESS
+      UserAttributes:
+        - Name: email
+          Value: soc_marcus@meridianinsurance.com
+        - Name: email_verified
+          Value: "true"
+  GrcUser:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: grc_priya@meridianinsurance.com
+      MessageAction: SUPPRESS
+      UserAttributes:
+        - Name: email
+          Value: grc_priya@meridianinsurance.com
+        - Name: email_verified
+          Value: "true"
+  EmployeeUser:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: emp_sarah@meridianinsurance.com
+      MessageAction: SUPPRESS
+      UserAttributes:
+        - Name: email
+          Value: emp_sarah@meridianinsurance.com
+        - Name: email_verified
+          Value: "true"
+
+  CisoUserAttach:
+    Type: AWS::Cognito::UserPoolUserToGroupAttachment
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: !Ref CisoUser
+      GroupName: !Ref CisoGroup
+  SocUserAttach:
+    Type: AWS::Cognito::UserPoolUserToGroupAttachment
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: !Ref SocUser
+      GroupName: !Ref SocGroup
+  GrcUserAttach:
+    Type: AWS::Cognito::UserPoolUserToGroupAttachment
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: !Ref GrcUser
+      GroupName: !Ref GrcGroup
+  EmployeeUserAttach:
+    Type: AWS::Cognito::UserPoolUserToGroupAttachment
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: !Ref EmployeeUser
+      GroupName: !Ref EmployeeGroup
+
+  # ──────────────────────────── Secrets Manager (1) ────────────
+  ZscalerSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "${Environment}/${ProjectName}/zscaler"
+      Description: Zscaler ZIA API credentials (used by zscaler_specialist).
+      KmsKeyId:
+        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-SecretsKeyArn"
+      SecretString: '{"api_key":"PLACEHOLDER","username":"PLACEHOLDER","password":"PLACEHOLDER"}'
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-zscaler"
+
+Outputs:
+  UserPoolId:
+    Value: !Ref UserPool
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-UserPoolId"
+  UserPoolArn:
+    Value: !GetAtt UserPool.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-UserPoolArn"
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-UserPoolClientId"
+  CognitoIssuerURL:
+    Value: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}"
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-CognitoIssuerURL"
+  CognitoHostedUI:
+    Description: Browser URL of the Cognito hosted login page.
+    Value: !Sub "https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com/login?client_id=${UserPoolClient}&response_type=code&scope=openid+email+profile&redirect_uri=${UICallbackURL}"

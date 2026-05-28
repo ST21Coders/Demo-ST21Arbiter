@@ -1,0 +1,22 @@
+{
+  "urlCategories": [
+    {
+      "id": "LM-ZIA-URLCAT-CLOUD-BLK-004",
+      "name": "Blocked Cloud Storage",
+      "description": "Cloud storage services blocked per security policy",
+      "type": "URL_CATEGORY",
+      "urls": [
+        "dropbox.com",
+        "*.dropbox.com",
+        "dropboxusercontent.com"
+      ],
+      "dbCategorizedUrls": [
+        "dropbox.com"
+      ],
+      "action": "BLOCK",
+      "customIpRangesCount": 0,
+      "urlsRetainingParentCategoryCount": 0,
+      "lastModified": "2026-01-15T10:23:00Z"
+    }
+  ]
+}

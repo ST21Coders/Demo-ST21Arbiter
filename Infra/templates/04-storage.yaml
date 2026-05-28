@@ -1,0 +1,336 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  ARBITER – Storage (DEMO trim): S3 raw + processed (CMK, versioned, no
+  Object Lock), DynamoDB (4 tables actually used by the UI), OpenSearch
+  Serverless collection with VPC endpoint.
+  Dropped: Object Lock retention, 3 unused DDB tables (policies,
+  remediation-plans, user-preferences). The OSS VPC endpoint now binds
+  to the single private subnet.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+
+Resources:
+  # ──────────────────────────── S3: Raw Bucket ─────────────────
+  # No Retain on dev: prior failed deploys left buckets behind that
+  # blocked re-creation (S3 names are globally unique). For prod, reinstate
+  # Retain via a Conditions block keyed on Environment.
+  RawBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Environment}-${ProjectName}-raw"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID:
+                Fn::ImportValue: !Sub "${Environment}-${ProjectName}-S3KeyArn"
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-raw"
+
+  # ──────────────────────────── S3: Processed Bucket ───────────
+  # No Retain — see RawBucket comment above.
+  ProcessedBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Environment}-${ProjectName}-processed"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID:
+                Fn::ImportValue: !Sub "${Environment}-${ProjectName}-S3KeyArn"
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-processed"
+
+  # ──────────────────────────── DynamoDB Tables (4) ────────────
+  # Only the four tables the React UI actually reads/writes:
+  #   - conflicts        (Dashboard, Findings, HeatMap, Governance)
+  #   - change-requests  (ActionCenter)
+  #   - audit-log        (AuditLogs)
+  #   - sessions         (MCPChat conversation metadata)
+  ConflictsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Environment}-${ProjectName}-conflicts"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+      AttributeDefinitions:
+        - AttributeName: conflict_id
+          AttributeType: S
+        - AttributeName: detected_at
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+      KeySchema:
+        - AttributeName: conflict_id
+          KeyType: HASH
+        - AttributeName: detected_at
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: status-index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: detected_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-conflicts"
+
+  AuditLogTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Environment}-${ProjectName}-audit-log"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+      AttributeDefinitions:
+        - AttributeName: event_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: event_id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-audit-log"
+
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Environment}-${ProjectName}-sessions"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: user-sessions-index
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-sessions"
+
+  ChangeRequestsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Environment}-${ProjectName}-change-requests"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+      AttributeDefinitions:
+        - AttributeName: cr_id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cr_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: status-index
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-change-requests"
+
+  # ──────────────────────────── OpenSearch Serverless ──────────
+  OpenSearchCollection:
+    Type: AWS::OpenSearchServerless::Collection
+    DependsOn:
+      - OpenSearchEncryptionPolicy
+      - OpenSearchNetworkPolicy
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-kb"
+      Type: VECTORSEARCH
+      Description: Vector store for Bedrock Knowledge Base
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-kb"
+
+  OpenSearchEncryptionPolicy:
+    Type: AWS::OpenSearchServerless::SecurityPolicy
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-enc"
+      Type: encryption
+      Policy:
+        Fn::Sub:
+          - >
+            {
+              "Rules": [
+                {"ResourceType":"collection","Resource":["collection/${Environment}-${ProjectName}-kb"]}
+              ],
+              "AWSOwnedKey": false,
+              "KmsARN": "${KeyArn}"
+            }
+          - KeyArn:
+              Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+
+  OpenSearchNetworkPolicy:
+    Type: AWS::OpenSearchServerless::SecurityPolicy
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-net"
+      Type: network
+      Policy: !Sub >
+        [
+          {
+            "Rules": [
+              {"ResourceType":"collection","Resource":["collection/${Environment}-${ProjectName}-kb"]},
+              {"ResourceType":"dashboard","Resource":["collection/${Environment}-${ProjectName}-kb"]}
+            ],
+            "AllowFromPublic": false,
+            "SourceVPCEs": ["${OpenSearchVPCEndpoint}"]
+          }
+        ]
+
+  # Bedrock SLR (AWSServiceRoleForAmazonBedrock) is omitted from Principal:
+  # it doesn't exist until a Bedrock KB is first created. Re-add when enabling 07-bedrock.
+  OpenSearchDataAccessPolicy:
+    Type: AWS::OpenSearchServerless::AccessPolicy
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-data"
+      Type: data
+      Policy: !Sub >
+        [
+          {
+            "Rules": [
+              {"ResourceType":"index","Resource":["index/${Environment}-${ProjectName}-kb/*"],"Permission":["aoss:*"]},
+              {"ResourceType":"collection","Resource":["collection/${Environment}-${ProjectName}-kb"],"Permission":["aoss:*"]}
+            ],
+            "Principal": [
+              "arn:aws:iam::${AWS::AccountId}:role/${Environment}-${ProjectName}-api-handler-role",
+              "arn:aws:iam::${AWS::AccountId}:role/${Environment}-${ProjectName}-processing-pipeline-role"
+            ]
+          }
+        ]
+
+  OpenSearchVPCEndpoint:
+    Type: AWS::OpenSearchServerless::VpcEndpoint
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-oss-vpce"
+      VpcId:
+        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-VpcId"
+      SubnetIds:
+        - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-PrivateSubnet1Id"
+      SecurityGroupIds:
+        - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-OpenSearchSGId"
+
+Outputs:
+  RawBucketArn:
+    Value: !GetAtt RawBucket.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-RawBucketArn"
+  RawBucketName:
+    Value: !Ref RawBucket
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-RawBucketName"
+  ProcessedBucketArn:
+    Value: !GetAtt ProcessedBucket.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ProcessedBucketArn"
+  ProcessedBucketName:
+    Value: !Ref ProcessedBucket
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ProcessedBucketName"
+  OpenSearchCollectionArn:
+    Value: !GetAtt OpenSearchCollection.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-OpenSearchCollectionArn"
+  OpenSearchCollectionEndpoint:
+    Value: !GetAtt OpenSearchCollection.CollectionEndpoint
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-OpenSearchEndpoint"
+  ConflictsTableName:
+    Value: !Ref ConflictsTable
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ConflictsTableName"
+  AuditLogTableName:
+    Value: !Ref AuditLogTable
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-AuditLogTableName"
+  SessionsTableName:
+    Value: !Ref SessionsTable
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-SessionsTableName"
+  ChangeRequestsTableName:
+    Value: !Ref ChangeRequestsTable
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ChangeRequestsTableName"

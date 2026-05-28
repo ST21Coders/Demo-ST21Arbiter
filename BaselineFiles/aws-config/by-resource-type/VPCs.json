@@ -1,0 +1,20 @@
+{
+  "resourceType": "AWS::EC2::VPC",
+  "resources": [
+    {
+      "resourceId": "vpc-lm-prod-001a2b3c4d",
+      "cidrBlock": "172.16.0.0/16",
+      "environment": "PRODUCTION"
+    },
+    {
+      "resourceId": "vpc-lm-dev-002b3c4d5e",
+      "cidrBlock": "10.50.0.0/16",
+      "environment": "DEVELOPMENT"
+    },
+    {
+      "resourceId": "vpc-lm-dmz-003c4d5e6f",
+      "cidrBlock": "192.168.0.0/16",
+      "environment": "DMZ"
+    }
+  ]
+}

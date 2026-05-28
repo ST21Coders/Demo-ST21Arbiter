@@ -1,0 +1,182 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  ARBITER – UI hosting: private versioned S3 bucket + CloudFront distribution
+  with Origin Access Control. SPA routing via custom error responses
+  (403/404 → /index.html 200). WAFv2 is conditional on AttachWaf — leave
+  AttachWaf=false to save ~$10/month idle cost when the distribution sits
+  behind Cognito JWT.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+  AttachWaf:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: When "true", attach a WAFv2 web ACL with managed common + IP-reputation rule groups.
+
+Conditions:
+  WafEnabled: !Equals [!Ref AttachWaf, "true"]
+
+Resources:
+  # ──────────────────────────── S3 origin bucket ────────────────
+  # Private, versioned. CloudFront accesses it via OAC + SourceArn condition.
+  UIBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Environment}-${ProjectName}-ui"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-ui"
+
+  # ──────────────────────────── CloudFront OAC ──────────────────
+  UIOac:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${Environment}-${ProjectName}-ui-oac"
+        Description: OAC for the ARBITER SPA bucket.
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # ──────────────────────────── CloudFront distribution ─────────
+  # Managed policies referenced by ID (stable AWS-managed UUIDs):
+  #   CachingOptimized       : 658327ea-f89d-4fab-a63d-7e88639e58f6
+  #   SecurityHeadersAndCORS : 5cc3b908-e619-4b99-88e5-2cf7f45965bd
+  UIDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub "${Environment}-${ProjectName} SPA"
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        IPV6Enabled: true
+        WebACLId: !If [WafEnabled, !GetAtt UIWebAcl.Arn, !Ref AWS::NoValue]
+        Origins:
+          - Id: UIBucketOrigin
+            DomainName: !GetAtt UIBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt UIOac.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: UIBucketOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: 5cc3b908-e619-4b99-88e5-2cf7f45965bd
+        # SPA routing: client-side router handles deep links. S3 returns 403 for
+        # missing keys (with BlockPublicAcls) — rewrite both 403/404 to /index.html
+        # so React Router takes over.
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 10
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 10
+
+  # Allow CloudFront (via OAC) to GetObject from the bucket. SourceArn pins to
+  # this exact distribution so other accounts/distributions cannot read.
+  UIBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref UIBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${UIBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${UIDistribution}"
+
+  # ──────────────────────────── WAFv2 (conditional) ─────────────
+  # AttachWaf=false in dev → these resources don't deploy at all. Set
+  # AttachWaf=true to add common + IP-reputation managed rule groups.
+  UIWebAcl:
+    Type: AWS::WAFv2::WebACL
+    Condition: WafEnabled
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-ui-waf"
+      Scope: CLOUDFRONT
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub "${Environment}-${ProjectName}-ui-waf"
+      Rules:
+        - Name: AWSManagedRulesCommonRuleSet
+          Priority: 1
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWSManagedRulesCommonRuleSet
+        - Name: AWSManagedRulesAmazonIpReputationList
+          Priority: 2
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesAmazonIpReputationList
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWSManagedRulesAmazonIpReputationList
+
+Outputs:
+  UIBucketName:
+    Value: !Ref UIBucket
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-UIBucketName"
+  DistributionId:
+    Value: !Ref UIDistribution
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-UIDistributionId"
+  CloudFrontDomain:
+    Description: Auto-assigned *.cloudfront.net domain for the SPA.
+    Value: !GetAtt UIDistribution.DomainName
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-CloudFrontDomain"
+  UIBaseURL:
+    Description: Full https:// URL of the SPA (the address you hand out to team members).
+    Value: !Sub "https://${UIDistribution.DomainName}"
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-UIBaseURL"

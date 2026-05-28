@@ -1,0 +1,73 @@
+[
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "st21arbiter-poc"
+  },
+  {
+    "_comment_network": "Single-AZ demo override — AZ-b CIDRs reserved for later switch back to multi-AZ.",
+    "ParameterKey": "VpcCidr",
+    "ParameterValue": "10.20.0.0/20"
+  },
+  {
+    "ParameterKey": "PublicSubnet1Cidr",
+    "ParameterValue": "10.20.0.0/24"
+  },
+  {
+    "ParameterKey": "PublicSubnet2Cidr",
+    "ParameterValue": "10.20.1.0/24"
+  },
+  {
+    "ParameterKey": "PrivateSubnet1Cidr",
+    "ParameterValue": "10.20.4.0/22"
+  },
+  {
+    "ParameterKey": "PrivateSubnet2Cidr",
+    "ParameterValue": "10.20.8.0/22"
+  },
+  {
+    "_comment_subnet2_az": "AgentCore Runtime AZ; must map to use1-az1/az2/az4. In this account us-east-1b → use1-az1 (supported).",
+    "ParameterKey": "PrivateSubnet2AZ",
+    "ParameterValue": "us-east-1b"
+  },
+  {
+    "_comment_identity": "Cognito domain prefix; MFA stays OFF in 03-identity for demo.",
+    "ParameterKey": "CognitoDomainPrefix",
+    "ParameterValue": "poc-st21arbiter"
+  },
+  {
+    "ParameterKey": "OktaMetadataURL",
+    "ParameterValue": "https://example.okta.com/app/abc/sso/saml/metadata"
+  },
+  {
+    "_comment_api": "Throttle to keep demo costs low.",
+    "ParameterKey": "ThrottleRateLimit",
+    "ParameterValue": "50"
+  },
+  {
+    "ParameterKey": "ThrottleBurstLimit",
+    "ParameterValue": "100"
+  },
+  {
+    "_comment_bedrock": "Titan-Embed v2 ARN; flip region prefix if migrating away from us-east-1.",
+    "ParameterKey": "EmbeddingModelArn",
+    "ParameterValue": "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0"
+  },
+  {
+    "ParameterKey": "OpenSearchIndexName",
+    "ParameterValue": "policy-vectors"
+  },
+  {
+    "_comment_observability": "Alarm fan-out target; replace with the demo operator's email.",
+    "ParameterKey": "AlarmEmail",
+    "ParameterValue": "sridhardevops441@gmail.com"
+  },
+  {
+    "_comment_ui": "10-ui-hosting (Plan/) toggles to keep CFN noise low in demo.",
+    "ParameterKey": "AttachWaf",
+    "ParameterValue": "false"
+  }
+]

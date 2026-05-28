@@ -1,0 +1,365 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ARBITER – API Plane (DEMO trim): API Gateway REST + Cognito JWT
+  authorizer + api_handler Lambda. Routes match exactly what the React UI
+  calls in ui/src/hooks/useApi.js and ui/src/pages/MCPChat.jsx.
+  Dropped: WAFv2 (Cognito JWT remains the gate); rate-limit kept via
+  API Gateway throttle settings.
+  Wire-up: browser → CloudFront → React SPA → fetch(API_URL + path,
+  headers={Authorization: Bearer <Cognito IdToken>}) → API Gateway
+  (Cognito authorizer validates JWT) → api_handler Lambda → AgentCore /
+  DynamoDB / Bedrock.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+  ThrottleRateLimit:
+    Type: Number
+    Default: 50
+    Description: API Gateway requests per second (demo).
+  ThrottleBurstLimit:
+    Type: Number
+    Default: 100
+    Description: API Gateway burst capacity (demo).
+  AllowedOrigin:
+    Type: String
+    Default: "*"
+    Description: CORS Access-Control-Allow-Origin. For prod, set to the CloudFront domain.
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Tracing: Active
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        PROJECT_NAME: !Ref ProjectName
+
+Resources:
+  # ──────────────────────────── API Gateway Account Config ─────
+  # AWS::ApiGateway::Account is a singleton per account/region. Without a
+  # CloudWatch Logs role configured here, any stage with LoggingLevel or
+  # AccessLogSetting fails with "CloudWatch Logs role ARN must be set".
+  # Note: deleting this stack resets the account-level setting; that's
+  # acceptable for the demo since this is the only API Gateway in-region.
+  ApiGatewayCloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-apigw-cwlogs-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-apigw-cwlogs-role"
+
+  ApiGatewayAccountConfig:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn: !GetAtt ApiGatewayCloudWatchRole.Arn
+
+  # ──────────────────────────── API Gateway (REST) ─────────────
+  # Cognito User-Pool authorizer is the DEFAULT — every route requires
+  # a valid Bearer IdToken. /health is the only public route (overrides
+  # auth in the function event below).
+  ArbiterApi:
+    Type: AWS::Serverless::Api
+    DependsOn: ApiGatewayAccountConfig
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-api"
+      StageName: !Ref Environment
+      TracingEnabled: true
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: !Sub "'${AllowedOrigin}'"
+        MaxAge: "'600'"
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        AddDefaultAuthorizerToCorsPreflight: false
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn:
+              Fn::ImportValue: !Sub "${Environment}-${ProjectName}-UserPoolArn"
+            Identity:
+              Header: Authorization
+      EndpointConfiguration:
+        Type: REGIONAL
+      MethodSettings:
+        - HttpMethod: "*"
+          ResourcePath: "/*"
+          ThrottlingRateLimit: !Ref ThrottleRateLimit
+          ThrottlingBurstLimit: !Ref ThrottleBurstLimit
+          LoggingLevel: INFO
+          DataTraceEnabled: false
+          MetricsEnabled: true
+      AccessLogSetting:
+        DestinationArn: !GetAtt ApiAccessLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","user":"$context.authorizer.claims.email","time":"$context.requestTime","method":"$context.httpMethod","path":"$context.resourcePath","status":"$context.status","latency":"$context.integrationLatency"}'
+      Tags:
+        Name: !Sub "${Environment}-${ProjectName}-api"
+
+  # ──────────────────────────── API Handler Lambda ─────────────
+  # Routes mapped 1:1 to UI calls in useApi.js + MCPChat.jsx:
+  #   POST /scan                          (Dashboard "Run Scan")
+  #   GET  /findings                      (Dashboard, Findings, HeatMap, Governance)
+  #   GET  /findings/{id}                 (Finding detail drill-down)
+  #   GET  /actions                       (ActionCenter load)
+  #   POST /actions                       (ActionCenter request)
+  #   POST /actions/{id}/approve|reject|execute|escalate  (ActionCenter)
+  #   GET  /audit                         (AuditLogs)
+  #   POST /chat                          (MCPChat, AnalystView)
+  #   POST /mymcp/chat                    (MyMCP spoke requests)
+  #   GET  /conversations                          (MCPChat + AnalystView sidebars)
+  #   GET  /conversations/{session_id}             (session metadata)
+  #   GET  /conversations/{session_id}/messages    (full message history from AgentCore Memory)
+  #   GET  /health                                 (unauth, for CDK/SAM healthcheck)
+
+  # ──────────────────────────── Gateway responses (CORS on 4xx) ──
+  # Without these, when the Cognito authorizer rejects a request, API
+  # Gateway returns 401 with NO CORS headers — the browser treats it as a
+  # CORS failure and the SPA can't react (e.g., redirect to sign-in). These
+  # GatewayResponses inject the CORS headers into authorizer denials so the
+  # JS sees the real status code.
+  Unauthorized4xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: UNAUTHORIZED
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "401"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  AccessDenied4xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: ACCESS_DENIED
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "403"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  Default4xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: DEFAULT_4XX
+      RestApiId: !Ref ArbiterApi
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  ApiHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${Environment}-${ProjectName}-api-handler"
+      Handler: api_handler.handler
+      CodeUri: ../functions/api_handler/
+      Role:
+        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ApiHandlerRoleArn"
+      Timeout: 300
+      MemorySize: 1024
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-UserPoolId"
+          COGNITO_ISSUER_URL:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-CognitoIssuerURL"
+          CONFLICTS_TABLE:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ConflictsTableName"
+          AUDIT_TABLE:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-AuditLogTableName"
+          SESSIONS_TABLE:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-SessionsTableName"
+          CHANGE_REQUESTS_TABLE:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ChangeRequestsTableName"
+          ALLOWED_ORIGIN: !Ref AllowedOrigin
+          # Filled in by deploy_agents.py after AgentCore runtimes are up.
+          MASTER_AGENT_RUNTIME_ARN: ""
+          # Set by deploy_agents.py alongside MASTER_AGENT_RUNTIME_ARN. Read by
+          # GET /conversations/{id}/messages to list events from AgentCore Memory.
+          MEMORY_ID: ""
+          # Used by /uploads/presign (writes into RAW) and /uploads/list
+          # (reads RAW or PROCESSED). KMS key ARN is required because both
+          # buckets enforce SSE-KMS — the presigned PUT must carry the same
+          # encryption headers the role agreed to in the signature.
+          RAW_BUCKET:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-RawBucketName"
+          PROCESSED_BUCKET:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketName"
+          S3_KMS_KEY_ARN:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-S3KeyArn"
+      VpcConfig:
+        SubnetIds:
+          - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-PrivateSubnet1Id"
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-LambdaSGId"
+      # Function URL for long-running calls (e.g. /chat). API Gateway REST has
+      # a hard 29s timeout; Function URLs allow up to 15 min. AuthType=NONE for
+      # demo testing — switch to AWS_IAM (SigV4) or move logic to async before prod.
+      FunctionUrlConfig:
+        AuthType: NONE
+      Events:
+        ScanPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /scan
+            Method: POST
+        FindingsList:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /findings
+            Method: GET
+        FindingDetail:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /findings/{conflict_id}
+            Method: GET
+        ActionsList:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /actions
+            Method: GET
+        ActionsCreate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /actions
+            Method: POST
+        ActionsApprove:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /actions/{cr_id}/approve
+            Method: POST
+        ActionsReject:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /actions/{cr_id}/reject
+            Method: POST
+        ActionsExecute:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /actions/{cr_id}/execute
+            Method: POST
+        ActionsEscalate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /actions/{cr_id}/escalate
+            Method: POST
+        AuditList:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /audit
+            Method: GET
+        ChatPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /chat
+            Method: POST
+        MyMcpChatPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /mymcp/chat
+            Method: POST
+        ConversationsList:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /conversations
+            Method: GET
+        ConversationDetail:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /conversations/{session_id}
+            Method: GET
+        ConversationMessages:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /conversations/{session_id}/messages
+            Method: GET
+        HealthCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+      Tags:
+        Name: !Sub "${Environment}-${ProjectName}-api-handler"
+
+  ApiHandlerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Environment}-${ProjectName}-api-handler"
+      RetentionInDays: 30
+
+  ApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${Environment}-${ProjectName}-api-access"
+      RetentionInDays: 30
+
+Outputs:
+  ApiEndpoint:
+    Description: Browser-callable base URL — put this in ui/.env.production as VITE_API_URL.
+    Value: !Sub "https://${ArbiterApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ApiEndpoint"
+  ApiId:
+    Value: !Ref ArbiterApi
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ApiId"
+  ApiHandlerFunctionArn:
+    Value: !GetAtt ApiHandlerFunction.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ApiHandlerLambdaArn"
+  ChatFunctionUrl:
+    Description: Direct Function URL for /chat (bypasses API Gateway 29s timeout; testing-only, AuthType=NONE).
+    Value: !GetAtt ApiHandlerFunctionUrl.FunctionUrl
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ChatFunctionUrl"
+  UIEnvHints:
+    Description: Drop-in for ui/.env.production
+    Value: !Sub
+      - |
+        VITE_API_URL=https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+        VITE_CHAT_URL=${ChatUrl}
+        VITE_COGNITO_USER_POOL_ID=${UserPoolId}
+        VITE_COGNITO_CLIENT_ID=${UserPoolClientId}
+        VITE_COGNITO_REGION=${AWS::Region}
+      - ApiId: !Ref ArbiterApi
+        ChatUrl: !GetAtt ApiHandlerFunctionUrl.FunctionUrl
+        UserPoolId:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-UserPoolId"
+        UserPoolClientId:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-UserPoolClientId"

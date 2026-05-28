@@ -1,0 +1,20 @@
+{
+  "resourceType": "AWS::IAM::Policy",
+  "resources": [
+    {
+      "resourceId": "pol-claims-app-access",
+      "policyName": "ClaimsAppAccess",
+      "attachedTo": [
+        "claims-app-role"
+      ],
+      "permissions": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "dynamodb:*"
+      ],
+      "resources": [
+        "arn:aws:s3:::lm-prod-claims-data-primary/*"
+      ]
+    }
+  ]
+}

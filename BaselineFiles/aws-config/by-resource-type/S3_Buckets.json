@@ -1,0 +1,36 @@
+{
+  "resourceType": "AWS::S3::Bucket",
+  "resources": [
+    {
+      "resourceId": "lm-prod-claims-data-primary",
+      "resourceName": "lm-prod-claims-data-primary",
+      "configuration": {
+        "bucketName": "lm-prod-claims-data-primary",
+        "region": "us-east-1",
+        "dataClassification": "CONFIDENTIAL",
+        "containsCustomerData": true,
+        "dataTypes": [
+          "claims",
+          "PII",
+          "actuarial"
+        ],
+        "replicationConfiguration": {
+          "rules": [
+            {
+              "id": "dr-eu-replication",
+              "status": "Enabled",
+              "destination": {
+                "bucket": "arn:aws:s3:::lm-prod-claims-data-eu-dr",
+                "region": "eu-west-1"
+              },
+              "prefix": ""
+            }
+          ]
+        },
+        "createdAt": "2025-12-04T00:00:00Z",
+        "replicationActiveFor": 134,
+        "legalNotified": false
+      }
+    }
+  ]
+}

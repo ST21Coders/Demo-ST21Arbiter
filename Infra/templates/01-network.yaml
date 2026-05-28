@@ -1,0 +1,248 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  ARBITER – Network (DEMO single-AZ): VPC, 1 public + 1 private subnet,
+  NAT Gateway, S3+DynamoDB gateway endpoints, and shared Security Groups.
+  Trim policy: dropped AZ-b subnets, dropped 5 interface VPC endpoints
+  (Bedrock / SecretsManager / KMS / Logs / ECR — traffic falls back through
+  the NAT for demo). Multi-AZ + PrivateLink can be re-enabled by reverting
+  to the previous template revision.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+  VpcCidr:
+    Type: String
+    Default: "10.20.0.0/20"
+  PublicSubnet1Cidr:
+    Type: String
+    Default: "10.20.0.0/24"
+  PrivateSubnet1Cidr:
+    Type: String
+    Default: "10.20.4.0/22"
+  PrivateSubnet2Cidr:
+    Type: String
+    Default: "10.20.8.0/22"
+  PrivateSubnet2AZ:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: us-east-1b
+    Description: >
+      AZ for the AgentCore-dedicated subnet. AgentCore Runtime only supports
+      specific physical AZ IDs (use1-az1, use1-az2, use1-az4 in us-east-1).
+      AZ name → AZ ID mapping is account-specific; run
+      `aws ec2 describe-availability-zones` to verify your account's mapping.
+
+Resources:
+  # ──────────────────────────── VPC ────────────────────────────
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-vpc"
+
+  # ──────────────────────────── Internet Gateway ───────────────
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-igw"
+
+  IGWAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # ──────────────────────────── Public Subnet ──────────────────
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet1Cidr
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-public-1"
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-public-rt"
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: IGWAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RTA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  # ──────────────────────────── NAT Gateway ────────────────────
+  NatEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-nat-eip"
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-nat"
+
+  # ──────────────────────────── Private Subnet ─────────────────
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet1Cidr
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-private-1"
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-private-rt"
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnet1RTA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  # ──────────────────────────── AgentCore-dedicated Subnet ─────
+  # AgentCore Runtime is constrained to specific physical AZ IDs (use1-az1/
+  # az2/az4 in us-east-1). PrivateSubnet1 is left in its original AZ (index 0)
+  # for backwards-compatibility with the OpenSearch VPC endpoint + Lambda
+  # VpcConfigs already deployed; this second subnet is what AgentCore attaches
+  # to. Same route table → same NAT → same gateway endpoints, just a different
+  # AZ. Cross-AZ traffic from AgentCore to the OSS endpoint is functional.
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2Cidr
+      AvailabilityZone: !Ref PrivateSubnet2AZ
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-private-2-agentcore"
+
+  PrivateSubnet2RTA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+  # ──────────────────────────── Gateway VPC Endpoints (free) ───
+  S3GatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+
+  DynamoDBGatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.dynamodb"
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+
+  # ──────────────────────────── Security Groups ────────────────
+  LambdaSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Lambda functions
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-lambda-sg"
+
+  OpenSearchSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for OpenSearch Serverless VPC endpoint
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref LambdaSG
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-opensearch-sg"
+
+Outputs:
+  VpcId:
+    Value: !Ref VPC
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-VpcId"
+  PublicSubnet1Id:
+    Value: !Ref PublicSubnet1
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-PublicSubnet1Id"
+  PrivateSubnet1Id:
+    Value: !Ref PrivateSubnet1
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-PrivateSubnet1Id"
+  PrivateSubnet2Id:
+    Value: !Ref PrivateSubnet2
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-PrivateSubnet2Id"
+  LambdaSGId:
+    Value: !Ref LambdaSG
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-LambdaSGId"
+  OpenSearchSGId:
+    Value: !Ref OpenSearchSG
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-OpenSearchSGId"
+  PrivateRouteTableId:
+    Value: !Ref PrivateRouteTable
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-PrivateRouteTableId"

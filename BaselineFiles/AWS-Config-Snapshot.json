@@ -1,0 +1,709 @@
+{
+  "awsConfigExport": {
+    "metadata": {
+      "accountId": "123456789012",
+      "accountAlias": "meridian-insurance-prod",
+      "region": "us-east-1",
+      "exportDate": "2026-05-18T06:00:00Z",
+      "configRecorderName": "default",
+      "exportVersion": "1.0"
+    },
+
+    "vpcConfigurations": [
+      {
+        "resourceType": "AWS::EC2::VPC",
+        "resourceId": "vpc-0a1b2c3d4e5f60001",
+        "resourceName": "meridian-prod-vpc",
+        "configuration": {
+          "vpcId": "vpc-0a1b2c3d4e5f60001",
+          "cidrBlock": "172.16.0.0/16",
+          "state": "available",
+          "isDefault": false,
+          "enableDnsSupport": true,
+          "enableDnsHostnames": true,
+          "instanceTenancy": "default",
+          "tags": [
+            { "key": "Name", "value": "meridian-prod-vpc" },
+            { "key": "Environment", "value": "production" },
+            { "key": "Owner", "value": "cloud-infrastructure" },
+            { "key": "CostCenter", "value": "IT-5001" },
+            { "key": "DataClassification", "value": "Tier1-Restricted" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "configurationStateId": "1716019200001",
+        "awsRegion": "us-east-1",
+        "availabilityZone": "Multiple",
+        "resourceCreationTime": "2024-03-15T10:00:00Z"
+      },
+      {
+        "resourceType": "AWS::EC2::VPC",
+        "resourceId": "vpc-0a1b2c3d4e5f60002",
+        "resourceName": "meridian-dev-vpc",
+        "configuration": {
+          "vpcId": "vpc-0a1b2c3d4e5f60002",
+          "cidrBlock": "10.0.0.0/16",
+          "state": "available",
+          "isDefault": false,
+          "enableDnsSupport": true,
+          "enableDnsHostnames": true,
+          "instanceTenancy": "default",
+          "tags": [
+            { "key": "Name", "value": "meridian-dev-vpc" },
+            { "key": "Environment", "value": "development" },
+            { "key": "Owner", "value": "engineering" },
+            { "key": "CostCenter", "value": "ENG-3002" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "configurationStateId": "1716019200002",
+        "awsRegion": "us-east-1",
+        "availabilityZone": "Multiple",
+        "resourceCreationTime": "2024-03-15T11:00:00Z"
+      },
+      {
+        "resourceType": "AWS::EC2::VPC",
+        "resourceId": "vpc-0a1b2c3d4e5f60003",
+        "resourceName": "meridian-staging-vpc",
+        "configuration": {
+          "vpcId": "vpc-0a1b2c3d4e5f60003",
+          "cidrBlock": "10.1.0.0/16",
+          "state": "available",
+          "isDefault": false,
+          "tags": [
+            { "key": "Name", "value": "meridian-staging-vpc" },
+            { "key": "Environment", "value": "staging" },
+            { "key": "Owner", "value": "engineering" },
+            { "key": "CostCenter", "value": "ENG-3002" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "awsRegion": "us-east-1",
+        "resourceCreationTime": "2024-06-20T09:00:00Z"
+      }
+    ],
+
+    "vpcPeeringConnections": [
+      {
+        "resourceType": "AWS::EC2::VPCPeeringConnection",
+        "resourceId": "pcx-0abc1234def56789a",
+        "resourceName": "prod-to-dev-peering",
+        "configuration": {
+          "vpcPeeringConnectionId": "pcx-0abc1234def56789a",
+          "status": {
+            "code": "active",
+            "message": "Active"
+          },
+          "requesterVpcInfo": {
+            "vpcId": "vpc-0a1b2c3d4e5f60001",
+            "cidrBlock": "172.16.0.0/16",
+            "ownerId": "123456789012",
+            "region": "us-east-1",
+            "tags": [
+              { "key": "Name", "value": "meridian-prod-vpc" },
+              { "key": "Environment", "value": "production" }
+            ]
+          },
+          "accepterVpcInfo": {
+            "vpcId": "vpc-0a1b2c3d4e5f60002",
+            "cidrBlock": "10.0.0.0/16",
+            "ownerId": "123456789012",
+            "region": "us-east-1",
+            "tags": [
+              { "key": "Name", "value": "meridian-dev-vpc" },
+              { "key": "Environment", "value": "development" }
+            ]
+          },
+          "tags": [
+            { "key": "Name", "value": "prod-to-dev-peering" },
+            { "key": "Purpose", "value": "Temporary - data migration" },
+            { "key": "CreatedBy", "value": "j.rodriguez@meridian-ins.com" },
+            { "key": "TicketRef", "value": "CHG-2026-04187" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "awsRegion": "us-east-1",
+        "resourceCreationTime": "2026-03-18T14:22:00Z",
+        "_arbiterNote": "CONFLICT: Active VPC peering between production (172.16.0.0/16) and development (10.0.0.0/16). Created 61 days ago as 'temporary' for data migration. Still active. Violates MIG-POL-004 Section 3 (Environment Segmentation) which prohibits direct network paths between prod and non-prod."
+      }
+    ],
+
+    "securityGroups": [
+      {
+        "resourceType": "AWS::EC2::SecurityGroup",
+        "resourceId": "sg-0a1b2c3d4e5f70001",
+        "resourceName": "sg-prod-alb-claims-app",
+        "configuration": {
+          "groupId": "sg-0a1b2c3d4e5f70001",
+          "groupName": "sg-prod-alb-claims-app",
+          "description": "Security group for production claims application ALB",
+          "vpcId": "vpc-0a1b2c3d4e5f60001",
+          "ipPermissions": [
+            {
+              "ipProtocol": "tcp",
+              "fromPort": 443,
+              "toPort": 443,
+              "ipRanges": [
+                {
+                  "cidrIp": "0.0.0.0/0",
+                  "description": "TEMP - vendor integration call 2026-04-01 - remove after"
+                }
+              ],
+              "ipv6Ranges": [],
+              "prefixListIds": [],
+              "userIdGroupPairs": []
+            },
+            {
+              "ipProtocol": "tcp",
+              "fromPort": 443,
+              "toPort": 443,
+              "ipRanges": [],
+              "ipv6Ranges": [],
+              "prefixListIds": [],
+              "userIdGroupPairs": [
+                {
+                  "groupId": "sg-0waf0001",
+                  "description": "Allow from WAF security group"
+                }
+              ]
+            }
+          ],
+          "ipPermissionsEgress": [
+            {
+              "ipProtocol": "-1",
+              "ipRanges": [
+                { "cidrIp": "0.0.0.0/0" }
+              ]
+            }
+          ],
+          "tags": [
+            { "key": "Name", "value": "sg-prod-alb-claims-app" },
+            { "key": "Environment", "value": "production" },
+            { "key": "Application", "value": "claims-processing" },
+            { "key": "DataClassification", "value": "Tier1-Restricted" },
+            { "key": "Owner", "value": "claims-engineering" },
+            { "key": "LastModifiedBy", "value": "d.kim@meridian-ins.com" },
+            { "key": "LastModifiedDate", "value": "2026-04-01" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "awsRegion": "us-east-1",
+        "resourceCreationTime": "2024-06-15T08:00:00Z",
+        "_arbiterNote": "CONFLICT: Inbound rule allows 0.0.0.0/0 on port 443. Description says 'TEMP - vendor integration call 2026-04-01 - remove after'. Still open 47 days later. Violates MIG-POL-004 Section 2 (WAF Requirements) which prohibits direct public internet access to production ALBs. The WAF security group rule (sg-0waf0001) is also present, meaning this SG has BOTH proper WAF-routed traffic AND a direct bypass."
+      },
+      {
+        "resourceType": "AWS::EC2::SecurityGroup",
+        "resourceId": "sg-0a1b2c3d4e5f70002",
+        "resourceName": "sg-prod-claims-db",
+        "configuration": {
+          "groupId": "sg-0a1b2c3d4e5f70002",
+          "groupName": "sg-prod-claims-db",
+          "description": "Security group for production claims database (Aurora PostgreSQL)",
+          "vpcId": "vpc-0a1b2c3d4e5f60001",
+          "ipPermissions": [
+            {
+              "ipProtocol": "tcp",
+              "fromPort": 5432,
+              "toPort": 5432,
+              "ipRanges": [
+                {
+                  "cidrIp": "172.16.0.0/16",
+                  "description": "Allow from prod VPC"
+                }
+              ],
+              "userIdGroupPairs": [
+                {
+                  "groupId": "sg-0a1b2c3d4e5f70001",
+                  "description": "Allow from claims app ALB SG"
+                }
+              ]
+            }
+          ],
+          "ipPermissionsEgress": [
+            {
+              "ipProtocol": "tcp",
+              "fromPort": 443,
+              "toPort": 443,
+              "ipRanges": [
+                { "cidrIp": "0.0.0.0/0", "description": "AWS API calls and backups" }
+              ]
+            }
+          ],
+          "tags": [
+            { "key": "Name", "value": "sg-prod-claims-db" },
+            { "key": "Environment", "value": "production" },
+            { "key": "Application", "value": "claims-processing" },
+            { "key": "DataClassification", "value": "Tier1-Restricted" },
+            { "key": "Owner", "value": "data-engineering" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "awsRegion": "us-east-1",
+        "resourceCreationTime": "2024-06-15T08:30:00Z"
+      },
+      {
+        "resourceType": "AWS::EC2::SecurityGroup",
+        "resourceId": "sg-0a1b2c3d4e5f70003",
+        "resourceName": "sg-prod-claims-app-tier",
+        "configuration": {
+          "groupId": "sg-0a1b2c3d4e5f70003",
+          "groupName": "sg-prod-claims-app-tier",
+          "description": "Claims processing application tier - ECS Fargate tasks",
+          "vpcId": "vpc-0a1b2c3d4e5f60001",
+          "ipPermissions": [
+            {
+              "ipProtocol": "tcp",
+              "fromPort": 8080,
+              "toPort": 8080,
+              "ipRanges": [
+                {
+                  "cidrIp": "10.0.0.0/8",
+                  "description": "Allow from entire corporate network"
+                }
+              ]
+            }
+          ],
+          "tags": [
+            { "key": "Name", "value": "sg-prod-claims-app-tier" },
+            { "key": "Environment", "value": "production" },
+            { "key": "Application", "value": "claims-processing" },
+            { "key": "DataClassification", "value": "Tier1-Restricted" },
+            { "key": "Owner", "value": "claims-engineering" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "awsRegion": "us-east-1",
+        "resourceCreationTime": "2024-09-10T11:00:00Z",
+        "_arbiterNote": "CONFLICT: Inbound rule allows 10.0.0.0/8 (entire corporate network) to access the claims processing application on port 8080. Claims app handles Tier 1 Restricted data (PII, PCI). MIG-POL-002 Section 3 requires Tier 1 systems to have access restricted to 'named individuals only'. A /8 covering the entire corporate network is not meaningful access control."
+      },
+      {
+        "resourceType": "AWS::EC2::SecurityGroup",
+        "resourceId": "sg-0a1b2c3d4e5f70004",
+        "resourceName": "sg-dev-peering-inbound",
+        "configuration": {
+          "groupId": "sg-0a1b2c3d4e5f70004",
+          "groupName": "sg-dev-peering-inbound",
+          "description": "Allow inbound from dev VPC via peering connection",
+          "vpcId": "vpc-0a1b2c3d4e5f60001",
+          "ipPermissions": [
+            {
+              "ipProtocol": "-1",
+              "ipRanges": [
+                {
+                  "cidrIp": "10.0.0.0/16",
+                  "description": "Allow ALL traffic from dev VPC"
+                }
+              ]
+            }
+          ],
+          "tags": [
+            { "key": "Name", "value": "sg-dev-peering-inbound" },
+            { "key": "Environment", "value": "production" },
+            { "key": "Purpose", "value": "Data migration from dev" },
+            { "key": "CreatedBy", "value": "j.rodriguez@meridian-ins.com" },
+            { "key": "TicketRef", "value": "CHG-2026-04187" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "awsRegion": "us-east-1",
+        "resourceCreationTime": "2026-03-18T14:30:00Z",
+        "_arbiterNote": "CONFLICT: Allows ALL protocols from the entire dev VPC CIDR (10.0.0.0/16) into the production VPC. Combined with the VPC peering connection pcx-0abc1234def56789a, this creates a fully open path from development to production. Violates MIG-POL-004 Section 3."
+      },
+      {
+        "resourceType": "AWS::EC2::SecurityGroup",
+        "resourceId": "sg-0a1b2c3d4e5f70005",
+        "resourceName": "sg-prod-api-gateway",
+        "configuration": {
+          "groupId": "sg-0a1b2c3d4e5f70005",
+          "groupName": "sg-prod-api-gateway",
+          "description": "Production API Gateway for partner integrations",
+          "vpcId": "vpc-0a1b2c3d4e5f60001",
+          "ipPermissions": [
+            {
+              "ipProtocol": "tcp",
+              "fromPort": 443,
+              "toPort": 443,
+              "ipRanges": [],
+              "userIdGroupPairs": [
+                {
+                  "groupId": "sg-0waf0001",
+                  "description": "Allow from WAF only"
+                }
+              ]
+            }
+          ],
+          "tags": [
+            { "key": "Name", "value": "sg-prod-api-gateway" },
+            { "key": "Environment", "value": "production" },
+            { "key": "Application", "value": "partner-api" },
+            { "key": "Owner", "value": "api-platform" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "awsRegion": "us-east-1",
+        "resourceCreationTime": "2025-01-20T10:00:00Z",
+        "_arbiterNote": "COMPLIANT: This security group correctly allows inbound only from the WAF security group. No direct 0.0.0.0/0 access. Included as a positive example for ARBITER to contrast against the non-compliant sg-prod-alb-claims-app."
+      }
+    ],
+
+    "s3BucketConfigurations": [
+      {
+        "resourceType": "AWS::S3::Bucket",
+        "resourceId": "meridian-customer-insurance-data-prod",
+        "resourceName": "meridian-customer-insurance-data-prod",
+        "configuration": {
+          "bucketName": "meridian-customer-insurance-data-prod",
+          "creationDate": "2024-01-15T00:00:00Z",
+          "versioningConfiguration": {
+            "status": "Enabled"
+          },
+          "encryptionConfiguration": {
+            "rules": [
+              {
+                "applyServerSideEncryptionByDefault": {
+                  "sseAlgorithm": "aws:kms",
+                  "kmsMasterKeyID": "arn:aws:kms:us-east-1:123456789012:key/mrk-a1b2c3d4e5f6"
+                },
+                "bucketKeyEnabled": true
+              }
+            ]
+          },
+          "publicAccessBlockConfiguration": {
+            "blockPublicAcls": true,
+            "ignorePublicAcls": true,
+            "blockPublicPolicy": true,
+            "restrictPublicBuckets": true
+          },
+          "loggingConfiguration": {
+            "destinationBucketName": "meridian-s3-access-logs",
+            "logFilePrefix": "customer-insurance-data/"
+          },
+          "replicationConfiguration": {
+            "role": "arn:aws:iam::123456789012:role/s3-replication-role",
+            "rules": [
+              {
+                "id": "DR-replication-us-west-2",
+                "status": "Enabled",
+                "priority": 1,
+                "filter": { "prefix": "" },
+                "destination": {
+                  "bucket": "arn:aws:s3:::meridian-customer-insurance-data-dr-west",
+                  "storageClass": "STANDARD_IA",
+                  "account": "123456789012",
+                  "region": "us-west-2",
+                  "encryptionConfiguration": {
+                    "replicaKmsKeyID": "arn:aws:kms:us-west-2:123456789012:key/mrk-a1b2c3d4e5f6"
+                  }
+                }
+              },
+              {
+                "id": "DR-replication-eu-west-1",
+                "status": "Enabled",
+                "priority": 2,
+                "filter": { "prefix": "" },
+                "destination": {
+                  "bucket": "arn:aws:s3:::meridian-customer-insurance-data-dr-ireland",
+                  "storageClass": "STANDARD_IA",
+                  "account": "123456789012",
+                  "region": "eu-west-1",
+                  "encryptionConfiguration": {
+                    "replicaKmsKeyID": "arn:aws:kms:eu-west-1:123456789012:key/mrk-b2c3d4e5f6a1"
+                  }
+                }
+              }
+            ]
+          },
+          "lifecycleConfiguration": {
+            "rules": [
+              {
+                "id": "archive-old-data",
+                "status": "Enabled",
+                "transitions": [
+                  { "days": 90, "storageClass": "STANDARD_IA" },
+                  { "days": 365, "storageClass": "GLACIER" }
+                ]
+              }
+            ]
+          },
+          "tags": [
+            { "key": "Name", "value": "meridian-customer-insurance-data-prod" },
+            { "key": "Environment", "value": "production" },
+            { "key": "DataClassification", "value": "Tier1-Restricted" },
+            { "key": "DataType", "value": "customer-insurance-pii" },
+            { "key": "RegulatoryScope", "value": "NAIC-MDL668,PCI-DSS" },
+            { "key": "Owner", "value": "data-engineering" },
+            { "key": "BackupPolicy", "value": "cross-region-replication" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "awsRegion": "us-east-1",
+        "resourceCreationTime": "2024-01-15T00:00:00Z",
+        "supplementaryConfiguration": {
+          "replicationRuleAddedBy": "m.chen@meridian-ins.com",
+          "replicationRuleAddedDate": "2026-04-10T09:15:00Z",
+          "replicationRuleTicket": "CHG-2026-05321",
+          "replicationRuleJustification": "Disaster recovery - adding EU region for geographic redundancy"
+        },
+        "_arbiterNote": "CONFLICT: S3 cross-region replication rule 'DR-replication-eu-west-1' replicates customer insurance data to eu-west-1 (Ireland). Bucket is tagged DataType=customer-insurance-pii and RegulatoryScope=NAIC-MDL668. MIG-POL-003 Section 3 (Data Residency) states: 'Customer insurance data must not be stored, processed, replicated, or backed up to any data center or cloud region located outside the United States. No exceptions.' eu-west-1 is Ireland. The us-west-2 replication is compliant (Oregon, USA). The eu-west-1 replication is a direct NAIC violation."
+      },
+      {
+        "resourceType": "AWS::S3::Bucket",
+        "resourceId": "meridian-financial-reports-prod",
+        "resourceName": "meridian-financial-reports-prod",
+        "configuration": {
+          "bucketName": "meridian-financial-reports-prod",
+          "creationDate": "2024-03-01T00:00:00Z",
+          "versioningConfiguration": {
+            "status": "Enabled"
+          },
+          "encryptionConfiguration": {
+            "rules": [
+              {
+                "applyServerSideEncryptionByDefault": {
+                  "sseAlgorithm": "AES256"
+                },
+                "bucketKeyEnabled": false
+              }
+            ]
+          },
+          "publicAccessBlockConfiguration": {
+            "blockPublicAcls": true,
+            "ignorePublicAcls": true,
+            "blockPublicPolicy": true,
+            "restrictPublicBuckets": true
+          },
+          "tags": [
+            { "key": "Name", "value": "meridian-financial-reports-prod" },
+            { "key": "Environment", "value": "production" },
+            { "key": "DataClassification", "value": "Tier2-Confidential" },
+            { "key": "DataType", "value": "financial-reports" },
+            { "key": "Owner", "value": "finance" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "awsRegion": "us-east-1",
+        "resourceCreationTime": "2024-03-01T00:00:00Z",
+        "_arbiterNote": "CONFLICT: Encryption uses SSE-S3 (AES-256 managed by S3) which technically meets the AES-256 requirement. However, bucket is tagged Tier2-Confidential. MIG-POL-002 Section 3 requires AES-256 for Tier 2 data AND states that platform-provided encryption must be 'independently verified'. This is a borderline finding - the encryption algorithm is correct but the verification requirement may not be met with default SSE-S3. Low severity."
+      }
+    ],
+
+    "loadBalancerConfigurations": [
+      {
+        "resourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "resourceId": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/prod-claims-alb/a1b2c3d4e5f60001",
+        "resourceName": "prod-claims-alb",
+        "configuration": {
+          "loadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/prod-claims-alb/a1b2c3d4e5f60001",
+          "dnsName": "prod-claims-alb-123456789.us-east-1.elb.amazonaws.com",
+          "scheme": "internet-facing",
+          "type": "application",
+          "state": { "code": "active" },
+          "vpcId": "vpc-0a1b2c3d4e5f60001",
+          "securityGroups": [
+            "sg-0a1b2c3d4e5f70001"
+          ],
+          "availabilityZones": [
+            { "zoneName": "us-east-1a", "subnetId": "subnet-prod-pub-1a" },
+            { "zoneName": "us-east-1b", "subnetId": "subnet-prod-pub-1b" }
+          ],
+          "tags": [
+            { "key": "Name", "value": "prod-claims-alb" },
+            { "key": "Environment", "value": "production" },
+            { "key": "Application", "value": "claims-processing" },
+            { "key": "WAFAssociation", "value": "REQUIRED" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "awsRegion": "us-east-1",
+        "resourceCreationTime": "2024-06-15T08:00:00Z",
+        "_arbiterNote": "This ALB uses sg-0a1b2c3d4e5f70001 which has the 0.0.0.0/0 bypass rule. The ALB is tagged WAFAssociation=REQUIRED but see WAF section below for actual association status."
+      },
+      {
+        "resourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "resourceId": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/prod-partner-api-alb/a1b2c3d4e5f60002",
+        "resourceName": "prod-partner-api-alb",
+        "configuration": {
+          "loadBalancerArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/prod-partner-api-alb/a1b2c3d4e5f60002",
+          "dnsName": "prod-partner-api-alb-987654321.us-east-1.elb.amazonaws.com",
+          "scheme": "internet-facing",
+          "type": "application",
+          "state": { "code": "active" },
+          "vpcId": "vpc-0a1b2c3d4e5f60001",
+          "securityGroups": [
+            "sg-0a1b2c3d4e5f70005"
+          ],
+          "tags": [
+            { "key": "Name", "value": "prod-partner-api-alb" },
+            { "key": "Environment", "value": "production" },
+            { "key": "Application", "value": "partner-api" },
+            { "key": "WAFAssociation", "value": "ACTIVE" }
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "awsRegion": "us-east-1",
+        "resourceCreationTime": "2025-01-20T10:00:00Z"
+      }
+    ],
+
+    "wafConfigurations": [
+      {
+        "resourceType": "AWS::WAFv2::WebACL",
+        "resourceId": "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/meridian-prod-waf/a1b2c3d4",
+        "resourceName": "meridian-prod-waf",
+        "configuration": {
+          "name": "meridian-prod-waf",
+          "description": "Production WAF for all internet-facing applications",
+          "defaultAction": { "allow": {} },
+          "rules": [
+            {
+              "name": "AWS-AWSManagedRulesCommonRuleSet",
+              "priority": 1,
+              "statement": { "managedRuleGroupStatement": { "vendorName": "AWS", "name": "AWSManagedRulesCommonRuleSet" } },
+              "overrideAction": { "none": {} }
+            },
+            {
+              "name": "AWS-AWSManagedRulesSQLiRuleSet",
+              "priority": 2,
+              "statement": { "managedRuleGroupStatement": { "vendorName": "AWS", "name": "AWSManagedRulesSQLiRuleSet" } },
+              "overrideAction": { "none": {} }
+            },
+            {
+              "name": "RateLimit-Global",
+              "priority": 3,
+              "statement": { "rateBasedStatement": { "limit": 2000, "aggregateKeyType": "IP" } },
+              "action": { "block": {} }
+            }
+          ],
+          "associatedResources": [
+            "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/prod-partner-api-alb/a1b2c3d4e5f60002"
+          ]
+        },
+        "configurationItemCaptureTime": "2026-05-18T06:00:00Z",
+        "awsRegion": "us-east-1",
+        "_arbiterNote": "CONFLICT: The WAF is associated with prod-partner-api-alb but NOT with prod-claims-alb. The claims ALB handles Tier 1 data and is internet-facing but has no WAF protection. Combined with the 0.0.0.0/0 security group rule on sg-prod-alb-claims-app, the claims application is directly exposed to the internet without WAF filtering. Violates MIG-POL-004 Section 2."
+      }
+    ],
+
+    "configRuleEvaluations": [
+      {
+        "configRuleName": "restricted-ssh",
+        "resourceType": "AWS::EC2::SecurityGroup",
+        "resourceId": "sg-0a1b2c3d4e5f70001",
+        "complianceType": "NON_COMPLIANT",
+        "annotation": "Security group allows unrestricted inbound access on port 443 from 0.0.0.0/0",
+        "orderingTimestamp": "2026-05-18T06:00:00Z"
+      },
+      {
+        "configRuleName": "vpc-peering-route-table-check",
+        "resourceType": "AWS::EC2::VPCPeeringConnection",
+        "resourceId": "pcx-0abc1234def56789a",
+        "complianceType": "NON_COMPLIANT",
+        "annotation": "VPC peering connection exists between production and development VPCs with permissive routing",
+        "orderingTimestamp": "2026-05-18T06:00:00Z"
+      },
+      {
+        "configRuleName": "s3-bucket-replication-region-check",
+        "resourceType": "AWS::S3::Bucket",
+        "resourceId": "meridian-customer-insurance-data-prod",
+        "complianceType": "NON_COMPLIANT",
+        "annotation": "S3 bucket has cross-region replication to eu-west-1 which is outside approved US regions",
+        "orderingTimestamp": "2026-05-18T06:00:00Z"
+      },
+      {
+        "configRuleName": "waf-regional-webacl-attached",
+        "resourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+        "resourceId": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/prod-claims-alb/a1b2c3d4e5f60001",
+        "complianceType": "NON_COMPLIANT",
+        "annotation": "Internet-facing ALB is not associated with a WAF WebACL",
+        "orderingTimestamp": "2026-05-18T06:00:00Z"
+      },
+      {
+        "configRuleName": "restricted-ssh",
+        "resourceType": "AWS::EC2::SecurityGroup",
+        "resourceId": "sg-0a1b2c3d4e5f70005",
+        "complianceType": "COMPLIANT",
+        "annotation": "Security group does not allow unrestricted inbound access",
+        "orderingTimestamp": "2026-05-18T06:00:00Z"
+      },
+      {
+        "configRuleName": "s3-bucket-server-side-encryption-enabled",
+        "resourceType": "AWS::S3::Bucket",
+        "resourceId": "meridian-customer-insurance-data-prod",
+        "complianceType": "COMPLIANT",
+        "annotation": "Bucket has server-side encryption enabled with KMS",
+        "orderingTimestamp": "2026-05-18T06:00:00Z"
+      },
+      {
+        "configRuleName": "s3-bucket-public-read-prohibited",
+        "resourceType": "AWS::S3::Bucket",
+        "resourceId": "meridian-customer-insurance-data-prod",
+        "complianceType": "COMPLIANT",
+        "annotation": "Bucket blocks public access",
+        "orderingTimestamp": "2026-05-18T06:00:00Z"
+      }
+    ],
+
+    "eventBridgeChangeEvents": [
+      {
+        "eventId": "EVT-2026-0501-001",
+        "eventType": "ConfigurationItemChangeNotification",
+        "timestamp": "2026-04-01T16:22:00Z",
+        "resourceType": "AWS::EC2::SecurityGroup",
+        "resourceId": "sg-0a1b2c3d4e5f70001",
+        "changeType": "UPDATE",
+        "changedBy": "arn:aws:iam::123456789012:user/d.kim",
+        "changeSummary": "Added inbound rule: TCP 443 from 0.0.0.0/0",
+        "previousConfiguration": {
+          "ipPermissions": [
+            {
+              "ipProtocol": "tcp",
+              "fromPort": 443,
+              "toPort": 443,
+              "userIdGroupPairs": [
+                { "groupId": "sg-0waf0001", "description": "Allow from WAF security group" }
+              ]
+            }
+          ]
+        },
+        "currentConfiguration": {
+          "ipPermissions": [
+            {
+              "ipProtocol": "tcp",
+              "fromPort": 443,
+              "toPort": 443,
+              "ipRanges": [
+                { "cidrIp": "0.0.0.0/0", "description": "TEMP - vendor integration call 2026-04-01 - remove after" }
+              ],
+              "userIdGroupPairs": [
+                { "groupId": "sg-0waf0001", "description": "Allow from WAF security group" }
+              ]
+            }
+          ]
+        },
+        "_arbiterNote": "This is the triggering event for Scenario 4 (drift detection). The before state shows only WAF-routed traffic. The after state shows the 0.0.0.0/0 bypass added. In a live demo, this EventBridge event would trigger ARBITER's real-time drift detection pipeline."
+      },
+      {
+        "eventId": "EVT-2026-0410-001",
+        "eventType": "ConfigurationItemChangeNotification",
+        "timestamp": "2026-04-10T09:15:00Z",
+        "resourceType": "AWS::S3::Bucket",
+        "resourceId": "meridian-customer-insurance-data-prod",
+        "changeType": "UPDATE",
+        "changedBy": "arn:aws:iam::123456789012:user/m.chen",
+        "changeSummary": "Added cross-region replication rule to eu-west-1",
+        "previousConfiguration": {
+          "replicationRules": [
+            { "id": "DR-replication-us-west-2", "destination": "us-west-2", "status": "Enabled" }
+          ]
+        },
+        "currentConfiguration": {
+          "replicationRules": [
+            { "id": "DR-replication-us-west-2", "destination": "us-west-2", "status": "Enabled" },
+            { "id": "DR-replication-eu-west-1", "destination": "eu-west-1", "status": "Enabled" }
+          ]
+        },
+        "_arbiterNote": "This is the triggering event for the NAIC data residency violation. The before state had only us-west-2 replication (compliant). The change added eu-west-1 replication (non-compliant). ARBITER's drift detection would catch this within minutes."
+      }
+    ]
+  }
+}

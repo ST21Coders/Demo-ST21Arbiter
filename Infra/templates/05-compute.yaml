@@ -1,0 +1,179 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ARBITER – Compute (DEMO trim): ECR repos for master + zscaler specialist
+  (the other 2 specialists' repos live in 09-agentcore.yaml). Plus the
+  processing_pipeline Lambda (S3 raw → text extract → KB sync).
+  Dropped: ECR repos for unused agents (doc-specialist, net-specialist,
+  iam-specialist, conflict-reasoner, remediation-planner). The agents/
+  directory only has 4 real agents — keep their repos and nothing else.
+  Single-AZ: VpcConfig uses one private subnet.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 300
+    MemorySize: 512
+    Tracing: Active
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        PROJECT_NAME: !Ref ProjectName
+    VpcConfig:
+      SubnetIds:
+        - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-PrivateSubnet1Id"
+      SecurityGroupIds:
+        - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-LambdaSGId"
+
+Resources:
+  # ──────────────────────────── ECR Repositories (2) ───────────
+  # IMMUTABLE → MUTABLE for the demo so we can re-push :latest while
+  # iterating on the agents.
+  MasterOrchestratorRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/master-orchestrator"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {"rulePriority":1,"description":"Keep last 5 images",
+               "selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":5},
+               "action":{"type":"expire"}}
+            ]
+          }
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-master-orchestrator"
+
+  ZscalerSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/zscaler-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {"rulePriority":1,"description":"Keep last 5 images",
+               "selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":5},
+               "action":{"type":"expire"}}
+            ]
+          }
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-zscaler-specialist"
+
+  # ──────────────────────────── Processing Pipeline Lambda ─────
+  ProcessingPipelineFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${Environment}-${ProjectName}-processing-pipeline"
+      Handler: processing_pipeline.handler
+      CodeUri: ../functions/processing_pipeline/
+      Role:
+        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessingPipelineRoleArn"
+      Timeout: 900
+      MemorySize: 1024
+      Environment:
+        Variables:
+          RAW_BUCKET:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-RawBucketName"
+          PROCESSED_BUCKET:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketName"
+          S3_KMS_KEY_ARN:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-S3KeyArn"
+          REPORTS_PREFIX: "File_Transfer_Reports/"
+          # Used by the JWT decode in processing_pipeline._caller_groups.
+          COGNITO_ISSUER_URL:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-CognitoIssuerURL"
+          # Comma-separated Cognito group list allowed to trigger a manual run.
+          # EventBridge invocations bypass this gate (no http context on the event).
+          ALLOWED_GROUPS: "ciso,grc"
+      # Function URL for manual UI-driven triggers. AuthType=NONE; the Lambda
+      # decodes the Cognito IdToken from the Authorization header and verifies
+      # the caller's group membership against ALLOWED_GROUPS. Mirrors the
+      # api_handler /chat pattern.
+      FunctionUrlConfig:
+        AuthType: NONE
+      Tags:
+        Name: !Sub "${Environment}-${ProjectName}-processing-pipeline"
+
+  ProcessingPipelinePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProcessingPipelineFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub "arn:aws:s3:::${Environment}-${ProjectName}-raw"
+      SourceAccount: !Ref AWS::AccountId
+
+  # ──────────────────────────── Schedule (twice/day) ───────────
+  # Cron is UTC. 14:00 UTC = 06:00 PST and 02:00 UTC = 18:00 PST (UTC-8 literal,
+  # not DST-aware). Switch to AWS::Scheduler::Schedule with
+  # ScheduleExpressionTimezone if Pacific-local wall-clock is wanted instead.
+  ProcessingPipelineSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-processing-pipeline-schedule"
+      Description: "Twice-daily raw -> processed file move (06:00 / 18:00 PST literal UTC-8)"
+      ScheduleExpression: "cron(0 14,2 * * ? *)"
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt ProcessingPipelineFunction.Arn
+          Id: ProcessingPipelineTarget
+
+  ProcessingPipelineSchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProcessingPipelineFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ProcessingPipelineSchedule.Arn
+
+  ProcessingPipelineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Environment}-${ProjectName}-processing-pipeline"
+      RetentionInDays: 30
+
+Outputs:
+  MasterOrchestratorRepoUri:
+    Value: !GetAtt MasterOrchestratorRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-MasterOrchestratorRepoUri"
+  ZscalerSpecialistRepoUri:
+    Value: !GetAtt ZscalerSpecialistRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ZscalerSpecialistRepoUri"
+  ProcessingPipelineLambdaArn:
+    Value: !GetAtt ProcessingPipelineFunction.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ProcessingPipelineLambdaArn"
+  ProcessingPipelineFunctionUrl:
+    Description: Direct Function URL to trigger the file mover from a UI (AuthType=NONE; JWT decoded in code).
+    Value: !GetAtt ProcessingPipelineFunctionUrl.FunctionUrl
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ProcessingPipelineFunctionUrl"

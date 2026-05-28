@@ -1,0 +1,5 @@
+Liberty Mutual Data Residency Policy
+Document ID: LM-POL-DATA-RESID-007 Version: 1.1
+Regulatory Framework: NAIC MDL-668, state insurance regulations
+Section 2.1 Data Storage Requirements
+All customer data including claims records, policyholder PII, and actuarial data must be stored exclusively in US-based AWS regions. Cross-region replication to non-US regions is strictly prohibited. Permitted regions: us-east-1, us-east-2, us-west-1, us-west-2. Violation of this policy may require notification to state insurance regulators.

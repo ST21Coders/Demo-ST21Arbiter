@@ -1,0 +1,244 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  ARBITER – Security (DEMO trim): 2 KMS CMKs (data, dynamodb) + 2 Lambda
+  execution roles. Dropped: SecretsKey + S3Key (data-at-rest CMK reused
+  via SSE-KMS), permission-boundary managed policy (least-privilege is
+  encoded directly in each role's inline policy).
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+
+Resources:
+  # ──────────────────────────── KMS CMKs (2) ───────────────────
+  DataAtRestKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub "${Environment}-${ProjectName} data-at-rest encryption (S3 + secrets)"
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: RootAccess
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: "*"
+          - Sid: ServiceUsage
+            Effect: Allow
+            Principal:
+              Service:
+                - s3.amazonaws.com
+                - secretsmanager.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey
+              - kms:DescribeKey
+            Resource: "*"
+          - Sid: LambdaUsage
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt ApiHandlerRole.Arn
+                - !GetAtt ProcessingPipelineRole.Arn
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey
+              - kms:DescribeKey
+            Resource: "*"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-data-at-rest-key"
+
+  DataAtRestKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/${Environment}-${ProjectName}-data-at-rest"
+      TargetKeyId: !Ref DataAtRestKey
+
+  DynamoDBKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub "${Environment}-${ProjectName} DynamoDB encryption"
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: RootAccess
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: "*"
+          - Sid: DynamoDBService
+            Effect: Allow
+            Principal:
+              Service: dynamodb.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey
+              - kms:DescribeKey
+              - kms:CreateGrant
+            Resource: "*"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-dynamodb-key"
+
+  DynamoDBKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/${Environment}-${ProjectName}-dynamodb"
+      TargetKeyId: !Ref DynamoDBKey
+
+  # ──────────────────────────── Lambda Execution Roles ─────────
+  # api_handler: signed by API Gateway → calls AgentCore + reads/writes
+  # DynamoDB tables for findings/actions/audit.
+  ApiHandlerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-api-handler-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: ApiHandlerPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: AgentCoreInvoke
+                Effect: Allow
+                Action:
+                  - bedrock-agentcore:InvokeAgentRuntime
+                  - bedrock-agentcore:ListEvents
+                  - bedrock-agentcore:GetEvent
+                  - bedrock:InvokeModel
+                  - bedrock:Retrieve
+                  - bedrock:ApplyGuardrail
+                Resource: "*"
+              - Sid: DDBReadWrite
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                # Both the table ARN and the /index/* ARN are needed: DynamoDB
+                # requires explicit GSI-level permission for Query on an index.
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Environment}-${ProjectName}-*"
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Environment}-${ProjectName}-*/index/*"
+              - Sid: KMSUsage
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                  - kms:DescribeKey
+                Resource: "*"
+              - Sid: SecretsRead
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Environment}/${ProjectName}/*"
+              # Needed for /uploads/presign and /uploads/list. PutObject must
+              # be allowed on the role so the presigned URL the role signs is
+              # actually usable; the URL itself enforces the key prefix and
+              # KMS settings, but IAM still has to permit the action.
+              - Sid: RawProcessedBucketUploads
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:GetObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-raw"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-raw/*"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/*"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-api-handler-role"
+
+  # processing_pipeline: S3 → Textract/parse → KB ingestion
+  ProcessingPipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-processing-pipeline-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: ProcessingPipelinePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-raw"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-raw/*"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/*"
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                  - kms:DescribeKey
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - bedrock:StartIngestionJob
+                Resource: "*"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-processing-pipeline-role"
+
+Outputs:
+  DataAtRestKeyArn:
+    Value: !GetAtt DataAtRestKey.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+  # Re-exported under legacy names so dependent stacks (04-storage, 03-identity)
+  # don't need to be updated.
+  SecretsKeyArn:
+    Value: !GetAtt DataAtRestKey.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-SecretsKeyArn"
+  S3KeyArn:
+    Value: !GetAtt DataAtRestKey.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-S3KeyArn"
+  DynamoDBKeyArn:
+    Value: !GetAtt DynamoDBKey.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+  ApiHandlerRoleArn:
+    Value: !GetAtt ApiHandlerRole.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ApiHandlerRoleArn"
+  ProcessingPipelineRoleArn:
+    Value: !GetAtt ProcessingPipelineRole.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ProcessingPipelineRoleArn"

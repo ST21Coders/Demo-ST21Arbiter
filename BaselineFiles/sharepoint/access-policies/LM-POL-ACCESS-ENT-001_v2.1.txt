@@ -1,0 +1,6 @@
+Liberty Mutual Enterprise Access Management Policy
+Document ID: LM-POL-ACCESS-ENT-001 Version: 2.1 STATUS: CURRENT
+Approved by: CISO — 2025-09-15
+Section 4.1 Access Review Requirements
+All privileged access accounts must undergo formal access review every 90 days. Access reviews are mandatory and non-compliance constitutes a policy violation.
+Review cycle: 90 days (quarterly)

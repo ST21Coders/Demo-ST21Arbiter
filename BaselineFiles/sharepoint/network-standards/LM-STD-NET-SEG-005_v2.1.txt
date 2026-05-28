@@ -1,0 +1,8 @@
+Liberty Mutual Network Segmentation Standard
+Document ID: LM-STD-NET-SEG-005 Version: 2.1
+Approved by: NSEC Committee — 2025-11-01
+Section 2.3 Production Environment Isolation
+Production segments must not be accessible from development environments under any circumstances. No exceptions without NSEC approval.
+Production VPC CIDR: 172.16.0.0/16
+Development VPC CIDR: 10.50.0.0/16
+All VPC peering connections between production (172.16.0.0/16) and development (10.50.0.0/16) are strictly prohibited.

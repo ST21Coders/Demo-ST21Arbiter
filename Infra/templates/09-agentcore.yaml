@@ -1,0 +1,248 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  ARBITER – AgentCore Runtime infrastructure: ECR repos for the agent
+  container images, IAM execution role used by AgentCore Runtime, and a
+  Security Group for VPC-attached agent network configuration.
+
+  AgentCore Runtime instances themselves are created out-of-band by
+  scripts/deploy_agents.py (no stable CloudFormation resource yet).
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+
+Resources:
+  # ──────────────────────────── ECR Repositories ───────────────
+  # Defines 2 specialist repos here: sharepoint + awsconfig.
+  # master-orchestrator and zscaler-specialist live in 05-compute.yaml.
+  SharepointSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/sharepoint-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE  # MUTABLE while iterating; flip to IMMUTABLE for prod
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last 10 images",
+                "selection": { "tagStatus": "any", "countType": "imageCountMoreThan", "countNumber": 10 },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-sharepoint-specialist"
+
+  AwsConfigSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/awsconfig-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-awsconfig-specialist"
+
+  # ──────────────────────────── AgentCore Runtime Role ─────────
+  # Assumed by the bedrock-agentcore service to run agent containers.
+  # Permissions cover: model invocation, KB retrieval, ECR image pull,
+  # CloudWatch logs, KMS decrypt, secrets read, X-Ray tracing, and
+  # invocation of OTHER AgentCore runtimes (so the master can call specialists).
+  AgentCoreRuntimeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-agentcore-runtime-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: bedrock-agentcore.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: AgentCoreRuntimePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: BedrockInvokeAndRetrieve
+                Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                  - bedrock:Retrieve
+                  - bedrock:RetrieveAndGenerate
+                  - bedrock:ApplyGuardrail
+                Resource: "*"
+              - Sid: InvokeOtherAgentRuntimes
+                Effect: Allow
+                Action:
+                  - bedrock-agentcore:InvokeAgentRuntime
+                  - bedrock-agentcore:GetAgentRuntime
+                  - bedrock-agentcore:ListAgentRuntimes
+                Resource:
+                  - !Sub "arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:runtime/*"
+              - Sid: SessionsTableWrite
+                # The master orchestrator writes a conversation-index row when
+                # a session starts and bumps last_message_at on each turn.
+                # Scoped to the sessions table only.
+                Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:GetItem
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Environment}-${ProjectName}-sessions"
+              - Sid: AgentCoreMemory
+                # Only the master orchestrator uses long-term memory today.
+                # Scoped to memories under this project; broaden if specialists
+                # ever need their own memory resource.
+                Effect: Allow
+                Action:
+                  - bedrock-agentcore:CreateEvent
+                  - bedrock-agentcore:ListEvents
+                  - bedrock-agentcore:GetEvent
+                  - bedrock-agentcore:RetrieveMemoryRecords
+                  - bedrock-agentcore:ListMemoryRecords
+                # Memory resource names follow the underscore-converted runtime prefix
+                # (deploy_agents.py / create-memory invocations strip dashes). Build the
+                # same prefix here so dash-containing ProjectName values still match.
+                Resource:
+                  - !Sub
+                    - "arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:memory/${RuntimePrefix}_*"
+                    - RuntimePrefix: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}"]]
+              - Sid: ECRImagePull
+                Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource: "*"
+              - Sid: CloudWatchLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                # AgentCore writes to /aws/bedrock-agentcore/runtimes/<runtime>-<id>-DEFAULT.
+                # Runtime names use underscores (deploy_agents.py replaces dashes in
+                # `<env>-<project>-<agent>`), so build the same underscore-converted
+                # prefix here — dash-containing ProjectName values still need to match.
+                Resource:
+                  - !Sub
+                    - "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/${RuntimePrefix}_*"
+                    - RuntimePrefix: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}"]]
+                  - !Sub
+                    - "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/${RuntimePrefix}_*:*"
+                    - RuntimePrefix: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}"]]
+              - Sid: SecretsRead
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Environment}/${ProjectName}/*"
+              - Sid: KMSDecrypt
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                  - kms:DescribeKey
+                Resource:
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-SecretsKeyArn"
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-S3KeyArn"
+                  # Required for PutItem/UpdateItem on the sessions table —
+                  # that table is encrypted with the DynamoDB CMK.
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+              - Sid: XRay
+                Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                Resource: "*"
+              - Sid: AWSConfigRead
+                Effect: Allow
+                Action:
+                  - config:DescribeComplianceByConfigRule
+                  - config:DescribeComplianceByResource
+                  - config:DescribeConfigRules
+                  - config:GetComplianceDetailsByConfigRule
+                  - config:GetComplianceDetailsByResource
+                  - config:GetComplianceSummaryByConfigRule
+                  - config:GetComplianceSummaryByResourceType
+                  - config:DescribeConfigurationRecorders
+                  - config:DescribeConfigurationRecorderStatus
+                  - config:SelectResourceConfig
+                  - config:SelectAggregateResourceConfig
+                Resource: "*"
+              - Sid: VPCNetworking
+                Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:AssignPrivateIpAddresses
+                  - ec2:UnassignPrivateIpAddresses
+                Resource: "*"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-agentcore-runtime-role"
+
+  # ──────────────────────────── AgentCore Security Group ───────
+  # Outbound-only. Inbound is not used because invocations come in over
+  # the AgentCore service's managed ingress, not directly into the VPC.
+  AgentCoreSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: AgentCore Runtime ENIs in private subnets
+      VpcId:
+        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-VpcId"
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+          Description: HTTPS to Bedrock / S3 / OpenSearch / external SaaS via NAT
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-agentcore-sg"
+
+Outputs:
+  AgentCoreRuntimeRoleArn:
+    Value: !GetAtt AgentCoreRuntimeRole.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-AgentCoreRuntimeRoleArn"
+  AgentCoreSGId:
+    Value: !Ref AgentCoreSG
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-AgentCoreSGId"
+  SharepointSpecialistRepoUri:
+    Value: !GetAtt SharepointSpecialistRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-SharepointSpecialistRepoUri"
+  AwsConfigSpecialistRepoUri:
+    Value: !GetAtt AwsConfigSpecialistRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-AwsConfigSpecialistRepoUri"

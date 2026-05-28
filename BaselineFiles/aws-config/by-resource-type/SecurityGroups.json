@@ -1,0 +1,31 @@
+{
+  "resourceType": "AWS::EC2::SecurityGroup",
+  "resources": [
+    {
+      "resourceId": "sg-lm-prod-peer-dev-001",
+      "resourceName": "lm-prod-peer-dev",
+      "configuration": {
+        "groupId": "sg-lm-prod-peer-dev-001",
+        "groupName": "lm-prod-peer-dev",
+        "vpcId": "vpc-lm-prod-001a2b3c4d",
+        "description": "Temporary peering rule \u2014 prod to dev",
+        "ipPermissions": [
+          {
+            "ipProtocol": "-1",
+            "fromPort": -1,
+            "toPort": -1,
+            "ipRanges": [
+              {
+                "cidrIp": "10.50.0.0/16",
+                "description": "dev VPC CIDR"
+              }
+            ]
+          }
+        ],
+        "createdAt": "2026-03-15T09:00:00Z",
+        "daysActive": 61,
+        "environment": "PRODUCTION"
+      }
+    }
+  ]
+}

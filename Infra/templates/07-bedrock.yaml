@@ -1,0 +1,201 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  ARBITER – Bedrock: Knowledge Base (policy-kb) backed by OpenSearch Serverless,
+  Guardrails v2 (content, PII, denied topics, grounding).
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+  EmbeddingModelArn:
+    Type: String
+    Default: "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0"
+  OpenSearchIndexName:
+    Type: String
+    Default: "policy-vectors"
+
+Resources:
+  # ──────────────────────────── KB Service Role ────────────────
+  KnowledgeBaseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-kb-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: bedrock.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: KBPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: InvokeEmbeddingModel
+                Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                Resource: !Ref EmbeddingModelArn
+              - Sid: OpenSearchAccess
+                Effect: Allow
+                Action:
+                  - aoss:APIAccessAll
+                Resource:
+                  Fn::ImportValue: !Sub "${Environment}-${ProjectName}-OpenSearchCollectionArn"
+              - Sid: S3Read
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketArn"
+                  - !Sub
+                    - "${BucketArn}/*"
+                    - BucketArn:
+                        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketArn"
+              - Sid: KMSDecrypt
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:DescribeKey
+                Resource:
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-S3KeyArn"
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-kb-role"
+
+  # ──────────────────────────── Bedrock Knowledge Base ─────────
+  PolicyKnowledgeBase:
+    Type: AWS::Bedrock::KnowledgeBase
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-policy-kb"
+      Description: Policy document knowledge base for ARBITER conflict resolution
+      RoleArn: !GetAtt KnowledgeBaseRole.Arn
+      KnowledgeBaseConfiguration:
+        Type: VECTOR
+        VectorKnowledgeBaseConfiguration:
+          EmbeddingModelArn: !Ref EmbeddingModelArn
+      StorageConfiguration:
+        Type: OPENSEARCH_SERVERLESS
+        OpensearchServerlessConfiguration:
+          CollectionArn:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-OpenSearchCollectionArn"
+          VectorIndexName: !Ref OpenSearchIndexName
+          FieldMapping:
+            VectorField: embedding
+            TextField: text
+            MetadataField: metadata
+      Tags:
+        Name: !Sub "${Environment}-${ProjectName}-policy-kb"
+
+  # ──────────────────────────── KB Data Source ─────────────────
+  PolicyKBDataSource:
+    Type: AWS::Bedrock::DataSource
+    Properties:
+      KnowledgeBaseId: !Ref PolicyKnowledgeBase
+      Name: !Sub "${Environment}-${ProjectName}-processed-docs"
+      Description: Processed policy documents from S3
+      DataSourceConfiguration:
+        Type: S3
+        S3Configuration:
+          BucketArn:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketArn"
+          InclusionPrefixes:
+            - policies/
+      VectorIngestionConfiguration:
+        ChunkingConfiguration:
+          ChunkingStrategy: FIXED_SIZE
+          FixedSizeChunkingConfiguration:
+            MaxTokens: 512
+            OverlapPercentage: 20
+
+  # ──────────────────────────── Bedrock Guardrails ─────────────
+  ArbiterGuardrail:
+    Type: AWS::Bedrock::Guardrail
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-guardrail"
+      Description: Content safety, PII filtering, denied topics, and grounding for ARBITER agents
+      BlockedInputMessaging: "Your request was blocked by content safety policies."
+      BlockedOutputsMessaging: "The response was blocked by content safety policies."
+      ContentPolicyConfig:
+        FiltersConfig:
+          - Type: SEXUAL
+            InputStrength: HIGH
+            OutputStrength: HIGH
+          - Type: VIOLENCE
+            InputStrength: HIGH
+            OutputStrength: HIGH
+          - Type: HATE
+            InputStrength: HIGH
+            OutputStrength: HIGH
+          - Type: INSULTS
+            InputStrength: HIGH
+            OutputStrength: HIGH
+          - Type: MISCONDUCT
+            InputStrength: HIGH
+            OutputStrength: HIGH
+          - Type: PROMPT_ATTACK
+            InputStrength: HIGH
+            OutputStrength: NONE
+      SensitiveInformationPolicyConfig:
+        PiiEntitiesConfig:
+          - Type: US_SOCIAL_SECURITY_NUMBER
+            Action: ANONYMIZE
+          - Type: CREDIT_DEBIT_CARD_NUMBER
+            Action: ANONYMIZE
+          - Type: AWS_ACCESS_KEY
+            Action: BLOCK
+          - Type: AWS_SECRET_KEY
+            Action: BLOCK
+        RegexesConfig:
+          - Name: PrivateIPv4
+            Description: Block private IPv4 addresses in outputs
+            Pattern: "\\b(10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|172\\.(1[6-9]|2\\d|3[01])\\.\\d{1,3}\\.\\d{1,3}|192\\.168\\.\\d{1,3}\\.\\d{1,3})\\b"
+            Action: ANONYMIZE
+      TopicPolicyConfig:
+        TopicsConfig:
+          - Name: CredentialDisclosure
+            Definition: Requests asking the agent to reveal stored credentials, API keys, or secrets
+            Type: DENY
+          - Name: InfrastructureDestruction
+            Definition: Requests to delete VPCs, subnets, production databases, or critical infrastructure
+            Type: DENY
+          - Name: PrivilegeEscalation
+            Definition: Requests to grant admin or root access, create IAM users with full permissions, or bypass security controls
+            Type: DENY
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-guardrail"
+
+  GuardrailVersion:
+    Type: AWS::Bedrock::GuardrailVersion
+    Properties:
+      GuardrailIdentifier: !GetAtt ArbiterGuardrail.GuardrailId
+      Description: Initial version
+
+Outputs:
+  KnowledgeBaseId:
+    Value: !Ref PolicyKnowledgeBase
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-KnowledgeBaseId"
+  KnowledgeBaseArn:
+    Value: !GetAtt PolicyKnowledgeBase.KnowledgeBaseArn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-KnowledgeBaseArn"
+  GuardrailId:
+    Value: !GetAtt ArbiterGuardrail.GuardrailId
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-GuardrailId"
+  GuardrailVersionId:
+    Value: !GetAtt GuardrailVersion.Version
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-GuardrailVersionId"
