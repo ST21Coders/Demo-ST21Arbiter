@@ -6,6 +6,8 @@ import {
 } from 'lucide-react'
 import { CHAT_URL } from '../config'
 import { useConversations, sendChat } from '../hooks/useApi'
+import { detectProblem } from '../detectProblem'
+import CreateTicketButton from '../components/CreateTicketButton'
 
 /* ─── MCP server registry (mirrors HeatMap data) ─────────────────────── */
 
@@ -436,6 +438,7 @@ export default function MCPChat() {
     if (activeSessionId) return
     setMessages([{
       role: 'assistant',
+      system: true,
       content: `Connected to **${selectedServer.name}** (${selectedServer.version}) at \`${selectedServer.host}\`.\n\n${selectedServer.description}\n\nI have access to ${selectedServer.tools.length} tools. Ask me anything about this server's data, or describe what you need.`,
       toolCalls: [],
       time: new Date().toLocaleTimeString(),
@@ -461,6 +464,7 @@ export default function MCPChat() {
     // Re-trigger the server-intro effect by setting messages here directly.
     setMessages([{
       role: 'assistant',
+      system: true,
       content: `Connected to **${selectedServer.name}** (${selectedServer.version}) at \`${selectedServer.host}\`.\n\n${selectedServer.description}\n\nI have access to ${selectedServer.tools.length} tools. Ask me anything about this server's data, or describe what you need.`,
       toolCalls: [],
       time: new Date().toLocaleTimeString(),
@@ -510,6 +514,7 @@ export default function MCPChat() {
     } catch (e) {
       setMessages(prev => [...prev, {
         role: 'assistant',
+        system: true,
         content: `⚠️ Chat failed: ${e.message || e}`,
         toolCalls: [],
         time: new Date().toLocaleTimeString(),
@@ -628,7 +633,23 @@ export default function MCPChat() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {messages.map((msg, i) => <Message key={i} msg={msg} />)}
+          {messages.map((msg, i) => {
+            const isLastAssistant =
+              msg.role === 'assistant' && i === messages.length - 1 && !loading
+            const detected = isLastAssistant && !msg.ticketCreated
+              ? detectProblem({ messages: messages.slice(0, i + 1), sessionId: activeSessionId, sessionTitle: activeSessionTitle })
+              : null
+            return (
+              <div key={i}>
+                <Message msg={msg} />
+                {detected?.hasProblem && (
+                  <div className="ml-10 mt-1">
+                    <CreateTicketButton detected={detected} />
+                  </div>
+                )}
+              </div>
+            )
+          })}
 
           {loading && (
             <div className="flex gap-3">
