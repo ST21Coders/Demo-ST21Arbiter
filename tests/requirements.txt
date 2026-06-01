@@ -1,0 +1,5 @@
+pytest>=9.0.3                  # CVE-2025-71176 patched in 9.0.3
+pytest-json-report==1.5.0
+moto[dynamodb]==5.0.28
+boto3==1.43.12
+requests>=2.33.0               # CVE-2024-47081 + CVE-2026-25645 patched in 2.33.0
