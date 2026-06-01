@@ -240,7 +240,7 @@ export default function AnalystView() {
   // Analyst-only session list (server-side filtered by chat_type='analyst').
   const {
     sessions, list: listSessions, loadMessages,
-    addLocalSession, bumpLocalSession,
+    addLocalSession, bumpLocalSession, deleteSession,
   } = useConversations({ type: 'analyst' })
 
   useEffect(() => { loadFindings(); loadCRs() }, [loadFindings, loadCRs])
@@ -342,6 +342,23 @@ export default function AnalystView() {
     })
   }
 
+  // "Resolve" button in the chat header. Lets the user mark the current
+  // conversation as wrapped up when no further action is needed — no ticket
+  // required — and archives it via deleteSession.
+  async function handleResolve() {
+    const sid = activeSessionId
+    if (!sid) return
+    if (!window.confirm('Mark this chat as resolved? It will be archived.')) return
+    try {
+      await deleteSession(sid)
+    } catch (err) {
+      console.warn('Resolve failed:', err)
+    }
+    sessionIdRef.current = null
+    setActiveSessionId(null)
+    setMessages(initialGreeting())
+  }
+
   return (
     <div className="flex h-full overflow-hidden" style={{ height: 'calc(100vh - 0px)' }}>
 
@@ -388,6 +405,15 @@ export default function AnalystView() {
           <Bot size={16} className="text-indigo-600" />
           <span className="font-semibold text-slate-900 text-sm">ARBITER Governance Agent</span>
           <span className="text-xs text-slate-500 ml-auto">claude-sonnet-4-6 · tool-calling · human-in-the-loop</span>
+          {activeSessionId && (
+            <button
+              onClick={handleResolve}
+              title="Mark conversation resolved and archive it"
+              className="flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full transition-colors"
+            >
+              <CheckCircle size={11} /> Resolve
+            </button>
+          )}
           {CHAT_URL ? (
             <span className="flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
               <Wifi size={10} /> Live
