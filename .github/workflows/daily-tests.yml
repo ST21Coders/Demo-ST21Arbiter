@@ -1,0 +1,183 @@
+name: Daily tests
+
+on:
+  schedule:
+    # 12:00 UTC daily = 08:00 EDT (summer) / 07:00 EST (winter).
+    # GitHub Actions cron is UTC-only and does not observe DST. To keep
+    # the 8:00 fire time year-round, change to '0 13 * * *' in November
+    # and back to '0 12 * * *' in March.
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'mock (default) or live'
+        required: false
+        default: 'mock'
+        type: choice
+        options: [mock, live]
+
+permissions:
+  contents: read
+  # Lets the workflow upload artifacts. Nothing else.
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # Cron runs default to mock to keep AWS spend at $0; dispatch can choose.
+      TEST_MODE: ${{ github.event.inputs.test_mode || 'mock' }}
+      TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+      CI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      # Live-mode secrets — only populated when the run uses TEST_MODE=live.
+      LIVE_API_BASE_URL: ${{ secrets.LIVE_API_BASE_URL }}
+      LIVE_CHAT_URL: ${{ secrets.LIVE_CHAT_URL }}
+      LIVE_BASE_URL: ${{ secrets.LIVE_BASE_URL }}
+      COGNITO_REGION: ${{ secrets.COGNITO_REGION }}
+      COGNITO_USER_POOL_ID: ${{ secrets.COGNITO_USER_POOL_ID }}
+      COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID }}
+      COGNITO_DOMAIN: ${{ secrets.COGNITO_DOMAIN }}
+      TEST_USER_USERNAME: ${{ secrets.TEST_USER_USERNAME }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+      # AWS read-only creds for the daily health snapshot (see
+      # scripts/aws_health_check.py). If unset, the AWS section of the
+      # Teams card is omitted rather than failing the run.
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: us-east-1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # Vitest writes via relative path "../test-reports/..."; the dir must exist.
+      - name: Create test-reports dir
+        run: mkdir -p test-reports
+
+      # ── Frontend unit + E2E ──────────────────────────────────────
+      - name: Install UI deps
+        working-directory: ui
+        run: npm ci
+
+      - name: Vitest (frontend unit)
+        working-directory: ui
+        run: npx vitest run --reporter=json --outputFile=../test-reports/vitest-results.json
+        continue-on-error: true
+
+      - name: Install Playwright deps
+        working-directory: tests-e2e
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Playwright (frontend E2E)
+        working-directory: tests-e2e
+        run: npx playwright test
+        continue-on-error: true
+
+      # ── Backend ──────────────────────────────────────────────────
+      - name: Install pytest deps
+        run: pip install -r tests/requirements.txt pytest-cov
+
+      - name: Pytest (backend unit + security + smoke) with coverage
+        working-directory: tests
+        run: |
+          pytest \
+            --cov=../Infra/functions/api_handler \
+            --cov=../agents/master_orchestrator \
+            --cov-report=json:../test-reports/coverage.json \
+            --cov-report=term
+        continue-on-error: true
+
+      # ── Static analysis ──────────────────────────────────────────
+      # Each tool writes its findings to test-reports/static-<tool>.json so the
+      # report generator can pick them up. continue-on-error so a single failure
+      # doesn't block the Teams post.
+      - name: ruff (Python lint)
+        run: |
+          pip install ruff
+          ruff check --output-format=json --output-file=test-reports/static-ruff.json . || true
+        continue-on-error: true
+
+      - name: pip-audit (Python dependency CVEs)
+        run: |
+          pip install pip-audit
+          pip-audit -r tests/requirements.txt --format json --output test-reports/static-pip_audit.json || true
+        continue-on-error: true
+
+      - name: npm audit (UI dependency CVEs)
+        working-directory: ui
+        run: npm audit --json > ../test-reports/static-npm_audit.json || true
+        continue-on-error: true
+
+      - name: gitleaks (secret scan)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_CONFIG: .gitleaks.toml
+        continue-on-error: true
+
+      # ── Report ───────────────────────────────────────────────────
+      - name: Install report-generator deps
+        run: pip install -r testing/requirements.txt
+
+      - name: Build aggregated report
+        run: python testing/report_generator.py
+
+      # AWS health snapshot for the Teams card's AWS Infrastructure section.
+      # Skipped silently when AWS creds aren't set — the card builder omits
+      # that section rather than failing.
+      - name: AWS health check
+        if: env.AWS_ACCESS_KEY_ID != ''
+        run: python scripts/aws_health_check.py
+        continue-on-error: true
+
+      - name: Build Teams Adaptive Card
+        run: python testing/build_teams_messages.py
+
+      - name: Post card to Teams webhook
+        if: env.TEAMS_WEBHOOK_URL != ''
+        run: |
+          python - <<'PY'
+          import datetime, json, os, pathlib, sys
+          import requests
+          payload = json.loads(next(pathlib.Path("reports").glob("teams-message-banner-*.json")).read_text())
+          ts = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+          r = requests.post(os.environ["TEAMS_WEBHOOK_URL"], json=payload, timeout=20)
+          if 200 <= r.status_code < 300:
+              print(f"Posted to Teams — {r.status_code} {r.reason} at {ts}")
+              sys.exit(0)
+          err = f"Teams webhook returned {r.status_code} {r.reason}: {r.text[:500]}"
+          print(err, file=sys.stderr)
+          pathlib.Path("reports/teams-delivery-error.log").write_text(f"{ts}\n{err}\n")
+          sys.exit(1)
+          PY
+
+      - name: Upload test-reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ github.run_id }}
+          path: |
+            test-reports/
+            reports/
+          retention-days: 14
+
+      # Make the job fail if any test failed — without this the workflow would
+      # always be green because of the continue-on-error steps above. The Teams
+      # post + artifact upload still run because they're before this step.
+      - name: Fail job if any test failed
+        run: |
+          python -c "
+          import json, sys, pathlib
+          r = json.loads(pathlib.Path('test-reports/report.json').read_text())
+          if r['summary']['failed'] > 0:
+              print(f\"::error::{r['summary']['failed']} test(s) failed\")
+              sys.exit(1)
+          "
