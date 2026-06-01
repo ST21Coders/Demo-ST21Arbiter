@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import {
   Send, Loader2, Bot, User, Lightbulb, Wifi, WifiOff,
   ShieldAlert, AlertTriangle, CheckCircle, FileText, Ticket, Bell, Archive,
-  ExternalLink, ChevronDown, ChevronRight, Zap, MessageSquare, Plus,
+  ExternalLink, ChevronDown, ChevronRight, Zap, MessageSquare, Plus, Trash2,
 } from 'lucide-react'
 import { useFindings, useChangeRequests, useConversations } from '../hooks/useApi'
 import { SeverityBadge } from '../components/SeverityBadge'
@@ -371,24 +371,24 @@ export default function AnalystView() {
       let responseText = ''
       let actions = []
 
+      // First turn of a fresh chat → mint a session id and optimistically
+      // push it onto the sidebar so the user sees it immediately. Done in
+      // both live and mock mode so a chat can be created — and then deleted —
+      // on localhost (mock) without a live CHAT_URL.
+      if (!sessionIdRef.current) {
+        sessionIdRef.current = `sess-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`
+        setActiveSessionId(sessionIdRef.current)
+        addLocalSession({
+          session_id: sessionIdRef.current,
+          title: q.slice(0, 80),
+          chat_type: 'analyst',
+          created_at: new Date().toISOString(),
+          last_message_at: new Date().toISOString(),
+          message_count: 0,
+        })
+      }
+
       if (CHAT_URL) {
-        // First turn of a fresh chat → mint a session id and optimistically
-        // push it onto the sidebar so the user sees it before the agent
-        // writes the real DDB row.
-        let isNew = false
-        if (!sessionIdRef.current) {
-          sessionIdRef.current = `sess-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`
-          setActiveSessionId(sessionIdRef.current)
-          isNew = true
-          addLocalSession({
-            session_id: sessionIdRef.current,
-            title: q.slice(0, 80),
-            chat_type: 'analyst',
-            created_at: new Date().toISOString(),
-            last_message_at: new Date().toISOString(),
-            message_count: 0,
-          })
-        }
         // Use the shared sendChat() helper — attaches Cognito JWT and stamps
         // chat_type:'analyst' so this row is filterable in /conversations.
         const data = await sendChat({
@@ -398,12 +398,11 @@ export default function AnalystView() {
         })
         responseText = data.reply || ''
         actions = data.actions || []
-        if (!isNew) bumpLocalSession(sessionIdRef.current, 2)
-        else bumpLocalSession(sessionIdRef.current, 2)
       } else {
         await new Promise(r => setTimeout(r, 800))
         responseText = getMockResponse(q, findings, changeRequests)
       }
+      bumpLocalSession(sessionIdRef.current, 2)
 
       setMessages(prev => [...prev, { role: 'assistant', content: responseText, actions }])
     } catch (err) {
@@ -426,6 +425,24 @@ export default function AnalystView() {
       justification:      action.justification || action.description || '',
       requesting_team:    action.requesting_team || '',
     })
+  }
+
+  // Trash icon on a sidebar row. Confirmation prompt → deleteSession. If the
+  // user nukes the chat they currently have open, reset to the new-chat state.
+  async function handleDeleteSession(sessionId, ev) {
+    ev?.stopPropagation?.()
+    if (!sessionId) return
+    if (!window.confirm('Delete this chat? This cannot be undone.')) return
+    try {
+      await deleteSession(sessionId)
+    } catch (err) {
+      console.warn('Delete session failed:', err)
+    }
+    if (sessionId === activeSessionId) {
+      sessionIdRef.current = null
+      setActiveSessionId(null)
+      setMessages(initialGreeting())
+    }
   }
 
   return (
@@ -478,6 +495,15 @@ export default function AnalystView() {
           <Bot size={16} className="text-indigo-600" />
           <span className="font-semibold text-slate-900 text-sm">ARBITER Governance Agent</span>
           <span className="text-xs text-slate-500 ml-auto">claude-sonnet-4-6 · tool-calling · human-in-the-loop</span>
+          {activeSessionId && (
+            <button
+              onClick={handleResolve}
+              title="Mark conversation resolved and archive it"
+              className="flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full transition-colors"
+            >
+              <CheckCircle size={11} /> Resolve
+            </button>
+          )}
           {CHAT_URL ? (
             <span className="flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
               <Wifi size={10} /> Live

@@ -1,0 +1,17 @@
+{
+  "name": "arbiter-tests-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright end-to-end tests for the ARBITER ST21 SPA.",
+  "scripts": {
+    "test": "playwright test",
+    "test:mock": "BASE_URL=http://localhost:5173 TEST_MODE=mock playwright test",
+    "test:live": "TEST_MODE=live playwright test --grep @live",
+    "test:smoke": "playwright test --grep @smoke",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.700.0"
+  }
+}
