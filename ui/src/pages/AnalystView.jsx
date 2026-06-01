@@ -417,6 +417,15 @@ export default function AnalystView() {
           <Bot size={16} className="text-indigo-600" />
           <span className="font-semibold text-slate-900 text-sm">ARBITER Governance Agent</span>
           <span className="text-xs text-slate-500 ml-auto">claude-sonnet-4-6 · tool-calling · human-in-the-loop</span>
+          {activeSessionId && (
+            <button
+              onClick={handleResolve}
+              title="Mark conversation resolved and archive it"
+              className="flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full transition-colors"
+            >
+              <CheckCircle size={11} /> Resolve
+            </button>
+          )}
           {CHAT_URL ? (
             <span className="flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
               <Wifi size={10} /> Live
