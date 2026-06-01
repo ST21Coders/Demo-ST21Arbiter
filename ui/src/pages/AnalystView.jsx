@@ -7,8 +7,17 @@ import {
 import { useFindings, useChangeRequests, useConversations } from '../hooks/useApi'
 import { SeverityBadge } from '../components/SeverityBadge'
 import ActionRequestModal from '../components/ActionRequestModal'
+import CreateTicketButton from '../components/CreateTicketButton'
+import { detectProblem } from '../detectProblem'
 import { CHAT_URL } from '../config'
 import { sendChat } from '../hooks/useApi'
+
+// Action types the agent itself can propose that already represent ticketing.
+// When the last assistant turn carries one of these, we suppress the
+// auto-surfaced Create Ticket button to avoid offering it twice.
+const AGENT_TICKETING_ACTION_TYPES = new Set([
+  'CREATE_CR', 'SERVICENOW_INC', 'SERVICENOW_RITM', 'SERVICENOW_CHG',
+])
 
 // ── Suggested questions ───────────────────────────────────────────────────────
 
@@ -216,6 +225,7 @@ function Message({ msg, onCreateCR }) {
 function initialGreeting() {
   return [{
     role: 'assistant',
+    system: true,
     content: CHAT_URL
       ? "Hello! I'm ARBITER's AI Governance Agent, powered by Claude Sonnet with live tool-calling.\n\nAsk me about any policy change, system modification, or compliance question. I'll scan the knowledge base, check for existing conflicts, identify policy owners, assess system impact, check for simpler alternatives, and recommend concrete actions (Change Requests, ServiceNow tickets) — all keeping you in the loop before anything is executed."
       : "Hello! I'm running in mock mode (no VITE_CHAT_URL set).",
@@ -257,7 +267,7 @@ export default function AnalystView() {
     if (sessionId === activeSessionId) return
     sessionIdRef.current = sessionId
     setActiveSessionId(sessionId)
-    setMessages([{ role: 'assistant', content: 'Loading conversation…', actions: [] }])
+    setMessages([{ role: 'assistant', system: true, content: 'Loading conversation…', actions: [] }])
     try {
       const data = await loadMessages(sessionId)
       // Map memory shape {role, content, ts, tool_calls} → local {role, content, actions}
@@ -268,7 +278,7 @@ export default function AnalystView() {
       }))
       setMessages(mapped.length ? mapped : initialGreeting())
     } catch (err) {
-      setMessages([{ role: 'assistant', content: `⚠ Could not load session: ${err.message}`, actions: [] }])
+      setMessages([{ role: 'assistant', system: true, content: `⚠ Could not load session: ${err.message}`, actions: [] }])
     }
   }
 
@@ -320,7 +330,7 @@ export default function AnalystView() {
 
       setMessages(prev => [...prev, { role: 'assistant', content: responseText, actions }])
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `⚠ Agent error: ${err.message}`, actions: [] }])
+      setMessages(prev => [...prev, { role: 'assistant', system: true, content: `⚠ Agent error: ${err.message}`, actions: [] }])
     } finally {
       setThinking(false)
     }
@@ -439,9 +449,24 @@ export default function AnalystView() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 bg-slate-50">
-          {messages.map((m, i) => (
-            <Message key={i} msg={m} onCreateCR={handleCreateCR} />
-          ))}
+          {messages.map((m, i) => {
+            const isLastAssistant =
+              m.role === 'assistant' && i === messages.length - 1 && !thinking
+            const agentSuggestedTicket = (m.actions || []).some(a => AGENT_TICKETING_ACTION_TYPES.has(a.type))
+            const detected = isLastAssistant && !m.ticketCreated && !agentSuggestedTicket
+              ? detectProblem({ messages: messages.slice(0, i + 1), sessionId: sessionIdRef.current })
+              : null
+            return (
+              <div key={i}>
+                <Message msg={m} onCreateCR={handleCreateCR} />
+                {detected?.hasProblem && (
+                  <div className="ml-10 mt-1">
+                    <CreateTicketButton detected={detected} />
+                  </div>
+                )}
+              </div>
+            )
+          })}
           {thinking && (
             <div className="flex gap-3">
               <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0">

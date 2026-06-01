@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Loader2, ChevronDown, ChevronRight, CheckCircle, XCircle,
   Play, AlertOctagon, Clock, Shield, Zap, Plus
@@ -201,8 +202,23 @@ export default function ActionCenter() {
   const { changeRequests, loading, load, createAction, approve, reject, execute, escalate } = useChangeRequests()
   const [filterStatus, setFilterStatus] = useState('')
   const [showModal, setShowModal] = useState(false)
+  const [prefill, setPrefill] = useState(null)
+  const location = useLocation()
+  const navigate = useNavigate()
 
   useEffect(() => { load() }, [load])
+
+  // When the page is reached via the Create Ticket button in a chat surface,
+  // React Router passes prefill data on location.state. Open the modal with
+  // it, then clear the router state so a manual refresh doesn't re-open the
+  // modal with stale data.
+  useEffect(() => {
+    const incoming = location.state?.prefill
+    if (!incoming) return
+    setPrefill(incoming)
+    setShowModal(true)
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.state, location.pathname, navigate])
 
   const filtered = changeRequests.filter(cr => !filterStatus || cr.status === filterStatus)
 
@@ -325,8 +341,10 @@ export default function ActionCenter() {
       {showModal && (
         <ActionRequestModal
           conflict={null}
+          prefill={prefill}
           onClose={result => {
             setShowModal(false)
+            setPrefill(null)
             if (result) load()
           }}
           onCreate={createAction}

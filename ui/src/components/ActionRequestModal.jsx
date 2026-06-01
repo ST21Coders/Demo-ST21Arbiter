@@ -13,12 +13,11 @@ const ENV_MATRIX = {
 }
 
 export default function ActionRequestModal({ conflict, onClose, onCreate, prefill }) {
-  const [mode, setMode] = useState('guided') // 'guided' | 'natural'
+  const [mode, setMode] = useState(prefill ? 'guided' : 'guided') // 'guided' | 'natural'
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    request: conflict
-      ? `Remediate conflict ${conflict.conflict_id}: ${conflict.title}`
-      : '',
+    request: prefill?.request
+      || (conflict ? `Remediate conflict ${conflict.conflict_id}: ${conflict.title}` : ''),
     action_type: prefill?.action_type || (conflict?.source_technical ? 'SECURITY_FIX' : 'POLICY_UPDATE'),
     target_resource: prefill?.target_resource || conflict?.source_technical || conflict?.source_policy || '',
     target_environment: prefill?.target_environment || 'PROD',
@@ -37,6 +36,11 @@ export default function ActionRequestModal({ conflict, onClose, onCreate, prefil
       const payload = {
         ...form,
         conflict_id: conflict?.conflict_id,
+        // Carry chat-origin metadata onto the persisted CR row so the
+        // originating chat can be auto-archived once this ticket closes
+        // (see AnalystView's sessionTickets effect).
+        chat_session_id: prefill?.chat_session_id || null,
+        source: prefill?.source || 'MANUAL',
       }
       const result = await onCreate(payload)
       onClose(result)
