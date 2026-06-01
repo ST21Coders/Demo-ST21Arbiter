@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import {
   Send, Loader2, Bot, User, Lightbulb, Wifi, WifiOff,
   ShieldAlert, AlertTriangle, CheckCircle, FileText, Ticket, Bell, Archive,
-  ExternalLink, ChevronDown, ChevronRight, Zap, MessageSquare, Plus,
+  ExternalLink, ChevronDown, ChevronRight, Zap, MessageSquare, Plus, Trash2,
 } from 'lucide-react'
 import { useFindings, useChangeRequests, useConversations } from '../hooks/useApi'
 import { SeverityBadge } from '../components/SeverityBadge'
@@ -285,24 +285,24 @@ export default function AnalystView() {
       let responseText = ''
       let actions = []
 
+      // First turn of a fresh chat → mint a session id and optimistically
+      // push it onto the sidebar so the user sees it immediately. Done in
+      // both live and mock mode so a chat can be created — and then deleted —
+      // on localhost (mock) without a live CHAT_URL.
+      if (!sessionIdRef.current) {
+        sessionIdRef.current = `sess-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`
+        setActiveSessionId(sessionIdRef.current)
+        addLocalSession({
+          session_id: sessionIdRef.current,
+          title: q.slice(0, 80),
+          chat_type: 'analyst',
+          created_at: new Date().toISOString(),
+          last_message_at: new Date().toISOString(),
+          message_count: 0,
+        })
+      }
+
       if (CHAT_URL) {
-        // First turn of a fresh chat → mint a session id and optimistically
-        // push it onto the sidebar so the user sees it before the agent
-        // writes the real DDB row.
-        let isNew = false
-        if (!sessionIdRef.current) {
-          sessionIdRef.current = `sess-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`
-          setActiveSessionId(sessionIdRef.current)
-          isNew = true
-          addLocalSession({
-            session_id: sessionIdRef.current,
-            title: q.slice(0, 80),
-            chat_type: 'analyst',
-            created_at: new Date().toISOString(),
-            last_message_at: new Date().toISOString(),
-            message_count: 0,
-          })
-        }
         // Use the shared sendChat() helper — attaches Cognito JWT and stamps
         // chat_type:'analyst' so this row is filterable in /conversations.
         const data = await sendChat({
@@ -312,12 +312,11 @@ export default function AnalystView() {
         })
         responseText = data.reply || ''
         actions = data.actions || []
-        if (!isNew) bumpLocalSession(sessionIdRef.current, 2)
-        else bumpLocalSession(sessionIdRef.current, 2)
       } else {
         await new Promise(r => setTimeout(r, 800))
         responseText = getMockResponse(q, findings, changeRequests)
       }
+      bumpLocalSession(sessionIdRef.current, 2)
 
       setMessages(prev => [...prev, { role: 'assistant', content: responseText, actions }])
     } catch (err) {
@@ -342,21 +341,22 @@ export default function AnalystView() {
     })
   }
 
-  // "Resolve" button in the chat header. Lets the user mark the current
-  // conversation as wrapped up when no further action is needed — no ticket
-  // required — and archives it via deleteSession.
-  async function handleResolve() {
-    const sid = activeSessionId
-    if (!sid) return
-    if (!window.confirm('Mark this chat as resolved? It will be archived.')) return
+  // Trash icon on a sidebar row. Confirmation prompt → deleteSession. If the
+  // user nukes the chat they currently have open, reset to the new-chat state.
+  async function handleDeleteSession(sessionId, ev) {
+    ev?.stopPropagation?.()
+    if (!sessionId) return
+    if (!window.confirm('Delete this chat? This cannot be undone.')) return
     try {
-      await deleteSession(sid)
+      await deleteSession(sessionId)
     } catch (err) {
-      console.warn('Resolve failed:', err)
+      console.warn('Delete session failed:', err)
     }
-    sessionIdRef.current = null
-    setActiveSessionId(null)
-    setMessages(initialGreeting())
+    if (sessionId === activeSessionId) {
+      sessionIdRef.current = null
+      setActiveSessionId(null)
+      setMessages(initialGreeting())
+    }
   }
 
   return (
@@ -382,18 +382,30 @@ export default function AnalystView() {
           {sessions.length === 0 ? (
             <p className="text-[10px] text-slate-400 italic px-2 py-1">No history yet</p>
           ) : sessions.map(s => (
-            <button
+            <div
               key={s.session_id}
-              onClick={() => openSession(s.session_id)}
-              className={`w-full text-left px-2 py-1.5 rounded text-xs hover:bg-slate-100 transition-colors ${
+              className={`group relative w-full rounded text-xs hover:bg-slate-100 transition-colors ${
                 activeSessionId === s.session_id ? 'bg-indigo-50 border border-indigo-200' : ''
               }`}
             >
-              <p className="font-medium text-slate-800 truncate">{s.title || s.session_id}</p>
-              <p className="text-[10px] text-slate-500 truncate">
-                {s.message_count || 0} msgs · {s.last_message_at ? new Date(s.last_message_at).toLocaleDateString() : ''}
-              </p>
-            </button>
+              <button
+                onClick={() => openSession(s.session_id)}
+                className="w-full text-left pl-2 pr-7 py-1.5"
+              >
+                <p className="font-medium text-slate-800 truncate">{s.title || s.session_id}</p>
+                <p className="text-[10px] text-slate-500 truncate">
+                  {s.message_count || 0} msgs · {s.last_message_at ? new Date(s.last_message_at).toLocaleDateString() : ''}
+                </p>
+              </button>
+              <button
+                onClick={(e) => handleDeleteSession(s.session_id, e)}
+                title="Delete chat"
+                aria-label="Delete chat"
+                className="absolute top-1/2 right-1 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
           ))}
         </div>
       </aside>
