@@ -2,13 +2,22 @@ import { useEffect, useState, useRef } from 'react'
 import {
   Send, Loader2, Bot, User, Lightbulb, Wifi, WifiOff,
   ShieldAlert, AlertTriangle, CheckCircle, FileText, Ticket, Bell, Archive,
-  ExternalLink, ChevronDown, ChevronRight, Zap, MessageSquare, Plus,
+  ExternalLink, ChevronDown, ChevronRight, Zap, MessageSquare, Plus, Trash2,
 } from 'lucide-react'
 import { useFindings, useChangeRequests, useConversations } from '../hooks/useApi'
 import { SeverityBadge } from '../components/SeverityBadge'
 import ActionRequestModal from '../components/ActionRequestModal'
+import CreateTicketButton from '../components/CreateTicketButton'
+import { detectProblem } from '../detectProblem'
 import { CHAT_URL } from '../config'
 import { sendChat } from '../hooks/useApi'
+
+// Action types the agent itself can propose that already represent ticketing.
+// When the last assistant turn carries one of these, we suppress the
+// auto-surfaced Create Ticket button to avoid offering it twice.
+const AGENT_TICKETING_ACTION_TYPES = new Set([
+  'CREATE_CR', 'SERVICENOW_INC', 'SERVICENOW_RITM', 'SERVICENOW_CHG',
+])
 
 // ── Suggested questions ───────────────────────────────────────────────────────
 
@@ -216,6 +225,7 @@ function Message({ msg, onCreateCR }) {
 function initialGreeting() {
   return [{
     role: 'assistant',
+    system: true,
     content: CHAT_URL
       ? "Hello! I'm ARBITER's AI Governance Agent, powered by Claude Sonnet with live tool-calling.\n\nAsk me about any policy change, system modification, or compliance question. I'll scan the knowledge base, check for existing conflicts, identify policy owners, assess system impact, check for simpler alternatives, and recommend concrete actions (Change Requests, ServiceNow tickets) — all keeping you in the loop before anything is executed."
       : "Hello! I'm running in mock mode (no VITE_CHAT_URL set).",
@@ -240,7 +250,7 @@ export default function AnalystView() {
   // Analyst-only session list (server-side filtered by chat_type='analyst').
   const {
     sessions, list: listSessions, loadMessages,
-    addLocalSession, bumpLocalSession,
+    addLocalSession, bumpLocalSession, deleteSession,
   } = useConversations({ type: 'analyst' })
 
   useEffect(() => { loadFindings(); loadCRs() }, [loadFindings, loadCRs])
@@ -257,7 +267,7 @@ export default function AnalystView() {
     if (sessionId === activeSessionId) return
     sessionIdRef.current = sessionId
     setActiveSessionId(sessionId)
-    setMessages([{ role: 'assistant', content: 'Loading conversation…', actions: [] }])
+    setMessages([{ role: 'assistant', system: true, content: 'Loading conversation…', actions: [] }])
     try {
       const data = await loadMessages(sessionId)
       // Map memory shape {role, content, ts, tool_calls} → local {role, content, actions}
@@ -268,7 +278,7 @@ export default function AnalystView() {
       }))
       setMessages(mapped.length ? mapped : initialGreeting())
     } catch (err) {
-      setMessages([{ role: 'assistant', content: `⚠ Could not load session: ${err.message}`, actions: [] }])
+      setMessages([{ role: 'assistant', system: true, content: `⚠ Could not load session: ${err.message}`, actions: [] }])
     }
   }
 
@@ -285,24 +295,24 @@ export default function AnalystView() {
       let responseText = ''
       let actions = []
 
+      // First turn of a fresh chat → mint a session id and optimistically
+      // push it onto the sidebar so the user sees it immediately. Done in
+      // both live and mock mode so a chat can be created — and then deleted —
+      // on localhost (mock) without a live CHAT_URL.
+      if (!sessionIdRef.current) {
+        sessionIdRef.current = `sess-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`
+        setActiveSessionId(sessionIdRef.current)
+        addLocalSession({
+          session_id: sessionIdRef.current,
+          title: q.slice(0, 80),
+          chat_type: 'analyst',
+          created_at: new Date().toISOString(),
+          last_message_at: new Date().toISOString(),
+          message_count: 0,
+        })
+      }
+
       if (CHAT_URL) {
-        // First turn of a fresh chat → mint a session id and optimistically
-        // push it onto the sidebar so the user sees it before the agent
-        // writes the real DDB row.
-        let isNew = false
-        if (!sessionIdRef.current) {
-          sessionIdRef.current = `sess-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`
-          setActiveSessionId(sessionIdRef.current)
-          isNew = true
-          addLocalSession({
-            session_id: sessionIdRef.current,
-            title: q.slice(0, 80),
-            chat_type: 'analyst',
-            created_at: new Date().toISOString(),
-            last_message_at: new Date().toISOString(),
-            message_count: 0,
-          })
-        }
         // Use the shared sendChat() helper — attaches Cognito JWT and stamps
         // chat_type:'analyst' so this row is filterable in /conversations.
         const data = await sendChat({
@@ -312,16 +322,15 @@ export default function AnalystView() {
         })
         responseText = data.reply || ''
         actions = data.actions || []
-        if (!isNew) bumpLocalSession(sessionIdRef.current, 2)
-        else bumpLocalSession(sessionIdRef.current, 2)
       } else {
         await new Promise(r => setTimeout(r, 800))
         responseText = getMockResponse(q, findings, changeRequests)
       }
+      bumpLocalSession(sessionIdRef.current, 2)
 
       setMessages(prev => [...prev, { role: 'assistant', content: responseText, actions }])
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `⚠ Agent error: ${err.message}`, actions: [] }])
+      setMessages(prev => [...prev, { role: 'assistant', system: true, content: `⚠ Agent error: ${err.message}`, actions: [] }])
     } finally {
       setThinking(false)
     }
@@ -340,6 +349,24 @@ export default function AnalystView() {
       justification:      action.justification || action.description || '',
       requesting_team:    action.requesting_team || '',
     })
+  }
+
+  // Trash icon on a sidebar row. Confirmation prompt → deleteSession. If the
+  // user nukes the chat they currently have open, reset to the new-chat state.
+  async function handleDeleteSession(sessionId, ev) {
+    ev?.stopPropagation?.()
+    if (!sessionId) return
+    if (!window.confirm('Delete this chat? This cannot be undone.')) return
+    try {
+      await deleteSession(sessionId)
+    } catch (err) {
+      console.warn('Delete session failed:', err)
+    }
+    if (sessionId === activeSessionId) {
+      sessionIdRef.current = null
+      setActiveSessionId(null)
+      setMessages(initialGreeting())
+    }
   }
 
   return (
@@ -365,18 +392,30 @@ export default function AnalystView() {
           {sessions.length === 0 ? (
             <p className="text-[10px] text-slate-400 italic px-2 py-1">No history yet</p>
           ) : sessions.map(s => (
-            <button
+            <div
               key={s.session_id}
-              onClick={() => openSession(s.session_id)}
-              className={`w-full text-left px-2 py-1.5 rounded text-xs hover:bg-slate-100 transition-colors ${
+              className={`group relative w-full rounded text-xs hover:bg-slate-100 transition-colors ${
                 activeSessionId === s.session_id ? 'bg-indigo-50 border border-indigo-200' : ''
               }`}
             >
-              <p className="font-medium text-slate-800 truncate">{s.title || s.session_id}</p>
-              <p className="text-[10px] text-slate-500 truncate">
-                {s.message_count || 0} msgs · {s.last_message_at ? new Date(s.last_message_at).toLocaleDateString() : ''}
-              </p>
-            </button>
+              <button
+                onClick={() => openSession(s.session_id)}
+                className="w-full text-left pl-2 pr-7 py-1.5"
+              >
+                <p className="font-medium text-slate-800 truncate">{s.title || s.session_id}</p>
+                <p className="text-[10px] text-slate-500 truncate">
+                  {s.message_count || 0} msgs · {s.last_message_at ? new Date(s.last_message_at).toLocaleDateString() : ''}
+                </p>
+              </button>
+              <button
+                onClick={(e) => handleDeleteSession(s.session_id, e)}
+                title="Delete chat"
+                aria-label="Delete chat"
+                className="absolute top-1/2 right-1 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
           ))}
         </div>
       </aside>
@@ -388,6 +427,15 @@ export default function AnalystView() {
           <Bot size={16} className="text-indigo-600" />
           <span className="font-semibold text-slate-900 text-sm">ARBITER Governance Agent</span>
           <span className="text-xs text-slate-500 ml-auto">claude-sonnet-4-6 · tool-calling · human-in-the-loop</span>
+          {activeSessionId && (
+            <button
+              onClick={handleResolve}
+              title="Mark conversation resolved and archive it"
+              className="flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full transition-colors"
+            >
+              <CheckCircle size={11} /> Resolve
+            </button>
+          )}
           {CHAT_URL ? (
             <span className="flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
               <Wifi size={10} /> Live
@@ -401,9 +449,24 @@ export default function AnalystView() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 bg-slate-50">
-          {messages.map((m, i) => (
-            <Message key={i} msg={m} onCreateCR={handleCreateCR} />
-          ))}
+          {messages.map((m, i) => {
+            const isLastAssistant =
+              m.role === 'assistant' && i === messages.length - 1 && !thinking
+            const agentSuggestedTicket = (m.actions || []).some(a => AGENT_TICKETING_ACTION_TYPES.has(a.type))
+            const detected = isLastAssistant && !m.ticketCreated && !agentSuggestedTicket
+              ? detectProblem({ messages: messages.slice(0, i + 1), sessionId: sessionIdRef.current })
+              : null
+            return (
+              <div key={i}>
+                <Message msg={m} onCreateCR={handleCreateCR} />
+                {detected?.hasProblem && (
+                  <div className="ml-10 mt-1">
+                    <CreateTicketButton detected={detected} />
+                  </div>
+                )}
+              </div>
+            )
+          })}
           {thinking && (
             <div className="flex gap-3">
               <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0">

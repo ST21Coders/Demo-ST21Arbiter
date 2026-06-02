@@ -1,0 +1,17 @@
+# gitleaks config — runs in CI to prevent secret commits.
+# https://github.com/gitleaks/gitleaks
+title = "ARBITER secret scan"
+
+[extend]
+useDefault = true
+
+# Test fixtures intentionally use the string "testing" as a fake AWS key.
+# Whitelist those paths so the default AWS-key regex doesn't flag them.
+[[allowlist]]
+description = "Test fixtures with dummy credentials"
+paths = [
+  '''tests/conftest\.py''',
+  '''tests/.*test_.*\.py''',
+  '''tests-e2e/.*''',
+  '''.*\.env\.example''',
+]
