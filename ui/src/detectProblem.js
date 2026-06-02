@@ -6,19 +6,6 @@
 // extra Bedrock calls. Tuned for ARBITER-style chat content (policy conflicts,
 // AWS resources, regulatory frameworks).
 
-const TRIGGER_TERMS = [
-  'conflict', 'violation', 'violates', 'non-compliant', 'non_compliant',
-  'critical', 'breach', 'exposed', 'leak', 'incident', 'outage', 'down',
-  'failed', 'failure', 'broken', 'blocked', 'blocking',
-  'vulnerability', 'misconfigured', 'drift',
-  'fix', 'remediate', 'remediation', 'resolve', 'investigate',
-]
-
-const ANTI_TRIGGER_LEADS = [
-  'how do i', 'how does', 'what is', 'what does',
-  'show me', 'list all', 'explain', 'who owns',
-]
-
 const SEVERITY_RULES = [
   { sev: 'CRITICAL', terms: ['critical', 'breach', 'data loss', 'production down', 'outage', 'pci dss', 'naic mdl', 'sox §404'] },
   { sev: 'HIGH',     terms: ['high', 'major', 'exposed', 'non-compliant', 'non_compliant', 'violation', 'violates'] },
@@ -171,8 +158,11 @@ function looksLikeSystemMessage(msg) {
   return SYSTEM_ERROR_SHAPES.some(re => re.test(content))
 }
 
-// Decide if the assistant message describes a genuine problem worth ticketing.
-// Returns extracted fields when triggered, or { hasProblem: false } otherwise.
+// Extract ticket prefill fields from the latest assistant answer. Returns
+// hasProblem:true with those fields for any genuine Q&A turn so the Create
+// Ticket button can surface on every question; returns { hasProblem: false }
+// only for non-answers (initial greeting, transport errors, or before the
+// user has asked anything).
 export function detectProblem({ messages, sessionId, sessionTitle } = {}) {
   const msgs = Array.isArray(messages) ? messages : []
   if (!msgs.length) return { hasProblem: false }
@@ -190,18 +180,6 @@ export function detectProblem({ messages, sessionId, sessionTitle } = {}) {
   if (!lastUser) return { hasProblem: false }
 
   const combined = `${lastUser.content || ''}\n${lastAssistant.content || ''}`
-  const lo = lower(combined)
-
-  const triggered = TRIGGER_TERMS.some(t => lo.includes(t))
-  if (!triggered) return { hasProblem: false }
-
-  // Suppress if the user message is a pure how-to and the assistant didn't
-  // surface trouble terms on its own.
-  const userLo = lower(lastUser?.content || '')
-  const assistantLo = lower(lastAssistant.content || '')
-  const userIsHowTo = ANTI_TRIGGER_LEADS.some(l => userLo.startsWith(l))
-  const assistantTriggered = TRIGGER_TERMS.some(t => assistantLo.includes(t))
-  if (userIsHowTo && !assistantTriggered) return { hasProblem: false }
 
   const title = extractTitle(lastAssistant.content, lastUser?.content)
   const severity = pickFirstMatch(combined, SEVERITY_RULES, 'HIGH')
