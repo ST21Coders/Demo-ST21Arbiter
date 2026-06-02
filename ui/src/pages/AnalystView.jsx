@@ -369,8 +369,24 @@ export default function AnalystView() {
     }
   }
 
+  // "Resolve" button in the chat header: archive the active conversation
+  // (same deleteSession path) and drop back to the new-chat state.
+  async function handleResolve() {
+    const sessionId = activeSessionId
+    if (!sessionId) return
+    if (!window.confirm('Mark this conversation resolved and archive it?')) return
+    try {
+      await deleteSession(sessionId)
+    } catch (err) {
+      console.warn('Resolve session failed:', err)
+    }
+    sessionIdRef.current = null
+    setActiveSessionId(null)
+    setMessages(initialGreeting())
+  }
+
   return (
-    <div className="flex h-full overflow-hidden" style={{ height: 'calc(100vh - 0px)' }}>
+    <div className="flex h-full overflow-hidden">
 
       {/* History sidebar (Analyst sessions). Hidden under lg to keep the
           page dense on narrow viewports — Try Asking + chat already use width. */}
