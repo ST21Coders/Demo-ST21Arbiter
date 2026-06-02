@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
 import Dashboard from './pages/Dashboard'
 import Findings from './pages/Findings'
+import FindingDetail from './pages/FindingDetail'
 import HeatMap from './pages/HeatMap'
 import ActionCenter from './pages/ActionCenter'
 import Governance from './pages/Governance'
@@ -115,6 +116,7 @@ function Shell() {
           <Routes>
             <Route path="/"            element={<Guarded path="/"><Dashboard /></Guarded>} />
             <Route path="/findings"    element={<Guarded path="/findings"><Findings /></Guarded>} />
+            <Route path="/findings/:id" element={<Guarded path="/findings"><FindingDetail /></Guarded>} />
             <Route path="/heatmap"     element={<Guarded path="/heatmap"><HeatMap /></Guarded>} />
             <Route path="/actions"     element={<Guarded path="/actions"><ActionCenter /></Guarded>} />
             <Route path="/governance"  element={<Guarded path="/governance"><Governance /></Guarded>} />

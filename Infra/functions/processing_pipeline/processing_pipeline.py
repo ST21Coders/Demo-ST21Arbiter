@@ -1,13 +1,20 @@
-"""ARBITER processing pipeline — scheduled raw → processed S3 file mover.
+"""ARBITER processing pipeline — raw → processed S3 file mover + F1 auto-detect chain.
 
-Two invocation paths share this handler:
+Three invocation paths share this handler:
   1. EventBridge schedule (twice daily, 06:00 / 18:00 PST literal = 14:00 / 02:00 UTC)
-     — no http context on the event, runs unconditionally.
+     — no http context, no detail.bucket. Runs full batch sweep.
   2. Lambda Function URL (AuthType=NONE) from a UI / Postman — requires
      `Authorization: Bearer <Cognito IdToken>`; caller must belong to one
-     of ALLOWED_GROUPS (defaults set in CFN to "ciso,grc").
+     of ALLOWED_GROUPS (defaults set in CFN to "ciso,grc"). Runs full batch sweep.
+  3. EventBridge S3 ObjectCreated rule — fires on every new upload to RAW_BUCKET
+     (excluding REPORTS_PREFIX). Processes ONE key, then if KB_ID is set:
+        - Starts a Bedrock KB ingestion job
+        - Polls until COMPLETE / FAILED (up to ~3 min)
+        - On COMPLETE, async-invokes SCANNER_LAMBDA_NAME
+     This is the F1 "as they happen" auto-detect chain documented in
+     Documents/Feature_Coverage_Plan.md §3 steps 3-5.
 
-For each object in RAW_BUCKET:
+For each object in RAW_BUCKET (batch path):
   1. Skip keys under REPORTS_PREFIX (our own audit CSVs) and folder markers.
   2. head_object on PROCESSED_BUCKET with the same key — if present, record SKIPPED_EXISTS.
   3. Otherwise copy_object → delete_object (true move), record MOVED.
@@ -21,6 +28,7 @@ import io
 import json
 import logging
 import os
+import time
 import uuid
 from datetime import datetime, timezone
 
@@ -39,7 +47,18 @@ COGNITO_ISSUER_URL = os.environ.get("COGNITO_ISSUER_URL", "")
 # Empty means "any authenticated caller" (still requires a valid JWT).
 ALLOWED_GROUPS = {g.strip() for g in os.environ.get("ALLOWED_GROUPS", "").split(",") if g.strip()}
 
+# F1 auto-detect chain — empty values disable the post-process trigger gracefully.
+KB_ID = os.environ.get("KB_ID", "").strip()
+KB_DATA_SOURCE_ID = os.environ.get("KB_DATA_SOURCE_ID", "").strip()
+SCANNER_LAMBDA_NAME = os.environ.get("SCANNER_LAMBDA_NAME", "").strip()
+# Polling budget for the ingestion job. Default 180s (Bedrock typically
+# finishes a 5-doc KB in ~30-60s; 3min is a comfortable ceiling).
+INGEST_POLL_TIMEOUT_S = int(os.environ.get("INGEST_POLL_TIMEOUT_S", "180"))
+INGEST_POLL_INTERVAL_S = int(os.environ.get("INGEST_POLL_INTERVAL_S", "5"))
+
 s3 = boto3.client("s3", region_name=REGION)
+bedrock_agent = boto3.client("bedrock-agent", region_name=REGION)
+lambda_client = boto3.client("lambda", region_name=REGION)
 
 # Toggled per-invocation in handler(). The Function URL's CORS layer adds
 # Access-Control-Allow-Origin itself; emitting it again from the Lambda
@@ -113,6 +132,13 @@ def handler(event, context):
     if method == "OPTIONS":
         return _resp(200, {"ok": True})
 
+    # F1 auto-detect path: EventBridge S3 ObjectCreated event arrives as
+    # {source: "aws.s3", detail-type: "Object Created", detail: {bucket:{name},
+    # object:{key,size,...}}}. Process exactly the uploaded key, then trigger
+    # the KB ingestion + scanner chain. Skips the batch sweep entirely.
+    if event.get("source") == "aws.s3" and event.get("detail-type") == "Object Created":
+        return _handle_single_object_event(event)
+
     # AuthN/AuthZ gate — only applies to HTTP invocations. EventBridge runs free.
     if invoked_via_http:
         sub, groups = _caller_groups(event)
@@ -185,6 +211,112 @@ def handler(event, context):
         "failed": failed,
         "report_key": report_key,
     })
+
+
+# ──────────────────────────── F1 single-event path ──────────────
+def _handle_single_object_event(event: dict) -> dict:
+    """Handle one EventBridge S3 ObjectCreated event end-to-end.
+
+    Steps:
+      1. Pull bucket+key from event.detail. Skip our own REPORTS_PREFIX (the
+         EventBridge rule already filters but defense in depth).
+      2. Copy raw → processed (or skip if dest exists).
+      3. If KB_ID is configured, start a Bedrock KB ingestion job, poll until
+         COMPLETE, then async-invoke SCANNER_LAMBDA_NAME so a fresh scan picks
+         up the newly-indexed document. Each step that fails is logged and the
+         response still returns 200 so EventBridge doesn't retry forever.
+    """
+    detail = event.get("detail") or {}
+    bucket = (detail.get("bucket") or {}).get("name") or RAW_BUCKET
+    key = (detail.get("object") or {}).get("key") or ""
+    if not key or key.startswith(REPORTS_PREFIX) or key.endswith("/"):
+        return _resp(200, {"skipped": True, "reason": "filtered key", "key": key})
+
+    logger.info("F1 auto-detect: bucket=%s key=%s", bucket, key)
+    obj = {"Key": key, "Size": (detail.get("object") or {}).get("size", 0),
+           "ETag": (detail.get("object") or {}).get("etag", "")}
+    action, error = _process_one(obj)
+    logger.info("File move result: action=%s error=%s", action, error or "-")
+
+    summary: dict = {
+        "key": key,
+        "action": action,
+        "error": error or None,
+        "kb_triggered": False,
+        "scanner_triggered": False,
+    }
+
+    if action == "FAILED":
+        return _resp(502, summary)
+
+    if not (KB_ID and KB_DATA_SOURCE_ID):
+        logger.info("KB_ID / KB_DATA_SOURCE_ID unset — skipping ingestion + scan chain")
+        return _resp(200, summary)
+
+    job = _start_kb_ingestion()
+    if job:
+        summary["kb_triggered"] = True
+        summary["ingestion_job_id"] = job
+        final_status = _wait_for_ingestion(job)
+        summary["ingestion_status"] = final_status
+        if final_status == "COMPLETE":
+            ok = _invoke_scanner(triggered_by=f"auto-ingest:{key}")
+            summary["scanner_triggered"] = ok
+    return _resp(200, summary)
+
+
+def _start_kb_ingestion() -> str | None:
+    try:
+        resp = bedrock_agent.start_ingestion_job(
+            knowledgeBaseId=KB_ID,
+            dataSourceId=KB_DATA_SOURCE_ID,
+            description=f"auto-trigger {_now_iso()}",
+        )
+        job_id = resp["ingestionJob"]["ingestionJobId"]
+        logger.info("KB ingestion job started: %s (kb=%s ds=%s)", job_id, KB_ID, KB_DATA_SOURCE_ID)
+        return job_id
+    except ClientError as e:
+        logger.exception("StartIngestionJob failed (kb=%s ds=%s)", KB_ID, KB_DATA_SOURCE_ID)
+        return None
+
+
+def _wait_for_ingestion(job_id: str) -> str:
+    """Poll the KB ingestion job until terminal status. Returns the final status."""
+    deadline = time.time() + INGEST_POLL_TIMEOUT_S
+    last_status = "IN_PROGRESS"
+    while time.time() < deadline:
+        try:
+            resp = bedrock_agent.get_ingestion_job(
+                knowledgeBaseId=KB_ID, dataSourceId=KB_DATA_SOURCE_ID, ingestionJobId=job_id,
+            )
+            last_status = resp["ingestionJob"]["status"]
+            logger.info("Ingestion %s status: %s", job_id, last_status)
+            if last_status in ("COMPLETE", "FAILED", "STOPPED"):
+                return last_status
+        except ClientError as e:
+            logger.exception("GetIngestionJob failed")
+            return "ERROR"
+        time.sleep(INGEST_POLL_INTERVAL_S)
+    logger.warning("Ingestion %s did not finish within %ds (last=%s)",
+                   job_id, INGEST_POLL_TIMEOUT_S, last_status)
+    return "TIMEOUT"
+
+
+def _invoke_scanner(triggered_by: str) -> bool:
+    if not SCANNER_LAMBDA_NAME:
+        logger.info("SCANNER_LAMBDA_NAME unset — skipping scanner invoke")
+        return False
+    try:
+        lambda_client.invoke(
+            FunctionName=SCANNER_LAMBDA_NAME,
+            InvocationType="Event",
+            Payload=json.dumps({"triggered_by": triggered_by}).encode("utf-8"),
+        )
+        logger.info("Scanner async-invoked (triggered_by=%s)", triggered_by)
+        return True
+    except ClientError as e:
+        logger.exception("Scanner invoke failed")
+        return False
 
 
 # ──────────────────────────── per-object processing ─────────────

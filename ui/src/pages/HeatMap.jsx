@@ -3,8 +3,12 @@ import {
   Loader2, AlertTriangle, RefreshCw,
   BarChart3, Network, HeartPulse,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useFindings } from '../hooks/useApi'
-import { buildConflictMatrix } from '../mockData'
+import {
+  buildConflictMatrix, buildDomainSourceMatrix,
+  DOMAIN_LABELS, DOMAIN_KEYS, SOURCE_PAIRS,
+} from '../mockData'
 
 // ─── Architecture topology definitions ────────────────────────────────────────
 
@@ -568,26 +572,127 @@ function StatusDot({ status }) {
 }
 
 // ─── Conflict Matrix tab ──────────────────────────────────────────────────────
+// The doc-mandated grid: Compliance Domain (rows) × Source Pair (cols).
+// Click a cell to drill into the matching Findings filter. The legacy
+// Source × Severity grid remains accessible via the bottom tab toggle.
 
-function ConflictMatrix({ findings, loading }) {
-  const matrix = buildConflictMatrix(findings)
-  const crossDomain = findings.filter(f => f.type === 'CROSS_DOMAIN').length
-  const intraDoc    = findings.filter(f => f.type === 'INTRA_DOCUMENT').length
-
+function DomainSourceMatrixView({ findings, loading, onCellClick }) {
+  const matrix = buildDomainSourceMatrix(findings)
   if (loading) return (
     <div className="flex items-center justify-center py-24">
       <Loader2 size={24} className="animate-spin text-slate-400" />
     </div>
   )
+  return (
+    <div className="card overflow-x-auto">
+      <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
+        Compliance Domain × Source System
+      </p>
+      <table className="w-full text-sm border-separate border-spacing-1.5">
+        <thead>
+          <tr>
+            <th className="text-left text-xs text-slate-500 font-medium pb-2 w-44">Domain</th>
+            {SOURCE_PAIRS.map(s => (
+              <th key={s} className="text-xs text-slate-700 font-semibold pb-2 text-center">{s}</th>
+            ))}
+            <th className="text-xs text-slate-500 font-medium pb-2 text-center">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {DOMAIN_KEYS.map(dk => {
+            const rowTotal = SOURCE_PAIRS.reduce((s, sp) => s + (matrix[dk]?.[sp] ?? 0), 0)
+            return (
+              <tr key={dk}>
+                <td className="text-xs text-slate-700 font-semibold pr-4 py-1">{DOMAIN_LABELS[dk]}</td>
+                {SOURCE_PAIRS.map(sp => {
+                  const count = matrix[dk]?.[sp] ?? 0
+                  return (
+                    <td key={sp} className="text-center py-1">
+                      <button
+                        onClick={() => count > 0 && onCellClick?.(dk, sp)}
+                        disabled={count === 0}
+                        className={`w-full rounded-lg py-3 font-bold text-lg transition-transform hover:scale-105 disabled:cursor-default disabled:hover:scale-100 ${cellClass(count)}`}
+                      >
+                        {count > 0 ? count : '—'}
+                      </button>
+                    </td>
+                  )
+                })}
+                <td className="text-center">
+                  <span className="text-xs font-bold text-slate-700">{rowTotal}</span>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function SourceSeverityMatrixView({ findings }) {
+  const matrix = buildConflictMatrix(findings)
+  return (
+    <div className="card overflow-x-auto">
+      <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
+        Source × Severity (legacy view)
+      </p>
+      <table className="w-full text-sm border-separate border-spacing-1.5">
+        <thead>
+          <tr>
+            <th className="text-left text-xs text-slate-500 font-medium pb-2 w-36">Source</th>
+            {SEVERITIES.map(s => (
+              <th key={s} className={`text-xs font-bold pb-2 text-center w-28 ${
+                s === 'CRITICAL' ? 'text-red-700' : s === 'HIGH' ? 'text-orange-700' :
+                s === 'MEDIUM' ? 'text-amber-700' : 'text-emerald-700'
+              }`}>{s}</th>
+            ))}
+            <th className="text-xs text-slate-500 font-medium pb-2 text-center">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {DOMAINS.map(domain => {
+            const rowTotal = SEVERITIES.reduce((sum, s) => sum + (matrix[domain]?.[s] ?? 0), 0)
+            return (
+              <tr key={domain}>
+                <td className="text-xs text-slate-700 font-semibold pr-4 py-1">{domain}</td>
+                {SEVERITIES.map(sev => {
+                  const count = matrix[domain]?.[sev] ?? 0
+                  return (
+                    <td key={sev} className="text-center py-1">
+                      <div className={`rounded-lg py-3 font-bold text-lg ${cellClass(count)}`}>
+                        {count > 0 ? count : '—'}
+                      </div>
+                    </td>
+                  )
+                })}
+                <td className="text-center">
+                  <span className="text-xs font-bold text-slate-700">{rowTotal}</span>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function ConflictMatrix({ findings, loading }) {
+  const navigate = useNavigate()
+  const [matrixTab, setMatrixTab] = useState('domain-source')
+  const contradictions = findings.filter(f => f.conflict_type === 'CONTRADICTION').length
+  const gaps          = findings.filter(f => f.conflict_type === 'GAP').length
+  const drifts        = findings.filter(f => f.conflict_type === 'DRIFT').length
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Total Conflicts',  value: findings.length,                                                              color: 'text-slate-900' },
-          { label: 'Cross-Domain',     value: crossDomain,                                                                  color: 'text-indigo-700' },
-          { label: 'Intra-Document',   value: intraDoc,                                                                     color: 'text-sky-700' },
-          { label: 'Critical / High',  value: findings.filter(f => ['CRITICAL','HIGH'].includes(f.severity)).length,        color: 'text-red-700' },
+          { label: 'Total Conflicts', value: findings.length,                                                       color: 'text-slate-900' },
+          { label: 'Contradiction',   value: contradictions,                                                        color: 'text-rose-700' },
+          { label: 'Gap',             value: gaps,                                                                  color: 'text-amber-700' },
+          { label: 'Drift',           value: drifts,                                                                color: 'text-orange-700' },
         ].map(k => (
           <div key={k.label} className="card text-center py-3">
             <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
@@ -596,62 +701,39 @@ function ConflictMatrix({ findings, loading }) {
         ))}
       </div>
 
-      <div className="card overflow-x-auto">
-        <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
-          Domain × Severity Matrix
-        </p>
-        <table className="w-full text-sm border-separate border-spacing-1.5">
-          <thead>
-            <tr>
-              <th className="text-left text-xs text-slate-500 font-medium pb-2 w-36">Domain / Source</th>
-              {SEVERITIES.map(s => (
-                <th key={s} className={`text-xs font-bold pb-2 text-center w-28 ${
-                  s === 'CRITICAL' ? 'text-red-700' : s === 'HIGH' ? 'text-orange-700' :
-                  s === 'MEDIUM' ? 'text-amber-700' : 'text-emerald-700'
-                }`}>{s}</th>
-              ))}
-              <th className="text-xs text-slate-500 font-medium pb-2 text-center">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {DOMAINS.map(domain => {
-              const rowTotal = SEVERITIES.reduce((sum, s) => sum + (matrix[domain]?.[s] ?? 0), 0)
-              return (
-                <tr key={domain}>
-                  <td className="text-xs text-slate-700 font-semibold pr-4 py-1">{domain}</td>
-                  {SEVERITIES.map(sev => {
-                    const count = matrix[domain]?.[sev] ?? 0
-                    return (
-                      <td key={sev} className="text-center py-1">
-                        <div className={`rounded-lg py-3 font-bold text-lg ${cellClass(count)}`}>
-                          {count > 0 ? count : '—'}
-                        </div>
-                      </td>
-                    )
-                  })}
-                  <td className="text-center">
-                    <span className="text-xs font-bold text-slate-700">{rowTotal}</span>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+      <div className="flex gap-2 text-xs">
+        <button
+          onClick={() => setMatrixTab('domain-source')}
+          className={matrixTab === 'domain-source' ? 'btn-primary' : 'btn-ghost'}
+        >Domain × Source</button>
+        <button
+          onClick={() => setMatrixTab('source-severity')}
+          className={matrixTab === 'source-severity' ? 'btn-primary' : 'btn-ghost'}
+        >Source × Severity</button>
+      </div>
 
-        <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-200">
-          <p className="text-xs text-slate-500 font-medium">Density:</p>
-          {[
-            { label: '0',  cls: 'hm-0' },
-            { label: '1',  cls: 'hm-1' },
-            { label: '2',  cls: 'hm-2' },
-            { label: '3',  cls: 'hm-3' },
-            { label: '4+', cls: 'hm-4' },
-          ].map(l => (
-            <div key={l.label} className="flex items-center gap-1.5">
-              <div className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold ${l.cls}`}>{l.label}</div>
-            </div>
-          ))}
-        </div>
+      {matrixTab === 'domain-source'
+        ? <DomainSourceMatrixView
+            findings={findings}
+            loading={loading}
+            onCellClick={(dk, sp) => navigate(`/findings?domain=${dk}&source=${encodeURIComponent(sp)}`)}
+          />
+        : <SourceSeverityMatrixView findings={findings} />
+      }
+
+      <div className="flex items-center gap-4 pt-1">
+        <p className="text-xs text-slate-500 font-medium">Density:</p>
+        {[
+          { label: '0',  cls: 'hm-0' },
+          { label: '1',  cls: 'hm-1' },
+          { label: '2',  cls: 'hm-2' },
+          { label: '3',  cls: 'hm-3' },
+          { label: '4+', cls: 'hm-4' },
+        ].map(l => (
+          <div key={l.label} className="flex items-center gap-1.5">
+            <div className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold ${l.cls}`}>{l.label}</div>
+          </div>
+        ))}
       </div>
     </div>
   )

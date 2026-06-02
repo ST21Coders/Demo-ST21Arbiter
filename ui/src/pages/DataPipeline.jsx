@@ -1,61 +1,192 @@
-import { useState } from 'react'
-import { CheckCircle, Clock, RefreshCw, Database, FileText, Server, Loader2, Activity } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  CheckCircle, Clock, RefreshCw, Database, FileText, Server, Loader2, Activity,
+  Upload, AlertTriangle,
+} from 'lucide-react'
+import { presignUpload, uploadToPresignedUrl, listScanRuns } from '../hooks/useApi'
+import { formatDistanceToNow } from 'date-fns'
+
+// ── Static source / KB reference (kept from previous build) ─────────────────
 
 const SOURCES = [
-  {
-    id: 'sharepoint',
-    name: 'SharePoint',
-    icon: FileText,
-    description: 'Policy documents, standards, procedures',
-    s3Prefix: 's3://mig-arbiter-raw/sharepoint/',
-    docCount: 12,
-    lastSync: '2026-05-18T08:30:00Z',
-    status: 'SYNCED',
-    formats: ['DOCX', 'PDF'],
-    color: { bg: '#eef2ff', icon: '#4f46e5', border: '#c7d2fe' },
-  },
-  {
-    id: 'zscaler',
-    name: 'Zscaler ZIA',
-    icon: Server,
-    description: 'URL categorization rules, policy enforcement',
-    s3Prefix: 's3://mig-arbiter-raw/zscaler/',
-    docCount: 3,
-    lastSync: '2026-05-18T07:45:00Z',
-    status: 'SYNCED',
-    formats: ['JSON'],
-    color: { bg: '#f0f9ff', icon: '#0284c7', border: '#bae6fd' },
-  },
-  {
-    id: 'awsconfig',
-    name: 'AWS Config',
-    icon: Database,
-    description: 'Security groups, S3 bucket configs, IAM snapshots',
-    s3Prefix: 's3://mig-arbiter-raw/aws-config/',
-    docCount: 8,
-    lastSync: '2026-05-18T09:00:00Z',
-    status: 'SYNCED',
-    formats: ['JSON'],
-    color: { bg: '#fff7ed', icon: '#ea580c', border: '#fed7aa' },
-  },
+  { id: 'sharepoint', name: 'SharePoint',  icon: FileText, description: 'Policy documents, standards, procedures',          s3Prefix: 's3://dev-st21arbiter-poc-raw/sharepoint/',  docCount: 12, formats: ['DOCX', 'PDF', 'MD'], color: { bg: '#eef2ff', icon: '#4f46e5', border: '#c7d2fe' } },
+  { id: 'zscaler',    name: 'Zscaler ZIA', icon: Server,   description: 'URL categorization rules, policy enforcement',       s3Prefix: 's3://dev-st21arbiter-poc-raw/zscaler/',     docCount: 3,  formats: ['JSON'],            color: { bg: '#f0f9ff', icon: '#0284c7', border: '#bae6fd' } },
+  { id: 'awsconfig',  name: 'AWS Config',  icon: Database, description: 'Security groups, S3 bucket configs, IAM snapshots', s3Prefix: 's3://dev-st21arbiter-poc-raw/aws-config/',  docCount: 8,  formats: ['JSON'],            color: { bg: '#fff7ed', icon: '#ea580c', border: '#fed7aa' } },
 ]
 
-const PIPELINE_STEPS = [
-  { id: 1, label: 'S3 Ingest',          desc: 'Documents land in mig-arbiter-raw via connector or manual upload',             status: 'DONE' },
-  { id: 2, label: 'Lambda Processing',   desc: 'DOCX→text chunking, JSON→natural language description, metadata extraction',   status: 'DONE' },
-  { id: 3, label: 'Bedrock KB Sync',     desc: 'Chunks embedded with Titan Embed Text v2, indexed in OpenSearch Serverless',   status: 'DONE' },
-  { id: 4, label: 'Agent Scan',          desc: 'Master Orchestrator dispatches 4 specialist agents for cross-domain detection', status: 'READY' },
-  { id: 5, label: 'Conflict Storage',    desc: 'Conflicts written to mig-arbiter-conflicts DynamoDB table',                    status: 'READY' },
+// ── 4-step pipeline status for a single upload ──────────────────────────────
+// Each upload moves through:
+//   uploading → uploaded (file PUT to Raw bucket)
+//   processed                       (processing_pipeline moved Raw → Processed)
+//   kb_ingesting / kb_done           (Bedrock KB ingestion job complete)
+//   scanning / scan_done             (scanner_lambda finished, scan-runs COMPLETED)
+// We don't have a per-step API today, so we infer from the scan-runs row's
+// presence + status. If the scan-runs row exists, we collapse everything up to
+// scanning into "complete". If still missing, we show steps 1-3 as in-progress.
+
+const STEP_DEFS = [
+  { key: 'raw',       label: 'Raw',       desc: 'File landed in raw S3 bucket'                       },
+  { key: 'processed', label: 'Processed', desc: 'processing_pipeline moved Raw → Processed'           },
+  { key: 'kb',        label: 'KB ingest', desc: 'Bedrock KB ingestion job complete'                  },
+  { key: 'scan',      label: 'Scan',      desc: 'scanner_lambda finished; conflicts re-evaluated'    },
 ]
 
 const STATUS_STYLE = {
-  DONE:    { bg: '#ecfdf5',  border: '#a7f3d0', text: '#047857',  label: 'Done' },
-  READY:   { bg: '#eef2ff', border: '#c7d2fe', text: '#4338ca',  label: 'Ready' },
-  SYNCING: { bg: '#fffbeb', border: '#fde68a', text: '#b45309',  label: 'Syncing…' },
-  ERROR:   { bg: '#fef2f2',  border: '#fecaca', text: '#b91c1c',  label: 'Error' },
+  pending:  { bg: '#f1f5f9', border: '#e2e8f0', text: '#64748b' },
+  running:  { bg: '#fffbeb', border: '#fde68a', text: '#b45309' },
+  done:     { bg: '#ecfdf5', border: '#a7f3d0', text: '#047857' },
+  failed:   { bg: '#fef2f2', border: '#fecaca', text: '#b91c1c' },
 }
 
-function SourceCard({ source, onSync, syncing }) {
+function StepChip({ status, label }) {
+  const s = STATUS_STYLE[status] || STATUS_STYLE.pending
+  const Icon = status === 'done' ? CheckCircle : status === 'failed' ? AlertTriangle : status === 'running' ? Loader2 : Clock
+  return (
+    <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md border whitespace-nowrap"
+          style={{ background: s.bg, borderColor: s.border, color: s.text }}>
+      <Icon size={11} className={status === 'running' ? 'animate-spin' : ''} />
+      {label}
+    </span>
+  )
+}
+
+// Map an upload's progress to the 4 step statuses based on what we know.
+function stepStatesFor(upload) {
+  // raw: done as soon as the browser PUT succeeded (state="uploaded" onward)
+  // processed/kb/scan: we infer from scan-runs:
+  //   - no scan-run yet → both raw + processed running (processing_pipeline cold start)
+  //   - scan-run RUNNING → raw + processed done, kb running, scan running
+  //   - scan-run COMPLETED → all done
+  //   - scan-run FAILED → raw + processed done, kb/scan failed
+  const states = { raw: 'pending', processed: 'pending', kb: 'pending', scan: 'pending' }
+  if (upload.state === 'uploading')      { states.raw = 'running'; return states }
+  if (upload.state === 'upload_failed')  { states.raw = 'failed';  return states }
+
+  // PUT succeeded; raw is done.
+  states.raw = 'done'
+
+  const run = upload.scanRun
+  if (!run) {
+    // No scan-run yet — assume processing_pipeline + KB ingestion are in flight.
+    states.processed = 'running'
+    states.kb = 'running'
+    return states
+  }
+  // Once a scan-run exists, the chain has progressed past processing + KB.
+  states.processed = 'done'
+  states.kb = 'done'
+  if (run.status === 'COMPLETED') { states.scan = 'done' }
+  else if (run.status === 'FAILED') { states.scan = 'failed' }
+  else { states.scan = 'running' }
+  return states
+}
+
+function shortKey(key) {
+  if (!key) return ''
+  // Drop the users/<sub>/ prefix the presign endpoint adds.
+  return key.replace(/^users\/[^/]+\//, '')
+}
+
+// ── Upload dropzone ─────────────────────────────────────────────────────────
+
+function UploadDropzone({ onFile, disabled }) {
+  const [dragging, setDragging] = useState(false)
+  const inputRef = useRef(null)
+
+  function handleFiles(files) {
+    if (!files || !files.length) return
+    Array.from(files).forEach(f => onFile(f))
+  }
+
+  return (
+    <div
+      onDragOver={e => { e.preventDefault(); setDragging(true) }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={e => {
+        e.preventDefault(); setDragging(false)
+        if (!disabled) handleFiles(e.dataTransfer.files)
+      }}
+      onClick={() => !disabled && inputRef.current?.click()}
+      className={`rounded-xl border-2 border-dashed p-8 flex flex-col items-center gap-2 transition-colors cursor-pointer ${
+        disabled ? 'opacity-50 cursor-not-allowed' : ''
+      }`}
+      style={{
+        borderColor: dragging ? '#6366f1' : '#cbd5e1',
+        background: dragging ? '#eef2ff' : '#ffffff',
+      }}
+    >
+      <div className="w-12 h-12 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center">
+        <Upload size={20} className="text-indigo-600" />
+      </div>
+      <p className="text-sm font-semibold text-slate-900">Drop policy documents here, or click to browse</p>
+      <p className="text-xs text-slate-500">Supports .md, .pdf, .docx, .json — files are processed in ~30-60 seconds</p>
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept=".md,.pdf,.docx,.json,.txt"
+        className="hidden"
+        onChange={e => handleFiles(e.target.files)}
+      />
+    </div>
+  )
+}
+
+// ── One row per upload ──────────────────────────────────────────────────────
+
+function UploadRow({ upload }) {
+  const states = stepStatesFor(upload)
+  const finished = states.scan === 'done' || states.scan === 'failed'
+  const ts = upload.startedAt ? new Date(upload.startedAt) : null
+
+  return (
+    <div className="rounded-xl p-4 bg-white border border-slate-200"
+         style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
+      <div className="flex items-center justify-between mb-3 gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText size={14} className="text-slate-500 flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-900 truncate" title={upload.filename}>{upload.filename}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              {ts ? formatDistanceToNow(ts, { addSuffix: true }) : ''}
+              {upload.key && <> · <span className="font-mono">{shortKey(upload.key)}</span></>}
+            </p>
+          </div>
+        </div>
+        {finished && upload.scanRun?.totals && (
+          <p className="text-xs text-emerald-700 flex-shrink-0">
+            {upload.scanRun.totals.conflicts ?? 0} conflicts · {upload.scanRun.totals.compliant ?? 0} compliant
+          </p>
+        )}
+        {!finished && (
+          <p className="text-xs text-amber-700 flex-shrink-0 flex items-center gap-1">
+            <Loader2 size={11} className="animate-spin" /> in progress
+          </p>
+        )}
+      </div>
+      {/* Steps */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {STEP_DEFS.map((step, i) => (
+          <div key={step.key} className="flex items-center gap-2">
+            <StepChip status={states[step.key]} label={step.label} />
+            {i < STEP_DEFS.length - 1 && (
+              <span className="text-slate-300 text-xs select-none">→</span>
+            )}
+          </div>
+        ))}
+      </div>
+      {upload.error && (
+        <p className="text-xs text-red-700 mt-2 flex items-center gap-1.5">
+          <AlertTriangle size={12} /> {upload.error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ── Source card (existing — kept as informational reference) ────────────────
+
+function SourceCard({ source }) {
   const Icon = source.icon
   return (
     <div className="rounded-xl p-4 bg-white"
@@ -71,19 +202,7 @@ function SourceCard({ source, onSync, syncing }) {
             <p className="text-xs text-slate-500">{source.description}</p>
           </div>
         </div>
-        <button
-          onClick={() => onSync(source.id)}
-          disabled={syncing === source.id}
-          className="btn-ghost text-xs flex items-center gap-1 px-2 py-1"
-        >
-          {syncing === source.id
-            ? <Loader2 size={12} className="animate-spin" />
-            : <RefreshCw size={12} />
-          }
-          Sync
-        </button>
       </div>
-
       <div className="grid grid-cols-2 gap-3 text-xs">
         <div>
           <p className="text-slate-400 mb-0.5">S3 Prefix</p>
@@ -93,14 +212,10 @@ function SourceCard({ source, onSync, syncing }) {
           <p className="text-slate-400 mb-0.5">Documents</p>
           <p className="text-slate-700">{source.docCount} files ({source.formats.join(', ')})</p>
         </div>
-        <div>
-          <p className="text-slate-400 mb-0.5">Last Sync</p>
-          <p className="text-slate-700">{new Date(source.lastSync).toLocaleTimeString()}</p>
-        </div>
-        <div>
+        <div className="col-span-2">
           <p className="text-slate-400 mb-0.5">Status</p>
           <span className="flex items-center gap-1 text-emerald-700">
-            <CheckCircle size={11} /> {source.status}
+            <CheckCircle size={11} /> SYNCED · auto-detect ENABLED
           </span>
         </div>
       </div>
@@ -108,79 +223,133 @@ function SourceCard({ source, onSync, syncing }) {
   )
 }
 
-export default function DataPipeline() {
-  const [syncing, setSyncing] = useState(null)
+// ── Page ─────────────────────────────────────────────────────────────────────
 
-  async function handleSync(id) {
-    setSyncing(id)
-    await new Promise(r => setTimeout(r, 1500))
-    setSyncing(null)
+export default function DataPipeline() {
+  const [uploads, setUploads] = useState([])     // newest first
+
+  // Per-upload state machine. We update via a single setState that maps over
+  // the existing array, so concurrent polls + new uploads don't race each other.
+  const updateUpload = useCallback((id, patch) => {
+    setUploads(prev => prev.map(u => u.id === id ? { ...u, ...patch } : u))
+  }, [])
+
+  async function handleFile(file) {
+    const id = `upl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const upload = {
+      id,
+      filename: file.name,
+      contentType: file.type || 'application/octet-stream',
+      state: 'uploading',
+      startedAt: new Date().toISOString(),
+      key: null,
+      scanRun: null,
+      error: null,
+    }
+    setUploads(prev => [upload, ...prev])
+
+    // 1. presign
+    let pre
+    try {
+      pre = await presignUpload({ filename: file.name, contentType: file.type })
+    } catch (err) {
+      updateUpload(id, { state: 'upload_failed', error: 'presign failed: ' + err.message })
+      return
+    }
+    updateUpload(id, { key: pre.key, bucket: pre.bucket })
+
+    // 2. PUT directly to S3
+    try {
+      const res = await uploadToPresignedUrl(pre.url, pre.headers, file)
+      if (!res.ok) {
+        updateUpload(id, { state: 'upload_failed', error: `S3 PUT returned ${res.status}` })
+        return
+      }
+    } catch (err) {
+      updateUpload(id, { state: 'upload_failed', error: 'S3 PUT failed: ' + err.message })
+      return
+    }
+    updateUpload(id, { state: 'uploaded' })
+    // Polling effect will pick this up and update scanRun as the chain progresses.
   }
 
-  const cardStyle = { background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }
+  // Poll /scan-runs every 5s while any upload is still in-flight. We stop once
+  // every upload has either finished or failed, then resume when a new upload
+  // appears.
+  useEffect(() => {
+    const active = uploads.some(u => u.state !== 'upload_failed'
+      && (!u.scanRun || (u.scanRun.status !== 'COMPLETED' && u.scanRun.status !== 'FAILED')))
+    if (!active) return
+    let cancelled = false
+    const tick = async () => {
+      try {
+        const data = await listScanRuns(20)
+        const runs = data?.scan_runs || []
+        if (cancelled) return
+        // For each upload that has a key but no terminal scanRun, see if a row
+        // matching its triggered_by has appeared.
+        setUploads(prev => prev.map(u => {
+          if (!u.key) return u
+          if (u.scanRun?.status === 'COMPLETED' || u.scanRun?.status === 'FAILED') return u
+          const wanted = `auto-ingest:${u.key}`
+          const match = runs.find(r => r.triggered_by === wanted)
+          if (!match) return u
+          return { ...u, scanRun: match }
+        }))
+      } catch {
+        /* silent — keep polling */
+      }
+    }
+    tick()
+    const handle = setInterval(tick, 5000)
+    return () => { cancelled = true; clearInterval(handle) }
+  }, [uploads])
 
   return (
     <div className="p-6 space-y-6 max-w-5xl">
       <div>
         <h1 className="text-lg font-bold text-slate-900 tracking-tight">Data Pipeline</h1>
-        <p className="text-xs text-slate-500 mt-0.5">S3-backed ingestion pipeline feeding Bedrock Knowledge Base</p>
+        <p className="text-xs text-slate-500 mt-0.5">
+          Upload a policy document → auto-detect → KB ingestion → scan. Each file is processed in ~30-60 seconds.
+        </p>
       </div>
 
-      {/* Pipeline flow */}
-      <div className="rounded-xl p-4" style={cardStyle}>
-        <div className="flex items-center gap-2 mb-4">
-          <Activity size={12} className="text-slate-500" />
-          <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Ingestion Pipeline</p>
-        </div>
-        <div className="space-y-0">
-          {PIPELINE_STEPS.map((step, i) => {
-            const s = STATUS_STYLE[step.status]
-            return (
-              <div key={step.id} className="flex items-start gap-4">
-                <div className="flex flex-col items-center flex-shrink-0">
-                  <div className="w-7 h-7 rounded-full border flex items-center justify-center text-xs font-bold"
-                       style={{ background: s.bg, border: `1px solid ${s.border}`, color: s.text }}>
-                    {step.status === 'DONE' ? <CheckCircle size={13} /> : <Clock size={13} />}
-                  </div>
-                  {i < PIPELINE_STEPS.length - 1 && (
-                    <div className="w-px flex-1 my-1 bg-slate-200" style={{ minHeight: '24px' }} />
-                  )}
-                </div>
-                <div className={`pb-4 ${i === PIPELINE_STEPS.length - 1 ? '' : ''}`}>
-                  <div className="flex items-center gap-2 pt-1">
-                    <p className="text-sm font-medium text-slate-900">{step.label}</p>
-                    <span className="text-xs px-2 py-0.5 rounded font-medium"
-                          style={{ background: s.bg, color: s.text, border: `1px solid ${s.border}` }}>
-                      {s.label}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-0.5">{step.desc}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      {/* Upload zone */}
+      <UploadDropzone onFile={handleFile} />
 
-      {/* Source connectors */}
+      {/* Recent uploads */}
+      {uploads.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Activity size={12} className="text-slate-500" />
+            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Recent Uploads (this session)</p>
+          </div>
+          <div className="space-y-2">
+            {uploads.map(u => <UploadRow key={u.id} upload={u} />)}
+          </div>
+        </div>
+      )}
+
+      {/* Source connectors — informational */}
       <div>
-        <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-3">Data Sources (S3-backed)</p>
+        <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-3">Data Sources (S3-backed · auto-detect enabled)</p>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {SOURCES.map(src => (
-            <SourceCard key={src.id} source={src} onSync={handleSync} syncing={syncing} />
+            <SourceCard key={src.id} source={src} />
           ))}
         </div>
       </div>
 
       {/* KB info */}
-      <div className="rounded-xl p-4" style={cardStyle}>
+      <div className="rounded-xl p-4 bg-white border border-slate-200"
+           style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
         <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-3">Bedrock Knowledge Base</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
           {[
-            { label: 'KB ID',            value: import.meta.env.VITE_KB_ID || 'mig-arbiter-policy-kb', mono: true },
-            { label: 'Embedding Model',  value: 'Titan Embed Text v2',                                  mono: false },
-            { label: 'Chunk Size',       value: '1,000 tokens (20% overlap)',                           mono: false },
-            { label: 'Vector Store',     value: 'OpenSearch Serverless',                                mono: false },
+            { label: 'KB ID',            value: import.meta.env.VITE_KB_ID || '2ADHACW6LB',                                            mono: true },
+            { label: 'Embedding Model',  value: 'Titan Embed Text v2',                                                                  mono: false },
+            { label: 'Chunk Size',       value: '512 tokens (20% overlap)',                                                             mono: false },
+            { label: 'Vector Store',     value: 'OpenSearch Serverless',                                                                mono: false },
           ].map(item => (
             <div key={item.label}
                  className="rounded-lg p-3 bg-slate-50 border border-slate-200">
