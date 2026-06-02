@@ -12,6 +12,30 @@ import { detectProblem } from '../detectProblem'
 import { CHAT_URL } from '../config'
 import { sendChat } from '../hooks/useApi'
 
+// CR statuses that count as "ticket resolved" → trigger auto-archive of the
+// originating chat. APPROVED is intentionally excluded: an approved CR is still
+// pending execution.
+const RESOLVED_CR_STATUSES = new Set(['COMPLETED', 'RESOLVED', 'CLOSED', 'REJECTED'])
+
+// localStorage key for the session_id → cr_id linkage. Survives reloads so a
+// CR completing while the analyst is on another page still archives the chat
+// on the next visit.
+const SESSION_TICKET_LS_KEY = 'arbiter:analyst:session-tickets'
+
+function loadSessionTicketMap() {
+  try {
+    const raw = localStorage.getItem(SESSION_TICKET_LS_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveSessionTicketMap(map) {
+  try {
+    localStorage.setItem(SESSION_TICKET_LS_KEY, JSON.stringify(map))
+  } catch { /* quota or disabled — non-fatal */ }
+}
 // Action types the agent itself can propose that already represent ticketing.
 // When the last assistant turn carries one of these, we suppress the
 // auto-surfaced Create Ticket button to avoid offering it twice.
@@ -253,9 +277,70 @@ export default function AnalystView() {
     addLocalSession, bumpLocalSession, deleteSession,
   } = useConversations({ type: 'analyst' })
 
+  // session_id → cr_id linkage for auto-archive. Persisted to localStorage so
+  // a CR that closes while the user is on another page still archives the chat
+  // on next visit.
+  const [sessionTickets, setSessionTickets] = useState(loadSessionTicketMap)
+
   useEffect(() => { loadFindings(); loadCRs() }, [loadFindings, loadCRs])
   useEffect(() => { listSessions() }, [listSessions])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, thinking])
+
+  // Poll CRs every 30s so we notice when a known linked CR reaches a terminal
+  // status and can auto-archive the originating chat without a page reload.
+  useEffect(() => {
+    const id = setInterval(() => { loadCRs() }, 30_000)
+    return () => clearInterval(id)
+  }, [loadCRs])
+
+  // Reconstruct the session_id → cr_id map from CR rows whose chat_session_id
+  // matches a known chat session. The ticket-creation flow stamps
+  // chat_session_id on the CR; this effect picks those links up on the next CR
+  // poll, keeping auto-archive working without a chat-side callback.
+  useEffect(() => {
+    if (!changeRequests.length) return
+    setSessionTickets(prev => {
+      const next = { ...prev }
+      let changed = false
+      for (const cr of changeRequests) {
+        const sid = cr.chat_session_id
+        if (sid && !next[sid]) {
+          next[sid] = cr.cr_id
+          changed = true
+        }
+      }
+      if (changed) saveSessionTicketMap(next)
+      return changed ? next : prev
+    })
+  }, [changeRequests])
+
+  // Auto-archive linked chats when their CR reaches a terminal status.
+  useEffect(() => {
+    const entries = Object.entries(sessionTickets)
+    if (!entries.length || !changeRequests.length) return
+    const crById = new Map(changeRequests.map(cr => [cr.cr_id, cr]))
+    const closedSessionIds = entries
+      .filter(([, crId]) => {
+        const cr = crById.get(crId)
+        return cr && RESOLVED_CR_STATUSES.has((cr.status || '').toUpperCase())
+      })
+      .map(([sid]) => sid)
+    if (!closedSessionIds.length) return
+    closedSessionIds.forEach(sid => {
+      deleteSession(sid).catch(err => console.warn('Auto-archive failed for', sid, err))
+      if (sid === activeSessionId) {
+        sessionIdRef.current = null
+        setActiveSessionId(null)
+        setMessages(initialGreeting())
+      }
+    })
+    setSessionTickets(prev => {
+      const next = { ...prev }
+      closedSessionIds.forEach(sid => delete next[sid])
+      saveSessionTicketMap(next)
+      return next
+    })
+  }, [changeRequests, sessionTickets, deleteSession, activeSessionId])
 
   function newChat() {
     sessionIdRef.current = null
@@ -407,32 +492,24 @@ export default function AnalystView() {
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {sessions.length === 0 ? (
             <p className="text-[10px] text-slate-400 italic px-2 py-1">No history yet</p>
-          ) : sessions.map(s => (
-            <div
-              key={s.session_id}
-              className={`group relative w-full rounded text-xs hover:bg-slate-100 transition-colors ${
-                activeSessionId === s.session_id ? 'bg-indigo-50 border border-indigo-200' : ''
-              }`}
-            >
+          ) : sessions.map(s => {
+            const linkedCr = sessionTickets[s.session_id]
+            return (
               <button
+                key={s.session_id}
                 onClick={() => openSession(s.session_id)}
-                className="w-full text-left pl-2 pr-7 py-1.5"
+                className={`w-full text-left px-2 py-1.5 rounded text-xs hover:bg-slate-100 transition-colors ${
+                  activeSessionId === s.session_id ? 'bg-indigo-50 border border-indigo-200' : ''
+                }`}
               >
                 <p className="font-medium text-slate-800 truncate">{s.title || s.session_id}</p>
                 <p className="text-[10px] text-slate-500 truncate">
                   {s.message_count || 0} msgs · {s.last_message_at ? new Date(s.last_message_at).toLocaleDateString() : ''}
+                  {linkedCr ? <span className="ml-1 text-indigo-600">· {linkedCr}</span> : null}
                 </p>
               </button>
-              <button
-                onClick={(e) => handleDeleteSession(s.session_id, e)}
-                title="Delete chat"
-                aria-label="Delete chat"
-                className="absolute top-1/2 right-1 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-              >
-                <Trash2 size={11} />
-              </button>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </aside>
 
