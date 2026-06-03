@@ -34,6 +34,13 @@ Resources:
             BucketKeyEnabled: true
       VersioningConfiguration:
         Status: Enabled
+      # F1 auto-detect chain: every object created in the raw bucket fires an
+      # event to the default EventBridge bus. An EventBridge rule in 05-compute
+      # filters those to s3:ObjectCreated:* (excluding our own CSV reports) and
+      # invokes the processing_pipeline Lambda.
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -176,6 +183,110 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-sessions"
+
+  # ──────────────────────────── conflicts-v2 (NEW) ─────────────
+  # The original ConflictsTable has PK conflict_id + SK detected_at, which
+  # forces a new row per UC per scan. V2 has PK conflict_id only, so scanner
+  # upserts in place — Dashboard reads stay sub-second, table stays at ~26 rows.
+  # Both tables are written during the migration window; api_handler reads
+  # flip to v2 once seed validation passes.
+  ConflictsTableV2:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Environment}-${ProjectName}-conflicts-v2"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+      AttributeDefinitions:
+        - AttributeName: conflict_id
+          AttributeType: S
+        - AttributeName: detected_at
+          AttributeType: S
+        - AttributeName: severity
+          AttributeType: S
+        - AttributeName: domain
+          AttributeType: S
+        - AttributeName: scan_run_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: conflict_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: severity-detected-index
+          KeySchema:
+            - AttributeName: severity
+              KeyType: HASH
+            - AttributeName: detected_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: domain-detected-index
+          KeySchema:
+            - AttributeName: domain
+              KeyType: HASH
+            - AttributeName: detected_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: scan_run-index
+          KeySchema:
+            - AttributeName: scan_run_id
+              KeyType: HASH
+            - AttributeName: conflict_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-conflicts-v2"
+
+  # ──────────────────────────── scan-runs (NEW) ────────────────
+  # One row per scan invocation. Dashboard polls by-status for the
+  # "last scan" tile + 30-day trend.
+  ScanRunsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Environment}-${ProjectName}-scan-runs"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+      AttributeDefinitions:
+        - AttributeName: scan_run_id
+          AttributeType: S
+        - AttributeName: started_at
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+      KeySchema:
+        - AttributeName: scan_run_id
+          KeyType: HASH
+        - AttributeName: started_at
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: by-status
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: started_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-scan-runs"
 
   ChangeRequestsTable:
     Type: AWS::DynamoDB::Table
@@ -334,3 +445,11 @@ Outputs:
     Value: !Ref ChangeRequestsTable
     Export:
       Name: !Sub "${Environment}-${ProjectName}-ChangeRequestsTableName"
+  ConflictsTableV2Name:
+    Value: !Ref ConflictsTableV2
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ConflictsTableV2Name"
+  ScanRunsTableName:
+    Value: !Ref ScanRunsTable
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ScanRunsTableName"

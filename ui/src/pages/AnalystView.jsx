@@ -454,8 +454,24 @@ export default function AnalystView() {
     }
   }
 
+  // "Resolve" button in the chat header: archive the active conversation
+  // (same deleteSession path) and drop back to the new-chat state.
+  async function handleResolve() {
+    const sessionId = activeSessionId
+    if (!sessionId) return
+    if (!window.confirm('Mark this conversation resolved and archive it?')) return
+    try {
+      await deleteSession(sessionId)
+    } catch (err) {
+      console.warn('Resolve session failed:', err)
+    }
+    sessionIdRef.current = null
+    setActiveSessionId(null)
+    setMessages(initialGreeting())
+  }
+
   return (
-    <div className="flex h-full overflow-hidden" style={{ height: 'calc(100vh - 0px)' }}>
+    <div className="flex h-full overflow-hidden">
 
       {/* History sidebar (Analyst sessions). Hidden under lg to keep the
           page dense on narrow viewports — Try Asking + chat already use width. */}
@@ -609,19 +625,24 @@ export default function AnalystView() {
         {/* Agent tools */}
         <div className="p-4 border-b border-slate-200">
           <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Agent Tools</p>
+          {/* The first three match the @tool decorators in
+              agents/master_orchestrator/agent.py:329-338. The "PLANNED" entries
+              telegraph the roadmap to F4 (analyst chat over live findings) per
+              Documents/Feature_Coverage_Plan.md §3 steps 6–9. */}
           <div className="space-y-1 text-xs text-slate-500">
             {[
-              'search_policies — policy KB lookup',
-              'get_active_conflicts — ARBITER findings',
-              'get_policy_owner — ownership registry',
-              'check_system_impact — blast radius',
-              'get_approval_requirements — approval chain',
-              'check_alternative_solutions — tweak vs new',
-              'propose_actions → CR / INC / ServiceNow',
+              { label: 'sharepoint_lookup — KB retrieval over MIG-POL docs', planned: false },
+              { label: 'awsconfig_lookup — AWS Config compliance lookup',     planned: false },
+              { label: 'zscaler_lookup — Zscaler policy retrieval',           planned: false },
+              { label: 'query_conflicts — live findings from conflicts-v2',   planned: true },
+              { label: 'query_scan_runs — recent scan history + totals',     planned: true },
             ].map(t => (
-              <div key={t} className="flex items-start gap-1.5">
-                <span className="text-indigo-500 mt-0.5">›</span>
-                <span>{t}</span>
+              <div key={t.label} className="flex items-start gap-1.5">
+                <span className={t.planned ? 'text-slate-300 mt-0.5' : 'text-indigo-500 mt-0.5'}>›</span>
+                <span className={t.planned ? 'text-slate-400 italic' : ''}>
+                  {t.label}
+                  {t.planned && <span className="ml-1 text-[10px] text-slate-400 bg-slate-100 border border-slate-200 px-1 rounded">PLANNED</span>}
+                </span>
               </div>
             ))}
           </div>

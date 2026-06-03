@@ -24,14 +24,22 @@ export function StatusBadge({ status }) {
   return <span className={map[status] || 'badge-open'}>{status?.replace(/_/g, ' ')}</span>
 }
 
+// Handles both legacy values (CROSS_DOMAIN / INTRA_DOCUMENT) and the new
+// scanner-emitted conflict_type values (CONTRADICTION / GAP / DRIFT / OVERLAP).
+const TYPE_BADGE = {
+  CONTRADICTION: { label: 'Contradiction', cls: 'bg-rose-50 text-rose-700 border border-rose-200' },
+  GAP:           { label: 'Gap',           cls: 'bg-amber-50 text-amber-700 border border-amber-200' },
+  DRIFT:         { label: 'Drift',         cls: 'bg-orange-50 text-orange-700 border border-orange-200' },
+  OVERLAP:       { label: 'Overlap',       cls: 'bg-indigo-50 text-indigo-700 border border-indigo-200' },
+  CROSS_DOMAIN:  { label: 'Cross-Domain',  cls: 'bg-slate-100 text-slate-700 border border-slate-200' },
+  INTRA_DOCUMENT:{ label: 'Intra-Doc',     cls: 'bg-slate-50 text-slate-500 border border-slate-200' },
+}
+
 export function TypeBadge({ type }) {
+  const t = TYPE_BADGE[type] || { label: type || '—', cls: 'bg-slate-50 text-slate-500 border border-slate-200' }
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-      type === 'CROSS_DOMAIN'
-        ? 'bg-slate-100 text-slate-700 border border-slate-200'
-        : 'bg-slate-50 text-slate-500 border border-slate-200'
-    }`}>
-      {type === 'CROSS_DOMAIN' ? 'Cross-Domain' : 'Intra-Doc'}
+    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${t.cls}`}>
+      {t.label}
     </span>
   )
 }

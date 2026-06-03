@@ -17,6 +17,19 @@ Parameters:
   ProjectName:
     Type: String
     Default: st21arbiter-poc
+  KbId:
+    Type: String
+    Default: ""
+    Description: >
+      Bedrock Knowledge Base ID (e.g. 2ADHACW6LB). Created out-of-band by
+      scripts/setup_bedrock_kb.py; passed here so processing_pipeline can
+      auto-trigger ingestion jobs after copying new files. Empty = disabled.
+  KbDataSourceId:
+    Type: String
+    Default: ""
+    Description: >
+      Bedrock KB data-source ID associated with the processed bucket (e.g.
+      KLUEZ1RNM5). Required alongside KbId for ingestion auto-trigger.
 
 Globals:
   Function:
@@ -112,6 +125,14 @@ Resources:
           # Comma-separated Cognito group list allowed to trigger a manual run.
           # EventBridge invocations bypass this gate (no http context on the event).
           ALLOWED_GROUPS: "ciso,grc"
+          # F1 auto-detect chain — after processing a new file, kick a KB
+          # ingestion job and then async-invoke the scanner Lambda. Empty
+          # KB_ID disables the auto-trigger gracefully (Lambda just moves files).
+          KB_ID: !Ref KbId
+          KB_DATA_SOURCE_ID: !Ref KbDataSourceId
+          # Deterministic scanner name from CFN params — no cross-stack import
+          # needed; 02-security has already granted lambda:InvokeFunction on it.
+          SCANNER_LAMBDA_NAME: !Sub "${Environment}-${ProjectName}-scanner"
       # Function URL for manual UI-driven triggers. AuthType=NONE; the Lambda
       # decodes the Cognito IdToken from the Authorization header and verifies
       # the caller's group membership against ALLOWED_GROUPS. Mirrors the
@@ -152,6 +173,44 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt ProcessingPipelineSchedule.Arn
+
+  # ──────────────────────────── F1: S3 ObjectCreated → processing_pipeline ─────
+  # The raw bucket emits ObjectCreated events to the default EventBridge bus
+  # (RawBucket.NotificationConfiguration in 04-storage). This rule filters those
+  # events down to "real" uploads (excluding our own CSV reports under
+  # File_Transfer_Reports/) and invokes processing_pipeline with a single-event
+  # payload. The Lambda branches on event source: cron → batch sweep, S3 →
+  # single-object move + ingestion-job + scanner invoke.
+  RawBucketObjectCreatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-raw-object-created"
+      Description: "Auto-detect: every new doc in raw bucket triggers processing_pipeline"
+      State: ENABLED
+      EventPattern:
+        source:
+          - aws.s3
+        detail-type:
+          - Object Created
+        detail:
+          bucket:
+            name:
+              - !Sub "${Environment}-${ProjectName}-raw"
+          object:
+            key:
+              - anything-but:
+                  prefix: "File_Transfer_Reports/"
+      Targets:
+        - Arn: !GetAtt ProcessingPipelineFunction.Arn
+          Id: ProcessingPipelineObjectCreatedTarget
+
+  RawBucketObjectCreatedRulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProcessingPipelineFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt RawBucketObjectCreatedRule.Arn
 
   ProcessingPipelineLogGroup:
     Type: AWS::Logs::LogGroup

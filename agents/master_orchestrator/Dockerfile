@@ -5,6 +5,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY agent.py .
+# scan_rule_pack ships the 12 deterministic UC matchers used in scan-mode.
+COPY scan_rule_pack.py .
 
 EXPOSE 8080
 # opentelemetry-instrument wraps the process so the AWS OTel distro

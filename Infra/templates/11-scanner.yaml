@@ -1,0 +1,181 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ARBITER autonomous scanner — EventBridge cron + scanner_lambda.
+  The Lambda invokes the Master AgentCore runtime in scan-mode and persists
+  the resulting findings to the conflicts-v2 + scan-runs + audit-log tables.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+  ScannerScheduleExpression:
+    Type: String
+    Default: "cron(0 6 * * ? *)"
+    Description: EventBridge schedule expression (UTC). Default 02:00 PST daily.
+  MasterAgentRuntimeArn:
+    Type: String
+    Default: ""
+    Description: >
+      ARN of the master AgentCore runtime, pattern
+      arn:aws:bedrock-agentcore:us-east-1:<acct>:runtime/st21arbiter_poc_master_orchestrator-*.
+      Populated by scripts/deploy_agents.py after the runtime exists.
+      When empty the Lambda exits cleanly (logs an error but does not throw),
+      so 11-scanner can deploy before the runtime is ready.
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Tracing: Active
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        PROJECT_NAME: !Ref ProjectName
+
+Resources:
+  # ──────────────────────────── IAM role ───────────────────────
+  ScannerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-scanner-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: ScannerDdbPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                Resource:
+                  - !Sub
+                    - "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}"
+                    - TableName:
+                        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ConflictsTableV2Name"
+                  - !Sub
+                    - "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}"
+                    - TableName:
+                        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ScanRunsTableName"
+                  - !Sub
+                    - "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}"
+                    - TableName:
+                        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-AuditLogTableName"
+                  - !Sub
+                    - "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}/index/*"
+                    - TableName:
+                        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ConflictsTableV2Name"
+                  - !Sub
+                    - "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}/index/*"
+                    - TableName:
+                        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ScanRunsTableName"
+        - PolicyName: ScannerKmsPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:Encrypt
+                  - kms:GenerateDataKey*
+                Resource:
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+        - PolicyName: ScannerInvokeAgentCore
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock-agentcore:InvokeAgentRuntime
+                Resource:
+                  - !Sub "arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:runtime/*"
+        - PolicyName: ScannerLogs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+
+  # ──────────────────────────── Scanner Lambda ─────────────────
+  ScannerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${Environment}-${ProjectName}-scanner"
+      Handler: scanner_lambda.handler
+      CodeUri: ../functions/scanner/
+      Role: !GetAtt ScannerLambdaRole.Arn
+      Timeout: 600
+      MemorySize: 1024
+      Environment:
+        Variables:
+          MASTER_AGENT_RUNTIME_ARN: !Ref MasterAgentRuntimeArn
+          CONFLICTS_TABLE_V2:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ConflictsTableV2Name"
+          SCAN_RUNS_TABLE:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ScanRunsTableName"
+          AUDIT_TABLE:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-AuditLogTableName"
+          RULE_PACK_VERSION: v1
+      VpcConfig:
+        SubnetIds:
+          - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-PrivateSubnet1Id"
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-LambdaSGId"
+      Tags:
+        Name: !Sub "${Environment}-${ProjectName}-scanner"
+
+  ScannerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Environment}-${ProjectName}-scanner"
+      RetentionInDays: 30
+
+  # ──────────────────────────── EventBridge schedule ───────────
+  ScannerSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-scanner-schedule"
+      Description: Daily ARBITER policy-vs-enforcement scan
+      ScheduleExpression: !Ref ScannerScheduleExpression
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt ScannerFunction.Arn
+          Id: ScannerLambdaTarget
+          Input: '{"triggered_by": "schedule"}'
+
+  ScannerSchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ScannerFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ScannerSchedule.Arn
+
+Outputs:
+  ScannerLambdaArn:
+    Value: !GetAtt ScannerFunction.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ScannerLambdaArn"
+  ScannerLambdaName:
+    Value: !Ref ScannerFunction
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ScannerLambdaName"

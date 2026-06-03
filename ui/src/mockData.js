@@ -2,7 +2,7 @@
 // All 12 use cases from the ARBITER Scope document
 // Policy references: MIG-POL-001 through MIG-POL-005
 
-export const MOCK_CONFLICTS = [
+const RAW_CONFLICTS = [
   // ─── UC01: Policy Approves, Enforcement Blocks — Approved Cloud Storage ──────
   {
     conflict_id: 'ARBITER-UC01',
@@ -26,7 +26,7 @@ export const MOCK_CONFLICTS = [
     status: 'OPEN',
     detected_at: new Date(Date.now() - 2 * 3600000).toISOString(),
     policy_mandates: ['MIG-POL-001-CS01'],
-    regulatory: [],
+    regulatory: ['ISO 27001 A.5.10'],
   },
 
   // ─── UC02: Remote Support Tools Blocked ──────────────────────────────────────
@@ -52,7 +52,7 @@ export const MOCK_CONFLICTS = [
     status: 'OPEN',
     detected_at: new Date(Date.now() - 4 * 3600000).toISOString(),
     policy_mandates: ['MIG-POL-001-RA01', 'MIG-POL-005-RST01'],
-    regulatory: [],
+    regulatory: ['ISO 27001 A.5.20', 'SOC 2 CC9.2'],
   },
 
   // ─── UC03: Browser Restriction Mismatch ──────────────────────────────────────
@@ -77,7 +77,7 @@ export const MOCK_CONFLICTS = [
     status: 'OPEN',
     detected_at: new Date(Date.now() - 6 * 3600000).toISOString(),
     policy_mandates: ['MIG-POL-001-WB01'],
-    regulatory: [],
+    regulatory: ['SOC 2 CC6.1'],
   },
 
   // ─── UC04: SSL Inspection Gaps (PCI DSS) ─────────────────────────────────────
@@ -156,7 +156,7 @@ export const MOCK_CONFLICTS = [
     status: 'OPEN',
     detected_at: new Date(Date.now() - 3 * 3600000).toISOString(),
     policy_mandates: ['MIG-POL-002-IOT01', 'MIG-POL-004-IOT01'],
-    regulatory: [],
+    regulatory: ['PCI DSS 1.4', 'ISO 27001 A.8.22'],
   },
 
   // ─── UC07: Production ALB Exposed Without WAF ────────────────────────────────
@@ -294,7 +294,7 @@ export const MOCK_CONFLICTS = [
     status: 'OPEN',
     detected_at: new Date(Date.now() - 7 * 3600000).toISOString(),
     policy_mandates: ['MIG-POL-003-VA01', 'MIG-POL-005-GEO01'],
-    regulatory: [],
+    regulatory: ['ISO 27001 A.5.23', 'SOC 2 CC6.6'],
   },
 
   // ─── UC12: Social Media Exceptions Missing ───────────────────────────────────
@@ -322,8 +322,117 @@ export const MOCK_CONFLICTS = [
     status: 'OPEN',
     detected_at: new Date(Date.now() - 8 * 3600000).toISOString(),
     policy_mandates: ['MIG-POL-001-SM01'],
-    regulatory: [],
+    regulatory: ['SOC 2 CC7.4', 'ISO 27001 A.5.10'],
   },
+]
+
+// ── Per-UC enrichment: new fields the Scanner + Dashboard require ─────────────
+// Adds conflict_type (CONTRADICTION/GAP/DRIFT/OVERLAP), domain (UC-level), structured
+// policy_citations + enforcement_evidence, rule_key, source_pair. Merged into the
+// MOCK_CONFLICTS export below so existing flat fields (source_policy, source_technical,
+// finding, impact, remediation) are preserved for backward compat.
+const UC_ENRICHMENT = {
+  'ARBITER-UC01': {
+    conflict_type: 'CONTRADICTION', domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler',
+    rule_key: 'UC01', fp_score: 0.05, compliant: false,
+    policy_citations: [{ doc: 'MIG-POL-001', version: 'v3.4', section: '2.1', quote: 'Dropbox Business listed as approved. Passed vendor assessment Q3 2025.', confidence: 0.97 }],
+    enforcement_evidence: [{ source: 'Zscaler', rule_id: 'ZIA-URLCAT-CLOUD-BLK-042', action: 'BLOCK', raw: { category: 'Cloud Storage', domains: ['dropbox.com'] } }],
+  },
+  'ARBITER-UC02': {
+    conflict_type: 'CONTRADICTION', domain: 'VENDOR_MGMT', source_pair: 'SharePoint+Zscaler',
+    rule_key: 'UC02', fp_score: 0.07, compliant: false,
+    policy_citations: [
+      { doc: 'MIG-POL-001', version: 'v3.4', section: '2.3', quote: 'TeamViewer Corporate, AnyDesk Enterprise, BeyondTrust Remote Support are approved for authorised IT and MSP personnel.', confidence: 0.96 },
+      { doc: 'MIG-POL-005', version: 'v2.8', section: '6', quote: 'All vendor remote-support sessions must be logged to SIEM.', confidence: 0.94 },
+    ],
+    enforcement_evidence: [{ source: 'Zscaler', rule_id: 'ZIA-APP-CTRL-REMOTE-BLOCK-007', action: 'BLOCK', raw: { apps: ['TeamViewer', 'AnyDesk'] } }],
+  },
+  'ARBITER-UC03': {
+    conflict_type: 'CONTRADICTION', domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler',
+    rule_key: 'UC03', fp_score: 0.15, compliant: false,
+    policy_citations: [{ doc: 'MIG-POL-001', version: 'v3.4', section: '4', quote: 'Chrome, Firefox, Edge, Safari, Brave are permitted on corporate devices without further approval.', confidence: 0.95 }],
+    enforcement_evidence: [{ source: 'Zscaler', rule_id: 'ZIA-APP-CTRL-BROWSER-FF-009', action: 'BLOCK', raw: { app: 'Firefox' } }],
+  },
+  'ARBITER-UC04': {
+    conflict_type: 'GAP', domain: 'COMPLIANCE', source_pair: 'SharePoint+Zscaler',
+    rule_key: 'UC04', fp_score: 0.03, compliant: false,
+    policy_citations: [{ doc: 'MIG-POL-002', version: 'v5.1', section: '2.2', quote: 'SSL/TLS inspection is mandatory on ALL web traffic. Exceptions only with documented CISO approval in the SSL Inspection Exception Register, 90-day max.', confidence: 0.98 }],
+    enforcement_evidence: [{ source: 'Zscaler', rule_id: 'ZIA-SSL-BYPASS-FIN-DOMAINS', action: 'BYPASS_INSPECT', raw: { domains_count: 47, registered_exception: false } }],
+  },
+  'ARBITER-UC05': {
+    conflict_type: 'GAP', domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler',
+    rule_key: 'UC05', fp_score: 0.04, compliant: false,
+    policy_citations: [{ doc: 'MIG-POL-002', version: 'v5.1', section: '4.1', quote: 'MFA is required for ALL users — employees, contractors, vendors — regardless of privilege level.', confidence: 0.97 }],
+    enforcement_evidence: [{ source: 'Zscaler', rule_id: 'ZPA-AUTHPOL-ADMIN-MFA-ONLY', action: 'MFA_REQUIRED', raw: { scope: 'Privileged Admins', non_admin_users_unprotected: 4200 } }],
+  },
+  'ARBITER-UC06': {
+    conflict_type: 'GAP', domain: 'NETWORK_SECURITY', source_pair: 'SharePoint+Zscaler',
+    rule_key: 'UC06', fp_score: 0.06, compliant: false,
+    policy_citations: [{ doc: 'MIG-POL-002', version: 'v5.1', section: '5.1', quote: 'Monitoring-only mode is NOT acceptable for IoT external communication. Active blocking is required.', confidence: 0.96 }],
+    enforcement_evidence: [{ source: 'Zscaler', rule_id: 'ZIA-IOT-MONITOR-ONLY-VLAN-19', action: 'MONITOR', raw: { vlan: 19, devices: 43 } }],
+  },
+  'ARBITER-UC07': {
+    conflict_type: 'DRIFT', domain: 'CLOUD_SECURITY', source_pair: 'SharePoint+AWS Config',
+    rule_key: 'UC07', fp_score: 0.02, compliant: false,
+    policy_citations: [{ doc: 'MIG-POL-004', version: 'v4.0', section: '2', quote: 'No production application resource shall be directly accessible from the public internet without AWS WAF + OWASP CRS.', confidence: 0.98 }],
+    enforcement_evidence: [{ source: 'AWSConfig', resource_id: 'alb-mig-prod-claims-api-001', action: 'NON_COMPLIANT', raw: { security_group: 'sg-mig-prod-alb-open', ingress: '0.0.0.0/0:443', waf_attached: false, age_days: 47 } }],
+  },
+  'ARBITER-UC08': {
+    conflict_type: 'DRIFT', domain: 'NETWORK_SECURITY', source_pair: 'SharePoint+AWS Config',
+    rule_key: 'UC08', fp_score: 0.02, compliant: false,
+    policy_citations: [{ doc: 'MIG-POL-004', version: 'v4.0', section: '3', quote: 'VPC peering between production and non-production environments is prohibited.', confidence: 0.98 }],
+    enforcement_evidence: [{ source: 'AWSConfig', resource_id: 'pcx-mig-prod-dev-001', action: 'NON_COMPLIANT', raw: { prod_vpc: 'vpc-mig-prod-001', dev_vpc: 'vpc-mig-dev-002', age_days: 78 } }],
+  },
+  'ARBITER-UC09': {
+    conflict_type: 'DRIFT', domain: 'DATA_GOVERNANCE', source_pair: 'SharePoint+AWS Config',
+    rule_key: 'UC09', fp_score: 0.03, compliant: false,
+    policy_citations: [{ doc: 'MIG-POL-003', version: 'v2.2', section: '3', quote: 'All customer insurance data must remain within the continental United States. No exceptions.', confidence: 0.97 }],
+    enforcement_evidence: [{ source: 'AWSConfig', resource_id: 'mig-prod-claims-data-primary', action: 'NON_COMPLIANT', raw: { replication_target: 'eu-west-1', pii_tier: 1, age_days: 134 } }],
+  },
+  'ARBITER-UC10': {
+    conflict_type: 'CONTRADICTION', domain: 'DATA_GOVERNANCE', source_pair: 'SharePoint+Zscaler',
+    rule_key: 'UC10', fp_score: 0.08, compliant: false,
+    policy_citations: [{ doc: 'MIG-POL-003', version: 'v2.2', section: '2.1', quote: 'Authorised actuarial data transfers: Milliman Inc., Willis Towers Watson, Verisk Analytics.', confidence: 0.95 }],
+    enforcement_evidence: [{ source: 'Zscaler', rule_id: 'ZIA-DLP-PII-BLOCK-ALL-EXTERNAL', action: 'BLOCK', raw: { exceptions: [] } }],
+  },
+  'ARBITER-UC11': {
+    conflict_type: 'CONTRADICTION', domain: 'VENDOR_MGMT', source_pair: 'SharePoint+Zscaler',
+    rule_key: 'UC11', fp_score: 0.10, compliant: false,
+    policy_citations: [
+      { doc: 'MIG-POL-003', version: 'v2.2', section: '4', quote: 'Approved vendor countries: US, India, UK, Singapore, Germany, Australia, Philippines, Canada.', confidence: 0.96 },
+      { doc: 'MIG-POL-005', version: 'v2.8', section: '5', quote: 'ZTNA restrictions limited to India and US only are non-compliant.', confidence: 0.97 },
+    ],
+    enforcement_evidence: [{ source: 'Zscaler', rule_id: 'ZPA-GEO-RESTRICT-INDIA-US-ONLY', action: 'ALLOW', raw: { countries: ['IN', 'US'] } }],
+  },
+  'ARBITER-UC12': {
+    conflict_type: 'GAP', domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler',
+    rule_key: 'UC12', fp_score: 0.12, compliant: false,
+    policy_citations: [{ doc: 'MIG-POL-001', version: 'v3.4', section: '3', quote: 'URL filtering controls must include exceptions for Marketing, Communications, HR, and Talent Acquisition.', confidence: 0.95 }],
+    enforcement_evidence: [{ source: 'Zscaler', rule_id: 'ZIA-URLCAT-SOCIAL-BLOCK-ALL', action: 'BLOCK', raw: { department_exceptions: [] } }],
+  },
+}
+
+// Final export — RAW_CONFLICTS rows enriched with scanner schema fields.
+export const MOCK_CONFLICTS = RAW_CONFLICTS.map(c => ({ ...c, ...(UC_ENRICHMENT[c.conflict_id] || {}) }))
+
+// 14 compliant alignments the scanner records as positive evidence of working
+// controls. Heat map cells aggregate these alongside conflicts (compliant=true).
+// Used as the false-positive guard: scanner must NOT flag any of these as conflicts.
+export const MOCK_COMPLIANT = [
+  { conflict_id: 'COMPLIANT-UC01-BOX', rule_key: 'UC01', compliant: true, domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'Box.com approved and accessible — policy ↔ enforcement aligned', detected_at: new Date(Date.now() - 90 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC02-BEYONDTRUST', rule_key: 'UC02', compliant: true, domain: 'VENDOR_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'BeyondTrust Remote Support whitelisted and SIEM-logged', detected_at: new Date(Date.now() - 100 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC03-CHROME', rule_key: 'UC03', compliant: true, domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'Chrome Enterprise permitted — browser policy aligned', detected_at: new Date(Date.now() - 110 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC04-HEALTHCARE', rule_key: 'UC04', compliant: true, domain: 'COMPLIANCE', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'Healthcare category SSL-inspected per policy', detected_at: new Date(Date.now() - 120 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC04-GOV', rule_key: 'UC04', compliant: true, domain: 'COMPLIANCE', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'Government category SSL-inspected per policy', detected_at: new Date(Date.now() - 130 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC05-ADMIN', rule_key: 'UC05', compliant: true, domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'Privileged Admin MFA actively enforced (sub-control compliant)', detected_at: new Date(Date.now() - 140 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC06-PRINTERS', rule_key: 'UC06', compliant: true, domain: 'NETWORK_SECURITY', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'VLAN-12 managed printers blocked from external — IoT policy aligned', detected_at: new Date(Date.now() - 150 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC07-API002', rule_key: 'UC07', compliant: true, domain: 'CLOUD_SECURITY', source_pair: 'SharePoint+AWS Config', domains: ['SharePoint','AWSConfig'], title: 'alb-mig-prod-api-002 protected by AWS WAF + OWASP CRS', detected_at: new Date(Date.now() - 160 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC07-PORTAL003', rule_key: 'UC07', compliant: true, domain: 'CLOUD_SECURITY', source_pair: 'SharePoint+AWS Config', domains: ['SharePoint','AWSConfig'], title: 'alb-mig-prod-portal-003 protected by AWS WAF + OWASP CRS', detected_at: new Date(Date.now() - 170 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC08-TGW', rule_key: 'UC08', compliant: true, domain: 'NETWORK_SECURITY', source_pair: 'SharePoint+AWS Config', domains: ['SharePoint','AWSConfig'], title: 'Cross-prod-account routing via Transit Gateway — segmentation preserved', detected_at: new Date(Date.now() - 180 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC09-USREP', rule_key: 'UC09', compliant: true, domain: 'DATA_GOVERNANCE', source_pair: 'SharePoint+AWS Config', domains: ['SharePoint','AWSConfig'], title: 'mig-prod-customer-data-secondary replication us-east-1 → us-west-2 (in-region)', detected_at: new Date(Date.now() - 190 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC10-INTERNAL', rule_key: 'UC10', compliant: true, domain: 'DATA_GOVERNANCE', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'Internal-only data flows correctly unblocked by DLP', detected_at: new Date(Date.now() - 200 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC11-US', rule_key: 'UC11', compliant: true, domain: 'VENDOR_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'US-based vendor access permitted by ZTNA — country list compliant', detected_at: new Date(Date.now() - 210 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC12-GENERAL', rule_key: 'UC12', compliant: true, domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'General employee social-media block applied as intended', detected_at: new Date(Date.now() - 220 * 60000).toISOString() },
 ]
 
 export const MOCK_CHANGE_REQUESTS = [
@@ -451,4 +560,63 @@ export function buildConflictMatrix(findings) {
 // Helper: filter findings by compliance framework
 export function filterByRegulatory(findings, framework) {
   return findings.filter(f => f.regulatory?.some(r => r.startsWith(framework)))
+}
+
+// Heat map (the one the docs require): 6 domains × 2 source pairs, cell count = #conflicts.
+// Compliant rows are intentionally excluded from the cell counts; pass only conflicts.
+export const DOMAIN_LABELS = {
+  ACCESS_MGMT:      'Access Mgmt',
+  NETWORK_SECURITY: 'Network Security',
+  DATA_GOVERNANCE:  'Data Governance',
+  CLOUD_SECURITY:   'Cloud Security',
+  COMPLIANCE:       'Compliance',
+  VENDOR_MGMT:      'Vendor Mgmt',
+}
+export const DOMAIN_KEYS = Object.keys(DOMAIN_LABELS)
+export const SOURCE_PAIRS = ['SharePoint+Zscaler', 'SharePoint+AWS Config']
+
+export function buildDomainSourceMatrix(findings) {
+  // matrix[domainKey][sourcePair] = count
+  const matrix = {}
+  DOMAIN_KEYS.forEach(d => {
+    matrix[d] = {}
+    SOURCE_PAIRS.forEach(s => { matrix[d][s] = 0 })
+  })
+  findings.forEach(f => {
+    if (f.compliant) return
+    const d = f.domain
+    const s = f.source_pair
+    if (matrix[d] && matrix[d][s] !== undefined) matrix[d][s]++
+  })
+  return matrix
+}
+
+// Filter helpers used by the Findings page (domain, conflict_type, framework).
+export function filterByDomain(findings, domain) {
+  return domain ? findings.filter(f => f.domain === domain) : findings
+}
+export function filterByConflictType(findings, type) {
+  return type ? findings.filter(f => f.conflict_type === type) : findings
+}
+
+// Findings → CSV blob (used by the Findings page Export button).
+// Produces a flat single-row-per-finding CSV with structured fields JSON-encoded.
+export function findingsToCsv(findings) {
+  const headers = [
+    'conflict_id','severity','status','domain','conflict_type','source_pair',
+    'title','policy_citations','enforcement_evidence','regulatory','detected_at',
+  ]
+  const escape = v => {
+    if (v == null) return ''
+    const s = typeof v === 'string' ? v : JSON.stringify(v)
+    return '"' + s.replace(/"/g, '""') + '"'
+  }
+  const rows = [headers.join(',')]
+  findings.forEach(f => {
+    rows.push([
+      f.conflict_id, f.severity, f.status, f.domain, f.conflict_type, f.source_pair,
+      f.title, f.policy_citations, f.enforcement_evidence, f.regulatory, f.detected_at,
+    ].map(escape).join(','))
+  })
+  return rows.join('\n')
 }

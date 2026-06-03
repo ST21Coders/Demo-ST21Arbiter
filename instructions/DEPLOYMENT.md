@@ -1,17 +1,36 @@
 # ARBITER — Deployment Guide for a Fresh AWS Account
 
-End-to-end instructions to deploy ARBITER (infrastructure + Bedrock Knowledge Base
-+ Guardrail + 4 AgentCore Runtimes + API Lambda + React UI) into a brand-new
-AWS account. Designed for a single engineer with AWS admin credentials.
+End-to-end instructions to deploy ARBITER (infrastructure + Bedrock Knowledge
+Base + Guardrail + 4 AgentCore Runtimes + API Lambda + autonomous Scanner +
+React UI) into a brand-new AWS account. Designed for a single engineer with
+AWS admin credentials.
 
-Estimated wall-clock time: **2–3 hours** (most of it is CFN/SAM deploys and
+**Estimated wall-clock time:** 2–3 hours (most of it is CFN/SAM deploys and
 CodeBuild image builds).
+
+**Deploy model:** the platform is wired for a **two-pass `deploy.sh`** flow:
+
+1. **First pass** — provisions every stack. Two stacks (`05-compute` and
+   `11-scanner`) have feature flags that depend on IDs that don't exist yet
+   (the Bedrock KB ID + the master AgentCore runtime ARN). They deploy
+   anyway and run in a no-op fallback: files still move raw→processed, but
+   the auto-ingest chain and the scheduled scanner are off.
+2. **Out-of-band scripts** — `setup_bedrock_kb.py` (creates the KB +
+   Guardrail) + `deploy_agents.py` (builds + ships the 4 AgentCore runtimes).
+3. **Second pass** — after patching the resulting IDs into
+   `Infra/params/dev.json`, re-run `./deploy.sh`. Both stacks pick up the new
+   env vars; the F1 auto-detect chain and the scheduled scanner activate.
+
+The deploy script prints a preflight banner showing which features are
+currently enabled/disabled based on the params file, so you know what state
+you're in at all times.
 
 ---
 
 ## 0. Prerequisites
 
 ### Local tooling
+
 | Tool | Min. version | Check |
 |---|---|---|
 | AWS CLI v2 | 2.13+ | `aws --version` |
@@ -21,18 +40,20 @@ CodeBuild image builds).
 | SAM CLI | 1.130+ | `sam --version` |
 
 ### AWS account
+
 - Admin-level credentials configured locally as the default AWS CLI profile.
-- The target region: **us-east-1** (other regions need template tweaks — see
-  "Region change" appendix).
+- Target region: **us-east-1** (other regions need template tweaks — see
+  Appendix A).
 
 ### Pre-flight cleanup of the copy
-The folder ST21-ARBITER was copied from a working environment; a few stale
-artifacts should be removed before you start:
+
+The repo may be a copy from a working environment; a few stale artifacts
+should be removed before you start:
 
 ```bash
 cd <Folder-path-to-project>/ST21-ARBITER
-rm -rf Infra/.aws-sam           # stale SAM build cache from the previous account
-rm -rf ui/node_modules ui/dist  # will be rebuilt by `npm install`
+rm -rf Infra/.aws-sam           # stale SAM build cache from a previous account
+rm -rf ui/node_modules ui/dist  # rebuilt by `npm install`
 rm -f  ui/.env.development      # contains the OLD account's IDs; regenerated in Step 9
 ```
 
@@ -40,16 +61,16 @@ rm -f  ui/.env.development      # contains the OLD account's IDs; regenerated in
 
 ## 1. Enable Bedrock model access
 
-The agents need a Bedrock foundation model + the Titan embedding model for the
-Knowledge Base. **Defaults shipped in source code:**
+The agents need a Bedrock foundation model + the Titan embedding model for
+the Knowledge Base. **Defaults shipped in source code:**
 
 | Component | Model id baked into source |
 |---|---|
 | Master orchestrator + 3 specialists | `us.amazon.nova-2-lite-v1:0` (Amazon Nova — first-party, no Marketplace subscription required) |
 | Bedrock KB embeddings | `amazon.titan-embed-text-v2:0` |
 
-Override per-runtime via `MODEL_ID` env var (set by `scripts/deploy_agents.py`
-when `MASTER_MODEL_ID=...` is exported).
+Override per-runtime via the `MODEL_ID` env var (set by `scripts/deploy_agents.py`
+when `MASTER_MODEL_ID=...` etc. are exported).
 
 1. Open **AWS Bedrock console → Model access** in `us-east-1`.
 2. Click **Modify model access** and enable at minimum:
@@ -63,126 +84,164 @@ when `MASTER_MODEL_ID=...` is exported).
 > **Marketplace subscription caveat** — Anthropic models are distributed via
 > AWS Marketplace and need an active subscription. If you only click "Modify
 > model access" without accepting the Marketplace terms, agent invocations
-> will fail at runtime with `INVALID_PAYMENT_INSTRUMENT` or
+> fail at runtime with `INVALID_PAYMENT_INSTRUMENT` or
 > `aws-marketplace:Subscribe` errors. The Bedrock Model Access wizard prompts
-> for Marketplace acceptance — make sure to complete that flow, and confirm a
-> valid payment method is on file in **AWS Billing → Payment methods**. Amazon
-> Nova models are first-party and don't trigger this flow, which is why the
-> source default ships as Nova.
+> for Marketplace acceptance — complete that flow and confirm a valid payment
+> method is on file in **AWS Billing → Payment methods**. Amazon Nova models
+> are first-party and don't trigger this flow, which is why the source
+> default ships as Nova.
 
 Verify from the CLI:
+
 ```bash
 aws bedrock list-foundation-models --region us-east-1 \
   --query 'modelSummaries[?contains(modelId, `nova-2-lite`) || contains(modelId, `titan-embed-text-v2`)].[modelId,modelLifecycle.status]' \
   --output table
 ```
-Should show `ACTIVE`. The agents call models via cross-region inference
-profiles (`us.amazon.nova-2-lite-v1:0` etc.) — those are usable once the
-underlying model is granted.
+
+Should show `ACTIVE`. Agents call models via cross-region inference profiles
+(`us.amazon.nova-2-lite-v1:0` etc.) — those become usable once the underlying
+model is granted.
 
 ---
 
 ## 2. Pick globally-unique names
 
 Two resource types collide on global namespaces and will fail to create if
-another account in the world already used the default names:
+another account already used the default names:
 
 | Resource | Default | If collision, change |
 |---|---|---|
 | S3 buckets (`<env>-<project>-raw`, `-processed`, `-cfn-templates`) | `dev-st21arbiter-poc-*` | bump `Environment` or `ProjectName` |
 | Cognito Hosted UI domain prefix | `poc-st21arbiter` | edit `CognitoDomainPrefix` in `Infra/params/dev.json` |
 
-Current values in `Infra/params/dev.json` (edit if either name collides globally):
+Current values in `Infra/params/dev.json`:
+
 ```json
 { "ParameterKey": "ProjectName",          "ParameterValue": "st21arbiter-poc" },
 { "ParameterKey": "CognitoDomainPrefix",  "ParameterValue": "poc-st21arbiter" }
 ```
 
-> Whatever you pick here, every command below assumes `ProjectName=st21arbiter-poc`
-> and `Environment=dev`. **If you change either, substitute throughout the
+> Every command below assumes `ProjectName=st21arbiter-poc` and
+> `Environment=dev`. **If you change either, substitute throughout the
 > guide** — the resource prefix is `<env>-<project>-…`.
+
+### Params used by feature gates (set later, see Step 5/7)
+
+These three params start **empty** on a fresh account and are populated after
+the out-of-band scripts run. The first-pass `deploy.sh` works fine without
+them; the second pass turns features on:
+
+| Param | Source | Gates |
+|---|---|---|
+| `KbId` | output of `scripts/setup_bedrock_kb.py` (Step 5) | F1 auto-ingest chain in `05-compute` |
+| `KbDataSourceId` | output of `scripts/setup_bedrock_kb.py` (Step 5) | F1 auto-ingest chain in `05-compute` |
+| `MasterAgentRuntimeArn` | output of `scripts/deploy_agents.py` (Step 7) | Scheduled scanner in `11-scanner` |
 
 ---
 
-## 3. Deploy the infrastructure stacks
+## 3. First-pass infrastructure deploy
 
-Eight CloudFormation/SAM stacks in this order (handled by `Infra/deploy.sh`):
+**Ten** CloudFormation/SAM stacks, in this order (handled by `Infra/deploy.sh`):
 
 ```
 00-bootstrap     SAM template bucket + CFN service role
-01-network       Single-AZ VPC, subnets, NAT, SGs
+01-network       Single-AZ VPC, subnets, NAT, SGs (PrivateSubnet2 is AgentCore-pinned)
 02-security      KMS CMKs (data + ddb) + 2 Lambda IAM roles
-03-identity      Cognito User Pool + Client + Hosted UI domain
-04-storage       S3 (raw + processed) + 4 DDB tables + OpenSearch collection
+03-identity      Cognito User Pool + Client + Hosted UI domain + 4 demo users
+04-storage       S3 (raw + processed) + 6 DDB tables + OpenSearch collection
+                 (raw bucket emits ObjectCreated → EventBridge default bus)
 05-compute       processing-pipeline Lambda + 2 ECR repos (master, zscaler)
-06-api           API Gateway + api_handler Lambda + Function URL
+                 + EventBridge cron + ObjectCreated rule
+06-api           API Gateway + api_handler Lambda + Function URL (for /chat)
+11-scanner       scanner Lambda + EventBridge cron (daily 06:00 UTC)
 09-agentcore     IAM role + SG + 2 ECR repos (sharepoint, awsconfig) for AgentCore
+10-ui-hosting    Private S3 + CloudFront (OAC) + optional WAFv2 for the SPA
 ```
 
-(`07-bedrock` and `08-observability` are intentionally commented out in
-`deploy.sh` — KB is created via script in Step 5; observability is deferred.)
+(`07-bedrock` and `08-observability` are intentionally commented out — the KB
+is created via script in Step 5; observability is deferred.)
 
 ```bash
 cd ST21-ARBITER/Infra
-./deploy.sh
+DEMO_PASSWORD='<your-shared-demo-password>' ./deploy.sh
 ```
 
-**Expected time:** ~10–15 min total. Bootstrap stack takes the longest first
-time (NAT gateway warm-up; the rest are quick).
+Setting `DEMO_PASSWORD` on the deploy line activates `set_demo_passwords`,
+which flips the 4 Cognito persona users out of `FORCE_CHANGE_PASSWORD` state
+in one shot. Skip it and Step 8.2 has to be run by hand. The password must
+satisfy the pool policy: **14+ chars, upper, lower, number, symbol.**
 
-**Verify**:
+**Expected time:** ~10–15 min total. The preflight banner at the top of the
+run shows current feature-gate state:
+
+```
+[…] ──── Preflight: optional-feature state ────
+[…]   ⚠ KbId/KbDataSourceId empty → F1 auto-ingest chain DISABLED …
+[…]   ⚠ MasterAgentRuntimeArn empty → scheduled scanner DISABLED …
+```
+
+That's expected on the first pass. The deploy still completes; both stacks
+just hold their no-op fallback until you patch the params.
+
+### Verify the 10 stacks landed
+
 ```bash
 aws cloudformation list-stacks --region us-east-1 \
-  --stack-status-filter CREATE_COMPLETE \
-  --query 'StackSummaries[?contains(StackName, `st21arbiter-poc`)].[StackName,StackStatus]' --output table
+  --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
+  --query 'StackSummaries[?contains(StackName, `st21arbiter-poc`)].StackName' \
+  --output text | tr '\t' '\n' | sort
 ```
-You should see 8 stacks in `CREATE_COMPLETE`.
 
-**Gotchas you may hit** (all known from this codebase's history):
+You should see all 10 stack names. After this point the rest of the guide
+runs against a healthy infra baseline.
+
+### Gotchas at this step
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `ROLLBACK_COMPLETE` on bootstrap | Pre-existing S3 bucket with the same name (someone else's account took it) | Pick a different ProjectName per Step 2, re-run |
-| 09-agentcore deploys but you see `KMS Decrypt … DynamoDBKey … denied` later in agent logs | Stack is already corrected in this repo. If you patched anything, ensure 09-agentcore.yaml's `KMSDecrypt` statement includes `DynamoDBKeyArn` import |
-| `AlreadyExists` on Cognito domain | `CognitoDomainPrefix` collision | Edit params/dev.json, re-run |
-| Step 7 AgentCore runtime `CREATE_FAILED` with "subnets in unsupported availability zones" | AgentCore Runtime requires specific physical AZ IDs (us-east-1: `use1-az1`/`az2`/`az4`). Your account's `us-east-1a` may map to an unsupported AZ ID — the mapping is randomized per-account. | `01-network.yaml` provisions a second `PrivateSubnet2` in `us-east-1b` (defaults to `use1-az1`) specifically for AgentCore; `deploy_agents.py` reads `PrivateSubnet2Id` to attach runtimes. Verify your account's mapping with `aws ec2 describe-availability-zones`; if `us-east-1b` is also unsupported, override `PrivateSubnet2AZ` in `params/dev.json`. |
+| `ROLLBACK_COMPLETE` on bootstrap | Pre-existing S3 bucket with the same name | Pick a different `ProjectName` per Step 2, re-run |
+| `AlreadyExists` on Cognito domain | `CognitoDomainPrefix` globally taken | Edit `params/dev.json`, re-run |
+| 09-agentcore deploys but agent logs show `KMS Decrypt … DynamoDBKey … denied` | 09-agentcore's `KMSDecrypt` statement is missing `DynamoDBKeyArn` | Already fixed in this repo; don't regress |
+| 11-scanner CFN error citing missing `ConflictsTableV2Name` / `ScanRunsTableName` export | 04-storage didn't deploy cleanly | Verify 04-storage in `UPDATE_COMPLETE`, re-run |
+| AgentCore-related stack later says "unsupported availability zones" | Account's `us-east-1a` doesn't map to `use1-az1`/`az2`/`az4` | `01-network.yaml` provisions `PrivateSubnet2` in `us-east-1b` (defaults to `use1-az1` in this account). If your account's mapping differs, override `PrivateSubnet2AZ` in `params/dev.json` |
 
 ---
 
-## 4. Re-seed the raw S3 bucket with demo policy docs
+## 4. Seed the processed S3 bucket with the baseline corpus
 
-The Bedrock KB indexes from `s3://<env>-<project>-processed/`. The repo doesn't
-include the seed PDFs, but a copy lives at `BaselineFiles/` in the source
-project root. Mirror them into the processed bucket:
+The Bedrock KB indexes from `s3://<env>-<project>-processed/`. The seed
+documents live at `BaselineFiles/` in the repo root (regenerated by
+`scripts/generate_baseline_corpus.py` if needed):
 
 ```bash
 # From the project root that has BaselineFiles/
 aws s3 sync BaselineFiles/ s3://dev-st21arbiter-poc-processed/ \
   --region us-east-1 \
-  --exclude "generate_tree.py"
+  --exclude "generate_tree.py" \
+  --exclude "_archive/*" \
+  --exclude "_source/*"
 ```
 
-Verify (~20 objects, ~200 KB):
+Verify (~20–30 objects):
+
 ```bash
 aws s3 ls s3://dev-st21arbiter-poc-processed --recursive --summarize | tail -3
 ```
 
-If `BaselineFiles/` isn't present in your ST21-ARBITER copy, drop any PDFs/JSON/TXT
-documents you want indexed into that bucket. The KB ingestion will pick them up.
-
 ---
 
-## 5. Set up the Bedrock Knowledge Base + Guardrail
+## 5. Create the Bedrock Knowledge Base + Guardrail
 
 ```bash
 cd ST21-ARBITER/scripts
 
-# Use a venv — modern Homebrew / Ubuntu Python blocks system-wide pip installs
-# (PEP 668 "externally-managed-environment"). venv is in stdlib, no extra tools.
+# venv is required — modern Homebrew / Ubuntu Python blocks system-wide pip
+# (PEP 668 externally-managed-environment). venv is in stdlib.
 python3 -m venv .venv
 source .venv/bin/activate
 
-pip install -r requirements.txt        # boto3 + opensearch-py + requests-aws4auth
+pip install -r requirements.txt  # boto3 + opensearch-py + requests-aws4auth
 
 AWS_REGION=us-east-1 \
   ENVIRONMENT=dev \
@@ -190,22 +249,23 @@ AWS_REGION=us-east-1 \
   python3 setup_bedrock_kb.py
 ```
 
-> Keep the venv activated for any other `python3 scripts/...` commands later
-> in this guide (Steps 7, 10, 12). Re-activate with `source scripts/.venv/bin/activate`
-> if you open a new shell.
+> Keep the venv activated for every other `python3 scripts/...` command in
+> this guide (Steps 7, 10). Re-activate with
+> `source scripts/.venv/bin/activate` if you open a new shell.
 
 This script (idempotent) does:
-1. Flips the OpenSearch network policy to `AllowFromPublic=true` so it can be
-   reached from the CLI (dev convenience — revert for prod).
+
+1. Flips the OpenSearch network policy to `AllowFromPublic=true` (dev
+   convenience — revert for prod).
 2. Creates the vector index `policy-vectors`.
 3. Creates the KB IAM role `dev-st21arbiter-poc-kb-role`.
 4. Adds the role + your caller ARN to the OpenSearch data access policy.
 5. Creates the **Knowledge Base** `dev-st21arbiter-poc-policy-kb`.
 6. Attaches the S3 data source pointing at `dev-st21arbiter-poc-processed`.
-7. Creates the **Guardrail** `dev-st21arbiter-poc-guardrail` (content filters,
-   PII anonymization, denied topics).
+7. Creates the **Guardrail** `dev-st21arbiter-poc-guardrail` (content
+   filters, PII anonymization, denied topics).
 
-**Capture the output** — it prints IDs like below. Capture these values, you'll need next:
+**Capture the output:**
 
 ```
 {
@@ -215,7 +275,7 @@ This script (idempotent) does:
 }
 ```
 
-Then trigger the initial ingestion job (the script doesn't auto-trigger it):
+### 5.1 Trigger the initial ingestion (KB does NOT auto-ingest)
 
 ```bash
 aws bedrock-agent start-ingestion-job \
@@ -226,13 +286,27 @@ aws bedrock-agent start-ingestion-job \
 ```
 
 Poll until `status: COMPLETE`:
+
 ```bash
 aws bedrock-agent get-ingestion-job \
   --knowledge-base-id <KB_ID> --data-source-id <DATA_SOURCE_ID> \
   --ingestion-job-id <JOB_ID> --region us-east-1 \
   --query 'ingestionJob.{status:status,stats:statistics}' --output json
 ```
-20 small files take ~30 s.
+
+~30 s for ~20 small files.
+
+### 5.2 Patch `KbId` + `KbDataSourceId` into params
+
+This is the input that turns the F1 auto-detect chain on:
+
+```bash
+# Edit Infra/params/dev.json so these two params have non-empty values:
+#   { "ParameterKey": "KbId",            "ParameterValue": "<KB_ID>" },
+#   { "ParameterKey": "KbDataSourceId",  "ParameterValue": "<DATA_SOURCE_ID>" }
+```
+
+(You'll re-run `deploy.sh` in Step 7.5 to push these to 05-compute.)
 
 ---
 
@@ -258,6 +332,7 @@ aws bedrock-agentcore-control create-memory \
 Save the returned ID (looks like `dev_st21arbiter_poc_master_memory-XXXXXXXXXX`).
 
 Wait until status is `ACTIVE` (~1–2 min):
+
 ```bash
 aws bedrock-agentcore-control get-memory --memory-id <MEMORY_ID> --region us-east-1 \
   --query 'memory.status' --output text
@@ -267,10 +342,9 @@ aws bedrock-agentcore-control get-memory --memory-id <MEMORY_ID> --region us-eas
 
 ## 7. Build & deploy the 4 AgentCore Runtimes
 
-`scripts/deploy_agents.py` does everything — provisions a CodeBuild project
-(Graviton, native arm64), builds each agent image, pushes to ECR, then
-creates/updates the AgentCore Runtimes and patches the api_handler Lambda
-with the resulting master ARN.
+`scripts/deploy_agents.py` provisions a CodeBuild project (Graviton/arm64),
+builds each agent image, pushes to ECR, then creates/updates the AgentCore
+Runtimes and patches the api_handler Lambda with the resulting master ARN.
 
 ```bash
 cd ST21-ARBITER
@@ -284,11 +358,14 @@ python3 scripts/deploy_agents.py
 **Expected time:** ~10–15 min. Each agent takes ~3–5 min through CodeBuild
 plus ~30 s for the AgentCore Runtime update.
 
-**Verify**:
+### Verify
+
 ```bash
 aws bedrock-agentcore-control list-agent-runtimes --region us-east-1 \
-  --query 'agentRuntimes[?contains(agentRuntimeName, `dev_st21arbiter_poc`)].[agentRuntimeName,status]' --output table
+  --query 'agentRuntimes[?contains(agentRuntimeName, `dev_st21arbiter_poc`)].[agentRuntimeName,status]' \
+  --output table
 ```
+
 Four runtimes in `READY` state.
 
 ```bash
@@ -296,28 +373,71 @@ aws lambda get-function-configuration --function-name dev-st21arbiter-poc-api-ha
   --region us-east-1 \
   --query 'Environment.Variables.{master:MASTER_AGENT_RUNTIME_ARN,mem:MEMORY_ID}'
 ```
+
 Both fields populated.
 
-**Gotcha note**: `--skip-build` uses `:latest` which doesn't exist in our ECR
-repos (we tag with timestamps). Always run without `--skip-build` for fresh
-account deploys.
+> **Gotcha:** `--skip-build` uses `:latest`, which doesn't exist in our ECR
+> repos (we tag with Unix timestamps). Always run without `--skip-build` for
+> fresh-account deploys.
+
+### 7.5 Second-pass deploy.sh — turn the scheduled scanner on
+
+Grab the master runtime ARN that `deploy_agents.py` just created:
+
+```bash
+MASTER_ARN=$(aws bedrock-agentcore-control list-agent-runtimes --region us-east-1 \
+  --query 'agentRuntimes[?contains(agentRuntimeName, `master_orchestrator`)].agentRuntimeArn | [0]' \
+  --output text)
+echo "$MASTER_ARN"
+```
+
+Patch `Infra/params/dev.json` so `MasterAgentRuntimeArn` has this value
+(plus the `KbId` + `KbDataSourceId` from Step 5.2), then re-run:
+
+```bash
+cd ST21-ARBITER/Infra
+DEMO_PASSWORD='<your-shared-demo-password>' ./deploy.sh
+```
+
+The preflight banner should now read:
+
+```
+[…]   ✓ KbId=2ADHACW6LB / DataSource=KLUEZ1RNM5 → F1 auto-ingest chain ENABLED
+[…]   ✓ MasterAgentRuntimeArn=arn:aws:bedrock-agentcore:… → scheduled scanner ENABLED
+```
+
+The second pass updates two stacks only:
+
+- **05-compute** — patches `processing_pipeline` env vars with `KB_ID`,
+  `KB_DATA_SOURCE_ID`, and `SCANNER_LAMBDA_NAME`. The F1 chain
+  (S3 ObjectCreated → processing_pipeline → KB ingest → scanner) becomes
+  end-to-end.
+- **11-scanner** — patches the `MASTER_AGENT_RUNTIME_ARN` env var on the
+  scanner Lambda. The EventBridge cron `cron(0 6 * * ? *)` (UTC, daily) +
+  manual `POST /scan` calls now hit the real master in scan-mode.
+
+Other stacks are no-ops on the second pass (change-set "didn't contain
+changes" → skipped).
 
 ---
 
-## 8. Cognito setup — callback URLs and a test user
+## 8. Cognito setup — callback URLs and the 4 persona users
 
 ### 8.1 Whitelist localhost as a callback URL
+
 ```bash
 USER_POOL_ID=$(aws cloudformation list-exports --region us-east-1 \
   --query "Exports[?Name=='dev-st21arbiter-poc-UserPoolId'].Value" --output text)
 CLIENT_ID=$(aws cloudformation list-exports --region us-east-1 \
   --query "Exports[?Name=='dev-st21arbiter-poc-UserPoolClientId'].Value" --output text)
+CLOUDFRONT_URL=$(aws cloudformation list-exports --region us-east-1 \
+  --query "Exports[?Name=='dev-st21arbiter-poc-UIBaseURL'].Value" --output text)
 
 aws cognito-idp update-user-pool-client \
   --user-pool-id "$USER_POOL_ID" \
   --client-id "$CLIENT_ID" \
-  --callback-urls "http://localhost:5173/callback" "https://example.cloudfront.net/callback" \
-  --logout-urls "http://localhost:5173/" "https://example.cloudfront.net/" \
+  --callback-urls "http://localhost:5173/callback" "${CLOUDFRONT_URL}callback" \
+  --logout-urls   "http://localhost:5173/"         "${CLOUDFRONT_URL}" \
   --allowed-o-auth-flows code \
   --allowed-o-auth-scopes openid email profile \
   --allowed-o-auth-flows-user-pool-client \
@@ -326,29 +446,26 @@ aws cognito-idp update-user-pool-client \
   --region us-east-1
 ```
 
+`post_deploy_ui.py` (called by `deploy.sh`) already patches the CloudFront
+URL into the callbacks list — this command above keeps `localhost:5173`
+whitelisted so the Vite dev server works.
+
 ### 8.2 The 4 demo persona users
 
 `03-identity.yaml` provisions 4 Cognito users (one per persona) and attaches
-each to its group. `deploy.sh` then runs `admin-set-user-password --permanent`
-using the **shared** `DEMO_PASSWORD` env var you exported on the deploy line.
+each to its group. If you passed `DEMO_PASSWORD=...` to `deploy.sh`,
+`set_demo_passwords` flipped them all out of `FORCE_CHANGE_PASSWORD` state
+already.
 
 | Email (username) | Group | Persona |
 |---|---|---|
 | `emp_sarah@meridianinsurance.com` | `employee` | Sarah Chen — Analyst Chat only |
 | `grc_priya@meridianinsurance.com` | `grc` | Priya Nair — Dashboard, Findings, Heatmap, Governance, Audit, Analyst Chat |
 | `soc_marcus@meridianinsurance.com` | `soc` | Marcus Webb — Dashboard, Findings, Heatmap, Actions, Audit, Analyst Chat |
-| `ciso_diana@meridianinsurance.com` | `ciso` | Diana Osei — all pages |
+| `ciso_diana@meridianinsurance.com` | `ciso` | Diana Osei — all pages + cross-role CR approval override |
 
-To run the deploy with passwords applied in one shot (choose your own password
-matching the pool policy: 14+ chars, upper, lower, number, symbol):
-```bash
-DEMO_PASSWORD='<your-shared-demo-password>' ./deploy.sh
-```
+If `DEMO_PASSWORD` was unset, set passwords after the fact:
 
-If `DEMO_PASSWORD` is unset, the deploy still creates the users but leaves
-them in `FORCE_CHANGE_PASSWORD` state (Cognito Hosted UI then reports
-"Invalid username or password" on sign-in — see Appendix C). To set passwords
-after the fact:
 ```bash
 DEMO_PASSWORD='<your-shared-demo-password>'
 for email in emp_sarah@meridianinsurance.com grc_priya@meridianinsurance.com \
@@ -362,6 +479,7 @@ done
 ```
 
 Verify any persona can sign in:
+
 ```bash
 aws cognito-idp initiate-auth \
   --client-id "$CLIENT_ID" \
@@ -370,6 +488,7 @@ aws cognito-idp initiate-auth \
   --region us-east-1 \
   --query 'AuthenticationResult.IdToken' --output text | head -c 60
 ```
+
 Should print the first 60 chars of a JWT.
 
 ---
@@ -381,7 +500,6 @@ Should print the first 60 chars of a JWT.
 ```bash
 cd ST21-ARBITER/ui
 
-# Resolve everything from CFN
 API_URL=$(aws cloudformation list-exports --region us-east-1 \
   --query "Exports[?Name=='dev-st21arbiter-poc-ApiEndpoint'].Value" --output text)
 CHAT_URL=$(aws cloudformation list-exports --region us-east-1 \
@@ -390,8 +508,7 @@ USER_POOL_ID=$(aws cloudformation list-exports --region us-east-1 \
   --query "Exports[?Name=='dev-st21arbiter-poc-UserPoolId'].Value" --output text)
 CLIENT_ID=$(aws cloudformation list-exports --region us-east-1 \
   --query "Exports[?Name=='dev-st21arbiter-poc-UserPoolClientId'].Value" --output text)
-# Cognito domain prefix matches the param you set in Step 2:
-DOMAIN_PREFIX="poc-st21arbiter"
+DOMAIN_PREFIX="poc-st21arbiter"   # matches CognitoDomainPrefix in params/dev.json
 
 cat > .env.development <<EOF
 VITE_API_URL=$API_URL
@@ -413,51 +530,100 @@ npm install      # ~30–60 s
 npm run dev      # serves on http://localhost:5173/
 ```
 
-> If `npm run dev` reports the port is taken and falls back to `5174`, another
-> Vite server (perhaps from an older copy of this project) is holding `5173`.
-> The Cognito callback URL is whitelisted only for `5173`, so sign-in will
-> fail from `5174`. Run `lsof -iTCP:5173 -sTCP:LISTEN` to find the offender,
-> kill its `npm`/`vite` PIDs, then `npm run dev` again.
+> If `npm run dev` reports the port is taken and falls back to `5174`,
+> another Vite server (likely an older copy of this project) is holding
+> `5173`. The Cognito callback URL is whitelisted only for `5173`, so
+> sign-in fails from `5174`. Run `lsof -iTCP:5173 -sTCP:LISTEN`, kill those
+> PIDs, then `npm run dev` again.
+
+The production build is pushed to CloudFront by `Infra/post_deploy_ui.py`
+(called automatically at the end of `deploy.sh`). The CloudFront URL is
+printed in the final lines of the deploy log and exported as
+`dev-st21arbiter-poc-UIBaseURL`.
 
 ---
 
-## 10. Seed mock data into DynamoDB (Dashboard / Action Center / Audit)
+## 10. Seed mock data into DynamoDB
 
-These tables are empty after Step 3. The UI pages (`Dashboard`, `Findings`,
-`Action Center`, `Audit Logs`) will look empty until you load some rows.
+The 6 DDB tables (`conflicts`, `conflicts-v2`, `scan-runs`, `change-requests`,
+`audit-log`, `sessions`) are empty after Step 3. The UI pages will look bare
+until you load some rows.
 
-Script lives at `scripts/seed_mock_data.py` if you keep one around, or run
-this inline:
-
-```
+```bash
+source scripts/.venv/bin/activate
 python3 scripts/seed_mock_data.py
 ```
 
-(The full canonical mock set lives in `ui/src/mockData.js` — copy more
-conflicts/CRs from there if you want a richer demo.)
+This seeds:
+
+- **12 conflicts** (UC01..UC12, one per use case) — dual-written to
+  `conflicts` (legacy SK-coupled) **and** `conflicts-v2` (PK-only with
+  `severity-detected-index` / `domain-detected-index` / `scan_run-index`
+  GSIs). The dashboard reads from V2.
+- **14 compliant rows** in `conflicts-v2` (`compliant=true`,
+  `severity=null`) — drives the "compliant alignments" KPI.
+- **2 change-requests** (UC07 + UC08 archetypes) with full approver-chain
+  state in `change-requests`.
+- **8 audit-log entries** — `SCAN_COMPLETED`, `CR_CREATED`, `CR_APPROVED`,
+  `INGESTION_COMPLETE`, etc. — populates the Dashboard's Recent Activity
+  panel and the Audit Logs page.
+- **1 `scan-runs` row** (`scan-seed-bootstrap`, status=COMPLETED) plus 4 more
+  historical rows spanning the last 30 days — drives the open-conflicts
+  trend line on the Dashboard.
+
+The full canonical mock set lives in `ui/src/mockData.js`; copy more rows
+from there if you want a richer demo.
 
 ---
 
-## 11. Smoke test in the browser
+## 11. Smoke-test in the browser
 
-Open **http://localhost:5173/** in a browser.
+Open **http://localhost:5173/** (or the CloudFront URL printed by deploy.sh).
 
 | Check | Expected |
 |---|---|
-| Land on Dashboard | Eventually redirects to Cognito Hosted UI |
-| Sign in with the email + password from Step 8.2 | Redirects to `/callback`, briefly shows "exchanging…", lands on Dashboard |
-| Dashboard | Shows seed conflicts with severity breakdown |
-| **Findings** | Shows the 3 conflicts |
-| **Action Center** | Shows 1 CR |
-| **Audit Logs** | Shows 2 entries |
-| **MCP Chat** → click `+ New` → send "What does the acceptable use policy say?" | ~30–60 s cold start, then a real reply citing the seed docs |
-| Refresh page → MCP Chat sidebar | The session you just had appears |
-| Click the session | Messages reload from AgentCore Memory in chronological order |
+| Land on Dashboard | Redirects to Cognito Hosted UI |
+| Sign in as `ciso_diana@…` | Redirects to `/callback`, briefly shows "exchanging…", lands on Dashboard |
+| **Dashboard KPIs** | "Policies Indexed", "Active Conflicts" (4 critical / 4 high / 4 medium), "Pending Approvals" populated from seed data |
+| **Conflict Heat Map** | 6-row × 2-column grid showing UC counts per domain × source pair |
+| **Open Conflicts Trend** | Line chart with 3 series (critical/high/medium) over 30 days — not flat |
+| **Recent Activity panel** | Last 5 audit rows; auto-ingest rows formatted as "KB ingest: file.md" |
+| **Run AI Scan** button | Click → spinner; polls `GET /scan-runs/{id}` every 2 s; "Scan complete" toast within ~45 s; KPIs refresh |
+| **Findings** page | Shows the 12 seed conflicts; row click → /findings/:id detail with split-screen policy/enforcement panes |
+| **Action Center** | Shows the 2 seed CRs; Diana can approve all (CISO override) → status flips, conflict transitions to RESOLVED |
+| **Audit Logs** | Rows click-expand to show parsed JSON details; chevron flips ▶ → ▼ |
+| **Data Pipeline** | Drop a `.md` / `.pdf` / `.txt` file onto the dropzone → 4 chips light up Raw → Processed → KB ingest → Scan within ~30–45 s |
+| **MCP Chat** → New → "What does the acceptable use policy say?" | ~30–60 s cold start, then reply citing seed docs (KB hits) |
 | **Analyst Chat** | Same multi-turn behavior, separate `sessionIdRef` |
+| Refresh page → MCP Chat sidebar | Previous session appears; click → messages reload from AgentCore Memory |
+
+### 11.1 F1 chain (upload → auto-ingest → scan) — explicit checks
+
+After dropping a file on `/pipeline`:
+
+```bash
+# 1. File landed in raw bucket
+aws s3 ls s3://dev-st21arbiter-poc-raw/uploads/ --recursive | tail -3
+
+# 2. processing_pipeline copied it to processed bucket (within ~5s)
+aws s3 ls s3://dev-st21arbiter-poc-processed/ --recursive | tail -3
+
+# 3. KB ingestion job was kicked
+aws bedrock-agent list-ingestion-jobs --knowledge-base-id <KB_ID> \
+  --data-source-id <DATA_SOURCE_ID> --region us-east-1 \
+  --max-results 3 --query 'ingestionJobSummaries[].{job:ingestionJobId,status:status,started:startedAt}'
+
+# 4. Scanner auto-triggered with triggered_by="auto-ingest:<key>"
+aws dynamodb scan --table-name dev-st21arbiter-poc-scan-runs \
+  --region us-east-1 --max-items 3 \
+  --query 'Items[].{id:scan_run_id.S,status:status.S,by:triggered_by.S}'
+```
+
+All four steps complete inside ~30–45 s end-to-end.
 
 ---
 
-## 12. Smoke test from the CLI (optional)
+## 12. CLI smoke test (optional)
 
 ```bash
 # Direct Lambda invoke (bypasses Cognito)
@@ -466,142 +632,211 @@ aws lambda invoke --function-name dev-st21arbiter-poc-api-handler --region us-ea
   /tmp/h.json && cat /tmp/h.json
 
 # Chat round-trip via Function URL (gets a JWT for the test user first)
+EMAIL=ciso_diana@meridianinsurance.com
 ID_TOKEN=$(aws cognito-idp initiate-auth --client-id "$CLIENT_ID" \
   --auth-flow USER_PASSWORD_AUTH \
-  --auth-parameters "USERNAME=$EMAIL,PASSWORD=$PASSWORD" \
+  --auth-parameters "USERNAME=$EMAIL,PASSWORD=$DEMO_PASSWORD" \
   --region us-east-1 --query 'AuthenticationResult.IdToken' --output text)
 
-curl -s -X POST "$CHAT_URL""chat" \
+CHAT_URL=$(aws cloudformation list-exports --region us-east-1 \
+  --query "Exports[?Name=='dev-st21arbiter-poc-ChatFunctionUrl'].Value" --output text)
+
+curl -s -X POST "${CHAT_URL}chat" \
   -H "Authorization: Bearer $ID_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"prompt":"Quick sanity test.","session_id":"cli-smoke-1"}' \
   | python3 -m json.tool
+
+# Manual scan trigger via API Gateway
+API_URL=$(aws cloudformation list-exports --region us-east-1 \
+  --query "Exports[?Name=='dev-st21arbiter-poc-ApiEndpoint'].Value" --output text)
+curl -s -X POST "${API_URL}scan" \
+  -H "Authorization: Bearer $ID_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}' | python3 -m json.tool
+# → {"scan_run_id":"scan-...","status":"RUNNING"}
 ```
 
 ---
 
-## 13. Teardown (optional)
+## 13. API surface reference
 
-To remove everything when you're done:
+API Gateway base + `/chat` Function URL together expose:
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET    | `/health` | liveness |
+| POST   | `/scan` | async-invoke scanner Lambda; returns `{scan_run_id, status:"RUNNING"}` |
+| GET    | `/scan-runs` | last N scan run rows (Dashboard trend) |
+| GET    | `/scan-runs/{id}` | poll for scan completion |
+| GET    | `/findings` | list conflicts (v2 if `CONFLICTS_TABLE_V2` set, else legacy) |
+| GET    | `/findings/{conflict_id}` | finding detail (split-screen UI) |
+| POST   | `/actions` | create change request linked to a conflict |
+| POST   | `/actions/{cr_id}/approve` | approve as the calling persona; CISO override approves all PENDING |
+| POST   | `/actions/{cr_id}/reject` | reject |
+| POST   | `/actions/{cr_id}/execute` | execute approved CR; flips linked conflict → RESOLVED |
+| POST   | `/actions/{cr_id}/escalate` | escalate |
+| GET    | `/dashboard` | one-shot aggregate: KPIs + heatmap + last-scan + recent-activity + 30-day trend |
+| GET    | `/audit` | audit log |
+| GET    | `/conversations`, `/conversations/{id}/messages` | chat history (DDB sessions + AgentCore memory) |
+| POST   | `/chat` | **Function URL only** — long-running agent call (bypasses APIGW 29 s timeout) |
+| GET    | `/mcp-health` | MCP endpoint pings (UI status dots) |
+| POST   | `/jira/tickets` | stub returning `{mock_ticket_key:"MIG-MOCK-NNNN"}` |
+| POST   | `/uploads/presign` | presigned S3 PUT URL into the raw bucket |
+| GET    | `/uploads/list` | list the caller's uploads in raw or processed bucket |
+
+---
+
+## 14. Teardown (optional)
+
+Teardown is destructive and should only be run when you're sure. See
+`Infra/destroy.sh` — it reverses the deploy in stack-reverse order. Run by
+hand after confirming you've kept anything you need (S3 contents, KB, etc.);
+do not embed it in CI.
+
+The companion script does not delete the out-of-band resources (KB,
+Guardrail, AgentCore Memory, AgentCore Runtimes) — those are created via
+scripts in Steps 5–7 and must be removed manually:
 
 ```bash
-# 1. Delete AgentCore Runtimes
+# AgentCore Runtimes
 for r in $(aws bedrock-agentcore-control list-agent-runtimes --region us-east-1 \
   --query 'agentRuntimes[?contains(agentRuntimeName, `dev_st21arbiter_poc`)].agentRuntimeId' --output text); do
   aws bedrock-agentcore-control delete-agent-runtime --agent-runtime-id "$r" --region us-east-1
 done
 
-# 2. Delete Memory resource
+# AgentCore Memory
 aws bedrock-agentcore-control delete-memory --memory-id <MEMORY_ID> --region us-east-1
 
-# 3. Delete Knowledge Base (also drops data source automatically)
+# Knowledge Base (drops data source automatically)
 aws bedrock-agent delete-knowledge-base --knowledge-base-id <KB_ID> --region us-east-1
 
-# 4. Delete Guardrail
+# Guardrail
 aws bedrock delete-guardrail --guardrail-identifier <GUARDRAIL_ID> --region us-east-1
-
-# 5. Empty + delete S3 buckets (raw, processed, cfn-templates)
-for b in dev-st21arbiter-poc-raw dev-st21arbiter-poc-processed dev-st21arbiter-poc-cfn-templates; do
-  aws s3 rm "s3://$b" --recursive
-  # versioned buckets: also purge versions + delete markers (see DELETION-NOTES below)
-  aws s3api delete-bucket --bucket "$b" --region us-east-1
-done
-
-# 6. Delete IAM roles (these have DeletionPolicy: Retain in some templates)
-aws iam delete-role-policy --role-name dev-st21arbiter-poc-kb-role --policy-name KBPolicy
-aws iam delete-role --role-name dev-st21arbiter-poc-kb-role
-
-# 7. Delete CFN stacks in reverse order
-for s in 09-agentcore 06-api 05-compute 04-storage 03-identity 02-security 01-network 00-bootstrap; do
-  aws cloudformation delete-stack --stack-name "dev-st21arbiter-poc-$s" --region us-east-1
-  aws cloudformation wait stack-delete-complete --stack-name "dev-st21arbiter-poc-$s" --region us-east-1
-done
 ```
 
-**Versioned-bucket deletion note**: if `delete-bucket` errors with
-`BucketNotEmpty` despite the recursive `rm`, the bucket has versioning enabled
-— you also need to purge all object versions + delete markers via
-`list-object-versions` + `delete-objects`. The `Infra/templates/04-storage.yaml`
-intentionally has `DeletionPolicy: Retain` removed for these buckets in dev so
-that future re-deploys don't leak orphans; the bootstrap-templates bucket and
-the data buckets in 04-storage are the only ones to worry about.
+After that, the rest of `Infra/destroy.sh` can run safely.
+
+> **Versioned-bucket note**: if `delete-bucket` errors with `BucketNotEmpty`
+> despite a recursive `rm`, the bucket has versioning enabled — purge object
+> versions + delete markers via `list-object-versions` + `delete-objects`.
+> `Infra/templates/04-storage.yaml` has `DeletionPolicy: Retain` **removed**
+> from the data buckets in dev so future re-deploys don't leak orphans.
 
 ---
 
 ## Appendix A — Region change
 
-If you need to deploy to a region other than us-east-1:
+To deploy outside `us-east-1`:
 
-1. Update `params/dev.json` if any region-specific CIDRs are present (they're not in this default config).
-2. Pass `AWS_REGION=<region>` when running every command in this guide.
-3. In `params/dev.json`, the `EmbeddingModelArn` is built dynamically from
-   `${AWS::Region}` in 07-bedrock.yaml (which is currently skipped). The
-   `setup_bedrock_kb.py` script derives it from `AWS_REGION` automatically.
-4. Verify Bedrock model availability in your chosen region — Claude models
-   are not in every region.
-5. Whitelist callback URLs accordingly (`http://localhost:5173/callback` is
-   region-agnostic; only the API GW + Function URL hostnames change).
+1. Update `params/dev.json` if any region-specific CIDRs are present (the
+   defaults aren't region-specific).
+2. Pass `AWS_REGION=<region>` to every command in this guide.
+3. `EmbeddingModelArn` in `params/dev.json` hard-codes `arn:aws:bedrock:us-east-1:...`
+   — change the region prefix.
+4. Verify Bedrock + AgentCore model availability in the target region.
+5. Override `PrivateSubnet2AZ` to a physical AZ ID supported by AgentCore
+   Runtime in that region.
+6. Update callback URL whitelisting in Step 8.1 — `localhost:5173/callback`
+   is region-agnostic; only the APIGW + Function URL hostnames change.
 
 ---
 
 ## Appendix B — Architectural gotchas baked into this codebase
 
-These are non-obvious fixes that exist in the current code; documented so you
-don't accidentally regress them:
+Non-obvious fixes that exist in the current code, documented so you don't
+accidentally regress them:
 
-1. **OpenSearch GSI permission scope** — `02-security.yaml`'s `DDBReadWrite`
+1. **DynamoDB GSI permission scope** — `02-security.yaml`'s `DDBReadWrite`
    IAM statement must include both `table/<env>-<project>-*` *and*
    `table/<env>-<project>-*/index/*`. The `Query` action on a GSI requires
    the explicit index ARN.
 
-2. **DynamoDB-key KMS Decrypt for the agent role** —
-   `09-agentcore.yaml`'s `KMSDecrypt` statement must include
-   `DynamoDBKeyArn` (the sessions table is KMS-encrypted; without this,
-   `PutItem`/`UpdateItem` from the master agent silently fails).
+2. **DynamoDB-key KMS Decrypt for the agent role** — `09-agentcore.yaml`'s
+   `KMSDecrypt` statement must include `DynamoDBKeyArn`. Without it,
+   `PutItem`/`UpdateItem` on the sessions table silently fails.
 
-3. **API Gateway 4xx CORS** —
-   `06-api.yaml` defines three `AWS::ApiGateway::GatewayResponse` resources
-   (UNAUTHORIZED, ACCESS_DENIED, DEFAULT_4XX) that inject CORS headers into
-   authorizer denials. Without them, the browser sees 401 responses as CORS
-   failures and the SPA cannot react. Any future change to GatewayResponses
-   requires a stage redeployment (SAM normally handles this).
+3. **API Gateway 4xx CORS** — `06-api.yaml` defines three
+   `AWS::ApiGateway::GatewayResponse` resources (UNAUTHORIZED, ACCESS_DENIED,
+   DEFAULT_4XX) that inject CORS headers into authorizer denials. Without
+   them, the browser sees 401s as CORS failures. Any future change to
+   GatewayResponses requires a stage redeployment (SAM normally handles it,
+   but adding new SAM `Events` to `ApiHandlerFunction` may not trigger a
+   stage redeploy — if a new route returns 403/Missing Authentication Token
+   after deploy, force one with
+   `aws apigateway create-deployment --rest-api-id <id> --stage-name dev`).
 
-4. **OpenTelemetry auto-instrumentation** — Every agent's
-   `Dockerfile` wraps `python agent.py` with `opentelemetry-instrument`, and
-   every `requirements.txt` includes `aws-opentelemetry-distro`. This is what
-   makes the AWS console's **AgentCore Observability** tab populate.
+4. **Bedrock IAM action prefix** — `bedrock-agent:StartIngestionJob` looks
+   correct (matches the boto3 client name) but **the IAM action is
+   `bedrock:StartIngestionJob`**. `02-security.yaml`'s
+   `ProcessingPipelineRole` policy uses `bedrock:` for the ingestion-job
+   actions; don't change it back.
 
-5. **Function URL for /chat** — API Gateway has a hard 29 s integration
-   timeout; agent fan-outs take 30–60 s. The `api_handler` exposes itself
-   via both API Gateway *and* a Lambda Function URL (`AuthType: NONE`). The
-   UI sends `/chat` requests to the Function URL but still attaches a
-   Cognito JWT in the Authorization header; the Lambda decodes it manually
-   (no signature verify — trusted issuer pattern for the demo).
+5. **OpenTelemetry auto-instrumentation** — Every agent's `Dockerfile` wraps
+   `python agent.py` with `opentelemetry-instrument`, and every
+   `requirements.txt` includes `aws-opentelemetry-distro`. This is what
+   populates the AWS console's **AgentCore Observability** tab.
 
-6. **JWT-from-header parsing in `_caller_user_id`** —
-   `functions/api_handler/api_handler.py` looks up the user in three places
-   (API GW claims → Authorization header JWT → direct-invoke fallback). If
+6. **Function URL for /chat** — API Gateway has a 29 s integration timeout;
+   agent fan-outs take 30–60 s. `api_handler` exposes itself via both APIGW
+   *and* a Lambda Function URL (`AuthType: NONE`). The UI sends `/chat` to
+   the Function URL but still attaches a Cognito JWT; the Lambda decodes it
+   manually (trusted-issuer pattern for the demo).
+
+7. **JWT-from-header parsing in `_caller_user_id`** —
+   `functions/api_handler/api_handler.py` resolves the user in three places
+   (APIGW claims → Authorization header JWT → direct-invoke fallback). If
    you change auth, keep all three paths working.
 
-7. **Bedrock SLR removed from OpenSearch data access policy** —
-   `04-storage.yaml`'s `OpenSearchDataAccessPolicy.Principal` array does NOT
-   include `arn:…:role/aws-service-role/bedrock.amazonaws.com/AWSServiceRoleForAmazonBedrock`.
-   That role doesn't exist until a Bedrock KB is first used, so referencing
-   it pre-emptively fails the EarlyValidation hook. If you later re-enable
-   `07-bedrock.yaml`, re-add this principal at that time.
+8. **F1 auto-ingest chain has 3 hops** — `RawBucket.NotificationConfiguration.EventBridgeConfiguration`
+   in `04-storage.yaml` emits ObjectCreated to the default bus. The
+   `ProcessingPipelineObjectCreatedRule` in `05-compute.yaml` is the
+   subscriber. `processing_pipeline.py::_handle_single_object_event`
+   does: raw→processed copy → `bedrock:StartIngestionJob` → wait up to 180 s
+   for `COMPLETE` → `lambda:Invoke` the scanner with
+   `triggered_by="auto-ingest:<key>"`. The KB_ID env var gates the whole
+   thing; empty KB_ID means files still move but auto-ingest + scanner
+   kick are skipped.
 
-8. **deploy.sh's `--no-confirm-changeset`** — `Infra/deploy.sh` must use
-   `--no-confirm-changeset` (not `--confirm-changeset`) for SAM stacks so
-   the script is non-interactive.
+9. **Conflict dual-write** — `seed_mock_data.py` and `scanner_lambda` both
+   write to `ConflictsTable` (legacy SK-coupled) **and** `ConflictsTableV2`
+   (PK-only). The api_handler reads V2 when `CONFLICTS_TABLE_V2` env var is
+   set; legacy is the fallback. Don't remove legacy until UI is fully
+   migrated.
 
-9. **CodeBuild builds with `:latest` tag** — `deploy_agents.py` tags
-   images with a Unix timestamp. The `--skip-build` flag falls back to
-   `:latest` which doesn't exist; always run without that flag for fresh
-   accounts.
+10. **CISO override on CR approve** — `_approve_change_request` lets a CISO
+    user flip every PENDING non-NOTIFICATION row in one call (so a single
+    sign-in can demo the full chain). Keep this; the alternative is
+    requiring four browser sign-ins to walk through one CR.
 
-10. **Master agent's `eventTimestamp` required** —
-    `agents/master_orchestrator/agent.py` passes `datetime.now(timezone.utc)`
-    to every `create_event` call; the boto3 SDK requires it.
+11. **Master agent's `eventTimestamp` required** —
+    `agents/master_orchestrator/agent.py` passes
+    `datetime.now(timezone.utc)` to every `create_event` call; the boto3
+    SDK requires it.
+
+12. **Scanner Lambda graceful no-op** — `11-scanner.yaml` deploys with an
+    empty `MasterAgentRuntimeArn` parameter and the Lambda logs an error
+    + exits 0 if it's missing at invocation time. That's intentional so the
+    first-pass deploy succeeds before `deploy_agents.py` runs.
+
+13. **EventBridge Input on the daily cron** — `11-scanner.yaml`'s
+    `ScannerSchedule` passes `Input: '{"triggered_by":"schedule"}'`. The
+    handler reads this to set the scan-runs `triggered_by` attribute; the
+    auto-ingest path uses `triggered_by="auto-ingest:<s3-key>"` instead so
+    the Dashboard Recent Activity panel can distinguish them.
+
+14. **CodeBuild builds use timestamped tags, not `:latest`** —
+    `deploy_agents.py` tags images with a Unix timestamp; `--skip-build`
+    falls back to `:latest`, which doesn't exist. Always run without that
+    flag for fresh accounts.
+
+15. **Bedrock SLR removed from OpenSearch data access policy** —
+    `04-storage.yaml`'s `OpenSearchDataAccessPolicy.Principal` array does
+    NOT include the Bedrock service-linked role
+    (`AWSServiceRoleForAmazonBedrock`). That role doesn't exist until a
+    Bedrock KB is first created, so referencing it pre-emptively fails the
+    EarlyValidation hook. If you re-enable `07-bedrock.yaml`, re-add this
+    principal there.
 
 ---
 
@@ -610,20 +845,27 @@ don't accidentally regress them:
 | Symptom | First place to check |
 |---|---|
 | API GW returns 401 with no CORS headers | GatewayResponses → force stage redeploy |
+| New route returns 403 / "Missing Authentication Token" after deploy | SAM didn't trigger stage redeploy; run `aws apigateway create-deployment --rest-api-id <id> --stage-name dev` |
 | `/chat` returns 500 from runtime, no app logs visible | `/aws/bedrock-agentcore/runtimes/<runtime>-DEFAULT` log group |
-| Agent invocation works but no Observability traces | `aws-opentelemetry-distro` in requirements.txt + `opentelemetry-instrument` in Dockerfile CMD |
-| `/chat` returns model-validation error | Model access not granted in console; OR using non-inference-profile model ID (must be `us.anthropic.…`) |
-| `/conversations` returns empty for a logged-in user | Master agent wrote rows under `user_id=anonymous` (Authorization header missing); confirm Lambda sees `authorization` header in event |
+| Agent works but no Observability traces | `aws-opentelemetry-distro` in `requirements.txt` + `opentelemetry-instrument` in Dockerfile CMD |
+| `/chat` returns model-validation error | Model access not granted; OR using non-inference-profile model id (must be `us.amazon.…` / `us.anthropic.…`) |
+| `/conversations` empty for a logged-in user | Master wrote rows under `user_id=anonymous` (Authorization header missing); confirm Lambda sees `authorization` header in event |
 | DDB Query on GSI fails with `AccessDenied` | IAM resource scope missing `/index/*` |
-| Master writes to memory but DDB row not created | Agent role missing `dynamodb:PutItem` on sessions table OR missing `kms:Decrypt` on DynamoDB CMK |
-| Cognito returns "Incorrect username" for the test user | Pool requires email as username; create user with email-format username |
-| SAM build can't find Lambda source | Templates' `CodeUri` should point at `../functions/<name>/`, not `../src/<name>/` |
-| Bootstrap stack collision (`AlreadyExists` on bucket or role) | A prior failed deploy left orphans — delete the role/bucket manually, re-run; the template has `Retain` removed in the current code so rollback should clean up cleanly going forward |
-| `Sign-in failed: Cognito token exchange failed: 400` after the Hosted UI redirects you back | React `StrictMode` double-fires the `/callback` effect in dev. The auth code is single-use, so the second exchange always 400s. `ui/src/hooks/useAuth.js` guards `handleCallback` with a module-level in-flight promise — if the bug recurs, check that guard is intact |
-| UI shows mock-looking data even though DDB tables are empty | An older Vite dev server bound to port 5173 is serving a different project. `lsof -iTCP:5173 -sTCP:LISTEN` to find the right PID, then kill it and restart `npm run dev` |
-| Step 7 runtime `CREATE_FAILED` "unsupported availability zones" | AgentCore Runtime constraint (use1-az1/2/4 in us-east-1). `01-network.yaml` provisions `PrivateSubnet2` in a supported AZ; `deploy_agents.py` reads `PrivateSubnet2Id`. Verify your `PrivateSubnet2AZ` param maps to a supported physical AZ |
+| Master writes to memory but DDB row not created | Agent role missing `dynamodb:PutItem` on sessions OR missing `kms:Decrypt` on DynamoDB CMK |
+| Cognito returns "Incorrect username" for the test user | Email-as-username; create user with email-format username |
+| Upload to `/uploads/presign` returns 403 / "Failed to fetch" | API stage didn't redeploy when SAM Events were added; force `create-deployment` |
+| Upload presign succeeds but the PUT to S3 fails CORS | `dev-st21arbiter-poc-raw` bucket CORS missing `http://localhost:5173`; patch with `aws s3api put-bucket-cors` |
+| File lands in raw bucket but processed never appears | `ProcessingPipelineObjectCreatedRule` mistargeting; check EventBridge default bus rules in CloudWatch |
+| File reaches processed but no scan-run row appears | `KB_ID` env var empty on `processing_pipeline` (first-pass deploy); patch `params/dev.json` and re-run `deploy.sh` |
+| Scheduled cron fires but the master is never invoked | `MasterAgentRuntimeArn` empty on `scanner` Lambda; second-pass deploy hasn't happened |
+| Dashboard Recent Activity shows nothing | `seed_mock_data.py` not run; OR audit-log table empty |
+| Audit Logs rows don't expand on click | Hard-refresh; old bundle cached |
+| `Sign-in failed: Cognito token exchange failed: 400` after Hosted UI callback | React `StrictMode` double-fires `/callback`; auth code is single-use. `ui/src/hooks/useAuth.js` guards `handleCallback` with a module-level in-flight promise — if the bug recurs, check that guard is intact |
+| UI shows mock-looking data even though DDB has rows | An older Vite dev server bound to 5173 is serving a different project. `lsof -iTCP:5173 -sTCP:LISTEN` → kill → `npm run dev` |
+| AgentCore runtime `CREATE_FAILED` "unsupported availability zones" | `PrivateSubnet2AZ` not mapping to `use1-az1/2/4`. Verify with `aws ec2 describe-availability-zones`, override the param |
+| Preflight banner shows F1 DISABLED but you set KbId | Param value typo or wrong key name (must be `KbId`, not `KBId`); re-check `params/dev.json` |
 
 ---
 
-**End of deployment guide.** When you're done, ping me with any failure
-output or the stack/runtime status and I'll triage from there.
+**End of deployment guide.** When something fails, ping with the failure
+output or the stack / runtime status and we'll triage from there.
