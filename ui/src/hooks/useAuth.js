@@ -33,6 +33,13 @@ export function getIdToken() {
   return t?.id_token || ''
 }
 
+// Epoch-ms at which the current IdToken expires, or null when there's no token.
+// Used by Settings → Session for the expiry countdown.
+export function getSessionExpiry() {
+  const t = load()
+  return t?.expires_at || null
+}
+
 export function authHeaders() {
   const token = getIdToken()
   return token ? { Authorization: `Bearer ${token}` } : {}

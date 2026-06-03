@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo } from 'react'
 import { getGroups, getEmail } from '../hooks/useAuth'
+import { getPreferences } from '../hooks/usePreferences'
 
 export const PERSONAS = {
   employee: {
@@ -68,7 +69,8 @@ export const ROUTE_ACCESS = {
   '/llm-control': 'llm-control',
   '/pipeline':    'pipeline',
   '/mcp-chat':    'mcp-chat',
-  // '/personas' has no entry — always accessible (demo page)
+  // '/personas' and '/settings' have no entry — always accessible to any
+  // authenticated persona (demo page / personal preferences respectively).
 }
 
 const PersonaContext = createContext(null)
@@ -101,6 +103,11 @@ export function PersonaProvider({ children }) {
   }
 
   function firstAccessiblePath() {
+    // A user-chosen default landing page (Settings -> Appearance) wins, but only
+    // if the persona can still reach it; a stale path falls back to the role
+    // default (cleaned up in PersonaRouteSync, keeping this read render-safe).
+    const landingPath = getPreferences().appearance.landingPath
+    if (landingPath && hasAccess(landingPath)) return landingPath
     const personaPaths = ['/', '/analyst', '/findings', '/actions', '/governance']
     for (const p of personaPaths) {
       if (hasAccess(p)) return p

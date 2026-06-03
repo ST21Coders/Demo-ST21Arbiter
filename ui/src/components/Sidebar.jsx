@@ -4,7 +4,7 @@ import {
   GitBranch, ScrollText, MessageSquare, Cpu, Terminal,
   Settings, Wifi, WifiOff, Shield, Users,
 } from 'lucide-react'
-import { CHAT_URL, USE_MOCK } from '../config'
+import { CHAT_URL, USE_MOCK, APP_VERSION } from '../config'
 import { usePersona } from '../contexts/PersonaContext'
 import { useNavCounts } from '../hooks/useApi'
 
@@ -55,6 +55,7 @@ const PAGE_TITLES = {
   '/pipeline':   'Data Pipeline',
   '/mcp-chat':   'MCP Admin',
   '/personas':   'Personas',
+  '/settings':   'Settings',
 }
 
 export { PAGE_TITLES }
@@ -211,7 +212,17 @@ export default function Sidebar() {
         <div className="px-3 py-2">
           <NavLink
             to="/settings"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all"
+            className={({ isActive }) =>
+              `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                isActive
+                  ? 'text-indigo-700 font-medium bg-indigo-50'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`
+            }
+            style={({ isActive }) => isActive
+              ? { borderLeft: '2px solid #6366f1', paddingLeft: '10px' }
+              : { borderLeft: '2px solid transparent' }
+            }
           >
             <Settings size={14} />
             <span className="text-[13px]">Settings</span>
@@ -221,7 +232,7 @@ export default function Sidebar() {
         {/* Persona (read-only — derived from Cognito group) */}
         <PersonaBadge />
 
-        <p className="px-4 pb-3 text-[10px] text-slate-400 font-mono">v1.0.0-poc · us-east-1</p>
+        <p className="px-4 pb-3 text-[10px] text-slate-400 font-mono">v{APP_VERSION} · us-east-1</p>
       </div>
     </aside>
   )
