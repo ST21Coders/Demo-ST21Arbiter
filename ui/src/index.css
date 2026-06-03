@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ──────────────────────────────────────────────────────────────────────────
+   Theme tokens (Settings -> Appearance -> Theme). slate is exposed to Tailwind
+   as channel triplets (tailwind.config.js). Light values equal Tailwind's
+   defaults exactly, so light mode is unchanged. [data-theme="dark"] (set on
+   <html> by ThemeManager) remaps them: page #0f172a < card #1e293b < chip
+   #283447 < border #334155. --surface backs white card surfaces.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --c-slate-50: 248 250 252;  --c-slate-100: 241 245 249; --c-slate-200: 226 232 240;
+  --c-slate-300: 203 213 225; --c-slate-400: 148 163 184; --c-slate-500: 100 116 139;
+  --c-slate-600: 71 85 105;   --c-slate-700: 51 65 85;    --c-slate-800: 30 41 59;
+  --c-slate-900: 15 23 42;
+  --surface: #ffffff;
+}
+[data-theme="dark"] {
+  --c-slate-50: 15 23 42;     --c-slate-100: 40 52 71;    --c-slate-200: 51 65 85;
+  --c-slate-300: 71 85 105;   --c-slate-400: 100 116 139; --c-slate-500: 148 163 184;
+  --c-slate-600: 203 213 225; --c-slate-700: 203 213 225; --c-slate-800: 226 232 240;
+  --c-slate-900: 241 245 249;
+  --surface: #1e293b;
+}
+
 @layer base {
   body {
     /* Off-white canvas — #F8FAFC */
@@ -162,6 +184,61 @@
 .slide-in  { animation: slideInRight 0.28s ease-out; }
 .fade-in-up { animation: fadeInUp 0.22s ease-out; }
 .scan-glow  { animation: scanGlow 2s ease-in-out infinite; }
+
+/* ── Settings -> Appearance: UI density ── */
+[data-density="compact"] td,
+[data-density="compact"] th {
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+}
+
+/* ── Settings -> Appearance: reduce motion ── */
+[data-reduce-motion="true"] *,
+[data-reduce-motion="true"] *::before,
+[data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ── Dark-mode overrides the slate-token flip can't cover alone ── */
+[data-theme="dark"] .bg-white { background-color: var(--surface); }
+[data-theme="dark"] .bg-slate-900 { background-color: #334155; }
+[data-theme="dark"] .hover\:bg-slate-800:hover { background-color: #475569; }
+[data-theme="dark"] .bg-slate-900\/40 { background-color: rgb(2 6 23 / 0.6); }
+
+[data-theme="dark"] .bg-indigo-50  { background-color: rgb(99 102 241 / 0.13); }
+[data-theme="dark"] .bg-indigo-100 { background-color: rgb(99 102 241 / 0.20); }
+[data-theme="dark"] .bg-amber-50   { background-color: rgb(245 158 11 / 0.12); }
+[data-theme="dark"] .bg-amber-100  { background-color: rgb(245 158 11 / 0.20); }
+[data-theme="dark"] .bg-emerald-50 { background-color: rgb(16 185 129 / 0.13); }
+[data-theme="dark"] .bg-emerald-100{ background-color: rgb(16 185 129 / 0.20); }
+[data-theme="dark"] .bg-red-50     { background-color: rgb(239 68 68 / 0.13); }
+[data-theme="dark"] .bg-red-100    { background-color: rgb(239 68 68 / 0.20); }
+[data-theme="dark"] .bg-orange-50  { background-color: rgb(249 115 22 / 0.13); }
+[data-theme="dark"] .bg-orange-100 { background-color: rgb(249 115 22 / 0.20); }
+[data-theme="dark"] .bg-yellow-50  { background-color: rgb(234 179 8 / 0.12); }
+[data-theme="dark"] .bg-sky-50     { background-color: rgb(14 165 233 / 0.13); }
+[data-theme="dark"] .bg-sky-100    { background-color: rgb(14 165 233 / 0.20); }
+
+[data-theme="dark"] .border-indigo-200  { border-color: rgb(99 102 241 / 0.35); }
+[data-theme="dark"] .border-amber-200   { border-color: rgb(245 158 11 / 0.35); }
+[data-theme="dark"] .border-emerald-200 { border-color: rgb(16 185 129 / 0.35); }
+[data-theme="dark"] .border-red-200     { border-color: rgb(239 68 68 / 0.35); }
+[data-theme="dark"] .border-orange-200  { border-color: rgb(249 115 22 / 0.35); }
+[data-theme="dark"] .border-sky-200     { border-color: rgb(14 165 233 / 0.35); }
+
+[data-theme="dark"] .text-indigo-600,
+[data-theme="dark"] .text-indigo-700  { color: rgb(165 180 252); }
+[data-theme="dark"] .text-amber-600,
+[data-theme="dark"] .text-amber-700,
+[data-theme="dark"] .text-amber-800   { color: rgb(252 211 77); }
+[data-theme="dark"] .text-emerald-700 { color: rgb(110 231 183); }
+[data-theme="dark"] .text-red-700,
+[data-theme="dark"] .text-red-800     { color: rgb(252 165 165); }
+[data-theme="dark"] .text-orange-700  { color: rgb(253 186 116); }
+[data-theme="dark"] .text-sky-700     { color: rgb(125 211 252); }
 
 /* ── Heat-map cell colours ── */
 .hm-0  { @apply bg-slate-100 text-slate-400; }
