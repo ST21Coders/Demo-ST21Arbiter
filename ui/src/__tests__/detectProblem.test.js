@@ -50,14 +50,14 @@ describe('detectProblem — trigger logic', () => {
     }
   })
 
-  it('does not trigger on a pure how-to with neutral answer', () => {
+  it('surfaces on a pure how-to with neutral answer (button shows for all questions)', () => {
     const out = detectProblem({
       messages: [
         userMsg('How do I list AWS security groups?'),
         botMsg('Use the AWS CLI: aws ec2 describe-security-groups.'),
       ],
     })
-    expect(out.hasProblem).toBe(false)
+    expect(out.hasProblem).toBe(true)
   })
 
   it('triggers on a violation finding from the assistant', () => {

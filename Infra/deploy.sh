@@ -28,7 +28,8 @@ CF_STACKS=(
 )
 SAM_STACKS=(
   "05-compute"
-  "06-api"         
+  "06-api"
+  "11-scanner"   # autonomous scanner Lambda + EventBridge schedule
 )
 CF_STACKS_POST=(
   # "07-bedrock"       # deferred: KB requires OpenSearch index pre-creation; see scripts/setup_bedrock_kb.py
@@ -38,6 +39,42 @@ CF_STACKS_POST=(
 )
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
+
+# ──────────────────────────── Preflight status ────────────────
+# Print the current state of params that gate optional features so the
+# operator knows what they're about to deploy. None of these are fatal —
+# the affected stacks fall back to no-op behavior when their value is
+# empty so the first-pass deploy works on a brand-new account:
+#   • KbId / KbDataSourceId — gates the F1 auto-detect chain in
+#     05-compute (processing_pipeline). When empty, files still move
+#     raw → processed but the post-upload KB ingestion + scanner kick
+#     are skipped.
+#   • MasterAgentRuntimeArn — gates 11-scanner. When empty, the
+#     scanner Lambda + EventBridge cron deploy but the Lambda exits
+#     cleanly without invoking AgentCore (no-op until the ARN is set).
+# After running setup_bedrock_kb.py (Step 5) and deploy_agents.py
+# (Step 7), patch the values into params/dev.json and re-run deploy.sh
+# to pick them up — second pass updates 05-compute env vars and the
+# 11-scanner runtime ARN.
+preflight_status() {
+  local kb_id master_arn ds_id
+  kb_id=$(python3 -c "import json; print(next((p['ParameterValue'] for p in json.load(open('${PARAMS_FILE}')) if p.get('ParameterKey')=='KbId'), ''))")
+  ds_id=$(python3 -c "import json; print(next((p['ParameterValue'] for p in json.load(open('${PARAMS_FILE}')) if p.get('ParameterKey')=='KbDataSourceId'), ''))")
+  master_arn=$(python3 -c "import json; print(next((p['ParameterValue'] for p in json.load(open('${PARAMS_FILE}')) if p.get('ParameterKey')=='MasterAgentRuntimeArn'), ''))")
+
+  log "──── Preflight: optional-feature state ────"
+  if [[ -n "${kb_id}" && -n "${ds_id}" ]]; then
+    log "  ✓ KbId=${kb_id} / DataSource=${ds_id} → F1 auto-ingest chain ENABLED"
+  else
+    log "  ⚠ KbId/KbDataSourceId empty → F1 auto-ingest chain DISABLED (run setup_bedrock_kb.py, patch params/${ENV}.json, re-run deploy.sh)"
+  fi
+  if [[ -n "${master_arn}" ]]; then
+    log "  ✓ MasterAgentRuntimeArn=${master_arn} → scheduled scanner ENABLED"
+  else
+    log "  ⚠ MasterAgentRuntimeArn empty → scheduled scanner DISABLED (run scripts/deploy_agents.py, patch params/${ENV}.json, re-run deploy.sh)"
+  fi
+  log ""
+}
 
 # ──────────────────────────── Filter params for template ──────
 # Each template defines different parameters. This function reads
@@ -285,6 +322,19 @@ deploy_sam_stack() {
     --template-file "${template}" \
     --build-dir ".aws-sam/build-${1}"
 
+  # Pull template-applicable params from dev.json so SAM stacks honor the same
+  # overrides as the CFN change-set path. SAM wants Key=Val pairs (not the JSON
+  # format CFN accepts), so we convert via filter_params + python.
+  local filtered_params
+  filtered_params=$(mktemp)
+  filter_params "${template}" "${filtered_params}"
+  local sam_overrides
+  sam_overrides=$(python3 -c "
+import json, shlex, sys
+print(' '.join(shlex.quote(f\"{p['ParameterKey']}={p['ParameterValue']}\") for p in json.load(open(sys.argv[1]))))
+" "${filtered_params}")
+  rm -f "${filtered_params}"
+
   sam deploy \
     --template-file ".aws-sam/build-${1}/template.yaml" \
     --stack-name "${stack_name}" \
@@ -292,7 +342,7 @@ deploy_sam_stack() {
     --s3-prefix "${stack_name}" \
     --region "${REGION}" \
     --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
-    --parameter-overrides "Environment=${ENV}" "ProjectName=${PROJECT}" \
+    --parameter-overrides "Environment=${ENV}" "ProjectName=${PROJECT}" ${sam_overrides} \
     --tags "Environment=${ENV}" "Project=${PROJECT}" \
     --no-fail-on-empty-changeset \
     --no-confirm-changeset
@@ -345,6 +395,8 @@ set_demo_passwords() {
 main() {
   log "Starting ARBITER deployment — env=${ENV}, region=${REGION}"
   log ""
+
+  preflight_status
 
   deploy_bootstrap
 

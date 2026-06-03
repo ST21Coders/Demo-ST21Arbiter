@@ -120,8 +120,10 @@ export function useChangeRequests() {
       }))
       return { status: 'APPROVED' }
     }
-    return apiFetch(`/actions/${crId}/approve`, { method: 'POST', body: JSON.stringify({ approver_email: approverEmail, approver_role: approverRole, comment }) })
-  }, [])
+    const result = await apiFetch(`/actions/${crId}/approve`, { method: 'POST', body: JSON.stringify({ approver_email: approverEmail, approver_role: approverRole, comment }) })
+    await load()  // refresh list so the row immediately reflects the server-side state
+    return result
+  }, [load])
 
   const reject = useCallback(async (crId, approverEmail, reason) => {
     if (USE_MOCK) {
@@ -129,8 +131,10 @@ export function useChangeRequests() {
       setChangeRequests(prev => prev.map(cr => cr.cr_id === crId ? { ...cr, status: 'REJECTED' } : cr))
       return {}
     }
-    return apiFetch(`/actions/${crId}/reject`, { method: 'POST', body: JSON.stringify({ approver_email: approverEmail, reason }) })
-  }, [])
+    const result = await apiFetch(`/actions/${crId}/reject`, { method: 'POST', body: JSON.stringify({ approver_email: approverEmail, reason }) })
+    await load()
+    return result
+  }, [load])
 
   const execute = useCallback(async (crId) => {
     if (USE_MOCK) {
@@ -144,8 +148,10 @@ export function useChangeRequests() {
       ] } : cr))
       return { status: 'COMPLETED', execution_log: [] }
     }
-    return apiFetch(`/actions/${crId}/execute`, { method: 'POST', body: JSON.stringify({ executed_by: 'operator@meridianinsurance.com' }) })
-  }, [])
+    const result = await apiFetch(`/actions/${crId}/execute`, { method: 'POST', body: JSON.stringify({ executed_by: 'operator@meridianinsurance.com' }) })
+    await load()
+    return result
+  }, [load])
 
   const escalate = useCallback(async (crId, reason) => {
     if (USE_MOCK) {
@@ -153,8 +159,10 @@ export function useChangeRequests() {
       setChangeRequests(prev => prev.map(cr => cr.cr_id === crId ? { ...cr, status: 'ESCALATED' } : cr))
       return {}
     }
-    return apiFetch(`/actions/${crId}/escalate`, { method: 'POST', body: JSON.stringify({ reason }) })
-  }, [])
+    const result = await apiFetch(`/actions/${crId}/escalate`, { method: 'POST', body: JSON.stringify({ reason }) })
+    await load()
+    return result
+  }, [load])
 
   return { changeRequests, loading, load, createAction, approve, reject, execute, escalate }
 }
@@ -257,20 +265,11 @@ export function useConversations(opts = {}) {
   // "Resolve" button, and the auto-archive when a linked CR completes.
   // Optimistically removes from local state before the network call so the
   // sidebar feels instant; on error, the next list() pull will restore.
-  const deleteSession = useCallback(async (sessionId) => {
-    if (!sessionId) return
-    setSessions(prev => prev.filter(s => s.session_id !== sessionId))
-    if (USE_MOCK) {
-      await sleep(120)
-      return { deleted: true, session_id: sessionId }
-    }
-    return apiFetch(`/conversations/${encodeURIComponent(sessionId)}`, { method: 'DELETE' })
-  }, [])
 
   return {
     sessions, activeMessages, loading,
     list, loadMessages, clearActive,
-    addLocalSession, bumpLocalSession, deleteSession,
+    addLocalSession, bumpLocalSession
   }
 }
 
@@ -290,6 +289,151 @@ export async function sendChat({ prompt, session_id, chat_type }) {
   })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
   return res.json()
+}
+
+// Single-round-trip dashboard aggregate. Polls every 60s.
+// Falls back to the per-route hooks (findings + CRs + audit) when USE_MOCK.
+export function useDashboard() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      if (USE_MOCK) {
+        await sleep(150)
+        setData(null)
+        return
+      }
+      const d = await apiFetch('/dashboard')
+      setData(d)
+    } catch {
+      // Dashboard tile falls back to its per-route hooks; silent recovery.
+    } finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const tick = async () => { if (!cancelled) await load() }
+    tick()
+    const id = setInterval(tick, 60_000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [load])
+
+  return { data, loading, reload: load }
+}
+
+// Trigger a scan run. Returns {scan_run_id, status, stub?}.
+export async function triggerScan() {
+  if (USE_MOCK) return { scan_run_id: 'mock-scan', status: 'COMPLETED', stub: true }
+  return apiFetch('/scan', { method: 'POST', body: JSON.stringify({}) })
+}
+
+// Poll a scan run's status. UI hits this every 2s until status != 'RUNNING'.
+export async function getScanRun(scanRunId) {
+  if (USE_MOCK) return { scan_run_id: scanRunId, status: 'COMPLETED' }
+  return apiFetch(`/scan-runs/${encodeURIComponent(scanRunId)}`)
+}
+
+// Lazy GET /findings/{id} for the FindingDetail page.
+// In mock mode, looks the row up from MOCK_CONFLICTS so direct-URL navigation works.
+export function useFindingDetail(id) {
+  const [finding, setFinding] = useState(null)
+  const [loading, setLoading] = useState(false)
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    setLoading(true)
+    ;(async () => {
+      try {
+        if (USE_MOCK) {
+          await sleep(150)
+          const found = MOCK_CONFLICTS.find(f => f.conflict_id === id) || null
+          if (!cancelled) setFinding(found)
+          return
+        }
+        const d = await apiFetch(`/findings/${encodeURIComponent(id)}`)
+        if (!cancelled) setFinding(d)
+      } catch {
+        if (!cancelled) setFinding(null)
+      } finally { if (!cancelled) setLoading(false) }
+    })()
+    return () => { cancelled = true }
+  }, [id])
+  return { finding, loading }
+}
+
+// MCP server health for the dashboard tile + MCPChat status panel.
+export function useMcpHealth() {
+  const [data, setData] = useState({ summary: 'UNKNOWN', servers: [] })
+  const load = useCallback(async () => {
+    try {
+      if (USE_MOCK) {
+        setData({
+          summary: 'UP',
+          servers: [
+            { name: 'SharePoint MCP', status: 'UP', latency_ms: 320 },
+            { name: 'Zscaler MCP',    status: 'UP', latency_ms: 410 },
+            { name: 'AWS Config MCP', status: 'UP', latency_ms: 95  },
+            { name: 'ServiceNow MCP', status: 'DEGRADED', latency_ms: 1240 },
+            { name: 'Atlassian MCP',  status: 'UP', latency_ms: 280 },
+          ],
+        })
+        return
+      }
+      const d = await apiFetch('/mcp-health')
+      setData(d)
+    } catch { /* keep prior */ }
+  }, [])
+  useEffect(() => {
+    let cancelled = false
+    const tick = async () => { if (!cancelled) await load() }
+    tick()
+    const id = setInterval(tick, 30_000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [load])
+  return data
+}
+
+// Upload helpers — POST /uploads/presign returns a presigned S3 PUT URL into
+// the raw bucket under users/<sub>/<ts>-<filename>. The browser then PUTs the
+// file directly to S3. The F1 auto-detect chain (EventBridge → processing_pipeline
+// → KB ingestion → scanner) picks it up automatically.
+export async function presignUpload({ filename, contentType }) {
+  if (USE_MOCK) {
+    return { url: '#mock', method: 'PUT', key: `users/mock/${Date.now()}-${filename}`,
+             bucket: 'mock', expires_in: 900, headers: {} }
+  }
+  return apiFetch('/uploads/presign', {
+    method: 'POST',
+    body: JSON.stringify({ filename, contentType: contentType || 'application/octet-stream' }),
+  })
+}
+
+export async function uploadToPresignedUrl(url, headers, body) {
+  if (url === '#mock') {
+    // Pretend the PUT succeeded after a tiny delay so mock mode demos still flow.
+    await sleep(400)
+    return { ok: true, status: 200 }
+  }
+  const res = await fetch(url, { method: 'PUT', headers: headers || {}, body })
+  return { ok: res.ok, status: res.status }
+}
+
+export async function listScanRuns(limit = 20) {
+  if (USE_MOCK) return { scan_runs: [] }
+  return apiFetch('/scan-runs')
+}
+
+// Lambda stub for JIRA — Atlassian MCP via Analyst chat is the real path.
+export async function createJiraTicket({ conflict_id, summary, severity }) {
+  if (USE_MOCK) {
+    return { status: 'mock', mock_ticket_key: `MIG-MOCK-${Math.floor(Math.random() * 90000) + 10000}` }
+  }
+  return apiFetch('/jira/tickets', {
+    method: 'POST',
+    body: JSON.stringify({ conflict_id, summary, severity }),
+  })
 }
 
 // Live nav badge counts. Polls every 60s; cancels on unmount.

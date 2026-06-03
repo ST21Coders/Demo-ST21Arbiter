@@ -31,6 +31,13 @@ Parameters:
     Type: String
     Default: "*"
     Description: CORS Access-Control-Allow-Origin. For prod, set to the CloudFront domain.
+  ChatFunctionUrlAllowedOrigins:
+    Type: CommaDelimitedList
+    Default: "http://localhost:5173"
+    Description: |
+      CORS allow-list for the /chat Lambda Function URL. Set to the Vite dev origin
+      plus the CloudFront SPA URL (e.g. "http://localhost:5173,https://dxxxx.cloudfront.net").
+      Function URL CORS is not the same as API Gateway CORS — it has its own allow-list.
 
 Globals:
   Function:
@@ -189,6 +196,20 @@ Resources:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-SessionsTableName"
           CHANGE_REQUESTS_TABLE:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ChangeRequestsTableName"
+          # V2 conflicts + scan-runs tables added in this revision.
+          # Imports use Fn::ImportValue with a default-via-Sub fallback isn't
+          # available — these exports MUST exist (04-storage already deployed
+          # with v2/scan-runs by the time 06-api re-deploys).
+          CONFLICTS_TABLE_V2:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ConflictsTableV2Name"
+          SCAN_RUNS_TABLE:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ScanRunsTableName"
+          # Comma-separated MCP endpoint URLs for /mcp-health pings. Empty by
+          # default — UI shows all MCP servers as "unknown" until configured.
+          MCP_ENDPOINTS: ""
+          # Deterministic name from CFN parameters — no cross-stack import needed.
+          # 02-security has already granted lambda:InvokeFunction on this exact name.
+          SCANNER_LAMBDA_NAME: !Sub "${Environment}-${ProjectName}-scanner"
           ALLOWED_ORIGIN: !Ref AllowedOrigin
           # Filled in by deploy_agents.py after AgentCore runtimes are up.
           MASTER_AGENT_RUNTIME_ARN: ""
@@ -215,6 +236,15 @@ Resources:
       # demo testing — switch to AWS_IAM (SigV4) or move logic to async before prod.
       FunctionUrlConfig:
         AuthType: NONE
+        Cors:
+          AllowOrigins: !Ref ChatFunctionUrlAllowedOrigins
+          AllowMethods:
+            - POST
+            - GET
+          AllowHeaders:
+            - content-type
+            - authorization
+          MaxAge: 3600
       Events:
         ScanPost:
           Type: Api
@@ -314,6 +344,49 @@ Resources:
             Method: GET
             Auth:
               Authorizer: NONE
+        # ─── NEW (added by dashboard + scanner work) ───────────
+        DashboardAggregate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /dashboard
+            Method: GET
+        ScanRunsList:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /scan-runs
+            Method: GET
+        ScanRunDetail:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /scan-runs/{scan_run_id}
+            Method: GET
+        McpHealth:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /mcp-health
+            Method: GET
+        JiraTicketCreate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /jira/tickets
+            Method: POST
+        UploadsPresign:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /uploads/presign
+            Method: POST
+        UploadsList:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /uploads/list
+            Method: GET
       Tags:
         Name: !Sub "${Environment}-${ProjectName}-api-handler"
 

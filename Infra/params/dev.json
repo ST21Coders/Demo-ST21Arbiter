@@ -69,5 +69,24 @@
     "_comment_ui": "10-ui-hosting (Plan/) toggles to keep CFN noise low in demo.",
     "ParameterKey": "AttachWaf",
     "ParameterValue": "false"
+  },
+  {
+    "_comment_chat_cors": "Origins allowed to hit the /chat Lambda Function URL (06-api). Add the CloudFront SPA URL on each redeploy of 10-ui-hosting.",
+    "ParameterKey": "ChatFunctionUrlAllowedOrigins",
+    "ParameterValue": "http://localhost:5173,https://d5u0vv1zl3eqd.cloudfront.net,http://localhost:3002"
+  },
+  {
+    "_comment_scanner": "Master AgentCore runtime ARN — scanner Lambda invokes this in scan-mode. Refresh via `aws bedrock-agentcore-control list-agent-runtimes` after deploy_agents.py runs.",
+    "ParameterKey": "MasterAgentRuntimeArn",
+    "ParameterValue": "arn:aws:bedrock-agentcore:us-east-1:669810405473:runtime/dev_st21arbiter_poc_master_orchestrator-Jme05DD8Yi"
+  },
+  {
+    "_comment_kb_auto_ingest": "Bedrock KB and data-source IDs for the F1 auto-detect chain. Created out-of-band by scripts/setup_bedrock_kb.py; processing_pipeline calls bedrock-agent start_ingestion_job after copying new files. Refresh after KB recreation.",
+    "ParameterKey": "KbId",
+    "ParameterValue": "2ADHACW6LB"
+  },
+  {
+    "ParameterKey": "KbDataSourceId",
+    "ParameterValue": "KLUEZ1RNM5"
   }
 ]

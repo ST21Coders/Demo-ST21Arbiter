@@ -4,7 +4,7 @@ import {
   Loader2, ChevronDown, ChevronRight, CheckCircle, XCircle,
   Play, AlertOctagon, Clock, Shield, Zap, Plus
 } from 'lucide-react'
-import { useChangeRequests } from '../hooks/useApi'
+import { useChangeRequests, createJiraTicket } from '../hooks/useApi'
 import { SeverityBadge, StatusBadge } from '../components/SeverityBadge'
 import ActionRequestModal from '../components/ActionRequestModal'
 import { formatDistanceToNow } from 'date-fns'
@@ -51,9 +51,27 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
   const [expanded, setExpanded] = useState(false)
   const [acting, setActing] = useState(false)
   const [comment, setComment] = useState('')
+  const [jiraKey, setJiraKey] = useState(cr.jira_ticket_key || null)
+  const [jiraBusy, setJiraBusy] = useState(false)
+
+  async function openJira() {
+    setJiraBusy(true)
+    try {
+      const res = await createJiraTicket({
+        conflict_id: cr.conflict_id || cr.linked_conflict_id,
+        summary: `${cr.severity || 'HIGH'}: ${cr.description || cr.cr_id}`,
+        severity: cr.severity,
+      })
+      setJiraKey(res?.mock_ticket_key || res?.jira_ticket_key)
+    } catch (err) {
+      alert(`JIRA error: ${err.message}`)
+    } finally { setJiraBusy(false) }
+  }
 
   const pendingApprovers = cr.approvers?.filter(a => a.type !== 'NOTIFICATION' && a.status === 'PENDING') || []
-  const canExecute = cr.status === 'APPROVED'
+  // DEV CRs come back as AUTO_APPROVED (no human approvers required) — they
+  // should be executable without going through the approval queue.
+  const canExecute = cr.status === 'APPROVED' || cr.status === 'AUTO_APPROVED'
   const canApprove = cr.status === 'PENDING_APPROVAL' && pendingApprovers.length > 0
   // Pull the signed-in user's email from the IdToken so any CISO-group user
   // (regardless of their address) is correctly identified as an approver.
@@ -189,6 +207,21 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
                 className="btn-ghost flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700"
               >
                 <AlertOctagon size={12} /> Escalate
+              </button>
+            )}
+            {jiraKey ? (
+              <span className="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md" title="Mock JIRA ticket — real ticket creation via Atlassian MCP in Analyst chat">
+                JIRA: <span className="font-mono">{jiraKey}</span>
+              </span>
+            ) : (
+              <button
+                onClick={openJira}
+                disabled={jiraBusy}
+                className="btn-ghost flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700"
+                title="Opens a JIRA ticket. Lambda returns a mock key; real ticket creation runs through the Atlassian MCP plugin in the Analyst chat."
+              >
+                {jiraBusy ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
+                Open JIRA ticket
               </button>
             )}
           </div>

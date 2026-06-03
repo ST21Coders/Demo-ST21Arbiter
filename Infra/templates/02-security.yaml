@@ -167,6 +167,15 @@ Resources:
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-raw/*"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/*"
+              # POST /scan async-invokes the scanner Lambda. The Lambda is
+              # deployed in 11-scanner.yaml; scoping by name prefix avoids a
+              # circular dependency between 02-security and 11-scanner.
+              - Sid: ScannerLambdaInvoke
+                Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Environment}-${ProjectName}-scanner"
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-api-handler-role"
@@ -207,10 +216,25 @@ Resources:
                   - kms:GenerateDataKey
                   - kms:DescribeKey
                 Resource: "*"
-              - Effect: Allow
+              - Sid: BedrockKnowledgeBaseIngest
+                Effect: Allow
                 Action:
+                  # IAM action prefix is `bedrock:` even though the boto3
+                  # client is `bedrock-agent`. AWS surfaces the action as
+                  # bedrock:StartIngestionJob in AccessDenied messages.
                   - bedrock:StartIngestionJob
+                  - bedrock:GetIngestionJob
+                  - bedrock:ListIngestionJobs
                 Resource: "*"
+              # F1 auto-detect chain: after copying a new doc to processed,
+              # processing_pipeline starts a KB ingestion job and async-invokes
+              # the scanner Lambda. Scoped to the deterministic scanner name.
+              - Sid: ScannerLambdaInvoke
+                Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Environment}-${ProjectName}-scanner"
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-processing-pipeline-role"

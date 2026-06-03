@@ -31,6 +31,13 @@ Parameters:
     Default: '*'
     Description: CORS Access-Control-Allow-Origin. For prod, set to the CloudFront
       domain.
+  ChatFunctionUrlAllowedOrigins:
+    Type: CommaDelimitedList
+    Default: http://localhost:5173
+    Description: "CORS allow-list for the /chat Lambda Function URL. Set to the Vite\
+      \ dev origin\nplus the CloudFront SPA URL (e.g. \"http://localhost:5173,https://dxxxx.cloudfront.net\"\
+      ).\nFunction URL CORS is not the same as API Gateway CORS \u2014 it has its\
+      \ own allow-list.\n"
 Globals:
   Function:
     Runtime: python3.13
@@ -177,6 +184,15 @@ Resources:
           CHANGE_REQUESTS_TABLE:
             Fn::ImportValue:
               Fn::Sub: ${Environment}-${ProjectName}-ChangeRequestsTableName
+          CONFLICTS_TABLE_V2:
+            Fn::ImportValue:
+              Fn::Sub: ${Environment}-${ProjectName}-ConflictsTableV2Name
+          SCAN_RUNS_TABLE:
+            Fn::ImportValue:
+              Fn::Sub: ${Environment}-${ProjectName}-ScanRunsTableName
+          MCP_ENDPOINTS: ''
+          SCANNER_LAMBDA_NAME:
+            Fn::Sub: ${Environment}-${ProjectName}-scanner
           ALLOWED_ORIGIN:
             Ref: AllowedOrigin
           MASTER_AGENT_RUNTIME_ARN: ''
@@ -199,6 +215,16 @@ Resources:
             Fn::Sub: ${Environment}-${ProjectName}-LambdaSGId
       FunctionUrlConfig:
         AuthType: NONE
+        Cors:
+          AllowOrigins:
+            Ref: ChatFunctionUrlAllowedOrigins
+          AllowMethods:
+          - POST
+          - GET
+          AllowHeaders:
+          - content-type
+          - authorization
+          MaxAge: 3600
       Events:
         ScanPost:
           Type: Api
@@ -314,6 +340,55 @@ Resources:
             Method: GET
             Auth:
               Authorizer: NONE
+        DashboardAggregate:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ArbiterApi
+            Path: /dashboard
+            Method: GET
+        ScanRunsList:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ArbiterApi
+            Path: /scan-runs
+            Method: GET
+        ScanRunDetail:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ArbiterApi
+            Path: /scan-runs/{scan_run_id}
+            Method: GET
+        McpHealth:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ArbiterApi
+            Path: /mcp-health
+            Method: GET
+        JiraTicketCreate:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ArbiterApi
+            Path: /jira/tickets
+            Method: POST
+        UploadsPresign:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ArbiterApi
+            Path: /uploads/presign
+            Method: POST
+        UploadsList:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ArbiterApi
+            Path: /uploads/list
+            Method: GET
       Tags:
         Name:
           Fn::Sub: ${Environment}-${ProjectName}-api-handler

@@ -17,6 +17,21 @@ Parameters:
   ProjectName:
     Type: String
     Default: st21arbiter-poc
+  KbId:
+    Type: String
+    Default: ''
+    Description: 'Bedrock Knowledge Base ID (e.g. 2ADHACW6LB). Created out-of-band
+      by scripts/setup_bedrock_kb.py; passed here so processing_pipeline can auto-trigger
+      ingestion jobs after copying new files. Empty = disabled.
+
+      '
+  KbDataSourceId:
+    Type: String
+    Default: ''
+    Description: 'Bedrock KB data-source ID associated with the processed bucket (e.g.
+      KLUEZ1RNM5). Required alongside KbId for ingestion auto-trigger.
+
+      '
 Globals:
   Function:
     Runtime: python3.13
@@ -109,6 +124,12 @@ Resources:
             Fn::ImportValue:
               Fn::Sub: ${Environment}-${ProjectName}-CognitoIssuerURL
           ALLOWED_GROUPS: ciso,grc
+          KB_ID:
+            Ref: KbId
+          KB_DATA_SOURCE_ID:
+            Ref: KbDataSourceId
+          SCANNER_LAMBDA_NAME:
+            Fn::Sub: ${Environment}-${ProjectName}-scanner
       FunctionUrlConfig:
         AuthType: NONE
       Tags:
@@ -152,6 +173,43 @@ Resources:
       SourceArn:
         Fn::GetAtt:
         - ProcessingPipelineSchedule
+        - Arn
+  RawBucketObjectCreatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name:
+        Fn::Sub: ${Environment}-${ProjectName}-raw-object-created
+      Description: 'Auto-detect: every new doc in raw bucket triggers processing_pipeline'
+      State: ENABLED
+      EventPattern:
+        source:
+        - aws.s3
+        detail-type:
+        - Object Created
+        detail:
+          bucket:
+            name:
+            - Fn::Sub: ${Environment}-${ProjectName}-raw
+          object:
+            key:
+            - anything-but:
+                prefix: File_Transfer_Reports/
+      Targets:
+      - Arn:
+          Fn::GetAtt:
+          - ProcessingPipelineFunction
+          - Arn
+        Id: ProcessingPipelineObjectCreatedTarget
+  RawBucketObjectCreatedRulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: ProcessingPipelineFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+        - RawBucketObjectCreatedRule
         - Arn
   ProcessingPipelineLogGroup:
     Type: AWS::Logs::LogGroup
