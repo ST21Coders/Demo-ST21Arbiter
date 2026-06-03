@@ -52,3 +52,8 @@ export const MODELS = {
   haiku:  'anthropic.claude-haiku-4-5-20251001-v1:0',
   sonnet: 'anthropic.claude-sonnet-4-6-20251006-v1:0',
 }
+
+// ──────────────────────────── App metadata ───────────────────
+// Single source of truth for the version string. Shown in the Sidebar
+// footer and the Settings → Environment section.
+export const APP_VERSION = '1.2.0-poc'

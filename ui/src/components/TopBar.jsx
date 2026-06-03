@@ -16,6 +16,7 @@ const ROUTE_META = {
   '/pipeline':   { title: 'Data Pipeline', section: 'Infrastructure' },
   '/mcp-chat':   { title: 'MCP Admin',     section: 'Infrastructure' },
   '/personas':   { title: 'Personas',      section: 'Demo' },
+  '/settings':   { title: 'Settings',      section: null },
 }
 
 export default function TopBar() {
