@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────
+# ARBITER CI/CD build spec — run by the CodeBuild "DeployProject"
+# in Infra/templates/12-cicd-pipeline.yaml on every merge to main.
+#
+# It simply runs the existing Infra/deploy.sh (9 CFN/SAM stacks + UI
+# publish). deploy.sh is fully non-interactive (change-sets auto-execute,
+# SAM uses --no-confirm-changeset) so it runs unattended here.
+#
+# Build image: aws/codebuild/standard:7.0 (ships AWS CLI v2 + SAM CLI).
+# DEMO_PASSWORD is injected from Secrets Manager (see env.secrets-manager)
+# so deploy.sh can reset the 4 Cognito demo-user passwords.
+# ─────────────────────────────────────────────────────────────
+version: 0.2
+
+env:
+  variables:
+    AWS_REGION: us-east-1
+    ENVIRONMENT: dev
+  secrets-manager:
+    # The secret is JSON: {"DEMO_PASSWORD":"..."}. The `:DEMO_PASSWORD` suffix
+    # tells CodeBuild to extract that JSON key — WITHOUT it, the whole JSON blob
+    # is injected and deploy.sh sets the Cognito password to the literal JSON.
+    # Secret created as:  aws secretsmanager create-secret \
+    #   --name dev-st21arbiter-poc-demo-password \
+    #   --secret-string '{"DEMO_PASSWORD":"<password>"}'
+    DEMO_PASSWORD: dev-st21arbiter-poc-demo-password:DEMO_PASSWORD
+
+phases:
+  install:
+    runtime-versions:
+      # MUST be 3.13: the SAM functions (processing_pipeline, api_handler,
+      # scanner) declare Runtime: python3.13, and `sam build` (native, no
+      # --use-container) needs a matching python3.13 on PATH or it fails with
+      # "Binary validation failed for python ... runtime: python3.13".
+      python: 3.13
+      nodejs: 20
+    commands:
+      - aws --version
+      - sam --version
+      - python3.13 --version   # fail fast if the image lacks 3.13
+      # post_deploy_ui.py imports boto3; the standard image may not bundle it.
+      - pip install --quiet boto3
+      # Clean Linux install of UI deps. `npm ci` wipes any stale node_modules
+      # (incl. a macOS-built one shipped in the source) and installs the
+      # platform-correct vite/esbuild binaries, so post_deploy_ui.py's
+      # `npm run build` finds vite. Without this, vite build exits 127.
+      - (cd ui && npm ci)
+  build:
+    commands:
+      # deploy.sh references templates/, params/<env>.json and post_deploy_ui.py
+      # by relative path, so it MUST run with cwd = Infra/.
+      - cd Infra
+      - chmod +x deploy.sh
+      - ./deploy.sh
