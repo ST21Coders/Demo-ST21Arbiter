@@ -1,0 +1,41 @@
+# ─────────────────────────────────────────────────────────────
+# ARBITER CI/CD build spec — run by the CodeBuild "DeployProject"
+# in Infra/templates/12-cicd-pipeline.yaml on every merge to main.
+#
+# It simply runs the existing Infra/deploy.sh (9 CFN/SAM stacks + UI
+# publish). deploy.sh is fully non-interactive (change-sets auto-execute,
+# SAM uses --no-confirm-changeset) so it runs unattended here.
+#
+# Build image: aws/codebuild/standard:7.0 (ships AWS CLI v2 + SAM CLI).
+# DEMO_PASSWORD is injected from Secrets Manager (see env.secrets-manager)
+# so deploy.sh can reset the 4 Cognito demo-user passwords.
+# ─────────────────────────────────────────────────────────────
+version: 0.2
+
+env:
+  variables:
+    AWS_REGION: us-east-1
+    ENVIRONMENT: dev
+  secrets-manager:
+    # Plaintext secret holding only the demo password string.
+    # Create once:  aws secretsmanager create-secret \
+    #   --name dev-st21arbiter-poc-demo-password --secret-string '<password>'
+    DEMO_PASSWORD: dev-st21arbiter-poc-demo-password
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+      nodejs: 20
+    commands:
+      - aws --version
+      - sam --version
+      # post_deploy_ui.py imports boto3; the standard image may not bundle it.
+      - pip install --quiet boto3
+  build:
+    commands:
+      # deploy.sh references templates/, params/<env>.json and post_deploy_ui.py
+      # by relative path, so it MUST run with cwd = Infra/.
+      - cd Infra
+      - chmod +x deploy.sh
+      - ./deploy.sh
