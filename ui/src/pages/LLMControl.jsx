@@ -52,7 +52,7 @@ export default function LLMControl() {
   const cardStyle = { background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }
 
   return (
-    <div className="p-6 space-y-5 max-w-5xl">
+    <div className="p-6 space-y-5 page-container">
       <div>
         <h1 className="text-lg font-bold text-slate-900 tracking-tight">LLM Control Panel</h1>
         <p className="text-xs text-slate-500 mt-0.5">Agent configuration, Bedrock Guardrails, and model selection</p>

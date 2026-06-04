@@ -44,7 +44,7 @@ export default function Settings() {
   const ActiveComponent = active.Component
 
   return (
-    <div className="p-6 max-w-6xl">
+    <div className="p-6 page-container">
       <div className="mb-5">
         <h1 className="text-lg font-bold text-slate-900 tracking-tight">Settings</h1>
         <p className="text-xs text-slate-500 mt-0.5">

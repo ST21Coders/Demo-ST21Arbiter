@@ -56,7 +56,7 @@ export default function Personas() {
   const { persona: current, email } = usePersona()
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl">
+    <div className="p-6 space-y-6 page-container">
       {/* Header */}
       <div>
         <h1 className="text-lg font-bold text-slate-900 tracking-tight">Personas & User Flows</h1>

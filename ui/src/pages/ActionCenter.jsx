@@ -270,7 +270,7 @@ export default function ActionCenter() {
   ]
 
   return (
-    <div className="p-6 space-y-5 max-w-6xl">
+    <div className="p-6 space-y-5 page-container">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

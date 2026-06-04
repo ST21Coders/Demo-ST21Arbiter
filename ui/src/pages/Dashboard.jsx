@@ -308,7 +308,7 @@ export default function Dashboard() {
   const recent = [...findings].sort((a, b) => new Date(b.detected_at) - new Date(a.detected_at)).slice(0, 5)
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl">
+    <div className="p-6 space-y-6 page-container">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
