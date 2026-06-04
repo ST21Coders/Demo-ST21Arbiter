@@ -39,8 +39,8 @@ Parameters:
       out-of-band before the first run; buildspec.yml injects it.
   GitHubConnectionArn:
     Type: String
-    Default: arn:aws:codeconnections:us-east-1:669810405473:connection/9521a437-07ea-4202-99cd-9c002dc51f0f
-    Description: ARN of an existing, already-authorized CodeConnections GitHub connection.
+    Default: arn:aws:codeconnections:us-east-1:669810405473:connection/05b3ed03-8ee6-46f8-a7b9-514223ed4ccb
+    Description: ARN of an existing, already-authorized CodeConnections GitHub connection (app installed on ST21Coders with Demo-ST21Arbiter granted). The old 9521a437 connection is orphaned.
 
 Resources:
   # ──────────────────────────── Artifact store ─────────────────
