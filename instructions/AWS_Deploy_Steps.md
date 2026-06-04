@@ -38,6 +38,40 @@ Bedrock KB ([`setup_bedrock_kb.py`](../scripts/setup_bedrock_kb.py)) and agent i
 
 ---
 
+## How code changes ship (push to `main`, NOT `cloudformation deploy`)
+
+The pipeline stack (`12-cicd-pipeline.yaml`) contains **only the pipeline machinery**
+(CodePipeline + CodeBuild + SNS) — **no application code**. To ship an app change (UI, Lambda,
+agents, templates), you do **not** run `aws cloudformation deploy`. You commit and merge to
+`main`, and the pipeline does the rest:
+
+```
+edit code → commit → merge to main on GitHub
+      │  (push to main auto-triggers)
+      ▼
+CodePipeline → CodeBuild runs Infra/deploy.sh
+      │          └─ post_deploy_ui.py: npm build → S3 sync → CloudFront invalidate
+      ▼
+success / failure email
+```
+
+```bash
+git add <changed files>
+git commit -m "your message"
+git push          # to a branch → open PR → merge to main   (or push to main directly)
+
+# watch it run:
+aws codepipeline list-pipeline-executions \
+  --pipeline-name dev-st21arbiter-poc-pipeline --region us-east-1 \
+  --max-items 3 --query "pipelineExecutionSummaries[].[status,startTime]" --output table
+```
+
+> **`aws cloudformation deploy` on this stack only changes the pipeline itself** (e.g. add a
+> stage, change the notification email list). Running it after an app-code edit correctly reports
+> *"No changes to deploy"* — the template didn't change. That is expected, not an error.
+
+---
+
 ## What gets created
 
 | Resource | Logical (in template) | Notes |
@@ -183,8 +217,20 @@ aws sns list-subscriptions-by-topic \
   stdlib + boto3 code runs in CI.
 - **Cost** — one CodeConnections connection, CodeBuild minutes, and SNS email. Negligible for a
   demo.
-- **Teardown** — delete the CI/CD stack separately; it is not removed by `destroy.sh`:
+- **IAM guardrail on the deploy user** — the deploy identity (`sridharn@smartek21.com`) is
+  explicitly denied `iam:DeleteRolePolicy` and `iam:DeletePolicy`, so it **cannot tear down**
+  stacks that contain custom IAM roles/policies — delete stalls in `DELETE_FAILED`. Creates are
+  fine. **Always pass the bootstrap CFN service role on deletes** (it has AdministratorAccess and
+  the user may `PassRole` it):
   ```bash
-  aws cloudformation delete-stack --stack-name dev-st21arbiter-poc-12-cicd --region us-east-1
+  aws cloudformation delete-stack --stack-name dev-st21arbiter-poc-12-cicd \
+    --role-arn arn:aws:iam::669810405473:role/dev-st21arbiter-poc-cfn-service-role \
+    --region us-east-1
   ```
   (Empty `dev-st21arbiter-poc-cicd-artifacts` first if the delete blocks on a non-empty bucket.)
+- **`aws cloudformation deploy` fails with `AWS::EarlyValidation::ResourceExistenceCheck`** → the
+  changeset path can throw a spurious early-validation error for this stack even though all
+  referenced resources exist. Use `aws cloudformation create-stack` / `update-stack` directly
+  instead — it deploys cleanly and surfaces real per-resource errors in stack events.
+- **Teardown** — the CI/CD stack is separate; it is not removed by `destroy.sh`. Use the
+  `delete-stack --role-arn …` command above.
