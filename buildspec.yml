@@ -37,12 +37,11 @@ phases:
       - python3.13 --version   # fail fast if the image lacks 3.13
       # post_deploy_ui.py imports boto3; the standard image may not bundle it.
       - pip install --quiet boto3
-      # Install UI deps on Linux so post_deploy_ui.py's `npm run build` finds
-      # the platform-correct vite/esbuild binaries (otherwise vite build exits
-      # 127). Uses `npm install` (not `npm ci`) because package-lock.json has
-      # drifted out of sync with package.json; `npm ci` would refuse. Re-sync
-      # the lock with `npm install` locally + commit it to restore determinism.
-      - (cd ui && npm install --no-audit --no-fund)
+      # Clean Linux install of UI deps. `npm ci` wipes any stale node_modules
+      # (incl. a macOS-built one shipped in the source) and installs the
+      # platform-correct vite/esbuild binaries, so post_deploy_ui.py's
+      # `npm run build` finds vite. Without this, vite build exits 127.
+      - (cd ui && npm ci)
   build:
     commands:
       # deploy.sh references templates/, params/<env>.json and post_deploy_ui.py
