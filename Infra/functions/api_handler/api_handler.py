@@ -161,6 +161,8 @@ def handler(event, context):
             return _handle_get_messages(event, session_id)
         if not sub and method == "GET":
             return _handle_get_conversation(event, session_id)
+        if not sub and method == "DELETE":
+            return _handle_delete_conversation(event, session_id)
 
     # ── Dashboard + scanner additions ────────────────────────────
     if path == "/dashboard" and method == "GET":
@@ -478,6 +480,43 @@ def _handle_get_conversation(event, session_id: str):
     if not item or item.get("user_id") != user_id:
         return _err(404, f"Session {session_id} not found")
     return _ok(_session_summary(item))
+
+
+# ──────────────────────────── DELETE /conversations/{id} ────────
+def _handle_delete_conversation(event, session_id: str):
+    """Hard-delete a conversation's DDB index row (per-chat trash button).
+
+    Ownership is enforced first: session_id is the table's only key, so
+    without the check any authenticated caller could delete any chat by id.
+    We delete the DDB row only — that makes the chat unreachable from every
+    surface (both /messages and /{id} gate on the row existing). The raw
+    events stay in AgentCore Memory until its retention expires.
+    """
+    if not sessions_table:
+        return _err(500, "SESSIONS_TABLE not configured")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+    if not session_id:
+        return _err(400, "Missing session_id")
+
+    # Ownership check — the row must exist and belong to the caller.
+    try:
+        resp = sessions_table.get_item(Key={"session_id": session_id})
+    except Exception as e:
+        logger.exception("Ownership lookup failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    item = resp.get("Item")
+    if not item or item.get("user_id") != user_id:
+        return _err(404, f"Session {session_id} not found")
+
+    try:
+        sessions_table.delete_item(Key={"session_id": session_id})
+    except Exception as e:
+        logger.exception("DeleteItem failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+
+    return _ok({"deleted": True, "session_id": session_id})
 
 
 # ──────────────────────────── /conversations/{id}/messages ──────

@@ -130,7 +130,8 @@ Resources:
   #   POST /chat                          (MCPChat, AnalystView)
   #   POST /mymcp/chat                    (MyMCP spoke requests)
   #   GET  /conversations                          (MCPChat + AnalystView sidebars)
-  #   GET  /conversations/{session_id}             (session metadata)
+  #   GET    /conversations/{session_id}           (session metadata)
+  #   DELETE /conversations/{session_id}           (per-chat trash button)
   #   GET  /conversations/{session_id}/messages    (full message history from AgentCore Memory)
   #   GET  /health                                 (unauth, for CDK/SAM healthcheck)
 
@@ -330,6 +331,12 @@ Resources:
             RestApiId: !Ref ArbiterApi
             Path: /conversations/{session_id}
             Method: GET
+        ConversationDelete:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /conversations/{session_id}
+            Method: DELETE
         ConversationMessages:
           Type: Api
           Properties:
