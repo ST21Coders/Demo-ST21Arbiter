@@ -25,11 +25,16 @@ env:
 phases:
   install:
     runtime-versions:
-      python: 3.12
+      # MUST be 3.13: the SAM functions (processing_pipeline, api_handler,
+      # scanner) declare Runtime: python3.13, and `sam build` (native, no
+      # --use-container) needs a matching python3.13 on PATH or it fails with
+      # "Binary validation failed for python ... runtime: python3.13".
+      python: 3.13
       nodejs: 20
     commands:
       - aws --version
       - sam --version
+      - python3.13 --version   # fail fast if the image lacks 3.13
       # post_deploy_ui.py imports boto3; the standard image may not bundle it.
       - pip install --quiet boto3
   build:

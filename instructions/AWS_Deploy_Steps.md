@@ -213,8 +213,11 @@ aws sns list-subscriptions-by-topic \
 - **Concurrent merges** → two executions could run `deploy.sh` on the same stacks at once and
   collide on change-sets. Mitigate by enabling *Superseded* execution mode on the pipeline (or
   pause-and-queue) in the console if merges are frequent.
-- **Python 3.12 in the build image** vs the repo's 3.13 target is fine — only deploy-time
-  stdlib + boto3 code runs in CI.
+- **`sam build` "Binary validation failed for python ... runtime: python3.13"** → the build
+  image's active Python must match the SAM functions' `Runtime: python3.13`. `buildspec.yml`
+  pins `runtime-versions.python: 3.13` for this. If a future image drops managed 3.13, either
+  pin a newer image or switch `deploy.sh`'s `sam build` to `--use-container` (needs
+  `PrivilegedMode: true` on the CodeBuild project).
 - **Cost** — one CodeConnections connection, CodeBuild minutes, and SNS email. Negligible for a
   demo.
 - **IAM guardrail on the deploy user** — the deploy identity (`sridharn@smartek21.com`) is
