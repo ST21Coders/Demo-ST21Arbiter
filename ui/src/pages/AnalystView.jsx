@@ -495,19 +495,29 @@ export default function AnalystView() {
           ) : sessions.map(s => {
             const linkedCr = sessionTickets[s.session_id]
             return (
-              <button
+              <div
                 key={s.session_id}
                 onClick={() => openSession(s.session_id)}
-                className={`w-full text-left px-2 py-1.5 rounded text-xs hover:bg-slate-100 transition-colors ${
+                className={`group flex items-start gap-1 w-full text-left px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-slate-100 transition-colors ${
                   activeSessionId === s.session_id ? 'bg-indigo-50 border border-indigo-200' : ''
                 }`}
               >
-                <p className="font-medium text-slate-800 truncate">{s.title || s.session_id}</p>
-                <p className="text-[10px] text-slate-500 truncate">
-                  {s.message_count || 0} msgs · {s.last_message_at ? new Date(s.last_message_at).toLocaleDateString() : ''}
-                  {linkedCr ? <span className="ml-1 text-indigo-600">· {linkedCr}</span> : null}
-                </p>
-              </button>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-slate-800 truncate">{s.title || s.session_id}</p>
+                  <p className="text-[10px] text-slate-500 truncate">
+                    {s.message_count || 0} msgs · {s.last_message_at ? new Date(s.last_message_at).toLocaleDateString() : ''}
+                    {linkedCr ? <span className="ml-1 text-indigo-600">· {linkedCr}</span> : null}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={(ev) => handleDeleteSession(s.session_id, ev)}
+                  title="Delete chat"
+                  className="flex-shrink-0 p-1 rounded text-slate-400 opacity-0 group-hover:opacity-100 hover:text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
             )
           })}
         </div>

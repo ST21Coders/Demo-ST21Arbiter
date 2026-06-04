@@ -260,16 +260,27 @@ export function useConversations(opts = {}) {
       : s))
   }, [])
 
-  // Hard-delete a session: removes the DDB index row and best-effort drains
-  // the memory events. UI calls this for the per-chat trash button, the
-  // "Resolve" button, and the auto-archive when a linked CR completes.
-  // Optimistically removes from local state before the network call so the
-  // sidebar feels instant; on error, the next list() pull will restore.
+  // Hard-delete a session: removes the DDB index row. UI calls this for the
+  // per-chat trash button, the "Resolve" button, and the auto-archive when a
+  // linked CR completes. Optimistically removes from local state before the
+  // network call so the sidebar feels instant; on error, the next list() pull
+  // restores the row (the server is the source of truth).
+  const deleteSession = useCallback(async (sessionId) => {
+    if (!sessionId) return
+    setSessions(prev => prev.filter(s => s.session_id !== sessionId))
+    if (USE_MOCK) { await sleep(150); return }
+    try {
+      await apiFetch(`/conversations/${encodeURIComponent(sessionId)}`, { method: 'DELETE' })
+    } catch (err) {
+      console.warn('deleteSession failed:', err)
+      throw err
+    }
+  }, [])
 
   return {
     sessions, activeMessages, loading,
     list, loadMessages, clearActive,
-    addLocalSession, bumpLocalSession
+    addLocalSession, bumpLocalSession, deleteSession
   }
 }
 
