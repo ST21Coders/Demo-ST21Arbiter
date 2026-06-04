@@ -5,19 +5,19 @@ import { StatusBadge } from '../components/SeverityBadge'
 import { format } from 'date-fns'
 
 const ACTION_COLORS = {
-  SCAN_TRIGGERED:    'text-indigo-700',
-  SCAN_STARTED:      'text-indigo-700',
-  SCAN_COMPLETED:    'text-emerald-700',
-  SCAN_FAILED:       'text-red-700',
-  INGESTION_COMPLETE:'text-indigo-700',
-  CR_CREATED:        'text-amber-700',
-  CR_APPROVED:       'text-emerald-700',
-  CR_REJECTED:       'text-red-700',
-  CR_EXECUTED:       'text-teal-700',
-  CR_ESCALATED:      'text-indigo-700',
+  SCAN_TRIGGERED: 'text-indigo-700',
+  SCAN_STARTED: 'text-indigo-700',
+  SCAN_COMPLETED: 'text-emerald-700',
+  SCAN_FAILED: 'text-red-700',
+  INGESTION_COMPLETE: 'text-indigo-700',
+  CR_CREATED: 'text-amber-700',
+  CR_APPROVED: 'text-emerald-700',
+  CR_REJECTED: 'text-red-700',
+  CR_EXECUTED: 'text-teal-700',
+  CR_ESCALATED: 'text-indigo-700',
   CONFLICT_RESOLVED: 'text-emerald-700',
-  JIRA_LINKED:       'text-sky-700',
-  KB_SYNC:           'text-slate-600',
+  JIRA_LINKED: 'text-sky-700',
+  KB_SYNC: 'text-purple-600',
 }
 
 // Attempt JSON parse; return null on failure so we can render the raw string.
@@ -72,7 +72,7 @@ function ExpandedDetail({ log }) {
           <div className="md:col-span-3">
             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Details (parsed JSON)</p>
             <pre className="rounded-lg p-3 bg-white border border-slate-200 font-mono text-[11px] text-slate-700 overflow-x-auto whitespace-pre-wrap">
-{parsed ? JSON.stringify(parsed, null, 2) : (log.details || '(no details)')}
+              {parsed ? JSON.stringify(parsed, null, 2) : (log.details || '(no details)')}
             </pre>
           </div>
         </div>
@@ -90,9 +90,9 @@ export default function AuditLogs() {
 
   const filtered = filter
     ? logs.filter(l => l.action_type?.toLowerCase().includes(filter.toLowerCase())
-                    || l.resource?.toLowerCase().includes(filter.toLowerCase())
-                    || l.user?.toLowerCase().includes(filter.toLowerCase())
-                    || (l.details || '').toLowerCase().includes(filter.toLowerCase()))
+      || l.resource?.toLowerCase().includes(filter.toLowerCase())
+      || l.user?.toLowerCase().includes(filter.toLowerCase())
+      || (l.details || '').toLowerCase().includes(filter.toLowerCase()))
     : logs
 
   // Newest first — DDB scan order isn't guaranteed.
@@ -103,7 +103,7 @@ export default function AuditLogs() {
   }
 
   function exportCSV() {
-    const headers = ['event_id','timestamp','action_type','resource','user','status','details']
+    const headers = ['event_id', 'timestamp', 'action_type', 'resource', 'user', 'status', 'details']
     const rows = logs.map(l => headers.map(h => JSON.stringify(l[h] ?? '')).join(','))
     const blob = new Blob([headers.join(',') + '\n' + rows.join('\n')], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -148,7 +148,7 @@ export default function AuditLogs() {
         </div>
       ) : (
         <div className="rounded-xl overflow-hidden bg-white border border-slate-200"
-             style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
+          style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
@@ -172,7 +172,7 @@ export default function AuditLogs() {
                 return (
                   <Fragment key={id}>
                     <tr onClick={() => toggle(id)}
-                        className={`transition-colors hover:bg-slate-50 cursor-pointer ${i < sorted.length - 1 ? 'border-b border-slate-100' : ''}`}>
+                      className={`transition-colors hover:bg-slate-50 cursor-pointer ${i < sorted.length - 1 ? 'border-b border-slate-100' : ''}`}>
                       <td className="px-2 py-3 align-top">
                         {isOpen
                           ? <ChevronDown size={13} className="text-slate-500" />
