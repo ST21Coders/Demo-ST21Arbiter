@@ -1,0 +1,283 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  ARBITER – CI/CD pipeline (DEMO). CodePipeline V2 triggered by a push to
+  `main` on GitHub (a PR merge IS a push to main) via a CodeConnections
+  GitHub link. A single CodeBuild project runs Infra/deploy.sh (the same
+  manual deploy used today). A CodeStar Notification rule emails a set of
+  members on pipeline success/failure via SNS.
+
+  Deployed ONCE, by hand — intentionally kept out of deploy.sh/destroy.sh so
+  the pipeline never tears itself down and its lifecycle stays separate from
+  the application stacks. No CodeDeploy: this app has no EC2/ECS/Lambda-traffic
+  deploy targets — it ships via CFN/SAM + AgentCore + S3/CloudFront.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+  GitHubRepoId:
+    Type: String
+    Default: ST21Coders/Demo-ST21Arbiter
+    Description: GitHub <owner>/<repo> for the CodeConnections source.
+  BranchName:
+    Type: String
+    Default: main
+    Description: Branch whose pushes (incl. PR merges) trigger the pipeline.
+  NotificationEmails:
+    Type: CommaDelimitedList
+    Default: "sridharn@smartek21.com,reuhenb@smartek21.com,williamh@smartek21.com"
+    Description: Email addresses that receive pipeline success/failure notices.
+  DemoPasswordSecretName:
+    Type: String
+    Default: dev-st21arbiter-poc-demo-password
+    Description: >
+      Secrets Manager secret (plaintext) holding DEMO_PASSWORD. Created
+      out-of-band before the first run; buildspec.yml injects it.
+  GitHubConnectionArn:
+    Type: String
+    Default: arn:aws:codeconnections:us-east-1:669810405473:connection/9521a437-07ea-4202-99cd-9c002dc51f0f
+    Description: ARN of an existing, already-authorized CodeConnections GitHub connection.
+
+Resources:
+  # ──────────────────────────── Artifact store ─────────────────
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Environment}-${ProjectName}-cicd-artifacts"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # ──────────────────────────── GitHub connection ──────────────
+  # This stack reuses an EXISTING, already-authorized CodeConnections GitHub
+  # connection — its ARN is passed via the GitHubConnectionArn parameter, so
+  # no connection resource is created here. (If you ever need a fresh one:
+  # Console → Developer Tools → Settings → Connections → Create connection →
+  # authorize the "AWS Connector for GitHub" app on ST21Coders.)
+
+  # ──────────────────────────── CodeBuild role ─────────────────
+  # NOTE (security tradeoff, dev-only): AdministratorAccess. deploy.sh
+  # provisions VPC/KMS/IAM/Cognito/etc.; the CFN stacks go through the
+  # bootstrap admin CFN service role, but the SAM stacks (05/06/11) run
+  # `sam deploy` WITHOUT --role-arn, so they create resources under THIS
+  # role. This mirrors the project's existing "admin runs deploy.sh" model
+  # (00-bootstrap.yaml). Scope down here for any prod hardening.
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-cicd-codebuild-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+      Policies:
+        - PolicyName: logs-and-secret
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${DemoPasswordSecretName}*"
+
+  # ──────────────────────────── CodeBuild project ──────────────
+  DeployProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-deploy"
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      TimeoutInMinutes: 60
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec.yml
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        # No PrivilegedMode: deploy.sh builds no Docker images (agent image
+        # builds are a separate, manual deploy_agents.py CodeBuild run).
+        EnvironmentVariables:
+          - Name: AWS_REGION
+            Value: !Ref AWS::Region
+          - Name: ENVIRONMENT
+            Value: !Ref Environment
+
+  # ──────────────────────────── Pipeline role ──────────────────
+  PipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-cicd-pipeline-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: pipeline-permissions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: codestar-connections:UseConnection
+                Resource: !Ref GitHubConnectionArn
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:PutObject
+                  - s3:GetBucketVersioning
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt ArtifactBucket.Arn
+                  - !Sub "${ArtifactBucket.Arn}/*"
+              - Effect: Allow
+                Action:
+                  - codebuild:StartBuild
+                  - codebuild:BatchGetBuilds
+                Resource: !GetAtt DeployProject.Arn
+
+  # ──────────────────────────── Pipeline (V2) ──────────────────
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-pipeline"
+      PipelineType: V2
+      RoleArn: !GetAtt PipelineServiceRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactBucket
+      # A PR merge to `main` is a push to `main`; this push trigger fires it.
+      Triggers:
+        - ProviderType: CodeStarSourceConnection
+          GitConfiguration:
+            SourceActionName: Source
+            Push:
+              - Branches:
+                  Includes:
+                    - !Ref BranchName
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: Source
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: "1"
+              Configuration:
+                ConnectionArn: !Ref GitHubConnectionArn
+                FullRepositoryId: !Ref GitHubRepoId
+                BranchName: !Ref BranchName
+                # Triggers (above) drive execution; no polling/CW-events webhook.
+                DetectChanges: "false"
+              OutputArtifacts:
+                - Name: SourceOutput
+        - Name: Deploy
+          Actions:
+            - Name: RunDeployScript
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName: !Ref DeployProject
+              InputArtifacts:
+                - Name: SourceOutput
+
+  # ──────────────────────────── Notifications ──────────────────
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${Environment}-${ProjectName}-cicd-notifications"
+      DisplayName: ARBITER CI/CD
+
+  NotificationTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref NotificationTopic
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCodeStarNotifications
+            Effect: Allow
+            Principal:
+              Service: codestar-notifications.amazonaws.com
+            Action: SNS:Publish
+            Resource: !Ref NotificationTopic
+
+  EmailSub0:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref NotificationTopic
+      Protocol: email
+      Endpoint: !Select [0, !Ref NotificationEmails]
+
+  EmailSub1:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref NotificationTopic
+      Protocol: email
+      Endpoint: !Select [1, !Ref NotificationEmails]
+
+  EmailSub2:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref NotificationTopic
+      Protocol: email
+      Endpoint: !Select [2, !Ref NotificationEmails]
+
+  PipelineNotificationRule:
+    Type: AWS::CodeStarNotifications::NotificationRule
+    # The SNS topic policy granting codestar-notifications:Publish must exist
+    # BEFORE the rule is validated, else CodeStarNotifications rejects the
+    # create with "Invalid request provided". The rule only !Refs the topic
+    # (not its policy), so make the ordering explicit.
+    DependsOn: NotificationTopicPolicy
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-pipeline-notify"
+      DetailType: FULL
+      Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Pipeline}"
+      EventTypeIds:
+        - codepipeline-pipeline-pipeline-execution-succeeded
+        - codepipeline-pipeline-pipeline-execution-failed
+        - codepipeline-pipeline-pipeline-execution-canceled
+      Targets:
+        - TargetType: SNS
+          TargetAddress: !Ref NotificationTopic
+
+Outputs:
+  PipelineName:
+    Value: !Ref Pipeline
+  GitHubConnectionArn:
+    Description: The existing CodeConnections GitHub connection used by the pipeline.
+    Value: !Ref GitHubConnectionArn
+  NotificationTopicArn:
+    Value: !Ref NotificationTopic
+  ArtifactBucketName:
+    Value: !Ref ArtifactBucket
