@@ -17,10 +17,13 @@ env:
     AWS_REGION: us-east-1
     ENVIRONMENT: dev
   secrets-manager:
-    # Plaintext secret holding only the demo password string.
-    # Create once:  aws secretsmanager create-secret \
-    #   --name dev-st21arbiter-poc-demo-password --secret-string '<password>'
-    DEMO_PASSWORD: dev-st21arbiter-poc-demo-password
+    # The secret is JSON: {"DEMO_PASSWORD":"..."}. The `:DEMO_PASSWORD` suffix
+    # tells CodeBuild to extract that JSON key — WITHOUT it, the whole JSON blob
+    # is injected and deploy.sh sets the Cognito password to the literal JSON.
+    # Secret created as:  aws secretsmanager create-secret \
+    #   --name dev-st21arbiter-poc-demo-password \
+    #   --secret-string '{"DEMO_PASSWORD":"<password>"}'
+    DEMO_PASSWORD: dev-st21arbiter-poc-demo-password:DEMO_PASSWORD
 
 phases:
   install:

@@ -110,11 +110,18 @@ injects it from Secrets Manager.
 ```bash
 aws secretsmanager create-secret \
   --name dev-st21arbiter-poc-demo-password \
-  --secret-string '<YOUR_DEMO_PASSWORD>' \
+  --secret-string '{"DEMO_PASSWORD":"<YOUR_DEMO_PASSWORD>"}' \
   --region us-east-1
 ```
 
 > Password policy: 14+ chars, with upper, lower, digit, and symbol.
+>
+> **The secret must be JSON** (`{"DEMO_PASSWORD":"..."}`) to match `buildspec.yml`'s
+> `DEMO_PASSWORD: dev-st21arbiter-poc-demo-password:DEMO_PASSWORD` reference (the `:DEMO_PASSWORD`
+> suffix extracts that key). If you store a *plaintext* secret instead, drop the `:DEMO_PASSWORD`
+> suffix in `buildspec.yml` — otherwise CodeBuild injects the whole JSON blob and `deploy.sh`
+> sets the Cognito password to that literal JSON, so logins fail with "Invalid username or
+> password" even though users show `CONFIRMED`.
 
 ### 2. Deploy the pipeline stack
 
