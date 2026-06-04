@@ -37,6 +37,16 @@
 }
 
 @layer components {
+  /* ── Page content container — fluid up to a readable ceiling ──
+     Replaces ad-hoc max-w-Nxl on page wrappers. Fills small/medium
+     screens exactly as before; on wide monitors it widens in steps
+     instead of stopping dead at 1152px. Centered so wide screens don't
+     left-align content against the sidebar. */
+  .page-container {
+    @apply w-full mx-auto;
+    max-width: 1280px;
+  }
+
   /* ── Cards — white on slate-50, soft elevation ── */
   .card {
     @apply bg-white border border-slate-200 rounded-xl p-4;
@@ -184,6 +194,13 @@
 .slide-in  { animation: slideInRight 0.28s ease-out; }
 .fade-in-up { animation: fadeInUp 0.22s ease-out; }
 .scan-glow  { animation: scanGlow 2s ease-in-out infinite; }
+
+/* ── Page container responsive ceilings (see .page-container) ──
+   Widen the content column in steps on large monitors so wide screens
+   aren't half-empty, while keeping line lengths readable on 4K. */
+@media (min-width: 1536px) { .page-container { max-width: 1440px; } }
+@media (min-width: 1920px) { .page-container { max-width: 1680px; } }
+@media (min-width: 2560px) { .page-container { max-width: 2040px; } }
 
 /* ── Settings -> Appearance: UI density ── */
 [data-density="compact"] td,

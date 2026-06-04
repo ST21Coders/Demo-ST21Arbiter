@@ -39,7 +39,7 @@ export default function FindingDetail() {
 
   if (!finding) {
     return (
-      <div className="p-6 max-w-5xl">
+      <div className="p-6 page-container">
         <button onClick={() => navigate('/findings')} className="btn-ghost flex items-center gap-1.5 text-xs mb-4">
           <ArrowLeft size={13} /> Back to findings
         </button>
@@ -67,7 +67,7 @@ export default function FindingDetail() {
   const enforcement = finding.enforcement_evidence || []
 
   return (
-    <div className="p-6 space-y-5 max-w-6xl">
+    <div className="p-6 space-y-5 page-container">
       {/* Header / breadcrumb */}
       <div className="flex items-center justify-between">
         <div>

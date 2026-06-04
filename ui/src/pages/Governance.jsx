@@ -166,7 +166,7 @@ export default function Governance() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl">
+    <div className="p-6 space-y-6 page-container">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900 tracking-tight">Governance & Compliance</h1>

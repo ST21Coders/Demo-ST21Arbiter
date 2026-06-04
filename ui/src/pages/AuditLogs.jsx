@@ -113,7 +113,7 @@ export default function AuditLogs() {
   }
 
   return (
-    <div className="p-6 space-y-5 max-w-6xl">
+    <div className="p-6 space-y-5 page-container">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900 tracking-tight">Audit Logs</h1>

@@ -306,7 +306,7 @@ export default function DataPipeline() {
   }, [uploads])
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
+    <div className="p-6 space-y-6 page-container">
       <div>
         <h1 className="text-lg font-bold text-slate-900 tracking-tight">Data Pipeline</h1>
         <p className="text-xs text-slate-500 mt-0.5">
