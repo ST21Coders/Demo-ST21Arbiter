@@ -26,12 +26,27 @@ log = logging.getLogger("token_usage")
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 TOKEN_USAGE_TABLE = os.environ.get("TOKEN_USAGE_TABLE", "").strip()
 
-# Nova 2 Lite list pricing (USD per 1M tokens). Single source of truth for the
+# Bedrock list pricing (USD per 1M tokens). Single source of truth for the
 # agent-side cost calculation; the UI mirrors these values in MODEL_PRICING in
 # ui/src/mockData.js for the mock-mode KPI math. Keep both in sync when adding
 # a second model or when AWS publishes new pricing.
+#
+# Each model is keyed by every model_id form an agent might write to the table:
+#   - "us.<provider>.<model>"        — cross-region inference profile ID
+#                                       (this is what MODEL_ID env var holds
+#                                       on the live runtimes for Claude)
+#   - "<provider>.<model>-<rev>-v1:0" — foundation-model ID
+#                                       (this is what config.js MODELS uses)
+# Both variants get the same rate so cost calc never falls through to zero
+# just because the model_id used a different naming convention.
 MODEL_PRICING: dict[str, dict[str, float]] = {
-    "us.amazon.nova-2-lite-v1:0": {"input": 0.06, "output": 0.24},
+    # Amazon Nova 2 Lite — specialist agents (sharepoint / awsconfig / zscaler)
+    "us.amazon.nova-2-lite-v1:0":                  {"input": 0.06, "output": 0.24},
+    # Anthropic Claude Sonnet 4.6 — this deploy's master_orchestrator is wired
+    # to this model via MASTER_MODEL_ID. Specialists may follow if Marketplace
+    # subscription stays approved and the operator overrides their MODEL_ID.
+    "us.anthropic.claude-sonnet-4-6":              {"input": 3.00, "output": 15.00},
+    "anthropic.claude-sonnet-4-6-20251006-v1:0":   {"input": 3.00, "output": 15.00},
 }
 
 TTL_DAYS = 90

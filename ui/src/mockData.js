@@ -628,10 +628,17 @@ export function findingsToCsv(findings) {
 // deliberate — see PERSONAS / SPECIALIST_PROB / dayOfWeek inside.
 
 export const NOVA_LITE_MODEL_ID = 'us.amazon.nova-2-lite-v1:0'
-// Nova 2 Lite list pricing (per 1M tokens) — must match agents/_shared/token_usage.py
-// when that file ships. One source of truth for cost calc display in mock mode.
+// Bedrock list pricing per 1M tokens. MUST mirror agents/_shared/token_usage.py
+// — both files independently compute estimated_cost (the backend writes it onto
+// each row at PutItem; the mock generator computes it client-side). Keep keys
+// and rates identical when adding a model.
 export const MODEL_PRICING = {
-  [NOVA_LITE_MODEL_ID]: { input: 0.06, output: 0.24 },
+  // Amazon Nova 2 Lite — specialist agents
+  [NOVA_LITE_MODEL_ID]:                          { input: 0.06, output: 0.24 },
+  // Anthropic Claude Sonnet 4.6 — master_orchestrator in this deploy. Two keys
+  // because the backend writes whichever string MODEL_ID env var holds.
+  'us.anthropic.claude-sonnet-4-6':              { input: 3.00, output: 15.00 },
+  'anthropic.claude-sonnet-4-6-20251006-v1:0':   { input: 3.00, output: 15.00 },
 }
 
 function _mulberry32(seed) {
