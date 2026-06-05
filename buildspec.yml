@@ -2,11 +2,17 @@
 # ARBITER CI/CD build spec — run by the CodeBuild "DeployProject"
 # in Infra/templates/12-cicd-pipeline.yaml on every merge to main.
 #
-# It simply runs the existing Infra/deploy.sh (9 CFN/SAM stacks + UI
-# publish). deploy.sh is fully non-interactive (change-sets auto-execute,
-# SAM uses --no-confirm-changeset) so it runs unattended here.
+# build phase: runs Infra/deploy.sh (9 CFN/SAM stacks + UI publish).
+#   deploy.sh is fully non-interactive (change-sets auto-execute, SAM
+#   uses --no-confirm-changeset) so it runs unattended here.
 #
-# Build image: aws/codebuild/standard:7.0 (ships AWS CLI v2 + SAM CLI).
+# post_build phase: gated agent rebuild via scripts/deploy_agents.py —
+#   only fires when the merged commit touched agents/ or
+#   scripts/deploy_agents.py. Keeps UI-only merges fast (~3 min) while
+#   making agent changes self-deploying (~10 min added). Fails closed
+#   on any discovery issue (skip rebuild, log clearly).
+#
+# Build image: aws/codebuild/standard:7.0 (ships AWS CLI v2 + SAM CLI + jq).
 # DEMO_PASSWORD is injected from Secrets Manager (see env.secrets-manager)
 # so deploy.sh can reset the 4 Cognito demo-user passwords.
 # ─────────────────────────────────────────────────────────────
@@ -52,3 +58,78 @@ phases:
       - cd Infra
       - chmod +x deploy.sh
       - ./deploy.sh
+  post_build:
+    commands:
+      # ───────────────────────────────────────────────────────────────
+      # Gated agent rebuild.
+      # deploy.sh updates CFN/SAM + UI but does NOT touch the four
+      # AgentCore Runtime images in ECR. Those images carry the
+      # specialist + master agent code (and now agents/_shared/), so
+      # any change under agents/ or to deploy_agents.py only goes live
+      # after running scripts/deploy_agents.py.
+      #
+      # To avoid paying ~10 min of ARM64 docker builds on every UI-only
+      # merge, we gate this on the diff of the current commit:
+      #   - squash merges (the default for PRs on this repo) carry all
+      #     PR file changes in the HEAD commit → `HEAD~1..HEAD` matches
+      #   - merge commits put the diff between HEAD^1 and HEAD^2; the
+      #     same range works because git reduces the merge to its diff
+      # If the diff cannot be computed (shallow clone, root commit),
+      # we fail closed → skip rebuild → operator runs deploy_agents.py
+      # by hand. Same outcome as before this gate existed.
+      # ───────────────────────────────────────────────────────────────
+      - cd "$CODEBUILD_SRC_DIR"
+      - |
+        if ! git rev-parse HEAD~1 >/dev/null 2>&1; then
+          echo "↪ git history not deep enough to diff — skipping agent rebuild (run scripts/deploy_agents.py manually if agent code changed)"
+          exit 0
+        fi
+        changed=$(git diff --name-only HEAD~1 HEAD -- agents/ scripts/deploy_agents.py 2>/dev/null || true)
+        if [ -z "$changed" ]; then
+          echo "↪ no changes under agents/ or scripts/deploy_agents.py — skipping agent rebuild"
+          exit 0
+        fi
+        echo "↪ agent source changed in this commit — rebuilding agent images:"
+        printf '   %s\n' $changed
+      # KB_ID is required for KB-backed specialist tools. Pulled from
+      # params/dev.json (where setup_bedrock_kb.py records it). jq ships
+      # in the standard:7.0 image.
+      - |
+        export KB_ID=$(jq -r '.[] | select(.ParameterKey=="KbId") | .ParameterValue' Infra/params/dev.json 2>/dev/null)
+        if [ -z "$KB_ID" ] || [ "$KB_ID" = "null" ]; then
+          echo "⚠ KB_ID missing from params/dev.json — skipping agent rebuild (KB-backed agents would deploy as no-ops)"
+          exit 0
+        fi
+      # GUARDRAIL_ID and MASTER_MEMORY_ID are NOT stored in params/dev.json
+      # — they were configured on the existing live agent runtimes by a prior
+      # manual deploy_agents.py run. Read them back from the master runtime's
+      # current env vars to preserve behavior across rebuilds (otherwise the
+      # update_agent_runtime call would wipe them).
+      - |
+        MASTER_RUNTIME_NAME="${ENVIRONMENT}_st21arbiter_poc_master_orchestrator"
+        # Truncate to 63 chars to match deploy_agents.py's naming convention.
+        MASTER_RUNTIME_NAME="${MASTER_RUNTIME_NAME:0:63}"
+        MASTER_RUNTIME_ARN=$(aws bedrock-agentcore-control list-agent-runtimes \
+          --region "$AWS_REGION" \
+          --query "agentRuntimes[?agentRuntimeName=='$MASTER_RUNTIME_NAME']|[0].agentRuntimeArn" \
+          --output text 2>/dev/null || true)
+        if [ -n "$MASTER_RUNTIME_ARN" ] && [ "$MASTER_RUNTIME_ARN" != "None" ]; then
+          # get-agent-runtime returns the current env var map; pull the two values out.
+          RUNTIME_ENV=$(aws bedrock-agentcore-control get-agent-runtime \
+            --region "$AWS_REGION" \
+            --agent-runtime-arn "$MASTER_RUNTIME_ARN" \
+            --query 'agentRuntimeArtifact.containerConfiguration.environmentVariables' \
+            --output json 2>/dev/null || echo '{}')
+          export GUARDRAIL_ID=$(echo "$RUNTIME_ENV" | jq -r '.GUARDRAIL_ID // empty')
+          export MASTER_MEMORY_ID=$(echo "$RUNTIME_ENV" | jq -r '.MEMORY_ID // empty')
+          echo "↪ discovered GUARDRAIL_ID=$(echo $GUARDRAIL_ID | head -c 8)... MASTER_MEMORY_ID=$(echo $MASTER_MEMORY_ID | head -c 8)..."
+        else
+          echo "↪ no live master runtime found — first-time rebuild without GUARDRAIL_ID / MASTER_MEMORY_ID (agents will deploy; guardrail + long-term memory will be disabled until set)"
+        fi
+      # Provision the venv and run. deploy_agents.py is idempotent — for
+      # the existing 4 runtimes it updates the image tag + env; for missing
+      # ones it creates them.
+      - python3.13 -m venv scripts/.venv
+      - . scripts/.venv/bin/activate
+      - pip install --quiet -r scripts/requirements.txt
+      - python3 scripts/deploy_agents.py
