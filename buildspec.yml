@@ -119,22 +119,32 @@ phases:
         # For ENVIRONMENT=dev the runtime name is 39 chars — no truncation
         # needed. (deploy_agents.py truncates to 63 for longer project names;
         # that path isn't exercised here.)
+        # NOTE on the API shape:
+        #   list-agent-runtimes returns agentRuntimeId (not ARN-based addressing)
+        #   get-agent-runtime requires --agent-runtime-id, and the env-var map
+        #   lives at the top-level `environmentVariables`, NOT under
+        #   agentRuntimeArtifact.containerConfiguration. (Verified live.)
         MASTER_NAME="${ENVIRONMENT}_st21arbiter_poc_master_orchestrator"
-        MASTER_ARN=$(aws bedrock-agentcore-control list-agent-runtimes \
+        MASTER_ID=$(aws bedrock-agentcore-control list-agent-runtimes \
           --region "$AWS_REGION" \
-          --query "agentRuntimes[?agentRuntimeName=='$MASTER_NAME']|[0].agentRuntimeArn" \
+          --query "agentRuntimes[?agentRuntimeName=='$MASTER_NAME']|[0].agentRuntimeId" \
           --output text 2>/dev/null || true)
-        if [ -n "$MASTER_ARN" ] && [ "$MASTER_ARN" != "None" ]; then
+        if [ -n "$MASTER_ID" ] && [ "$MASTER_ID" != "None" ]; then
           RUNTIME_ENV=$(aws bedrock-agentcore-control get-agent-runtime \
-            --region "$AWS_REGION" --agent-runtime-arn "$MASTER_ARN" \
-            --query 'agentRuntimeArtifact.containerConfiguration.environmentVariables' \
+            --region "$AWS_REGION" --agent-runtime-id "$MASTER_ID" \
+            --query 'environmentVariables' \
             --output json 2>/dev/null || echo '{}')
           GUARDRAIL_ID=$(echo "$RUNTIME_ENV" | jq -r '.GUARDRAIL_ID // empty')
           MASTER_MEMORY_ID=$(echo "$RUNTIME_ENV" | jq -r '.MEMORY_ID // empty')
-          export GUARDRAIL_ID MASTER_MEMORY_ID
-          echo "↪ discovered IDs from live master runtime (preserves existing config)"
+          # MASTER_MODEL_ID preserves the master's current model choice. Without
+          # this, deploy_agents.py would re-set MODEL_ID to the default in
+          # master_orchestrator/agent.py (Nova 2 Lite), silently downgrading
+          # whatever model the operator wired up out-of-band.
+          MASTER_MODEL_ID=$(echo "$RUNTIME_ENV" | jq -r '.MODEL_ID // empty')
+          export GUARDRAIL_ID MASTER_MEMORY_ID MASTER_MODEL_ID
+          echo "↪ discovered from live master runtime: GUARDRAIL=set?$([ -n "$GUARDRAIL_ID" ] && echo y || echo n), MEMORY=set?$([ -n "$MASTER_MEMORY_ID" ] && echo y || echo n), MODEL=$MASTER_MODEL_ID"
         else
-          echo "↪ no live master runtime found — first-time rebuild without GUARDRAIL_ID / MASTER_MEMORY_ID (agents deploy; those features stay off until set)"
+          echo "↪ no live master runtime found — first-time rebuild without GUARDRAIL_ID / MASTER_MEMORY_ID / MASTER_MODEL_ID (agents deploy; those features stay off until set)"
         fi
 
         # ── Stage 4: rebuild (idempotent: update existing, create missing) ─
