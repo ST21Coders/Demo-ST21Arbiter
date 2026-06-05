@@ -271,10 +271,16 @@ def build_and_push(agent: dict[str, Any], repo_uri: str) -> str:
     image_tag = f"{int(time.time())}"
     agent_src = PROJECT_ROOT / agent["src"]
 
-    # Zip the agent source
+    # Build the zip in a merged context so the agent image can `from _shared.token_usage
+    # import ...` — the per-agent Dockerfile copies _shared/ into /app at build time.
+    shared_src = PROJECT_ROOT / "agents" / "_shared"
     with tempfile.TemporaryDirectory() as tmpdir:
+        build_ctx = Path(tmpdir) / "ctx"
+        shutil.copytree(agent_src, build_ctx)
+        if shared_src.exists():
+            shutil.copytree(shared_src, build_ctx / "_shared")
         zip_base = Path(tmpdir) / agent["name"]
-        zip_path = shutil.make_archive(str(zip_base), "zip", root_dir=str(agent_src))
+        zip_path = shutil.make_archive(str(zip_base), "zip", root_dir=str(build_ctx))
         source_key = f"agent-builds/{agent['name']}-{image_tag}.zip"
         s3.upload_file(zip_path, _TEMPLATE_BUCKET, source_key)
 
@@ -414,6 +420,66 @@ def _patch_api_handler_lambda(master_runtime_arn: str) -> None:
     log.info("✓ Patched %s env: %s", func_name, list(desired.keys()))
 
 
+# ──────────────────────────── input validation ──────────────────
+# Catches the failure mode that took down all 4 runtimes once: someone
+# pastes the docstring example verbatim (KB_ID=ABCDEFGHIJ, MASTER_MEMORY_ID=<id>,
+# GUARDRAIL_VERSION="Version 1") and ends up overwriting good env vars with
+# placeholder/malformed values. By the time Bedrock rejects the InvokeModel
+# call the runtimes are already broken; pre-flight validation here stops the
+# script before any update_agent_runtime call.
+
+_DOCSTRING_PLACEHOLDERS = {
+    "ABCDEFGHIJ", "abcdefghij",  # KB_ID example from this file's docstring
+    "<id>", "<ID>",               # angle-bracket placeholders, common copy-paste artifact
+    "xxxxx", "XXXXX",
+}
+
+
+def _validate_inputs() -> None:
+    """Pre-flight validation of env-var inputs. Exits non-zero on bad values."""
+    fatal: list[str] = []
+
+    if KB_ID in _DOCSTRING_PLACEHOLDERS:
+        fatal.append(
+            f"KB_ID={KB_ID!r} is a placeholder. The real KB_ID lives in "
+            f"Infra/params/dev.json; extract it with: "
+            f"jq -r '.[] | select(.ParameterKey==\"KbId\") | .ParameterValue' Infra/params/dev.json"
+        )
+    elif not KB_ID:
+        log.warning("KB_ID env var is empty — agents will deploy but KB-backed tools will be no-ops")
+
+    # GUARDRAIL_VERSION must be 'DRAFT' or a positive integer string. Bedrock
+    # InvokeModel rejects anything else with HTTP 500, which the runtime
+    # surfaces as 500 → api_handler 502 → user-facing chat failure. The
+    # common typo is "Version 1" (display-string copied from the console).
+    if GUARDRAIL_ID and GUARDRAIL_VERSION not in ("DRAFT",) and not GUARDRAIL_VERSION.isdigit():
+        fatal.append(
+            f"GUARDRAIL_VERSION={GUARDRAIL_VERSION!r} is malformed. Must be exactly "
+            f"'DRAFT' or a positive integer string like '1'. 'Version 1' is the "
+            f"console display string, NOT a valid API value."
+        )
+
+    if GUARDRAIL_ID in _DOCSTRING_PLACEHOLDERS:
+        fatal.append(
+            f"GUARDRAIL_ID={GUARDRAIL_ID!r} is a placeholder. Discover the real "
+            f"value with: aws bedrock list-guardrails --region us-east-1"
+        )
+
+    if MASTER_MEMORY_ID in _DOCSTRING_PLACEHOLDERS:
+        fatal.append(
+            f"MASTER_MEMORY_ID={MASTER_MEMORY_ID!r} is a placeholder. Discover the real "
+            f"value with: aws bedrock-agentcore-control list-memories --region us-east-1"
+        )
+
+    if fatal:
+        log.error("Input validation failed — refusing to deploy:")
+        for msg in fatal:
+            log.error("  • %s", msg)
+        log.error("Fix the env vars and re-run. (If you actually want to deploy with these "
+                  "values, edit _DOCSTRING_PLACEHOLDERS in this file — but you almost certainly don't.)")
+        raise SystemExit(2)
+
+
 # ──────────────────────────── main ──────────────────────────────
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -421,8 +487,7 @@ def main() -> None:
     parser.add_argument("--skip-build", action="store_true", help="Skip docker build/push (reuse :latest)")
     args = parser.parse_args()
 
-    if not KB_ID:
-        log.warning("KB_ID env var is empty — agents will deploy but KB-backed tools will be no-ops")
+    _validate_inputs()
 
     log.info("Resolving CFN exports...")
     role_arn = cf_export(f"{PREFIX}-AgentCoreRuntimeRoleArn")
@@ -466,6 +531,10 @@ def main() -> None:
         env_vars: dict[str, str] = {
             "AWS_REGION": REGION,
             "KB_ID": KB_ID,
+            # Token Tracking — all 4 agents write best-effort usage records here
+            # via _shared/token_usage.py. Empty value disables the write path
+            # cleanly (the helper short-circuits when the table name is unset).
+            "TOKEN_USAGE_TABLE": f"{PREFIX}-token-usage",
             # Per-agent foundation model from params/dev.json (env override wins).
             "MODEL_ID": resolve_model_id(agent),
         }

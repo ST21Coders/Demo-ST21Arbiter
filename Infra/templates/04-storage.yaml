@@ -323,6 +323,69 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-change-requests"
 
+  # ──────────────────────────── token-usage (NEW) ─────────────
+  # CISO-only Token Tracking page. One row per Bedrock model invocation
+  # (~4 per analyst chat — 1 master + up to 3 specialists). PK is
+  # persona-partitioned so the most common page query ("all rows for
+  # persona X in time range Y") is a single Query on the main table.
+  # Two GSIs cover the cross-cuts: agent-time for "tokens by agent
+  # across all personas" and persona-time mirrors the main key for
+  # cases where the api_handler doesn't yet know the persona partition
+  # at query time (kept for symmetry — see spec §7). 90-day TTL keeps
+  # the table bounded; raise via the TTL_DAYS constant in
+  # agents/_shared/token_usage.py if compliance needs a longer window.
+  TokenUsageTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Environment}-${ProjectName}-token-usage"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: persona
+          AttributeType: S
+        - AttributeName: agent
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: persona-time-index
+          KeySchema:
+            - AttributeName: persona
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: agent-time-index
+          KeySchema:
+            - AttributeName: agent
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-token-usage"
+
   # ──────────────────────────── OpenSearch Serverless ──────────
   OpenSearchCollection:
     Type: AWS::OpenSearchServerless::Collection
@@ -453,3 +516,7 @@ Outputs:
     Value: !Ref ScanRunsTable
     Export:
       Name: !Sub "${Environment}-${ProjectName}-ScanRunsTableName"
+  TokenUsageTableName:
+    Value: !Ref TokenUsageTable
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-TokenUsageTableName"

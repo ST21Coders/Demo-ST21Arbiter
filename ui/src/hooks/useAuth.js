@@ -12,7 +12,7 @@
 //
 // No external library needed — keeps the bundle small for the demo.
 
-import { COGNITO, cognitoLoginURL, cognitoLogoutURL } from '../config'
+import { COGNITO, USE_MOCK, cognitoLoginURL, cognitoLogoutURL } from '../config'
 
 const KEY = 'arbiter.tokens'
 
@@ -22,7 +22,41 @@ function load() {
 function save(t) { sessionStorage.setItem(KEY, JSON.stringify(t)) }
 function clear() { sessionStorage.removeItem(KEY) }
 
+// Dev persona override — local-host mock-mode only. There is no Cognito sign-in
+// on localhost, so getGroups()/getEmail() have no JWT to decode and the four
+// personas can't be exercised end-to-end. DEV_AUTH gates a sessionStorage-backed
+// override readable by getGroups/getEmail/isAuthenticated. In any build with
+// VITE_API_URL set (live mode), USE_MOCK is false and this path is dead code.
+const DEV_AUTH = import.meta.env.DEV && USE_MOCK
+const DEV_PERSONA_KEY = 'arbiter.devPersona'
+const DEV_PERSONA_DEFAULT = 'ciso'
+const DEV_PERSONA_MAP = {
+  ciso:     { groups: ['ciso'],     email: 'ciso_diana@meridianinsurance.com' },
+  soc:      { groups: ['soc'],      email: 'soc_marcus@meridianinsurance.com' },
+  grc:      { groups: ['grc'],      email: 'grc_priya@meridianinsurance.com' },
+  employee: { groups: ['employee'], email: 'emp_sarah@meridianinsurance.com' },
+}
+
+export function isDevAuth() { return DEV_AUTH }
+
+export function getDevPersonaId() {
+  if (!DEV_AUTH) return null
+  const id = sessionStorage.getItem(DEV_PERSONA_KEY) || DEV_PERSONA_DEFAULT
+  return DEV_PERSONA_MAP[id] ? id : DEV_PERSONA_DEFAULT
+}
+
+function devPersonaRecord() {
+  return DEV_AUTH ? DEV_PERSONA_MAP[getDevPersonaId()] : null
+}
+
+export function setDevPersona(id) {
+  if (!DEV_AUTH) return
+  if (id && DEV_PERSONA_MAP[id]) sessionStorage.setItem(DEV_PERSONA_KEY, id)
+  else sessionStorage.removeItem(DEV_PERSONA_KEY)
+}
+
 export function isAuthenticated() {
+  if (DEV_AUTH) return true
   const t = load()
   if (!t) return false
   return Date.now() < (t.expires_at || 0)
@@ -62,11 +96,15 @@ function decodeIdTokenPayload() {
 }
 
 export function getGroups() {
+  const dev = devPersonaRecord()
+  if (dev) return dev.groups
   const p = decodeIdTokenPayload()
   return Array.isArray(p?.['cognito:groups']) ? p['cognito:groups'] : []
 }
 
 export function getEmail() {
+  const dev = devPersonaRecord()
+  if (dev) return dev.email
   const p = decodeIdTokenPayload()
   return p?.email || p?.['cognito:username'] || ''
 }
