@@ -205,6 +205,11 @@ Resources:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ConflictsTableV2Name"
           SCAN_RUNS_TABLE:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ScanRunsTableName"
+          # Token Tracking (CISO-only Governance tab). Read by GET /token-usage
+          # and GET /token-usage/summary in api_handler.py; written by the four
+          # AgentCore Runtimes directly via boto3 (see agents/_shared/token_usage.py).
+          TOKEN_USAGE_TABLE:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-TokenUsageTableName"
           # Comma-separated MCP endpoint URLs for /mcp-health pings. Empty by
           # default — UI shows all MCP servers as "unknown" until configured.
           MCP_ENDPOINTS: ""

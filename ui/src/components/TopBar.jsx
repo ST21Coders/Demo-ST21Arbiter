@@ -2,7 +2,7 @@ import { useLocation, NavLink } from 'react-router-dom'
 import { Bell, ChevronRight, Home, LogOut } from 'lucide-react'
 import { USE_MOCK } from '../config'
 import { usePersona } from '../contexts/PersonaContext'
-import { signOut } from '../hooks/useAuth'
+import { signOut, isDevAuth, getDevPersonaId, setDevPersona } from '../hooks/useAuth'
 
 const ROUTE_META = {
   '/':           { title: 'Dashboard',     section: null },
@@ -15,6 +15,7 @@ const ROUTE_META = {
   '/llm-control':{ title: 'LLM Control',   section: 'Intelligence' },
   '/pipeline':   { title: 'Data Pipeline', section: 'Infrastructure' },
   '/mcp-chat':   { title: 'MCP Admin',     section: 'Infrastructure' },
+  '/token-usage':{ title: 'Token Tracking', section: 'Governance' },
   '/personas':   { title: 'Personas',      section: 'Demo' },
   '/settings':   { title: 'Settings',      section: null },
 }
@@ -57,6 +58,24 @@ export default function TopBar() {
         }`}>
           {USE_MOCK ? 'Mock Mode' : 'Live'}
         </span>
+
+        {/* Dev persona switcher — local-host mock mode only; absent in any
+            build with VITE_API_URL set. Reloads on change so PersonaContext
+            re-derives from the new getGroups() return value. */}
+        {isDevAuth() && (
+          <select
+            aria-label="Dev persona switcher"
+            value={getDevPersonaId() || 'ciso'}
+            onChange={(e) => { setDevPersona(e.target.value); window.location.reload() }}
+            className="text-[10px] font-semibold px-1.5 py-0.5 rounded border border-amber-300 bg-amber-50 text-amber-800 uppercase tracking-wider"
+            title="Switch persona (dev only — sets sessionStorage.arbiter.devPersona)"
+          >
+            <option value="ciso">CISO</option>
+            <option value="soc">SOC</option>
+            <option value="grc">GRC</option>
+            <option value="employee">EMPLOYEE</option>
+          </select>
+        )}
 
         {/* Persona role badge */}
         {persona?.badge && (

@@ -51,7 +51,7 @@ export const PERSONAS = {
     role: 'CISO',
     color: '#f59e0b',
     gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
-    access: ['dashboard', 'findings', 'heatmap', 'actions', 'governance', 'audit', 'analyst', 'llm-control', 'pipeline', 'mcp-chat'],
+    access: ['dashboard', 'findings', 'heatmap', 'actions', 'governance', 'audit', 'analyst', 'llm-control', 'pipeline', 'mcp-chat', 'token-usage'],
     badge: 'CISO',
     description: 'Executive approver — reviews critical findings, approves or rejects change requests requiring CISO sign-off, monitors compliance posture.',
   },
@@ -69,6 +69,7 @@ export const ROUTE_ACCESS = {
   '/llm-control': 'llm-control',
   '/pipeline':    'pipeline',
   '/mcp-chat':    'mcp-chat',
+  '/token-usage': 'token-usage',
   // '/personas' and '/settings' have no entry — always accessible to any
   // authenticated persona (demo page / personal preferences respectively).
 }

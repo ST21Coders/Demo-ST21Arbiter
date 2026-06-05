@@ -234,10 +234,16 @@ def build_and_push(agent: dict[str, Any], repo_uri: str) -> str:
     image_tag = f"{int(time.time())}"
     agent_src = PROJECT_ROOT / agent["src"]
 
-    # Zip the agent source
+    # Build the zip in a merged context so the agent image can `from _shared.token_usage
+    # import ...` — the per-agent Dockerfile copies _shared/ into /app at build time.
+    shared_src = PROJECT_ROOT / "agents" / "_shared"
     with tempfile.TemporaryDirectory() as tmpdir:
+        build_ctx = Path(tmpdir) / "ctx"
+        shutil.copytree(agent_src, build_ctx)
+        if shared_src.exists():
+            shutil.copytree(shared_src, build_ctx / "_shared")
         zip_base = Path(tmpdir) / agent["name"]
-        zip_path = shutil.make_archive(str(zip_base), "zip", root_dir=str(agent_src))
+        zip_path = shutil.make_archive(str(zip_base), "zip", root_dir=str(build_ctx))
         source_key = f"agent-builds/{agent['name']}-{image_tag}.zip"
         s3.upload_file(zip_path, _TEMPLATE_BUCKET, source_key)
 
@@ -429,6 +435,10 @@ def main() -> None:
         env_vars: dict[str, str] = {
             "AWS_REGION": REGION,
             "KB_ID": KB_ID,
+            # Token Tracking — all 4 agents write best-effort usage records here
+            # via _shared/token_usage.py. Empty value disables the write path
+            # cleanly (the helper short-circuits when the table name is unset).
+            "TOKEN_USAGE_TABLE": f"{PREFIX}-token-usage",
         }
         if GUARDRAIL_ID:
             env_vars["GUARDRAIL_ID"] = GUARDRAIL_ID
