@@ -53,6 +53,35 @@ export const MODELS = {
   sonnet: 'anthropic.claude-sonnet-4-6-20251006-v1:0',
 }
 
+// ──────────────────────────── LLM Control panel config ───────
+// Mirrored from Infra/params/dev.json at build time by post_deploy_ui.py
+// (VITE_* vars). Defaults below match dev.json so `npm run dev` shows the
+// correct values offline. Default foundation model is Amazon Nova 2 Lite.
+const NOVA_LITE = 'us.amazon.nova-2-lite-v1:0'
+
+const _guardrailVersion = import.meta.env.VITE_GUARDRAIL_VERSION || 'DRAFT'
+// Comma-separated list → switcher options. Add new versions in dev.json::GuardrailVersions.
+// Always include the active version so the dropdown can render the current selection.
+const _guardrailVersions = [
+  _guardrailVersion,
+  ...(import.meta.env.VITE_GUARDRAIL_VERSIONS || 'DRAFT').split(',').map(v => v.trim()),
+].filter(Boolean)
+
+export const GUARDRAIL = {
+  name:    import.meta.env.VITE_GUARDRAIL_NAME || 'dev-st21arbiter-poc-guardrail',
+  id:      import.meta.env.VITE_GUARDRAIL_ID   || '',
+  version: _guardrailVersion,
+  versions: [...new Set(_guardrailVersions)],
+}
+
+// Per-agent foundation model, keyed by the four hosted AgentCore runtimes.
+export const AGENT_MODELS = {
+  master:     import.meta.env.VITE_MASTER_MODEL_ID     || NOVA_LITE,
+  sharepoint: import.meta.env.VITE_SHAREPOINT_MODEL_ID || NOVA_LITE,
+  awsconfig:  import.meta.env.VITE_AWSCONFIG_MODEL_ID  || NOVA_LITE,
+  zscaler:    import.meta.env.VITE_ZSCALER_MODEL_ID    || NOVA_LITE,
+}
+
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.

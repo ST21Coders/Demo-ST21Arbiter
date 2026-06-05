@@ -17,7 +17,7 @@ Prerequisites:
   - AWS CLI authenticated
 
 Usage:
-  KB_ID=ABCDEFGHIJ GUARDRAIL_ID=xxxxx python scripts/deploy_agents.py
+  KB_ID=ABCDEFGHIJ GUARDRAIL_ID=e0axl6y90il0 python scripts/deploy_agents.py
 """
 from __future__ import annotations
 
@@ -43,15 +43,44 @@ PROJECT = os.environ.get("PROJECT", "st21arbiter-poc")
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 PREFIX = f"{ENV}-{PROJECT}"
 
+# params/dev.json is the single source of truth for per-agent foundation
+# models and the guardrail id/version (mirrored into the UI by
+# Infra/post_deploy_ui.py). Env vars below still win when set, so existing
+# command-line overrides keep working.
+PARAMS_FILE = PROJECT_ROOT / "Infra" / "params" / f"{ENV}.json"
+
+
+def _params() -> dict[str, str]:
+    """Parse params/<env>.json into a ParameterKey→ParameterValue dict."""
+    try:
+        data = json.loads(PARAMS_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+    return {p["ParameterKey"]: p.get("ParameterValue", "")
+            for p in data if "ParameterKey" in p}
+
+
+PARAMS = _params()
+DEFAULT_MODEL_ID = PARAMS.get("DefaultModelId") or "us.amazon.nova-2-lite-v1:0"
+
 KB_ID = os.environ.get("KB_ID", "")
-GUARDRAIL_ID = os.environ.get("GUARDRAIL_ID", "")
-GUARDRAIL_VERSION = os.environ.get("GUARDRAIL_VERSION", "DRAFT")
+# Guardrail: env var wins; otherwise fall back to params/dev.json.
+GUARDRAIL_ID = os.environ.get("GUARDRAIL_ID", "") or PARAMS.get("GuardrailId", "")
+GUARDRAIL_VERSION = (os.environ.get("GUARDRAIL_VERSION", "")
+                     or PARAMS.get("GuardrailVersion", "") or "DRAFT")
 # Only the master orchestrator uses memory in the current design.
 # Set via env var when invoking the script; leave empty to disable memory.
 MASTER_MEMORY_ID = os.environ.get("MASTER_MEMORY_ID", "")
-# Override the master orchestrator's foundation model. When empty, the runtime
-# falls back to the default baked into agents/master_orchestrator/agent.py.
-MASTER_MODEL_ID = os.environ.get("MASTER_MODEL_ID", "")
+
+
+def resolve_model_id(agent: dict[str, Any]) -> str:
+    """Per-agent foundation model, by precedence:
+    env override (e.g. MASTER_MODEL_ID) → params/dev.json model key →
+    params/dev.json DefaultModelId → hardcoded Nova 2 Lite default.
+    """
+    return (os.environ.get(agent["env_model_var"], "")
+            or PARAMS.get(agent["model_param"], "")
+            or DEFAULT_MODEL_ID)
 
 # Order matters: specialists must exist before the master can be wired to them.
 AGENTS = [
@@ -59,18 +88,24 @@ AGENTS = [
         "name": "sharepoint-specialist",
         "src": "agents/sharepoint_specialist",
         "repo_export": f"{PREFIX}-SharepointSpecialistRepoUri",
+        "model_param": "SharepointModelId",
+        "env_model_var": "SHAREPOINT_MODEL_ID",
         "env_overrides": {},
     },
     {
         "name": "awsconfig-specialist",
         "src": "agents/awsconfig_specialist",
         "repo_export": f"{PREFIX}-AwsConfigSpecialistRepoUri",
+        "model_param": "AwsConfigModelId",
+        "env_model_var": "AWSCONFIG_MODEL_ID",
         "env_overrides": {},
     },
     {
         "name": "zscaler-specialist",
         "src": "agents/zscaler_specialist",
         "repo_export": f"{PREFIX}-ZscalerSpecialistRepoUri",  # from 05-compute
+        "model_param": "ZscalerModelId",
+        "env_model_var": "ZSCALER_MODEL_ID",
         # ZSCALER_API_BASE + ZSCALER_SECRET_ID intentionally unset for the
         # demo — specialist falls back to KB-only mode. Set via env vars when
         # real Zscaler API creds are provisioned.
@@ -80,6 +115,8 @@ AGENTS = [
         "name": "master-orchestrator",
         "src": "agents/master_orchestrator",
         "repo_export": f"{PREFIX}-MasterOrchestratorRepoUri",  # from 05-compute
+        "model_param": "MasterModelId",
+        "env_model_var": "MASTER_MODEL_ID",
         "env_overrides": {},  # filled in after specialists are deployed
     },
 ]
@@ -429,6 +466,8 @@ def main() -> None:
         env_vars: dict[str, str] = {
             "AWS_REGION": REGION,
             "KB_ID": KB_ID,
+            # Per-agent foundation model from params/dev.json (env override wins).
+            "MODEL_ID": resolve_model_id(agent),
         }
         if GUARDRAIL_ID:
             env_vars["GUARDRAIL_ID"] = GUARDRAIL_ID
@@ -460,11 +499,6 @@ def main() -> None:
             # The master writes a new row on the first turn of a session, then
             # bumps last_message_at + message_count after each turn.
             env_vars["SESSIONS_TABLE"] = f"{PREFIX}-sessions"
-            # Optional model override (e.g. switch to Haiku if Sonnet's account
-            # subscription isn't approved). Falls back to agent.py's default
-            # when MASTER_MODEL_ID env var is unset.
-            if MASTER_MODEL_ID:
-                env_vars["MODEL_ID"] = MASTER_MODEL_ID
 
         runtime_arn = deploy_runtime(agent, image_uri, role_arn, subnet_ids, sg_id, env_vars)
         runtime_arns[agent["name"]] = runtime_arn
