@@ -23,6 +23,8 @@ from strands import Agent
 from strands.models.bedrock import BedrockModel
 from strands.tools import tool
 
+from _shared.token_usage import record_from_agent_result
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("awsconfig_specialist")
 
@@ -204,9 +206,19 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     prompt = payload.get("prompt") or payload.get("input") or ""
     if not prompt:
         return {"error": "Missing 'prompt'"}
-    log.info("AWS Config specialist: %s", prompt[:200])
+    actor_id   = (payload.get("actor_id")   or "anonymous")[:128]
+    persona    = (payload.get("persona")    or "employee")[:16]
+    session_id = (payload.get("session_id") or "adhoc")[:128]
+    chat_type  = (payload.get("chat_type")  or "analyst")[:16]
+    log.info("AWS Config specialist: persona=%s session=%s prompt=%s",
+             persona, session_id, prompt[:200])
     agent = build_agent()
-    return {"result": str(agent(prompt))}
+    agent_result = agent(prompt)
+    record_from_agent_result(
+        agent_result, agent="awsconfig", persona=persona, actor_id=actor_id,
+        session_id=session_id, chat_type=chat_type, model_id=MODEL_ID,
+    )
+    return {"result": str(agent_result)}
 
 
 if __name__ == "__main__":

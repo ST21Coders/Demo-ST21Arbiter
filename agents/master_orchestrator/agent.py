@@ -35,6 +35,8 @@ from strands import Agent
 from strands.models.bedrock import BedrockModel
 from strands.tools import tool
 
+from _shared.token_usage import record_from_agent_result
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("master_orchestrator")
 
@@ -128,14 +130,32 @@ ddb_client = boto3.client("dynamodb", region_name=REGION) if SESSIONS_TABLE else
 
 
 # ──────────────────────────── Specialist invocation ───────────────
+# Per-invocation context for attribution. Set at the top of invoke() so the
+# @tool wrappers (which only receive `query` from the LLM) can forward the
+# caller's persona / session / actor down to the specialist runtimes. Safe
+# because each AgentCore Runtime container processes one invocation at a time.
+_INVOCATION_CTX: dict[str, str] = {}
+
+
 def _invoke_runtime(runtime_arn: str, prompt: str) -> str:
-    """Call a specialist AgentCore Runtime synchronously and return text."""
+    """Call a specialist AgentCore Runtime synchronously and return text.
+
+    Forwards the caller's actor/persona/session/chat_type from the in-flight
+    invocation context so the specialist can stamp its token-usage record
+    with the same attribution as the master's row.
+    """
     if not runtime_arn:
         return "(specialist runtime not configured)"
     try:
         resp = runtime_client.invoke_agent_runtime(
             agentRuntimeArn=runtime_arn,
-            payload=json.dumps({"prompt": prompt}).encode("utf-8"),
+            payload=json.dumps({
+                "prompt": prompt,
+                "actor_id":   _INVOCATION_CTX.get("actor_id", "anonymous"),
+                "persona":    _INVOCATION_CTX.get("persona", "employee"),
+                "session_id": _INVOCATION_CTX.get("session_id", "adhoc"),
+                "chat_type":  _INVOCATION_CTX.get("chat_type", "analyst"),
+            }).encode("utf-8"),
             contentType="application/json",
             accept="application/json",
         )
@@ -475,8 +495,15 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     actor_id = (payload.get("actor_id") or payload.get("user_id") or "anonymous")[:128]
     session_id = (payload.get("session_id") or "adhoc")[:128]
     chat_type = (payload.get("chat_type") or "analyst")[:16]
-    log.info("Orchestrator invoked: actor=%s session=%s chat_type=%s prompt=%s",
-             actor_id, session_id, chat_type, prompt[:200])
+    persona = (payload.get("persona") or "employee")[:16]
+    # Stash attribution for _invoke_runtime to forward into specialist calls.
+    _INVOCATION_CTX.clear()
+    _INVOCATION_CTX.update({
+        "actor_id": actor_id, "persona": persona,
+        "session_id": session_id, "chat_type": chat_type,
+    })
+    log.info("Orchestrator invoked: actor=%s persona=%s session=%s chat_type=%s prompt=%s",
+             actor_id, persona, session_id, chat_type, prompt[:200])
 
     # New-conversation detection: if memory has no events for this session,
     # this is the first turn — index it in DDB so /conversations shows it.
@@ -494,7 +521,15 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     ) if history else prompt
 
     agent = build_agent()
-    response = str(agent(augmented_prompt))
+    agent_result = agent(augmented_prompt)
+    response = str(agent_result)
+
+    # Best-effort token usage record for the master's own model call.
+    # Specialists record their own rows from inside their handlers.
+    record_from_agent_result(
+        agent_result, agent="master", persona=persona, actor_id=actor_id,
+        session_id=session_id, chat_type=chat_type, model_id=MODEL_ID,
+    )
 
     _save_turn(actor_id, session_id, prompt, response)
     if session_id != "adhoc":

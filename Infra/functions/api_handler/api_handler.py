@@ -46,7 +46,7 @@ from datetime import datetime, timezone, timedelta
 from urllib.parse import unquote
 
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Attr, Key
 from botocore.config import Config as BotoConfig
 from botocore.exceptions import ClientError
 
@@ -61,6 +61,7 @@ CONFLICTS_TABLE_V2 = os.environ.get("CONFLICTS_TABLE_V2", "")
 SCAN_RUNS_TABLE = os.environ.get("SCAN_RUNS_TABLE", "")
 CHANGE_REQUESTS_TABLE = os.environ.get("CHANGE_REQUESTS_TABLE", "")
 AUDIT_TABLE = os.environ.get("AUDIT_TABLE", "")
+TOKEN_USAGE_TABLE = os.environ.get("TOKEN_USAGE_TABLE", "")
 MEMORY_ID = os.environ.get("MEMORY_ID", "").strip()
 RAW_BUCKET = os.environ.get("RAW_BUCKET", "").strip()
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "").strip()
@@ -90,6 +91,7 @@ conflicts_v2_table = ddb.Table(CONFLICTS_TABLE_V2) if CONFLICTS_TABLE_V2 else No
 scan_runs_table = ddb.Table(SCAN_RUNS_TABLE) if SCAN_RUNS_TABLE else None
 crs_table = ddb.Table(CHANGE_REQUESTS_TABLE) if CHANGE_REQUESTS_TABLE else None
 audit_table = ddb.Table(AUDIT_TABLE) if AUDIT_TABLE else None
+token_usage_table = ddb.Table(TOKEN_USAGE_TABLE) if TOKEN_USAGE_TABLE else None
 
 
 def _findings_table():
@@ -142,6 +144,12 @@ def handler(event, context):
 
     if path == "/audit" and method == "GET":
         return _handle_list_audit(event)
+
+    if path == "/token-usage" and method == "GET":
+        return _handle_list_token_usage(event)
+
+    if path == "/token-usage/summary" and method == "GET":
+        return _handle_token_usage_summary(event)
 
     if path == "/conversations" and method == "GET":
         return _handle_list_conversations(event)
@@ -227,6 +235,12 @@ def _handle_chat(event):
     session_id = (body.get("session_id") or "adhoc").strip()
     # chat_type lets us separately list Analyst vs MCP sessions in the UI.
     chat_type = (body.get("chat_type") or "analyst").strip() or "analyst"
+    # Persona forwarded into the agent payload so master + specialists can
+    # attribute their token-usage rows. Most-privileged group wins (mirrors
+    # PersonaContext.jsx's GROUP_PRIORITY); default to 'employee' so an
+    # unauthenticated invocation still partitions cleanly.
+    groups = _caller_groups(event)
+    persona = next((g for g in ("ciso", "soc", "grc", "employee") if g in groups), "employee")
 
     try:
         resp = agentcore.invoke_agent_runtime(
@@ -236,6 +250,7 @@ def _handle_chat(event):
                 "session_id": session_id,
                 "actor_id": actor_id,
                 "chat_type": chat_type,
+                "persona": persona,
             }).encode("utf-8"),
             contentType="application/json",
             accept="application/json",
@@ -429,6 +444,203 @@ def _handle_list_audit(event):
         return _err(502, f"{type(e).__name__}: {e}")
     items.sort(key=lambda i: i.get("timestamp") or "", reverse=True)
     return _ok({"logs": items})
+
+
+# ──────────────────────────── /token-usage (CISO only) ─────────
+# Token Tracking page on the CISO Governance tab. Reads the
+# <env>-<project>-token-usage DDB table written by the four AgentCore
+# Runtimes (see agents/_shared/token_usage.py). Frontend gates the menu
+# and the route, but this is the security boundary — the page is callable
+# with any valid IdToken; we must 403 here for non-CISO callers.
+_VALID_PERSONAS_FOR_QUERY = ("ciso", "soc", "grc", "employee")
+_VALID_AGENTS_FOR_QUERY = ("master", "sharepoint", "awsconfig", "zscaler")
+
+
+def _require_ciso(event):
+    """Return None if the caller's Cognito groups include 'ciso', else a 403 response.
+
+    Uses the existing _caller_groups() helper which tolerates both the list
+    form (Cognito JWT) and the comma-separated form (API Gateway authorizer
+    flattening). Frontend gating is insufficient — the API is reachable with
+    any valid IdToken, so this is the actual security check.
+    """
+    if "ciso" not in _caller_groups(event):
+        return _err(403, "Token Tracking is restricted to the CISO persona")
+    return None
+
+
+def _parse_token_usage_filters(event, default_range: str = "7d") -> dict:
+    """Extract from/to/agent/persona from the query string.
+
+    Accepts explicit ISO-8601 from/to OR a range= shortcut (today|7d|30d) which
+    derives from/to relative to the current time. agent/persona values outside
+    the known set are dropped (defense against typos producing empty queries).
+    """
+    qs = event.get("queryStringParameters") or {}
+    from_iso = qs.get("from")
+    to_iso = qs.get("to")
+    if not from_iso or not to_iso:
+        now = datetime.now(timezone.utc)
+        rng = (qs.get("range") or default_range).lower()
+        if rng == "today":
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif rng == "30d":
+            start = now - timedelta(days=30)
+        else:  # 7d default; matches the page's initial state
+            start = now - timedelta(days=7)
+        from_iso = from_iso or start.isoformat()
+        to_iso = to_iso or now.isoformat()
+    agent = qs.get("agent")
+    if agent and agent not in _VALID_AGENTS_FOR_QUERY:
+        agent = None
+    persona = qs.get("persona")
+    if persona and persona not in _VALID_PERSONAS_FOR_QUERY:
+        persona = None
+    return {"from": from_iso, "to": to_iso, "agent": agent, "persona": persona}
+
+
+def _query_token_usage_records(filters: dict, max_items: int = 5000) -> list:
+    """Pick the right index for the filter combination and return matched rows.
+
+    Decision matrix:
+      persona set        → query persona-time-index (optional FilterExpression for agent)
+      agent set only     → query agent-time-index
+      neither set        → fan out across all 4 personas on persona-time-index,
+                           merge — keeps everything as GSI Query (no scan, low cost)
+    """
+    if not token_usage_table:
+        return []
+    from_iso = filters["from"]
+    to_iso = filters["to"]
+    agent = filters.get("agent")
+    persona = filters.get("persona")
+
+    def _q(index_name: str, key_expr, filter_expr=None) -> list:
+        params = {"IndexName": index_name, "KeyConditionExpression": key_expr}
+        if filter_expr is not None:
+            params["FilterExpression"] = filter_expr
+        return _ddb_query_all(token_usage_table, params, max_items - len(items))
+
+    items: list = []
+    if persona:
+        items.extend(_q(
+            "persona-time-index",
+            Key("persona").eq(persona) & Key("timestamp").between(from_iso, to_iso),
+            Attr("agent").eq(agent) if agent else None,
+        ))
+    elif agent:
+        items.extend(_q(
+            "agent-time-index",
+            Key("agent").eq(agent) & Key("timestamp").between(from_iso, to_iso),
+        ))
+    else:
+        for p in _VALID_PERSONAS_FOR_QUERY:
+            if len(items) >= max_items:
+                break
+            items.extend(_q(
+                "persona-time-index",
+                Key("persona").eq(p) & Key("timestamp").between(from_iso, to_iso),
+            ))
+
+    items.sort(key=lambda r: r.get("timestamp") or "", reverse=True)
+    return items[:max_items]
+
+
+def _ddb_query_all(table, params: dict, remaining: int) -> list:
+    """Drive DDB query pagination until LastEvaluatedKey is gone or remaining is met."""
+    out: list = []
+    while remaining > 0:
+        resp = table.query(**params)
+        out.extend(resp.get("Items", []))
+        if "LastEvaluatedKey" not in resp:
+            break
+        if len(out) >= remaining:
+            break
+        params["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
+    return out[:remaining]
+
+
+def _compute_token_summary(records: list) -> dict:
+    """Aggregate records into the KPI shape the page's hook expects.
+
+    Mirrors the JS-side _computeTokenSummary in ui/src/hooks/useApi.js so mock
+    and live mode produce the same KPI numbers given the same records.
+    """
+    input_t = 0
+    output_t = 0
+    cost = 0.0
+    blocked = 0
+    sessions: set = set()
+    for r in records:
+        input_t += _to_int_or_zero(r.get("input_tokens", 0))
+        output_t += _to_int_or_zero(r.get("output_tokens", 0))
+        c = r.get("estimated_cost")
+        if c is not None:
+            try:
+                cost += float(c)
+            except (TypeError, ValueError):
+                pass
+        if r.get("guardrail_blocked"):
+            blocked += 1
+        sid = r.get("session_id")
+        if sid:
+            sessions.add(sid)
+    total = input_t + output_t
+    chats = len(sessions)
+    return {
+        "totalTokens": total,
+        "inputTokens": input_t,
+        "outputTokens": output_t,
+        "totalCost": round(cost, 6),
+        "avgPerChat": (total // chats) if chats else 0,
+        "chats": chats,
+        "blocked": blocked,
+    }
+
+
+def _to_int_or_zero(v) -> int:
+    if v is None:
+        return 0
+    if isinstance(v, Decimal):
+        return int(v)
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _handle_list_token_usage(event):
+    """GET /token-usage?from=&to=&agent=&persona= — returns {records, count, filters}."""
+    denied = _require_ciso(event)
+    if denied:
+        return denied
+    if not token_usage_table:
+        return _err(500, "TOKEN_USAGE_TABLE not configured")
+    filters = _parse_token_usage_filters(event)
+    try:
+        items = _query_token_usage_records(filters)
+    except Exception as e:
+        logger.exception("token-usage query failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    return _ok({"records": items, "count": len(items), "filters": filters})
+
+
+def _handle_token_usage_summary(event):
+    """GET /token-usage/summary?range=today|7d|30d&agent=&persona= — returns KPI shape."""
+    denied = _require_ciso(event)
+    if denied:
+        return denied
+    if not token_usage_table:
+        return _err(500, "TOKEN_USAGE_TABLE not configured")
+    # Summary defaults to today (matches KPI "tokens today" framing on the page);
+    # explicit ?range= or ?from=/?to= still wins.
+    filters = _parse_token_usage_filters(event, default_range="today")
+    try:
+        items = _query_token_usage_records(filters)
+    except Exception as e:
+        logger.exception("token-usage summary failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    return _ok(_compute_token_summary(items))
 
 
 # ──────────────────────────── /conversations (list) ─────────────

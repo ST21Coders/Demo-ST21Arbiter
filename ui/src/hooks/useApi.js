@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { API_URL, CHAT_URL, USE_MOCK } from '../config'
-import { MOCK_CONFLICTS, MOCK_CHANGE_REQUESTS, MOCK_AUDIT } from '../mockData'
+import { MOCK_CONFLICTS, MOCK_CHANGE_REQUESTS, MOCK_AUDIT, MOCK_TOKEN_USAGE } from '../mockData'
 import { authHeaders, refresh, signIn } from './useAuth'
 
 // Wrap every API Gateway call with the Cognito IdToken in the
@@ -496,4 +496,80 @@ export function useAudit() {
   }, [])
 
   return { logs, loading, load }
+}
+
+// Token Tracking (CISO-only Governance tab). Shape mirrors the live DDB table
+// fronted by GET /token-usage and GET /token-usage/summary. In mock mode we
+// filter MOCK_TOKEN_USAGE locally and derive summary client-side; in live mode
+// the two endpoints fire in parallel — the summary is server-aggregated to
+// avoid streaming 30 days of raw records just to populate KPI cards.
+function _computeTokenSummary(records) {
+  let inputT = 0, outputT = 0, cost = 0, blocked = 0
+  const sessions = new Set()
+  for (const r of records) {
+    inputT  += r.input_tokens  || 0
+    outputT += r.output_tokens || 0
+    cost    += r.estimated_cost || 0
+    if (r.guardrail_blocked) blocked++
+    if (r.session_id) sessions.add(r.session_id)
+  }
+  const totalTokens = inputT + outputT
+  const chats = sessions.size
+  return {
+    totalTokens, inputTokens: inputT, outputTokens: outputT,
+    totalCost:  Number(cost.toFixed(6)),
+    avgPerChat: chats > 0 ? Math.round(totalTokens / chats) : 0,
+    chats, blocked,
+  }
+}
+
+function _inferRangeId(filters) {
+  if (!filters?.from) return '30d'
+  const ms = Date.now() - new Date(filters.from).getTime()
+  if (ms <= 25 * 3600_000)      return 'today'
+  if (ms <= 8 * 24 * 3600_000)  return '7d'
+  return '30d'
+}
+
+export function useTokenUsage() {
+  const [records, setRecords] = useState([])
+  const [summary, setSummary] = useState({
+    totalTokens: 0, inputTokens: 0, outputTokens: 0,
+    totalCost: 0, avgPerChat: 0, chats: 0, blocked: 0,
+  })
+  const [loading, setLoading] = useState(false)
+
+  const load = useCallback(async (filters = {}) => {
+    setLoading(true)
+    try {
+      if (USE_MOCK) {
+        await sleep(150)
+        let data = MOCK_TOKEN_USAGE
+        if (filters.from)    data = data.filter(r => r.timestamp >= filters.from)
+        if (filters.to)      data = data.filter(r => r.timestamp <= filters.to)
+        if (filters.agent)   data = data.filter(r => r.agent === filters.agent)
+        if (filters.persona) data = data.filter(r => r.persona === filters.persona)
+        setRecords(data)
+        setSummary(_computeTokenSummary(data))
+      } else {
+        const qs = new URLSearchParams()
+        if (filters.from)    qs.set('from',    filters.from)
+        if (filters.to)      qs.set('to',      filters.to)
+        if (filters.agent)   qs.set('agent',   filters.agent)
+        if (filters.persona) qs.set('persona', filters.persona)
+        const sumQs = new URLSearchParams({ range: _inferRangeId(filters) })
+        if (filters.agent)   sumQs.set('agent',   filters.agent)
+        if (filters.persona) sumQs.set('persona', filters.persona)
+        const [list, sum] = await Promise.all([
+          apiFetch(`/token-usage?${qs.toString()}`),
+          apiFetch(`/token-usage/summary?${sumQs.toString()}`),
+        ])
+        const rs = list.records || []
+        setRecords(rs)
+        setSummary(sum || _computeTokenSummary(rs))
+      }
+    } finally { setLoading(false) }
+  }, [])
+
+  return { records, summary, loading, load }
 }

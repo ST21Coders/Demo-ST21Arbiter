@@ -620,3 +620,134 @@ export function findingsToCsv(findings) {
   })
   return rows.join('\n')
 }
+
+// ── Token Tracking mock data (CISO-only Governance tab) ──────────────────────
+// 30 days of synthetic per-invocation records mirroring the shape the live DDB
+// table will return. Generated with a seeded PRNG so reloads are stable; the
+// time window slides with Date.now() so "today" always feels current. Skew is
+// deliberate — see PERSONAS / SPECIALIST_PROB / dayOfWeek inside.
+
+export const NOVA_LITE_MODEL_ID = 'us.amazon.nova-2-lite-v1:0'
+// Nova 2 Lite list pricing (per 1M tokens) — must match agents/_shared/token_usage.py
+// when that file ships. One source of truth for cost calc display in mock mode.
+export const MODEL_PRICING = {
+  [NOVA_LITE_MODEL_ID]: { input: 0.06, output: 0.24 },
+}
+
+function _mulberry32(seed) {
+  return function() {
+    seed = (seed + 0x6D2B79F5) | 0
+    let t = seed
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+const _TOKEN_PERSONAS = [
+  { id: 'ciso',     email: 'ciso_diana@meridianinsurance.com',  weight: 0.30 },
+  { id: 'soc',      email: 'soc_marcus@meridianinsurance.com',  weight: 0.32 },
+  { id: 'grc',      email: 'grc_priya@meridianinsurance.com',   weight: 0.25 },
+  { id: 'employee', email: 'emp_sarah@meridianinsurance.com',   weight: 0.13 },
+]
+
+// Specialist fan-out probability per chat. Sharepoint dominates (policy lookups
+// are the first move); awsconfig + zscaler are situational.
+const _SPECIALIST_PROB = { sharepoint: 0.85, awsconfig: 0.55, zscaler: 0.45 }
+
+function _costFor(model, inTok, outTok) {
+  const p = MODEL_PRICING[model] || { input: 0, output: 0 }
+  return Number(((inTok * p.input + outTok * p.output) / 1_000_000).toFixed(6))
+}
+
+function _buildRecord(tsMs, agent, persona, sessionId, inTok, outTok, blocked) {
+  return {
+    pk: `persona#${persona.id}`,
+    sk: `ts#${new Date(tsMs).toISOString()}#${sessionId}#${agent}`,
+    timestamp: new Date(tsMs).toISOString(),
+    agent,
+    persona: persona.id,
+    user_email: persona.email,
+    session_id: sessionId,
+    model_id: NOVA_LITE_MODEL_ID,
+    input_tokens: inTok,
+    output_tokens: outTok,
+    total_tokens: inTok + outTok,
+    estimated_cost: _costFor(NOVA_LITE_MODEL_ID, inTok, outTok),
+    guardrail_blocked: blocked,
+    chat_type: 'analyst',
+    ttl: Math.floor(tsMs / 1000) + 90 * 24 * 3600,
+  }
+}
+
+function _generateTokenUsage() {
+  const rng = _mulberry32(42)
+  const cum = []; let acc = 0
+  for (const p of _TOKEN_PERSONAS) { acc += p.weight; cum.push(acc) }
+  const pickPersona = () => {
+    const r = rng()
+    for (let i = 0; i < cum.length; i++) if (r < cum[i]) return _TOKEN_PERSONAS[i]
+    return _TOKEN_PERSONAS[_TOKEN_PERSONAS.length - 1]
+  }
+  const records = []
+  const now = Date.now()
+  const DAY_MS = 24 * 3600 * 1000
+  for (let d = 0; d < 30; d++) {
+    const dayStart = now - (29 - d) * DAY_MS
+    const dow = new Date(dayStart).getDay()           // 0=Sun, 6=Sat
+    const weekend = dow === 0 || dow === 6
+    const chats = weekend ? 12 + Math.floor(rng() * 8) : 40 + Math.floor(rng() * 25)
+    for (let c = 0; c < chats; c++) {
+      const persona = pickPersona()
+      // Working-hours bias — 75% of traffic 08:00–18:00 local.
+      const hour = rng() < 0.75 ? 8 + Math.floor(rng() * 11) : Math.floor(rng() * 24)
+      const minute = Math.floor(rng() * 60)
+      const second = Math.floor(rng() * 60)
+      const ts = dayStart + hour * 3600_000 + minute * 60_000 + second * 1000
+      const sessionId = `sess_${ts.toString(36)}_${Math.floor(rng() * 1e6).toString(36)}`
+      // Master row for every chat. ~3% are guardrail-blocked — input is billed,
+      // output is zero, and no fan-out happens.
+      const blocked = rng() < 0.03
+      const mIn = 700 + Math.floor(rng() * 600)
+      const mOut = blocked ? 0 : 300 + Math.floor(rng() * 500)
+      records.push(_buildRecord(ts, 'master', persona, sessionId, mIn, mOut, blocked))
+      if (blocked) continue
+      // Specialist fan-out — independent coin flips, staggered timestamps.
+      let lag = 200
+      for (const [spec, prob] of Object.entries(_SPECIALIST_PROB)) {
+        if (rng() < prob) {
+          const sIn = 400 + Math.floor(rng() * 400)
+          const sOut = 150 + Math.floor(rng() * 300)
+          records.push(_buildRecord(ts + lag, spec, persona, sessionId, sIn, sOut, false))
+          lag += 250
+        }
+      }
+    }
+  }
+  // Newest-first so the table renders naturally without sort UI work.
+  records.sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1))
+  return records
+}
+
+export const MOCK_TOKEN_USAGE = _generateTokenUsage()
+
+// Token records → CSV blob (used by the Token Tracking page Export button).
+export function tokenUsageToCsv(records) {
+  const headers = [
+    'timestamp','agent','persona','user_email','session_id','model_id',
+    'input_tokens','output_tokens','total_tokens','estimated_cost','guardrail_blocked',
+  ]
+  const escape = v => {
+    if (v == null) return ''
+    const s = typeof v === 'string' ? v : String(v)
+    return '"' + s.replace(/"/g, '""') + '"'
+  }
+  const rows = [headers.join(',')]
+  records.forEach(r => {
+    rows.push([
+      r.timestamp, r.agent, r.persona, r.user_email, r.session_id, r.model_id,
+      r.input_tokens, r.output_tokens, r.total_tokens, r.estimated_cost, r.guardrail_blocked,
+    ].map(escape).join(','))
+  })
+  return rows.join('\n')
+}

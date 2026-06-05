@@ -16,6 +16,7 @@ import AuditLogs from './pages/AuditLogs'
 import AnalystView from './pages/AnalystView'
 import LLMControl from './pages/LLMControl'
 import MCPChat from './pages/MCPChat'
+import TokenTracking from './pages/TokenTracking'
 import Personas from './pages/Personas'
 import Settings from './pages/Settings'
 import SignIn from './pages/SignIn'
@@ -161,6 +162,7 @@ function Shell() {
             <Route path="/analyst"     element={<Guarded path="/analyst"><AnalystView /></Guarded>} />
             <Route path="/llm-control" element={<Guarded path="/llm-control"><LLMControl /></Guarded>} />
             <Route path="/mcp-chat"    element={<Guarded path="/mcp-chat"><MCPChat /></Guarded>} />
+            <Route path="/token-usage" element={<Guarded path="/token-usage"><TokenTracking /></Guarded>} />
             <Route path="/personas"    element={<Personas />} />
             {/* Universal — no <Guarded> wrapper (like /personas). Every
                 authenticated persona can reach Settings; sections inside
