@@ -190,12 +190,19 @@ Resources:
           SCAN_RUNS_TABLE:
             Fn::ImportValue:
               Fn::Sub: ${Environment}-${ProjectName}-ScanRunsTableName
+          TOKEN_USAGE_TABLE:
+            Fn::ImportValue:
+              Fn::Sub: ${Environment}-${ProjectName}-TokenUsageTableName
           MCP_ENDPOINTS: ''
           SCANNER_LAMBDA_NAME:
             Fn::Sub: ${Environment}-${ProjectName}-scanner
           ALLOWED_ORIGIN:
             Ref: AllowedOrigin
           MASTER_AGENT_RUNTIME_ARN: ''
+          SHAREPOINT_RUNTIME_ARN: ''
+          AWSCONFIG_RUNTIME_ARN: ''
+          ZSCALER_RUNTIME_ARN: ''
+          JIRA_RUNTIME_ARN: ''
           MEMORY_ID: ''
           RAW_BUCKET:
             Fn::ImportValue:
@@ -324,6 +331,13 @@ Resources:
               Ref: ArbiterApi
             Path: /conversations/{session_id}
             Method: GET
+        ConversationDelete:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ArbiterApi
+            Path: /conversations/{session_id}
+            Method: DELETE
         ConversationMessages:
           Type: Api
           Properties:
@@ -367,6 +381,13 @@ Resources:
             RestApiId:
               Ref: ArbiterApi
             Path: /mcp-health
+            Method: GET
+        AgentStatus:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ArbiterApi
+            Path: /agent-status
             Method: GET
         JiraTicketCreate:
           Type: Api

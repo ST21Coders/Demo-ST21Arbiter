@@ -284,11 +284,14 @@ export function useConversations(opts = {}) {
   }
 }
 
-// Hits the master orchestrator via the Lambda Function URL (CHAT_URL) so we
-// bypass API Gateway's 29s timeout. Body shape: { prompt, session_id, chat_type }.
+// Hits an agent runtime via the Lambda Function URL (CHAT_URL) so we bypass
+// API Gateway's 29s timeout. Body shape: { prompt, session_id, chat_type, target }.
 // chat_type ('analyst' | 'mcp') is stamped onto new session rows so the two
-// chats can be listed separately. Response: { reply, session_id }.
-export async function sendChat({ prompt, session_id, chat_type }) {
+// chats can be listed separately. `target` selects which agent runtime handles
+// the message: absent/'master' → orchestrator fan-out (Analyst page); a
+// specialist id ('sharepoint' | 'zscaler' | 'awsconfig' | 'jira') → that agent
+// directly (MCP page). Response: { reply, session_id }.
+export async function sendChat({ prompt, session_id, chat_type, target }) {
   if (USE_MOCK || !CHAT_URL) {
     await sleep(600 + Math.random() * 800)
     return { reply: `(mock reply) You asked: "${prompt}". Wire VITE_CHAT_URL to get a real answer.`, session_id }
@@ -296,7 +299,7 @@ export async function sendChat({ prompt, session_id, chat_type }) {
   const res = await fetch(`${CHAT_URL}chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ prompt, session_id, chat_type: chat_type || 'analyst' }),
+    body: JSON.stringify({ prompt, session_id, chat_type: chat_type || 'analyst', target }),
   })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
   return res.json()
@@ -406,6 +409,37 @@ export function useMcpHealth() {
   return data
 }
 
+// Live AgentCore runtime status for the MCP page, keyed by agent id. Backed by
+// GET /agent-status (bedrock-agentcore list-agent-runtimes). Returns a map
+// { [id]: status } where status is READY / CREATING / PLACEHOLDER / etc.
+// Polls every 30s. ServiceNow (no runtime) always reports PLACEHOLDER.
+export function useAgentStatus() {
+  const [statusById, setStatusById] = useState({})
+  const load = useCallback(async () => {
+    try {
+      if (USE_MOCK) {
+        setStatusById({
+          sharepoint: 'READY', zscaler: 'READY', awsconfig: 'READY',
+          jira: 'READY', servicenow: 'PLACEHOLDER',
+        })
+        return
+      }
+      const d = await apiFetch('/agent-status')
+      const map = {}
+      for (const s of d.servers || []) map[s.id] = s.status
+      setStatusById(map)
+    } catch { /* keep prior */ }
+  }, [])
+  useEffect(() => {
+    let cancelled = false
+    const tick = async () => { if (!cancelled) await load() }
+    tick()
+    const id = setInterval(tick, 30_000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [load])
+  return statusById
+}
+
 // Upload helpers — POST /uploads/presign returns a presigned S3 PUT URL into
 // the raw bucket under users/<sub>/<ts>-<filename>. The browser then PUTs the
 // file directly to S3. The F1 auto-detect chain (EventBridge → processing_pipeline
@@ -436,15 +470,30 @@ export async function listScanRuns(limit = 20) {
   return apiFetch('/scan-runs')
 }
 
-// Lambda stub for JIRA — Atlassian MCP via Analyst chat is the real path.
-export async function createJiraTicket({ conflict_id, summary, severity }) {
-  if (USE_MOCK) {
-    return { status: 'mock', mock_ticket_key: `MIG-MOCK-${Math.floor(Math.random() * 90000) + 10000}` }
+// Create a real JIRA issue via the jira_specialist runtime. Routes through the
+// Lambda Function URL (CHAT_URL) like sendChat, since the runtime call (MCP
+// subprocess + create) can exceed API Gateway's 29s integration timeout.
+// Returns { jira_ticket_key, url }. project_key defaults to DEVARBITER.
+export async function createJiraTicket({ conflict_id, summary, description, project_key, severity }) {
+  const pk = project_key || 'DEVARBITER'
+  if (USE_MOCK || !CHAT_URL) {
+    await sleep(700)
+    const key = `${pk}-${Math.floor(Math.random() * 9000) + 1000}`
+    return { status: 'mock', jira_ticket_key: key, url: `https://example.atlassian.net/browse/${key}` }
   }
-  return apiFetch('/jira/tickets', {
+  const res = await fetch(`${CHAT_URL}jira/tickets`, {
     method: 'POST',
-    body: JSON.stringify({ conflict_id, summary, severity }),
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ conflict_id, summary, description, project_key: pk, severity }),
   })
+  if (!res.ok) {
+    // Surface the Lambda's {"error": ...} body so create failures (bad issue
+    // type, permissions, etc.) are legible instead of a bare "502 Bad Gateway".
+    let detail = ''
+    try { detail = (await res.json())?.error || '' } catch { /* non-JSON body */ }
+    throw new Error(detail ? `${res.status}: ${detail}` : `${res.status} ${res.statusText}`)
+  }
+  return res.json()
 }
 
 // Live nav badge counts. Polls every 60s; cancels on unmount.

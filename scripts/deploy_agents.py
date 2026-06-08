@@ -112,6 +112,28 @@ AGENTS = [
         "env_overrides": {},
     },
     {
+        "name": "jira-specialist",
+        "src": "agents/jira_specialist",
+        "repo_export": f"{PREFIX}-JiraSpecialistRepoUri",  # from 09-agentcore
+        "model_param": "JiraModelId",
+        "env_model_var": "JIRA_MODEL_ID",
+        # Tier-0: the JIRA agent calls an EXTERNAL SaaS, so it runs under its own
+        # least-privilege role (not the shared AgentCoreRuntimeRole). Falls back
+        # to the shared role if this export is missing.
+        "role_export": f"{PREFIX}-JiraAgentRuntimeRoleArn",  # from 09-agentcore
+        # Jira URL/email/API token live in this Secrets Manager secret (JSON
+        # {url,email,api_token}). Create it before deploy — see DEPLOYMENT.md.
+        # Empty secret = agent runs in "(JIRA not configured)" mode.
+        # Tier-0 scoping: minimal tool allowlist (read + create only; no
+        # Confluence/delete). JIRA_PROJECTS_FILTER intentionally NOT set — it
+        # silently scoped reads out; least-privilege here comes from the
+        # service account's project permissions + the tool allowlist instead.
+        "env_overrides": {
+            "JIRA_SECRET_ID": f"{ENV}/{PROJECT}/jira",
+            "ENABLED_TOOLS": "jira_search,jira_get_issue,jira_get_all_projects,jira_create_issue",
+        },
+    },
+    {
         "name": "master-orchestrator",
         "src": "agents/master_orchestrator",
         "repo_export": f"{PREFIX}-MasterOrchestratorRepoUri",  # from 05-compute
@@ -169,14 +191,15 @@ phases:
 
 
 def ensure_codebuild_role(repo_arns: list[str], source_bucket_arn: str) -> str:
-    """Idempotently create the IAM role CodeBuild will assume."""
-    try:
-        existing = iam.get_role(RoleName=CODEBUILD_ROLE_NAME)
-        return existing["Role"]["Arn"]
-    except ClientError as e:
-        if e.response["Error"]["Code"] != "NoSuchEntity":
-            raise
+    """Idempotently create the IAM role CodeBuild assumes, and ALWAYS refresh
+    its inline policy.
 
+    The ECR push statement is scoped to `repo_arns`. When a new agent (and its
+    ECR repo) is added, an already-existing role would otherwise keep the stale
+    repo list and CodeBuild's `docker push` fails with `ecr:InitiateLayerUpload
+    ... no identity-based policy allows`. So we re-put the policy on every run,
+    not just at creation.
+    """
     trust = {
         "Version": "2012-10-17",
         "Statement": [{
@@ -185,11 +208,21 @@ def ensure_codebuild_role(repo_arns: list[str], source_bucket_arn: str) -> str:
             "Action": "sts:AssumeRole",
         }],
     }
-    role = iam.create_role(
-        RoleName=CODEBUILD_ROLE_NAME,
-        AssumeRolePolicyDocument=json.dumps(trust),
-        Description="ARBITER agent image builder",
-    )
+    created = False
+    try:
+        existing = iam.get_role(RoleName=CODEBUILD_ROLE_NAME)
+        role_arn = existing["Role"]["Arn"]
+    except ClientError as e:
+        if e.response["Error"]["Code"] != "NoSuchEntity":
+            raise
+        role = iam.create_role(
+            RoleName=CODEBUILD_ROLE_NAME,
+            AssumeRolePolicyDocument=json.dumps(trust),
+            Description="ARBITER agent image builder",
+        )
+        role_arn = role["Role"]["Arn"]
+        created = True
+
     policy = {
         "Version": "2012-10-17",
         "Statement": [
@@ -223,14 +256,16 @@ def ensure_codebuild_role(repo_arns: list[str], source_bucket_arn: str) -> str:
             },
         ],
     }
+    # Always (re)apply — picks up newly-added ECR repos on existing roles.
     iam.put_role_policy(
         RoleName=CODEBUILD_ROLE_NAME,
         PolicyName="AgentBuilderPolicy",
         PolicyDocument=json.dumps(policy),
     )
-    log.info("Created CodeBuild role %s", CODEBUILD_ROLE_NAME)
-    time.sleep(8)  # IAM eventual consistency
-    return role["Role"]["Arn"]
+    log.info("%s CodeBuild role %s (repos: %d)",
+             "Created" if created else "Refreshed policy on", CODEBUILD_ROLE_NAME, len(repo_arns))
+    time.sleep(8)  # IAM eventual consistency before CodeBuild assumes/uses it
+    return role_arn
 
 
 def ensure_codebuild_project(role_arn: str) -> None:
@@ -390,11 +425,16 @@ def deploy_runtime(
 
 
 # ──────────────────────────── api_handler env-var patch ─────────
-def _patch_api_handler_lambda(master_runtime_arn: str) -> None:
-    """Set MASTER_AGENT_RUNTIME_ARN (and MEMORY_ID if available) on the api_handler.
+def _patch_api_handler_lambda(runtime_arns: dict[str, str]) -> None:
+    """Set the master + specialist runtime ARNs (and MEMORY_ID) on the api_handler.
+
+    The MCP page chats directly to a specialist by sending a "target" to
+    POST /chat; the Lambda resolves the target → one of these ARNs. The Analyst
+    page sends no target and routes to the master. Also drives GET /agent-status.
 
     Preserves any other env vars already set. Triggers a cold start on the
-    next invocation so the new values are picked up.
+    next invocation so the new values are picked up. Specialists absent from
+    this run keep their existing value (we only overwrite ARNs we have).
     """
     lambda_client = session.client("lambda")
     func_name = f"{PREFIX}-api-handler"
@@ -405,7 +445,19 @@ def _patch_api_handler_lambda(master_runtime_arn: str) -> None:
         return
 
     env = (cur.get("Environment") or {}).get("Variables") or {}
-    desired = {"MASTER_AGENT_RUNTIME_ARN": master_runtime_arn}
+    # name (in AGENTS) → api_handler env var.
+    arn_env_map = {
+        "master-orchestrator":   "MASTER_AGENT_RUNTIME_ARN",
+        "sharepoint-specialist": "SHAREPOINT_RUNTIME_ARN",
+        "awsconfig-specialist":  "AWSCONFIG_RUNTIME_ARN",
+        "zscaler-specialist":    "ZSCALER_RUNTIME_ARN",
+        "jira-specialist":       "JIRA_RUNTIME_ARN",
+    }
+    desired = {
+        env_key: runtime_arns[name]
+        for name, env_key in arn_env_map.items()
+        if runtime_arns.get(name)
+    }
     if MASTER_MEMORY_ID:
         desired["MEMORY_ID"] = MASTER_MEMORY_ID
     if all(env.get(k) == v for k, v in desired.items()):
@@ -504,7 +556,7 @@ def main() -> None:
     log.info("  build src bucket: %s", template_bucket)
 
     # Provision the shared CodeBuild project + service role (idempotent).
-    # Scope ECR permissions to the four agent repos by ARN.
+    # Scope ECR permissions to every agent repo (one per AGENTS entry) by ARN.
     global _TEMPLATE_BUCKET
     _TEMPLATE_BUCKET = template_bucket
     if not args.skip_build:
@@ -553,6 +605,7 @@ def main() -> None:
                 ("sharepoint-specialist", "SHAREPOINT_RUNTIME_ARN"),
                 ("awsconfig-specialist", "AWSCONFIG_RUNTIME_ARN"),
                 ("zscaler-specialist", "ZSCALER_RUNTIME_ARN"),
+                ("jira-specialist", "JIRA_RUNTIME_ARN"),
             ]:
                 arn = runtime_arns.get(spec_name)
                 if not arn:
@@ -569,14 +622,33 @@ def main() -> None:
             # bumps last_message_at + message_count after each turn.
             env_vars["SESSIONS_TABLE"] = f"{PREFIX}-sessions"
 
-        runtime_arn = deploy_runtime(agent, image_uri, role_arn, subnet_ids, sg_id, env_vars)
+        # Per-agent execution role: agents with a "role_export" get their own
+        # least-privilege role (Tier-0 isolation for the external-SaaS JIRA
+        # agent); everyone else uses the shared AgentCoreRuntimeRole. Fall back
+        # to the shared role if the dedicated export isn't published yet.
+        agent_role_arn = role_arn
+        if agent.get("role_export"):
+            # cf_export raises SystemExit when the export is missing (e.g. the
+            # updated 09-agentcore stack hasn't been deployed yet). Catch it so a
+            # missing dedicated role degrades to the shared role with a warning
+            # rather than aborting the whole agent deploy.
+            try:
+                agent_role_arn = cf_export(agent["role_export"])
+            except (SystemExit, Exception):
+                log.warning("Role export %s not found — falling back to shared role for %s "
+                            "(deploy 09-agentcore to get the least-privilege JIRA role).",
+                            agent["role_export"], agent["name"])
+        log.info("  %s role: %s", agent["name"], agent_role_arn)
+
+        runtime_arn = deploy_runtime(agent, image_uri, agent_role_arn, subnet_ids, sg_id, env_vars)
         runtime_arns[agent["name"]] = runtime_arn
         log.info("✓ %s → %s", agent["name"], runtime_arn)
 
-    # Wire the api_handler Lambda to the master runtime by patching its
-    # MASTER_AGENT_RUNTIME_ARN env var. This is what bridges API Gateway → AgentCore.
-    if "master-orchestrator" in runtime_arns:
-        _patch_api_handler_lambda(runtime_arns["master-orchestrator"])
+    # Wire the api_handler Lambda to the runtimes by patching the master +
+    # specialist ARN env vars. This bridges API Gateway / Function URL →
+    # AgentCore, and powers per-agent routing on the MCP page + /agent-status.
+    if runtime_arns:
+        _patch_api_handler_lambda(runtime_arns)
 
     print()
     print("════════════════════════════════════════════════════════")

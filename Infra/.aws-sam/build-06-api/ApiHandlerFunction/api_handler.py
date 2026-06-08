@@ -46,7 +46,7 @@ from datetime import datetime, timezone, timedelta
 from urllib.parse import unquote
 
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Attr, Key
 from botocore.config import Config as BotoConfig
 from botocore.exceptions import ClientError
 
@@ -55,12 +55,23 @@ logger.setLevel(logging.INFO)
 
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 MASTER_AGENT_RUNTIME_ARN = os.environ.get("MASTER_AGENT_RUNTIME_ARN", "").strip()
+# Specialist runtime ARNs for direct (per-agent) chat routing from the MCP page.
+# Patched onto this Lambda by scripts/deploy_agents.py alongside the master ARN.
+# A "target" of master (or absent) keeps the orchestrator fan-out behaviour.
+SPECIALIST_RUNTIME_ARNS = {
+    "master":     MASTER_AGENT_RUNTIME_ARN,
+    "sharepoint": os.environ.get("SHAREPOINT_RUNTIME_ARN", "").strip(),
+    "awsconfig":  os.environ.get("AWSCONFIG_RUNTIME_ARN", "").strip(),
+    "zscaler":    os.environ.get("ZSCALER_RUNTIME_ARN", "").strip(),
+    "jira":       os.environ.get("JIRA_RUNTIME_ARN", "").strip(),
+}
 SESSIONS_TABLE = os.environ.get("SESSIONS_TABLE", "")
 CONFLICTS_TABLE = os.environ.get("CONFLICTS_TABLE", "")
 CONFLICTS_TABLE_V2 = os.environ.get("CONFLICTS_TABLE_V2", "")
 SCAN_RUNS_TABLE = os.environ.get("SCAN_RUNS_TABLE", "")
 CHANGE_REQUESTS_TABLE = os.environ.get("CHANGE_REQUESTS_TABLE", "")
 AUDIT_TABLE = os.environ.get("AUDIT_TABLE", "")
+TOKEN_USAGE_TABLE = os.environ.get("TOKEN_USAGE_TABLE", "")
 MEMORY_ID = os.environ.get("MEMORY_ID", "").strip()
 RAW_BUCKET = os.environ.get("RAW_BUCKET", "").strip()
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "").strip()
@@ -81,6 +92,8 @@ MAX_LIST_KEYS = 200                 # cap list responses; bucket-listing isn't p
 _emit_cors_headers = True
 
 agentcore = boto3.client("bedrock-agentcore", region_name=REGION)
+# Control-plane client for runtime lifecycle/status (list_agent_runtimes).
+agentcore_control = boto3.client("bedrock-agentcore-control", region_name=REGION)
 lambda_client = boto3.client("lambda", region_name=REGION)
 ddb = boto3.resource("dynamodb", region_name=REGION)
 sessions_table = ddb.Table(SESSIONS_TABLE) if SESSIONS_TABLE else None
@@ -90,6 +103,7 @@ conflicts_v2_table = ddb.Table(CONFLICTS_TABLE_V2) if CONFLICTS_TABLE_V2 else No
 scan_runs_table = ddb.Table(SCAN_RUNS_TABLE) if SCAN_RUNS_TABLE else None
 crs_table = ddb.Table(CHANGE_REQUESTS_TABLE) if CHANGE_REQUESTS_TABLE else None
 audit_table = ddb.Table(AUDIT_TABLE) if AUDIT_TABLE else None
+token_usage_table = ddb.Table(TOKEN_USAGE_TABLE) if TOKEN_USAGE_TABLE else None
 
 
 def _findings_table():
@@ -143,6 +157,12 @@ def handler(event, context):
     if path == "/audit" and method == "GET":
         return _handle_list_audit(event)
 
+    if path == "/token-usage" and method == "GET":
+        return _handle_list_token_usage(event)
+
+    if path == "/token-usage/summary" and method == "GET":
+        return _handle_token_usage_summary(event)
+
     if path == "/conversations" and method == "GET":
         return _handle_list_conversations(event)
 
@@ -161,6 +181,8 @@ def handler(event, context):
             return _handle_get_messages(event, session_id)
         if not sub and method == "GET":
             return _handle_get_conversation(event, session_id)
+        if not sub and method == "DELETE":
+            return _handle_delete_conversation(event, session_id)
 
     # ── Dashboard + scanner additions ────────────────────────────
     if path == "/dashboard" and method == "GET":
@@ -168,6 +190,9 @@ def handler(event, context):
 
     if path == "/mcp-health" and method == "GET":
         return _handle_mcp_health(event)
+
+    if path == "/agent-status" and method == "GET":
+        return _handle_agent_status(event)
 
     if path == "/jira/tickets" and method == "POST":
         return _handle_jira_create(event)
@@ -216,8 +241,13 @@ def _handle_chat(event):
     if not prompt:
         return _err(400, "Missing 'prompt' in request body")
 
-    if not MASTER_AGENT_RUNTIME_ARN:
-        return _err(503, "Master runtime ARN not configured (run scripts/deploy_agents.py)")
+    # Direct per-agent routing: the MCP page sends a "target" naming the
+    # specialist to invoke; the Analyst page sends none → master orchestrator.
+    # An unknown target falls back to master for backward compatibility.
+    target = (body.get("target") or "master").strip().lower()
+    runtime_arn = SPECIALIST_RUNTIME_ARNS.get(target) or MASTER_AGENT_RUNTIME_ARN
+    if not runtime_arn:
+        return _err(503, f"Runtime ARN for '{target}' not configured (run scripts/deploy_agents.py)")
 
     actor_id = _caller_user_id(event) or "anonymous"
     # Frontend generates session_id when starting a new chat; "adhoc" means
@@ -225,15 +255,22 @@ def _handle_chat(event):
     session_id = (body.get("session_id") or "adhoc").strip()
     # chat_type lets us separately list Analyst vs MCP sessions in the UI.
     chat_type = (body.get("chat_type") or "analyst").strip() or "analyst"
+    # Persona forwarded into the agent payload so master + specialists can
+    # attribute their token-usage rows. Most-privileged group wins (mirrors
+    # PersonaContext.jsx's GROUP_PRIORITY); default to 'employee' so an
+    # unauthenticated invocation still partitions cleanly.
+    groups = _caller_groups(event)
+    persona = next((g for g in ("ciso", "soc", "grc", "employee") if g in groups), "employee")
 
     try:
         resp = agentcore.invoke_agent_runtime(
-            agentRuntimeArn=MASTER_AGENT_RUNTIME_ARN,
+            agentRuntimeArn=runtime_arn,
             payload=json.dumps({
                 "prompt": prompt,
                 "session_id": session_id,
                 "actor_id": actor_id,
                 "chat_type": chat_type,
+                "persona": persona,
             }).encode("utf-8"),
             contentType="application/json",
             accept="application/json",
@@ -429,6 +466,203 @@ def _handle_list_audit(event):
     return _ok({"logs": items})
 
 
+# ──────────────────────────── /token-usage (CISO only) ─────────
+# Token Tracking page on the CISO Governance tab. Reads the
+# <env>-<project>-token-usage DDB table written by the four AgentCore
+# Runtimes (see agents/_shared/token_usage.py). Frontend gates the menu
+# and the route, but this is the security boundary — the page is callable
+# with any valid IdToken; we must 403 here for non-CISO callers.
+_VALID_PERSONAS_FOR_QUERY = ("ciso", "soc", "grc", "employee")
+_VALID_AGENTS_FOR_QUERY = ("master", "sharepoint", "awsconfig", "zscaler")
+
+
+def _require_ciso(event):
+    """Return None if the caller's Cognito groups include 'ciso', else a 403 response.
+
+    Uses the existing _caller_groups() helper which tolerates both the list
+    form (Cognito JWT) and the comma-separated form (API Gateway authorizer
+    flattening). Frontend gating is insufficient — the API is reachable with
+    any valid IdToken, so this is the actual security check.
+    """
+    if "ciso" not in _caller_groups(event):
+        return _err(403, "Token Tracking is restricted to the CISO persona")
+    return None
+
+
+def _parse_token_usage_filters(event, default_range: str = "7d") -> dict:
+    """Extract from/to/agent/persona from the query string.
+
+    Accepts explicit ISO-8601 from/to OR a range= shortcut (today|7d|30d) which
+    derives from/to relative to the current time. agent/persona values outside
+    the known set are dropped (defense against typos producing empty queries).
+    """
+    qs = event.get("queryStringParameters") or {}
+    from_iso = qs.get("from")
+    to_iso = qs.get("to")
+    if not from_iso or not to_iso:
+        now = datetime.now(timezone.utc)
+        rng = (qs.get("range") or default_range).lower()
+        if rng == "today":
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif rng == "30d":
+            start = now - timedelta(days=30)
+        else:  # 7d default; matches the page's initial state
+            start = now - timedelta(days=7)
+        from_iso = from_iso or start.isoformat()
+        to_iso = to_iso or now.isoformat()
+    agent = qs.get("agent")
+    if agent and agent not in _VALID_AGENTS_FOR_QUERY:
+        agent = None
+    persona = qs.get("persona")
+    if persona and persona not in _VALID_PERSONAS_FOR_QUERY:
+        persona = None
+    return {"from": from_iso, "to": to_iso, "agent": agent, "persona": persona}
+
+
+def _query_token_usage_records(filters: dict, max_items: int = 5000) -> list:
+    """Pick the right index for the filter combination and return matched rows.
+
+    Decision matrix:
+      persona set        → query persona-time-index (optional FilterExpression for agent)
+      agent set only     → query agent-time-index
+      neither set        → fan out across all 4 personas on persona-time-index,
+                           merge — keeps everything as GSI Query (no scan, low cost)
+    """
+    if not token_usage_table:
+        return []
+    from_iso = filters["from"]
+    to_iso = filters["to"]
+    agent = filters.get("agent")
+    persona = filters.get("persona")
+
+    def _q(index_name: str, key_expr, filter_expr=None) -> list:
+        params = {"IndexName": index_name, "KeyConditionExpression": key_expr}
+        if filter_expr is not None:
+            params["FilterExpression"] = filter_expr
+        return _ddb_query_all(token_usage_table, params, max_items - len(items))
+
+    items: list = []
+    if persona:
+        items.extend(_q(
+            "persona-time-index",
+            Key("persona").eq(persona) & Key("timestamp").between(from_iso, to_iso),
+            Attr("agent").eq(agent) if agent else None,
+        ))
+    elif agent:
+        items.extend(_q(
+            "agent-time-index",
+            Key("agent").eq(agent) & Key("timestamp").between(from_iso, to_iso),
+        ))
+    else:
+        for p in _VALID_PERSONAS_FOR_QUERY:
+            if len(items) >= max_items:
+                break
+            items.extend(_q(
+                "persona-time-index",
+                Key("persona").eq(p) & Key("timestamp").between(from_iso, to_iso),
+            ))
+
+    items.sort(key=lambda r: r.get("timestamp") or "", reverse=True)
+    return items[:max_items]
+
+
+def _ddb_query_all(table, params: dict, remaining: int) -> list:
+    """Drive DDB query pagination until LastEvaluatedKey is gone or remaining is met."""
+    out: list = []
+    while remaining > 0:
+        resp = table.query(**params)
+        out.extend(resp.get("Items", []))
+        if "LastEvaluatedKey" not in resp:
+            break
+        if len(out) >= remaining:
+            break
+        params["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
+    return out[:remaining]
+
+
+def _compute_token_summary(records: list) -> dict:
+    """Aggregate records into the KPI shape the page's hook expects.
+
+    Mirrors the JS-side _computeTokenSummary in ui/src/hooks/useApi.js so mock
+    and live mode produce the same KPI numbers given the same records.
+    """
+    input_t = 0
+    output_t = 0
+    cost = 0.0
+    blocked = 0
+    sessions: set = set()
+    for r in records:
+        input_t += _to_int_or_zero(r.get("input_tokens", 0))
+        output_t += _to_int_or_zero(r.get("output_tokens", 0))
+        c = r.get("estimated_cost")
+        if c is not None:
+            try:
+                cost += float(c)
+            except (TypeError, ValueError):
+                pass
+        if r.get("guardrail_blocked"):
+            blocked += 1
+        sid = r.get("session_id")
+        if sid:
+            sessions.add(sid)
+    total = input_t + output_t
+    chats = len(sessions)
+    return {
+        "totalTokens": total,
+        "inputTokens": input_t,
+        "outputTokens": output_t,
+        "totalCost": round(cost, 6),
+        "avgPerChat": (total // chats) if chats else 0,
+        "chats": chats,
+        "blocked": blocked,
+    }
+
+
+def _to_int_or_zero(v) -> int:
+    if v is None:
+        return 0
+    if isinstance(v, Decimal):
+        return int(v)
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _handle_list_token_usage(event):
+    """GET /token-usage?from=&to=&agent=&persona= — returns {records, count, filters}."""
+    denied = _require_ciso(event)
+    if denied:
+        return denied
+    if not token_usage_table:
+        return _err(500, "TOKEN_USAGE_TABLE not configured")
+    filters = _parse_token_usage_filters(event)
+    try:
+        items = _query_token_usage_records(filters)
+    except Exception as e:
+        logger.exception("token-usage query failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    return _ok({"records": items, "count": len(items), "filters": filters})
+
+
+def _handle_token_usage_summary(event):
+    """GET /token-usage/summary?range=today|7d|30d&agent=&persona= — returns KPI shape."""
+    denied = _require_ciso(event)
+    if denied:
+        return denied
+    if not token_usage_table:
+        return _err(500, "TOKEN_USAGE_TABLE not configured")
+    # Summary defaults to today (matches KPI "tokens today" framing on the page);
+    # explicit ?range= or ?from=/?to= still wins.
+    filters = _parse_token_usage_filters(event, default_range="today")
+    try:
+        items = _query_token_usage_records(filters)
+    except Exception as e:
+        logger.exception("token-usage summary failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    return _ok(_compute_token_summary(items))
+
+
 # ──────────────────────────── /conversations (list) ─────────────
 def _handle_list_conversations(event):
     if not sessions_table:
@@ -478,6 +712,43 @@ def _handle_get_conversation(event, session_id: str):
     if not item or item.get("user_id") != user_id:
         return _err(404, f"Session {session_id} not found")
     return _ok(_session_summary(item))
+
+
+# ──────────────────────────── DELETE /conversations/{id} ────────
+def _handle_delete_conversation(event, session_id: str):
+    """Hard-delete a conversation's DDB index row (per-chat trash button).
+
+    Ownership is enforced first: session_id is the table's only key, so
+    without the check any authenticated caller could delete any chat by id.
+    We delete the DDB row only — that makes the chat unreachable from every
+    surface (both /messages and /{id} gate on the row existing). The raw
+    events stay in AgentCore Memory until its retention expires.
+    """
+    if not sessions_table:
+        return _err(500, "SESSIONS_TABLE not configured")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+    if not session_id:
+        return _err(400, "Missing session_id")
+
+    # Ownership check — the row must exist and belong to the caller.
+    try:
+        resp = sessions_table.get_item(Key={"session_id": session_id})
+    except Exception as e:
+        logger.exception("Ownership lookup failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    item = resp.get("Item")
+    if not item or item.get("user_id") != user_id:
+        return _err(404, f"Session {session_id} not found")
+
+    try:
+        sessions_table.delete_item(Key={"session_id": session_id})
+    except Exception as e:
+        logger.exception("DeleteItem failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+
+    return _ok({"deleted": True, "session_id": session_id})
 
 
 # ──────────────────────────── /conversations/{id}/messages ──────
@@ -794,48 +1065,118 @@ def _handle_mcp_health(event):
     return _ok({"summary": summary, "servers": servers})
 
 
-# ──────────────────────────── /jira/tickets ─────────────────────
-def _handle_jira_create(event):
-    """Mock JIRA ticket creation from the ActionCenter UI.
+# ──────────────────────────── /agent-status ─────────────────────
+_AGENT_DISPLAY_NAMES = {
+    "sharepoint": "SharePoint Specialist",
+    "awsconfig":  "AWS Config Specialist",
+    "zscaler":    "Zscaler ZIA Specialist",
+    "jira":       "JIRA Specialist",
+}
 
-    Real ticket creation happens through the Atlassian MCP plugin in the
-    user's Claude session — see Master agent's jira_create_ticket tool.
-    Lambda path returns a deterministic-looking mock key and writes an
-    audit row so the UI flow is end-to-end testable in production.
+
+def _handle_agent_status(event):
+    """Live status of the ARBITER specialist runtimes for the MCP page.
+
+    Calls bedrock-agentcore-control list_agent_runtimes and matches each
+    specialist by its configured ARN (patched onto this Lambda by
+    deploy_agents.py) → {id, name, status}. Agents not yet deployed (no ARN, or
+    the ARN isn't in the live list) report PLACEHOLDER. ServiceNow is a static
+    placeholder (no agent). Matching by ARN avoids hardcoding the project name.
+    """
+    arn_to_status: dict[str, str] = {}
+    try:
+        paginator = agentcore_control.get_paginator("list_agent_runtimes")
+        for page in paginator.paginate():
+            for r in page.get("agentRuntimes", []):
+                arn_to_status[r.get("agentRuntimeArn", "")] = r.get("status", "UNKNOWN")
+    except Exception as e:
+        logger.warning("list_agent_runtimes failed: %s", e)
+
+    servers = []
+    for agent_id, name in _AGENT_DISPLAY_NAMES.items():
+        arn = SPECIALIST_RUNTIME_ARNS.get(agent_id, "")
+        status = arn_to_status.get(arn, "PLACEHOLDER") if arn else "PLACEHOLDER"
+        servers.append({"id": agent_id, "name": name, "status": status})
+    # ServiceNow has no runtime yet — static placeholder card.
+    servers.append({"id": "servicenow", "name": "ServiceNow", "status": "PLACEHOLDER"})
+    return _ok({"servers": servers})
+
+
+# ──────────────────────────── /jira/tickets ─────────────────────
+def _audit_jira(event, *, key, summary, severity, conflict_id, status, mock):
+    """Best-effort audit row for a JIRA link/create."""
+    if not audit_table:
+        return
+    try:
+        audit_table.put_item(Item={
+            "event_id": f"jira-{key}",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "action_type": "JIRA_LINKED",
+            "resource": conflict_id or summary,
+            "user": (_caller_user_id(event) or "anonymous"),
+            "status": status,
+            "details": json.dumps({"jira_ticket_key": key, "summary": summary,
+                                   "severity": severity, "mock": mock}),
+        })
+    except Exception:
+        logger.exception("JIRA audit write failed")
+
+
+def _handle_jira_create(event):
+    """Create a real JIRA issue via the jira_specialist AgentCore runtime.
+
+    The ActionCenter UI sends an editable summary + description and a project
+    key (DEVARBITER). We invoke the JIRA runtime's deterministic create path
+    ({"action": "create_issue", ...}) which calls mcp-atlassian directly and
+    returns {key, url}. If the runtime isn't deployed, fall back to a mock key
+    so the demo flow still renders.
     """
     try:
         body = json.loads(event.get("body") or "{}")
     except json.JSONDecodeError:
         return _err(400, "Invalid JSON body")
     conflict_id = (body.get("conflict_id") or "").strip()
-    summary = (body.get("summary") or "").strip() or f"ARBITER finding {conflict_id or 'unspecified'}"
-    project_key = (body.get("project_key") or "MIG").strip()
+    summary = (body.get("summary") or body.get("title") or "").strip() or f"ARBITER finding {conflict_id or 'unspecified'}"
+    description = (body.get("description") or "").strip()
+    project_key = (body.get("project_key") or "DEVARBITER").strip()
     severity = (body.get("severity") or "MEDIUM").strip()
 
-    # Sub-second hashing keeps the mock key visually distinct between calls.
-    import hashlib
-    suffix = int(hashlib.sha256(summary.encode("utf-8")).hexdigest()[:6], 16) % 100000
-    mock_key = f"{project_key}-MOCK-{suffix:05d}"
+    jira_arn = SPECIALIST_RUNTIME_ARNS.get("jira")
+    if not jira_arn:
+        # JIRA runtime not deployed yet — mock so the UI flow still works.
+        import hashlib
+        suffix = int(hashlib.sha256(summary.encode("utf-8")).hexdigest()[:6], 16) % 100000
+        mock_key = f"{project_key}-MOCK-{suffix:05d}"
+        _audit_jira(event, key=mock_key, summary=summary, severity=severity,
+                    conflict_id=conflict_id, status="MOCK", mock=True)
+        return _ok({"status": "mock", "jira_ticket_key": mock_key,
+                    "note": "JIRA runtime not configured — run scripts/deploy_agents.py."})
 
-    if audit_table:
-        try:
-            audit_table.put_item(Item={
-                "event_id": f"jira-{mock_key}",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "action_type": "JIRA_LINKED",
-                "resource": conflict_id or summary,
-                "user": (_caller_user_id(event) or "anonymous"),
-                "status": "COMPLETED",
-                "details": json.dumps({"jira_ticket_key": mock_key, "summary": summary, "severity": severity}),
-            })
-        except Exception:
-            logger.exception("JIRA audit write failed")
+    try:
+        resp = agentcore.invoke_agent_runtime(
+            agentRuntimeArn=jira_arn,
+            payload=json.dumps({
+                "action": "create_issue",
+                "project_key": project_key,
+                "summary": summary,
+                "description": description,
+                "issue_type": "Task",
+            }).encode("utf-8"),
+            contentType="application/json",
+            accept="application/json",
+        )
+        parsed = json.loads(resp["response"].read().decode("utf-8"))
+    except Exception as e:
+        logger.exception("JIRA runtime invocation failed")
+        return _err(502, f"{type(e).__name__}: {e}")
 
-    return _ok({
-        "status": "not_implemented_in_lambda",
-        "mock_ticket_key": mock_key,
-        "note": "Real JIRA ticket creation runs via the Atlassian MCP plugin in the Analyst chat.",
-    })
+    key = parsed.get("key")
+    if not key:
+        return _err(502, f"JIRA create failed: {parsed.get('error') or parsed.get('result') or 'no issue key returned'}")
+
+    _audit_jira(event, key=key, summary=summary, severity=severity,
+                conflict_id=conflict_id, status="COMPLETED", mock=False)
+    return _ok({"status": "created", "jira_ticket_key": key, "url": parsed.get("url")})
 
 
 # ──────────────────────────── POST /scan ────────────────────────
