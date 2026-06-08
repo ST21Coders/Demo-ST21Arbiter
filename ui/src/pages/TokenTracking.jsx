@@ -7,6 +7,7 @@ import {
 import { format } from 'date-fns'
 import { useTokenUsage } from '../hooks/useApi'
 import { tokenUsageToCsv } from '../mockData'
+import { AGENT_MODELS, modelLabel } from '../config'
 
 // Consistent colors across the three charts + the table accents. Agent colors
 // match the project's existing finding-source palette where possible.
@@ -143,7 +144,7 @@ export default function TokenTracking() {
         <KpiCard
           label="Estimated cost"
           value={formatCost(summary.totalCost)}
-          subtext="Nova 2 Lite list pricing"
+          subtext={`${modelLabel(AGENT_MODELS.master)} list pricing`}
         />
         <KpiCard
           label="Avg tokens / chat"

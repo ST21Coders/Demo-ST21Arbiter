@@ -9,7 +9,7 @@ import { SeverityBadge } from '../components/SeverityBadge'
 import ActionRequestModal from '../components/ActionRequestModal'
 import CreateTicketButton from '../components/CreateTicketButton'
 import { detectProblem } from '../detectProblem'
-import { CHAT_URL } from '../config'
+import { CHAT_URL, AGENT_MODELS, modelLabel } from '../config'
 import { sendChat } from '../hooks/useApi'
 
 // CR statuses that count as "ticket resolved" → trigger auto-archive of the
@@ -251,7 +251,7 @@ function initialGreeting() {
     role: 'assistant',
     system: true,
     content: CHAT_URL
-      ? "Hello! I'm ARBITER's AI Governance Agent, powered by Claude Sonnet with live tool-calling.\n\nAsk me about any policy change, system modification, or compliance question. I'll scan the knowledge base, check for existing conflicts, identify policy owners, assess system impact, check for simpler alternatives, and recommend concrete actions (Change Requests, ServiceNow tickets) — all keeping you in the loop before anything is executed."
+      ? `Hello! I'm ARBITER's AI Governance Agent, powered by ${modelLabel(AGENT_MODELS.master)} with live tool-calling.\n\nAsk me about any policy change, system modification, or compliance question. I'll scan the knowledge base, check for existing conflicts, identify policy owners, assess system impact, check for simpler alternatives, and recommend concrete actions (Change Requests, ServiceNow tickets) — all keeping you in the loop before anything is executed.`
       : "Hello! I'm running in mock mode (no VITE_CHAT_URL set).",
     actions: [],
   }]
@@ -529,7 +529,7 @@ export default function AnalystView() {
         <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-200 bg-white flex-shrink-0">
           <Bot size={16} className="text-indigo-600" />
           <span className="font-semibold text-slate-900 text-sm">ARBITER Governance Agent</span>
-          <span className="text-xs text-slate-500 ml-auto">claude-sonnet-4-6 · tool-calling · human-in-the-loop</span>
+          <span className="text-xs text-slate-500 ml-auto">{modelLabel(AGENT_MODELS.master)} · tool-calling · human-in-the-loop</span>
           {activeSessionId && (
             <button
               onClick={handleResolve}

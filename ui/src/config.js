@@ -82,6 +82,26 @@ export const AGENT_MODELS = {
   zscaler:    import.meta.env.VITE_ZSCALER_MODEL_ID    || NOVA_LITE,
 }
 
+// Friendly display name for a raw foundation-model ID. Matched by substring so
+// region prefixes (us./eu.) don't break the lookup; falls back to a best-effort
+// prettified form (strip provider/region prefix + version suffix) for unknowns.
+const MODEL_LABELS = [
+  ['nova-2-lite',     'Nova 2 Lite'],
+  ['claude-sonnet-4-6', 'Claude Sonnet 4.6'],
+  ['claude-haiku-4-5',  'Claude Haiku 4.5'],
+]
+
+export function modelLabel(modelId) {
+  if (!modelId) return ''
+  const match = MODEL_LABELS.find(([id]) => modelId.includes(id))
+  if (match) return match[1]
+  return modelId
+    .replace(/^[a-z]{2}\./, '')        // drop region prefix, e.g. us.
+    .replace(/^(amazon|anthropic|meta)\./, '') // drop provider prefix
+    .replace(/-v\d+:\d+$/, '')         // drop version suffix, e.g. -v1:0
+    .replace(/-/g, ' ')
+}
+
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.

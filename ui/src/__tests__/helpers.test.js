@@ -5,6 +5,7 @@ import {
   buildConflictMatrix,
   filterByRegulatory,
 } from '../mockData'
+import { modelLabel } from '../config'
 
 // ─── countBySeverity — comprehensive boundary tests ─────────────────────────
 
@@ -131,5 +132,27 @@ describe('Cross-check data integrity', () => {
     const counts = countBySeverity(MOCK_CONFLICTS)
     const criticalFromFilter = MOCK_CONFLICTS.filter(f => f.severity === 'CRITICAL').length
     expect(counts.CRITICAL).toBe(criticalFromFilter)
+  })
+})
+
+// ─── modelLabel — raw model ID → friendly display name ──────────────────────
+
+describe('modelLabel', () => {
+  it('maps the default Nova 2 Lite id (with region prefix) to a friendly name', () => {
+    expect(modelLabel('us.amazon.nova-2-lite-v1:0')).toBe('Nova 2 Lite')
+  })
+
+  it('maps known Claude ids by substring', () => {
+    expect(modelLabel('anthropic.claude-sonnet-4-6-20251006-v1:0')).toBe('Claude Sonnet 4.6')
+    expect(modelLabel('anthropic.claude-haiku-4-5-20251001-v1:0')).toBe('Claude Haiku 4.5')
+  })
+
+  it('falls back to a prettified form for unknown ids', () => {
+    expect(modelLabel('us.meta.llama-3-70b-v1:0')).toBe('llama 3 70b')
+  })
+
+  it('returns empty string for missing input', () => {
+    expect(modelLabel('')).toBe('')
+    expect(modelLabel(undefined)).toBe('')
   })
 })
