@@ -159,6 +159,7 @@ def _invoke_runtime(runtime_arn: str, prompt: str) -> str:
                 "persona":    _INVOCATION_CTX.get("persona", "employee"),
                 "session_id": _INVOCATION_CTX.get("session_id", "adhoc"),
                 "chat_type":  _INVOCATION_CTX.get("chat_type", "analyst"),
+                "user_email": _INVOCATION_CTX.get("user_email", ""),
             }).encode("utf-8"),
             contentType="application/json",
             accept="application/json",
@@ -511,11 +512,13 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     session_id = (payload.get("session_id") or "adhoc")[:128]
     chat_type = (payload.get("chat_type") or "analyst")[:16]
     persona = (payload.get("persona") or "employee")[:16]
+    user_email = (payload.get("user_email") or "")[:200]
     # Stash attribution for _invoke_runtime to forward into specialist calls.
     _INVOCATION_CTX.clear()
     _INVOCATION_CTX.update({
         "actor_id": actor_id, "persona": persona,
         "session_id": session_id, "chat_type": chat_type,
+        "user_email": user_email,
     })
     log.info("Orchestrator invoked: actor=%s persona=%s session=%s chat_type=%s prompt=%s",
              actor_id, persona, session_id, chat_type, prompt[:200])
@@ -544,6 +547,7 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     record_from_agent_result(
         agent_result, agent="master", persona=persona, actor_id=actor_id,
         session_id=session_id, chat_type=chat_type, model_id=MODEL_ID,
+        user_email=user_email,
     )
 
     _save_turn(actor_id, session_id, prompt, response)

@@ -118,10 +118,12 @@ Resources:
                   - bedrock-agentcore:ListAgentRuntimes
                 Resource:
                   - !Sub "arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:runtime/*"
-              - Sid: SessionsTableWrite
+              - Sid: AgentCoreTablesWrite
                 # The master orchestrator writes a conversation-index row when
-                # a session starts and bumps last_message_at on each turn.
-                # Scoped to the sessions table only.
+                # a session starts and bumps last_message_at on each turn
+                # (sessions table). Every agent (master + 3 specialists) also
+                # records token-usage rows after each Bedrock call
+                # (token-usage table). Scoped to those two tables only.
                 Effect: Allow
                 Action:
                   - dynamodb:PutItem
@@ -129,6 +131,7 @@ Resources:
                   - dynamodb:GetItem
                 Resource:
                   - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Environment}-${ProjectName}-sessions"
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Environment}-${ProjectName}-token-usage"
               - Sid: AgentCoreMemory
                 # Only the master orchestrator uses long-term memory today.
                 # Scoped to memories under this project; broaden if specialists

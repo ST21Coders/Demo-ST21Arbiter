@@ -29,7 +29,7 @@ These are CISO-scope questions because they trade off cost, governance, and AI-p
 - **CISO-only** access enforced at three layers: sidebar item hidden, `<Guarded>` route wrapper redirects to AccessDenied on direct URL hit, backend returns 403 if the JWT's `cognito:groups` does not include `ciso`. Frontend gating alone is insufficient.
 - **KPI strip** (top of page): tokens today (input + output), estimated cost today (USD), average tokens per chat (today).
 - **Three Recharts visualizations**: total tokens over time (stacked area, input vs output), tokens by agent (bar, master / sharepoint / awsconfig / zscaler), tokens by persona (bar, ciso / soc / grc / employee).
-- **Filter bar**: time-range selector (Today / 7d / 30d / Custom), agent filter, persona filter — mirrors `AuditLogs.jsx` filter idiom.
+- **Filter bar**: time-range selector (Today / 7d / 30d), agent filter, persona filter — mirrors `AuditLogs.jsx` filter idiom.
 - **Per-record table** beneath the charts: timestamp, agent, persona, user (email), session_id, model_id, input_tokens, output_tokens, total, estimated_cost, with CSV export — mirrors `AuditLogs.jsx`.
 - New `<env>-<project>-token-usage` DDB table (CMK-encrypted, PAY_PER_REQUEST, TTL on a `ttl` attribute set to 90 days).
 - Two new API endpoints on the existing `api_handler` Lambda: `GET /token-usage` and `GET /token-usage/summary`.
@@ -59,7 +59,7 @@ The Cognito User Pool has four groups: `ciso`, `soc`, `grc`, `employee`. Only `c
 | Route | [`ui/src/App.jsx`](../ui/src/App.jsx) | Wrap in `<Guarded path="/token-usage">` exactly like every other Governance route. `Guarded` reads `usePersona().hasAccess()` and renders `<AccessDenied />` if blocked. |
 | ROUTE_ACCESS | [`ui/src/contexts/PersonaContext.jsx`](../ui/src/contexts/PersonaContext.jsx#L61-L74) | Add `'/token-usage': 'token-usage'` to the `ROUTE_ACCESS` map. |
 | Persona capability | Same file, `PERSONAS.ciso.access` | Add `'token-usage'` to the CISO `access` array. **Do not add it to soc/grc/employee.** |
-| Backend | [`Infra/functions/api_handler/api_handler.py`](../Infra/functions/api_handler/api_handler.py) | Both new handlers call `_require_ciso(event)` as their first step. Reads `_caller_groups(event)` (already defined at line 1203) and returns `_err(403, "CISO access required")` if `'ciso' not in groups`. |
+| Backend | [`Infra/functions/api_handler/api_handler.py`](../Infra/functions/api_handler/api_handler.py) | Both new handlers call `_require_ciso(event)` as their first step. Reads `_caller_groups(event)` (already defined at line 1415) and returns `_err(403, "CISO access required")` if `'ciso' not in groups`. |
 
 ### What non-CISO users experience
 
@@ -90,10 +90,10 @@ The page follows the visual language of [`AuditLogs.jsx`](../ui/src/pages/AuditL
    - Tokens today (input + output, integer with thousands sep)
    - Estimated cost today (USD, 2dp)
    - Avg tokens per chat (today)
-   - Active agents (count of distinct agents that recorded usage today, ranges 0-4)
-4. **Filter bar** — time range select (Today / 7d / 30d / Custom + two dates), agent select, persona select, "Refresh" button.
+   - Guardrail-blocked (count of blocked invocations today; input tokens are still billed)
+4. **Filter bar** — time range select (Today / 7d / 30d), agent select, persona select, "Refresh" button.
 5. **Charts row** — Recharts `ResponsiveContainer` blocks, 3 cards laid out responsively:
-   - **Tokens over time** (stacked area chart, x = bucket, two series = `input_tokens` / `output_tokens`). Granularity follows the time range: Today → hourly buckets; 7d → daily buckets; 30d → daily buckets; Custom → server picks granularity = `(to - from) > 3 days ? day : hour`.
+   - **Tokens over time** (stacked area chart, x = bucket, two series = `input_tokens` / `output_tokens`). Granularity follows the time range: Today → hourly buckets; 7d → daily buckets; 30d → daily buckets.
    - **Tokens by agent** (bar chart, x = agent name, y = total tokens, color by agent).
    - **Tokens by persona** (bar chart, x = persona, y = total tokens, color by persona — reuse persona colors from `PERSONAS` in `PersonaContext.jsx`).
 6. **Per-record table** — paginated locally (50 rows at a time), columns: Timestamp, Agent, Persona, User, Session, Model, Input, Output, Total, Cost, with a small "details" expansion (mirror `AuditLogs`).
@@ -108,9 +108,9 @@ The page follows the visual language of [`AuditLogs.jsx`](../ui/src/pages/AuditL
 │ ⓘ Visible to CISO only — model usage and cost data is governed …  │
 ├────────────────────────────────────────────────────────────────────┤
 │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐                │
-│ │ 1,243,802│ │  $0.187  │ │   3,420  │ │    4/4   │                │
-│ │ tokens   │ │ est cost │ │ tok/chat │ │ agents   │                │
-│ │ today    │ │ today    │ │ avg today│ │ active   │                │
+│ │ 1,243,802│ │  $0.187  │ │   3,420  │ │     7    │                │
+│ │ tokens   │ │ est cost │ │ tok/chat │ │ blocked  │                │
+│ │ today    │ │ today    │ │ avg today│ │ input billed│             │
 │ └──────────┘ └──────────┘ └──────────┘ └──────────┘                │
 ├────────────────────────────────────────────────────────────────────┤
 │ Range: [ 7 days ▾ ]   Agent: [ All ▾ ]   Persona: [ All ▾ ]  [↻]   │
@@ -131,14 +131,17 @@ The page follows the visual language of [`AuditLogs.jsx`](../ui/src/pages/AuditL
 
 ### Token usage record (single row in the new table)
 
+The shipped table uses a **composite pk/sk key**, not a flat `usage_id` HASH. `pk` is `persona#<id>` so all rows for a given persona share a partition; `sk` is `ts#<timestamp>#<session>#<agent>#<rand>` so rows naturally sort by time within the partition. `user_id` carries the Cognito `sub` (matches `sessions.user_id`); `user_email` carries the user's real email forwarded from `_handle_chat` via the `claims["email"]` claim.
+
 ```jsonc
 {
-  "usage_id":        "tu-2026-06-05T09:43:12.314Z-master-7f3a",  // PK
+  "pk":              "persona#ciso",                              // HASH — all rows for a persona share this partition
+  "sk":              "ts#2026-06-05T09:43:12.314Z#sess-1f2#master#7f3a",  // RANGE — sorts by time within the partition
   "timestamp":       "2026-06-05T09:43:12.314Z",                  // ISO8601 UTC
   "agent":           "master",            // master | sharepoint | awsconfig | zscaler
   "persona":         "ciso",              // ciso | soc | grc | employee | unknown
   "user_id":         "<Cognito sub>",     // matches sessions.user_id
-  "user_email":      "ciso_diana@meridianinsurance.com",
+  "user_email":      "ciso_diana@meridianinsurance.com",  // forwarded from claims["email"] in _handle_chat
   "session_id":      "sess-…",            // null for adhoc invocations
   "chat_type":       "analyst",           // analyst | mcp | null
   "model_id":        "us.amazon.nova-2-lite-v1:0",
@@ -151,7 +154,7 @@ The page follows the visual language of [`AuditLogs.jsx`](../ui/src/pages/AuditL
 }
 ```
 
-### Proposed DDB schema (`<env>-<project>-token-usage`)
+### Deployed DDB schema (`<env>-<project>-token-usage`)
 
 ```yaml
 TokenUsageTable:
@@ -167,12 +170,14 @@ TokenUsageTable:
       KMSMasterKeyId:
         Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
     AttributeDefinitions:
-      - AttributeName: usage_id     ; AttributeType: S
-      - AttributeName: timestamp    ; AttributeType: S
+      - AttributeName: pk           ; AttributeType: S
+      - AttributeName: sk           ; AttributeType: S
       - AttributeName: persona      ; AttributeType: S
       - AttributeName: agent        ; AttributeType: S
+      - AttributeName: timestamp    ; AttributeType: S
     KeySchema:
-      - AttributeName: usage_id     ; KeyType: HASH
+      - AttributeName: pk           ; KeyType: HASH
+      - AttributeName: sk           ; KeyType: RANGE
     GlobalSecondaryIndexes:
       - IndexName: persona-time-index
         KeySchema:
@@ -189,7 +194,7 @@ TokenUsageTable:
       Enabled: true
 ```
 
-Exports `TokenUsageTableName` follow the same `!Sub "${Environment}-${ProjectName}-TokenUsageTableName"` pattern as the other four tables. Mirrors `ConflictsTableV2` (PK + multi-GSI) and `ScanRunsTable` (TTL-enabled) — both already in `04-storage.yaml`. Both GSIs project ALL because the table is small (worst case: ~5 records per chat turn × hundreds of turns/day) and read patterns need every column for the table view.
+The two GSIs are `persona-time-index` (HASH=persona, RANGE=timestamp) and `agent-time-index` (HASH=agent, RANGE=timestamp). Because `pk = persona#<id>`, "all rows for persona X in range" can be answered by a Query on the **main partition** (`pk = "persona#X"` + `sk between ts#<from> and ts#<to>`) without touching a GSI. The `persona-time-index` GSI exists for queries that need to scan a persona's rows by raw `timestamp` without the `sk` prefix; `agent-time-index` is used when filtering by agent regardless of persona. Exports `TokenUsageTableName` follow the same `!Sub "${Environment}-${ProjectName}-TokenUsageTableName"` pattern as the other four tables. Both GSIs project ALL because the table is small (worst case: ~5 records per chat turn × hundreds of turns/day) and read patterns need every column for the table view.
 
 ### Why a new table beats reusing `sessions` or `audit-log`
 
@@ -211,17 +216,18 @@ For the master ([`agents/master_orchestrator/agent.py`](../agents/master_orchest
 
 ```python
 agent = build_agent()
-response = str(agent(augmented_prompt))   # ← line 497
+agent_result = agent(augmented_prompt)            # ← line 497; AgentResult instance
+response = str(agent_result)
 # NEW: persist usage record(s) post-call
 _record_usage(
     agent="master",
     user_id=actor_id,
-    user_email=_email_from_event(event),   # passed in via payload from api_handler
-    persona=_persona_from_groups_in_event(event),
+    user_email=user_email,                        # forwarded in payload from api_handler
+    persona=persona,
     session_id=session_id,
     chat_type=chat_type,
     model_id=MODEL_ID,
-    usage=agent.last_response.metrics.accumulated_usage,  # strands AgentResult.metrics
+    usage=agent_result.metrics.accumulated_usage,  # strands AgentResult.metrics.accumulated_usage
 )
 ```
 
@@ -352,7 +358,7 @@ def _handle_list_token_usage(event):
     # … rest of the handler
 ```
 
-This mirrors how `_caller_groups()` is already used in the `approve` action transition (`api_handler.py:1081-1102`) to detect CISO override — same helper, same JWT path, so all three caller-resolution paths in `_caller_claims` (API GW claims → Authorization header JWT → direct invoke) continue to work.
+This mirrors how `_caller_groups()` is already used in the `approve` action transition in `api_handler.py` (helper at line ~1415) to detect CISO override — same helper, same JWT path, so all three caller-resolution paths in `_caller_claims` (API GW claims → Authorization header JWT → direct invoke) continue to work.
 
 ## 11. Mock data plan
 
@@ -445,10 +451,14 @@ The codebase already supports a **DEV_AUTH** mode (referenced in [`PersonaContex
 | [`Infra/templates/09-agentcore.yaml`](../Infra/templates/09-agentcore.yaml) | verify only | Verify the agentcore role's KMSDecrypt covers `DynamoDBKeyArn`; verify the table wildcard covers `-token-usage`. No expected edits. |
 | [`Infra/functions/api_handler/api_handler.py`](../Infra/functions/api_handler/api_handler.py) | edit | Add `TOKEN_USAGE_TABLE = os.environ.get(…)` constant, `token_usage_table = ddb.Table(…)` resource, route block for `/token-usage` and `/token-usage/summary` (mirror existing route block style), handlers `_handle_list_token_usage` and `_handle_token_usage_summary`, and the `_require_ciso` helper. ~120 LOC added. |
 | [`agents/_shared/token_usage.py`](../agents/_shared/token_usage.py) | **new** | Shared `_record_usage(...)` helper + `MODEL_PRICING` constant + `_compute_cost(...)` function. ~60 LOC. |
-| [`agents/master_orchestrator/agent.py`](../agents/master_orchestrator/agent.py) | edit | Import the shared helper; capture `agent.last_response.metrics.accumulated_usage` after the `agent(augmented_prompt)` call at line ~497; call `_record_usage(...)`. Forward `actor_id`, `persona`, `session_id`, `chat_type` into the specialist invocation payload (extend the `_invoke_runtime` call signature). |
+| [`agents/master_orchestrator/agent.py`](../agents/master_orchestrator/agent.py) | edit | Import the shared helper; capture `agent_result.metrics.accumulated_usage` (where `agent_result = agent(augmented_prompt)`) after the call at line ~497; call `_record_usage(...)`. Forward `actor_id`, `persona`, `session_id`, `chat_type`, `user_email` into the specialist invocation payload (extend the `_invoke_runtime` call signature). |
 | [`agents/sharepoint_specialist/agent.py`](../agents/sharepoint_specialist/agent.py), [`agents/awsconfig_specialist/agent.py`](../agents/awsconfig_specialist/agent.py), [`agents/zscaler_specialist/agent.py`](../agents/zscaler_specialist/agent.py) | edit (each) | Read `actor_id`, `persona`, `session_id`, `chat_type` from the incoming payload (forwarded by master). Capture usage on the `agent(query)` call and write a record with `agent="<this-specialist>"`. |
 | [`scripts/deploy_agents.py`](../scripts/deploy_agents.py) | edit | Pass `TOKEN_USAGE_TABLE=<env>-<project>-token-usage` into each runtime's env dict — one-line addition. |
 | [`Infra/params/dev.json`](../Infra/params/dev.json) | no change | Table name is derived from `Environment` + `ProjectName` already in params; no new parameter needed. |
+
+### CSV export row cap
+
+The "Export CSV" button on `TokenTracking.jsx` serializes the in-state `records` array — whatever the current filter has loaded. In live mode, `_query_token_usage_records` in `api_handler.py` caps query results at **5000 rows** server-side (`max_items=5000`), so any CSV export covers at most the first 5000 records that match the current window. Larger-than-cap exports are accepted v1 behavior — there is **no `next_token` / `LastEvaluatedKey` cursor pagination** in either the API or the CSV path. If a CISO needs the full 30-day record set above the cap, they narrow the time range and export multiple files; v2 may add cursor pagination if the demo load grows.
 
 ### Vitest tests at `ui/src/__tests__/tokenTracking.test.jsx`
 
