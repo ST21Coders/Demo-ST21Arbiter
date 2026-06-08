@@ -7,6 +7,36 @@ import {
 import { format } from 'date-fns'
 import { useTokenUsage } from '../hooks/useApi'
 import { tokenUsageToCsv } from '../mockData'
+import { PERSONAS } from '../contexts/PersonaContext'
+
+// email → persona id lookup. Covers both the live account emails
+// (e.g. ciso_diana@meridianinsurance.com) and the mock fixture emails
+// (e.g. ciso@meridianinsurance.com), so the same display name resolves
+// in both modes.
+const EMAIL_TO_PERSONA_ID = (() => {
+  const map = {}
+  for (const p of Object.values(PERSONAS)) {
+    if (p.email) map[p.email.toLowerCase()] = p.id
+    map[`${p.id}@meridianinsurance.com`] = p.id
+  }
+  return map
+})()
+
+// Cognito sub UUID shape (8-4-4-4-12 hex). Older rows wrote the sub into
+// user_email before this PR landed; resolve them as Anonymous.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Resolve a row's user_email value to a human-readable display name.
+// Returns the persona's full name when the email matches a known persona,
+// "Anonymous" for missing/UUID/anonymous values, or the raw email otherwise.
+export function resolveUserDisplay(userEmail) {
+  if (!userEmail) return 'Anonymous'
+  const v = String(userEmail).trim()
+  if (!v || v === 'anonymous' || v === '(unknown)' || UUID_RE.test(v)) return 'Anonymous'
+  const id = EMAIL_TO_PERSONA_ID[v.toLowerCase()]
+  if (id) return PERSONAS[id].name
+  return v
+}
 
 // Consistent colors across the three charts + the table accents. Agent colors
 // match the project's existing finding-source palette where possible.
@@ -342,7 +372,7 @@ export default function TokenTracking() {
                     </span>
                   </td>
                   <td className="px-4 py-2 text-slate-500 max-w-[200px] truncate" title={r.user_email}>
-                    {r.user_email}
+                    {resolveUserDisplay(r.user_email)}
                   </td>
                   <td className="px-4 py-2 text-slate-500 font-mono max-w-[140px] truncate" title={r.session_id}>
                     {r.session_id}
@@ -499,7 +529,7 @@ function UserBreakdownCard({ records }) {
               className={`hover:bg-slate-50 ${i < rows.length - 1 ? 'border-b border-slate-100' : ''}`}
             >
               <td className="px-4 py-2 text-slate-700 max-w-[260px] truncate" title={u.email}>
-                {u.email}
+                {resolveUserDisplay(u.email)}
               </td>
               <td className="px-4 py-2">
                 <span
