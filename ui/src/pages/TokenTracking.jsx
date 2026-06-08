@@ -23,19 +23,25 @@ const EMAIL_TO_PERSONA_ID = (() => {
 })()
 
 // Cognito sub UUID shape (8-4-4-4-12 hex). Older rows wrote the sub into
-// user_email before this PR landed; resolve them as Anonymous.
+// user_email before email plumbing landed — resolve via persona instead.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-// Resolve a row's user_email value to a human-readable display name.
-// Returns the persona's full name when the email matches a known persona,
-// "Anonymous" for missing/UUID/anonymous values, or the raw email otherwise.
-export function resolveUserDisplay(userEmail) {
-  if (!userEmail) return 'Anonymous'
-  const v = String(userEmail).trim()
-  if (!v || v === 'anonymous' || v === '(unknown)' || UUID_RE.test(v)) return 'Anonymous'
-  const id = EMAIL_TO_PERSONA_ID[v.toLowerCase()]
-  if (id) return PERSONAS[id].name
-  return v
+// Resolve a row's user_email + persona to a human-readable display name.
+// Order of preference: known email → persona full name → raw email →
+// "Anonymous". The persona fallback matters because legacy rows (jira
+// specialist, pre-fix master invocations) wrote "anonymous" or a Cognito
+// sub UUID into user_email. Each demo persona maps to exactly one real
+// user (Diana Osei / Marcus Webb / Priya Nair / Sarah Chen), so the
+// persona is an accurate stand-in for the missing email.
+export function resolveUserDisplay(userEmail, persona) {
+  const v = userEmail ? String(userEmail).trim() : ''
+  if (v && v !== 'anonymous' && v !== '(unknown)' && !UUID_RE.test(v)) {
+    const id = EMAIL_TO_PERSONA_ID[v.toLowerCase()]
+    if (id) return PERSONAS[id].name
+    return v
+  }
+  if (persona && PERSONAS[persona]) return PERSONAS[persona].name
+  return 'Anonymous'
 }
 
 // Consistent colors across the three charts + the table accents. Agent colors
@@ -371,7 +377,7 @@ export default function TokenTracking() {
                     </span>
                   </td>
                   <td className="px-4 py-2 text-slate-500 max-w-[200px] truncate" title={r.user_email}>
-                    {resolveUserDisplay(r.user_email)}
+                    {resolveUserDisplay(r.user_email, r.persona)}
                   </td>
                   <td className="px-4 py-2 text-slate-500 font-mono max-w-[140px] truncate" title={r.session_id}>
                     {r.session_id}
@@ -456,17 +462,18 @@ function PersonaTooltip({ active, payload }) {
   )
 }
 
-// Per-user breakdown card: aggregates the filtered records by user_email and
-// renders a sortable table styled like the records table below. Persona on
-// each row is the persona on that user's most-recent row in the window.
+// Per-user breakdown card: aggregates the filtered records by resolved
+// display name (persona-fallback aware) so legacy rows with UUID/anonymous
+// emails merge into the same user. Persona on each row is the persona on
+// that user's most-recent row in the window.
 function UserBreakdownCard({ records }) {
   const rows = useMemo(() => {
     const acc = new Map()
     for (const r of records) {
-      const key = r.user_email || '(unknown)'
-      const prev = acc.get(key) || {
-        email: key,
-        persona: r.persona,
+      const name = resolveUserDisplay(r.user_email, r.persona)
+      const prev = acc.get(name) || {
+        name,
+        persona:  r.persona,
         sessions: new Set(),
         tokens: 0,
         cost: 0,
@@ -480,15 +487,15 @@ function UserBreakdownCard({ records }) {
         prev.latestTs = ts
         prev.persona = r.persona  // persona on the most-recent row
       }
-      acc.set(key, prev)
+      acc.set(name, prev)
     }
     return Array.from(acc.values())
       .map(u => ({
-        email: u.email,
-        persona: u.persona,
-        chats: u.sessions.size,
-        tokens: u.tokens,
-        cost: u.cost,
+        email:    u.name,
+        persona:  u.persona,
+        chats:    u.sessions.size,
+        tokens:   u.tokens,
+        cost:     u.cost,
         latestTs: u.latestTs,
       }))
       .sort((a, b) => b.tokens - a.tokens)
@@ -528,7 +535,7 @@ function UserBreakdownCard({ records }) {
               className={`hover:bg-slate-50 ${i < rows.length - 1 ? 'border-b border-slate-100' : ''}`}
             >
               <td className="px-4 py-2 text-slate-700 max-w-[260px] truncate" title={u.email}>
-                {resolveUserDisplay(u.email)}
+                {u.email}
               </td>
               <td className="px-4 py-2">
                 <span
