@@ -38,13 +38,22 @@ ENV = os.environ.get("ENVIRONMENT", "dev")
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 
 
+def _params() -> dict:
+    """Parse params/<env>.json into a ParameterKey→ParameterValue dict."""
+    data = json.loads(PARAMS_FILE.read_text())
+    return {p["ParameterKey"]: p.get("ParameterValue", "")
+            for p in data if "ParameterKey" in p}
+
+
+PARAMS = _params()
+
+
 def _project_from_params() -> str:
     """Mirror deploy.sh: ProjectName comes from params/<env>.json."""
-    data = json.loads(PARAMS_FILE.read_text())
-    for p in data:
-        if p.get("ParameterKey") == "ProjectName":
-            return p["ParameterValue"]
-    raise SystemExit(f"ProjectName not found in {PARAMS_FILE}")
+    name = PARAMS.get("ProjectName")
+    if not name:
+        raise SystemExit(f"ProjectName not found in {PARAMS_FILE}")
+    return name
 
 
 PROJECT = os.environ.get("PROJECT") or _project_from_params()
@@ -116,6 +125,18 @@ def write_env_production(cf_domain: str) -> Path:
     client_id = _export(f"{PREFIX}-UserPoolClientId")
     domain_prefix = "poc-st21arbiter"  # mirrors params/dev.json::CognitoDomainPrefix
 
+    # LLM Control panel config — mirrored from params/dev.json so the page's
+    # guardrail header + Agent Registry match what deploy_agents.py provisions.
+    default_model = PARAMS.get("DefaultModelId", "us.amazon.nova-2-lite-v1:0")
+
+    def _model(key: str) -> str:
+        return PARAMS.get(key, "") or default_model
+
+    guardrail_name = f"{PREFIX}-guardrail"
+    guardrail_id = PARAMS.get("GuardrailId", "")
+    guardrail_version = PARAMS.get("GuardrailVersion", "") or "DRAFT"
+    guardrail_versions = PARAMS.get("GuardrailVersions", "") or guardrail_version
+
     env_path = REPO / "ui" / ".env.production"
     env_path.write_text(
         f"VITE_API_URL={api_url}\n"
@@ -127,6 +148,15 @@ def write_env_production(cf_domain: str) -> Path:
         f"VITE_COGNITO_DOMAIN={domain_prefix}.auth.{REGION}.amazoncognito.com\n"
         f"VITE_COGNITO_REDIRECT_URI=https://{cf_domain}/callback\n"
         f"VITE_COGNITO_LOGOUT_URI=https://{cf_domain}/\n"
+        f"\n"
+        f"VITE_GUARDRAIL_NAME={guardrail_name}\n"
+        f"VITE_GUARDRAIL_ID={guardrail_id}\n"
+        f"VITE_GUARDRAIL_VERSION={guardrail_version}\n"
+        f"VITE_GUARDRAIL_VERSIONS={guardrail_versions}\n"
+        f"VITE_MASTER_MODEL_ID={_model('MasterModelId')}\n"
+        f"VITE_SHAREPOINT_MODEL_ID={_model('SharepointModelId')}\n"
+        f"VITE_AWSCONFIG_MODEL_ID={_model('AwsConfigModelId')}\n"
+        f"VITE_ZSCALER_MODEL_ID={_model('ZscalerModelId')}\n"
     )
     print(f"  → wrote {env_path}")
     return env_path

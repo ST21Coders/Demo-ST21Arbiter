@@ -55,6 +55,16 @@ logger.setLevel(logging.INFO)
 
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 MASTER_AGENT_RUNTIME_ARN = os.environ.get("MASTER_AGENT_RUNTIME_ARN", "").strip()
+# Specialist runtime ARNs for direct (per-agent) chat routing from the MCP page.
+# Patched onto this Lambda by scripts/deploy_agents.py alongside the master ARN.
+# A "target" of master (or absent) keeps the orchestrator fan-out behaviour.
+SPECIALIST_RUNTIME_ARNS = {
+    "master":     MASTER_AGENT_RUNTIME_ARN,
+    "sharepoint": os.environ.get("SHAREPOINT_RUNTIME_ARN", "").strip(),
+    "awsconfig":  os.environ.get("AWSCONFIG_RUNTIME_ARN", "").strip(),
+    "zscaler":    os.environ.get("ZSCALER_RUNTIME_ARN", "").strip(),
+    "jira":       os.environ.get("JIRA_RUNTIME_ARN", "").strip(),
+}
 SESSIONS_TABLE = os.environ.get("SESSIONS_TABLE", "")
 CONFLICTS_TABLE = os.environ.get("CONFLICTS_TABLE", "")
 CONFLICTS_TABLE_V2 = os.environ.get("CONFLICTS_TABLE_V2", "")
@@ -82,6 +92,8 @@ MAX_LIST_KEYS = 200                 # cap list responses; bucket-listing isn't p
 _emit_cors_headers = True
 
 agentcore = boto3.client("bedrock-agentcore", region_name=REGION)
+# Control-plane client for runtime lifecycle/status (list_agent_runtimes).
+agentcore_control = boto3.client("bedrock-agentcore-control", region_name=REGION)
 lambda_client = boto3.client("lambda", region_name=REGION)
 ddb = boto3.resource("dynamodb", region_name=REGION)
 sessions_table = ddb.Table(SESSIONS_TABLE) if SESSIONS_TABLE else None
@@ -179,6 +191,9 @@ def handler(event, context):
     if path == "/mcp-health" and method == "GET":
         return _handle_mcp_health(event)
 
+    if path == "/agent-status" and method == "GET":
+        return _handle_agent_status(event)
+
     if path == "/jira/tickets" and method == "POST":
         return _handle_jira_create(event)
 
@@ -226,8 +241,13 @@ def _handle_chat(event):
     if not prompt:
         return _err(400, "Missing 'prompt' in request body")
 
-    if not MASTER_AGENT_RUNTIME_ARN:
-        return _err(503, "Master runtime ARN not configured (run scripts/deploy_agents.py)")
+    # Direct per-agent routing: the MCP page sends a "target" naming the
+    # specialist to invoke; the Analyst page sends none → master orchestrator.
+    # An unknown target falls back to master for backward compatibility.
+    target = (body.get("target") or "master").strip().lower()
+    runtime_arn = SPECIALIST_RUNTIME_ARNS.get(target) or MASTER_AGENT_RUNTIME_ARN
+    if not runtime_arn:
+        return _err(503, f"Runtime ARN for '{target}' not configured (run scripts/deploy_agents.py)")
 
     actor_id = _caller_user_id(event) or "anonymous"
     # Frontend generates session_id when starting a new chat; "adhoc" means
@@ -248,7 +268,7 @@ def _handle_chat(event):
 
     try:
         resp = agentcore.invoke_agent_runtime(
-            agentRuntimeArn=MASTER_AGENT_RUNTIME_ARN,
+            agentRuntimeArn=runtime_arn,
             payload=json.dumps({
                 "prompt": prompt,
                 "session_id": session_id,
@@ -1120,48 +1140,118 @@ def _handle_mcp_health(event):
     return _ok({"summary": summary, "servers": servers})
 
 
-# ──────────────────────────── /jira/tickets ─────────────────────
-def _handle_jira_create(event):
-    """Mock JIRA ticket creation from the ActionCenter UI.
+# ──────────────────────────── /agent-status ─────────────────────
+_AGENT_DISPLAY_NAMES = {
+    "sharepoint": "SharePoint Specialist",
+    "awsconfig":  "AWS Config Specialist",
+    "zscaler":    "Zscaler ZIA Specialist",
+    "jira":       "JIRA Specialist",
+}
 
-    Real ticket creation happens through the Atlassian MCP plugin in the
-    user's Claude session — see Master agent's jira_create_ticket tool.
-    Lambda path returns a deterministic-looking mock key and writes an
-    audit row so the UI flow is end-to-end testable in production.
+
+def _handle_agent_status(event):
+    """Live status of the ARBITER specialist runtimes for the MCP page.
+
+    Calls bedrock-agentcore-control list_agent_runtimes and matches each
+    specialist by its configured ARN (patched onto this Lambda by
+    deploy_agents.py) → {id, name, status}. Agents not yet deployed (no ARN, or
+    the ARN isn't in the live list) report PLACEHOLDER. ServiceNow is a static
+    placeholder (no agent). Matching by ARN avoids hardcoding the project name.
+    """
+    arn_to_status: dict[str, str] = {}
+    try:
+        paginator = agentcore_control.get_paginator("list_agent_runtimes")
+        for page in paginator.paginate():
+            for r in page.get("agentRuntimes", []):
+                arn_to_status[r.get("agentRuntimeArn", "")] = r.get("status", "UNKNOWN")
+    except Exception as e:
+        logger.warning("list_agent_runtimes failed: %s", e)
+
+    servers = []
+    for agent_id, name in _AGENT_DISPLAY_NAMES.items():
+        arn = SPECIALIST_RUNTIME_ARNS.get(agent_id, "")
+        status = arn_to_status.get(arn, "PLACEHOLDER") if arn else "PLACEHOLDER"
+        servers.append({"id": agent_id, "name": name, "status": status})
+    # ServiceNow has no runtime yet — static placeholder card.
+    servers.append({"id": "servicenow", "name": "ServiceNow", "status": "PLACEHOLDER"})
+    return _ok({"servers": servers})
+
+
+# ──────────────────────────── /jira/tickets ─────────────────────
+def _audit_jira(event, *, key, summary, severity, conflict_id, status, mock):
+    """Best-effort audit row for a JIRA link/create."""
+    if not audit_table:
+        return
+    try:
+        audit_table.put_item(Item={
+            "event_id": f"jira-{key}",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "action_type": "JIRA_LINKED",
+            "resource": conflict_id or summary,
+            "user": (_caller_user_id(event) or "anonymous"),
+            "status": status,
+            "details": json.dumps({"jira_ticket_key": key, "summary": summary,
+                                   "severity": severity, "mock": mock}),
+        })
+    except Exception:
+        logger.exception("JIRA audit write failed")
+
+
+def _handle_jira_create(event):
+    """Create a real JIRA issue via the jira_specialist AgentCore runtime.
+
+    The ActionCenter UI sends an editable summary + description and a project
+    key (DEVARBITER). We invoke the JIRA runtime's deterministic create path
+    ({"action": "create_issue", ...}) which calls mcp-atlassian directly and
+    returns {key, url}. If the runtime isn't deployed, fall back to a mock key
+    so the demo flow still renders.
     """
     try:
         body = json.loads(event.get("body") or "{}")
     except json.JSONDecodeError:
         return _err(400, "Invalid JSON body")
     conflict_id = (body.get("conflict_id") or "").strip()
-    summary = (body.get("summary") or "").strip() or f"ARBITER finding {conflict_id or 'unspecified'}"
-    project_key = (body.get("project_key") or "MIG").strip()
+    summary = (body.get("summary") or body.get("title") or "").strip() or f"ARBITER finding {conflict_id or 'unspecified'}"
+    description = (body.get("description") or "").strip()
+    project_key = (body.get("project_key") or "DEVARBITER").strip()
     severity = (body.get("severity") or "MEDIUM").strip()
 
-    # Sub-second hashing keeps the mock key visually distinct between calls.
-    import hashlib
-    suffix = int(hashlib.sha256(summary.encode("utf-8")).hexdigest()[:6], 16) % 100000
-    mock_key = f"{project_key}-MOCK-{suffix:05d}"
+    jira_arn = SPECIALIST_RUNTIME_ARNS.get("jira")
+    if not jira_arn:
+        # JIRA runtime not deployed yet — mock so the UI flow still works.
+        import hashlib
+        suffix = int(hashlib.sha256(summary.encode("utf-8")).hexdigest()[:6], 16) % 100000
+        mock_key = f"{project_key}-MOCK-{suffix:05d}"
+        _audit_jira(event, key=mock_key, summary=summary, severity=severity,
+                    conflict_id=conflict_id, status="MOCK", mock=True)
+        return _ok({"status": "mock", "jira_ticket_key": mock_key,
+                    "note": "JIRA runtime not configured — run scripts/deploy_agents.py."})
 
-    if audit_table:
-        try:
-            audit_table.put_item(Item={
-                "event_id": f"jira-{mock_key}",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "action_type": "JIRA_LINKED",
-                "resource": conflict_id or summary,
-                "user": (_caller_user_id(event) or "anonymous"),
-                "status": "COMPLETED",
-                "details": json.dumps({"jira_ticket_key": mock_key, "summary": summary, "severity": severity}),
-            })
-        except Exception:
-            logger.exception("JIRA audit write failed")
+    try:
+        resp = agentcore.invoke_agent_runtime(
+            agentRuntimeArn=jira_arn,
+            payload=json.dumps({
+                "action": "create_issue",
+                "project_key": project_key,
+                "summary": summary,
+                "description": description,
+                "issue_type": "Task",
+            }).encode("utf-8"),
+            contentType="application/json",
+            accept="application/json",
+        )
+        parsed = json.loads(resp["response"].read().decode("utf-8"))
+    except Exception as e:
+        logger.exception("JIRA runtime invocation failed")
+        return _err(502, f"{type(e).__name__}: {e}")
 
-    return _ok({
-        "status": "not_implemented_in_lambda",
-        "mock_ticket_key": mock_key,
-        "note": "Real JIRA ticket creation runs via the Atlassian MCP plugin in the Analyst chat.",
-    })
+    key = parsed.get("key")
+    if not key:
+        return _err(502, f"JIRA create failed: {parsed.get('error') or parsed.get('result') or 'no issue key returned'}")
+
+    _audit_jira(event, key=key, summary=summary, severity=severity,
+                conflict_id=conflict_id, status="COMPLETED", mock=False)
+    return _ok({"status": "created", "jira_ticket_key": key, "url": parsed.get("url")})
 
 
 # ──────────────────────────── POST /scan ────────────────────────

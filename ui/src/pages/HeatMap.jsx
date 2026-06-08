@@ -9,6 +9,10 @@ import {
   buildConflictMatrix, buildDomainSourceMatrix,
   DOMAIN_LABELS, DOMAIN_KEYS, SOURCE_PAIRS,
 } from '../mockData'
+import { AGENT_MODELS, modelLabel } from '../config'
+
+// Foundation model name, mirrored from params/dev.json (default Nova 2 Lite).
+const MODEL_NAME = modelLabel(AGENT_MODELS.master)
 
 // ─── Architecture topology definitions ────────────────────────────────────────
 
@@ -75,16 +79,16 @@ const AGENTCORE = {
     color: '#6d28d9',
     status: 'ACTIVE',
     lines: [
-      'Haiku 4.5 × 4 — DOC · NET · ZSC · IAM specialists',
-      'Sonnet 4.6 × 2 — Conflict Reasoner · Remediation',
+      `${MODEL_NAME} × 4 — DOC · NET · ZSC · IAM specialists`,
+      `${MODEL_NAME} × 2 — Conflict Reasoner · Remediation`,
     ],
     agents: [
-      { id: 'doc-specialist',  name: 'DOC specialist',   model: 'claude-haiku-4-5',  role: 'SharePoint document analysis' },
-      { id: 'net-specialist',  name: 'NET specialist',   model: 'claude-haiku-4-5',  role: 'Network / VPC analysis' },
-      { id: 'zsc-specialist',  name: 'ZSC specialist',   model: 'claude-haiku-4-5',  role: 'Zscaler URL category analysis' },
-      { id: 'iam-specialist',  name: 'IAM specialist',   model: 'claude-haiku-4-5',  role: 'IAM / S3 policy analysis' },
-      { id: 'conflict-reasoner', name: 'Conflict Reasoner', model: 'claude-sonnet-4-6', role: 'Cross-domain conflict determination' },
-      { id: 'remediation',      name: 'Remediation Planner', model: 'claude-sonnet-4-6', role: 'Ordered remediation plans' },
+      { id: 'doc-specialist',  name: 'DOC specialist',   model: MODEL_NAME,  role: 'SharePoint document analysis' },
+      { id: 'net-specialist',  name: 'NET specialist',   model: MODEL_NAME,  role: 'Network / VPC analysis' },
+      { id: 'zsc-specialist',  name: 'ZSC specialist',   model: MODEL_NAME,  role: 'Zscaler URL category analysis' },
+      { id: 'iam-specialist',  name: 'IAM specialist',   model: MODEL_NAME,  role: 'IAM / S3 policy analysis' },
+      { id: 'conflict-reasoner', name: 'Conflict Reasoner', model: MODEL_NAME, role: 'Cross-domain conflict determination' },
+      { id: 'remediation',      name: 'Remediation Planner', model: MODEL_NAME, role: 'Ordered remediation plans' },
     ],
   },
 }
@@ -465,7 +469,7 @@ function NodeDetail({ id, onClose }) {
   } else if (id === 'agentcore-runtime') {
     title = AGENTCORE.runtime.label
     sub = AGENTCORE.runtime.sub
-    body = <p className="text-xs text-slate-600">Master Orchestrator — coordinates the 6 Bedrock Agents, dispatches tool calls through the Gateway, and writes findings to Memory. Sonnet 4.6 with extended thinking enabled.</p>
+    body = <p className="text-xs text-slate-600">Master Orchestrator — coordinates the 6 Bedrock Agents, dispatches tool calls through the Gateway, and writes findings to Memory. {MODEL_NAME} with extended thinking enabled.</p>
   } else if (id === 'agentcore-memory') {
     title = AGENTCORE.memory.label
     sub = AGENTCORE.memory.sub
@@ -747,7 +751,7 @@ function ServiceHealth() {
     { id: 'processing', name: PROCESSING.label, type: 'Pipeline', status: PROCESSING.status, version: PROCESSING.sub, detail: 'Lambda · concurrency 50' },
     ...STORAGE.map(s => ({ id: s.id, name: s.label, type: 'Storage', status: s.status, version: s.sub, detail: '—' })),
     { id: 'gw',  name: AGENTCORE.gateway.label,  type: 'AgentCore', status: AGENTCORE.gateway.status,  version: AGENTCORE.gateway.sub,  detail: `${AGENTCORE.gateway.tools.length} tools registered` },
-    { id: 'rt',  name: AGENTCORE.runtime.label,  type: 'AgentCore', status: AGENTCORE.runtime.status,  version: AGENTCORE.runtime.sub,  detail: 'claude-sonnet-4-6' },
+    { id: 'rt',  name: AGENTCORE.runtime.label,  type: 'AgentCore', status: AGENTCORE.runtime.status,  version: AGENTCORE.runtime.sub,  detail: MODEL_NAME },
     { id: 'mm',  name: AGENTCORE.memory.label,   type: 'AgentCore', status: AGENTCORE.memory.status,   version: AGENTCORE.memory.sub,   detail: 'short + long term stores' },
     ...AGENTCORE.bedrockAgents.agents.map(a => ({ id: a.id, name: a.name, type: 'Bedrock Agent', status: 'ACTIVE', version: a.model, detail: a.role })),
     ...OUTPUTS.map(o => ({ id: o.id, name: o.label, type: 'Output sink', status: o.status, version: o.sub, detail: '—' })),

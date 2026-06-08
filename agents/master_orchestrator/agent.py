@@ -13,6 +13,7 @@ Environment variables (set via AgentCore Runtime configuration):
   SHAREPOINT_RUNTIME_ARN   ARN of the sharepoint_specialist runtime
   AWSCONFIG_RUNTIME_ARN    ARN of the awsconfig_specialist runtime
   ZSCALER_RUNTIME_ARN      ARN of the zscaler_specialist runtime
+  JIRA_RUNTIME_ARN         ARN of the jira_specialist runtime
   MODEL_ID                 Bedrock model (default: Nova 2 Lite cross-region inference profile)
   GUARDRAIL_ID             Bedrock guardrail (optional)
   GUARDRAIL_VERSION        Guardrail version (default: DRAFT)
@@ -50,12 +51,14 @@ SESSIONS_TABLE = os.environ.get("SESSIONS_TABLE", "").strip()
 SHAREPOINT_RUNTIME_ARN = os.environ.get("SHAREPOINT_RUNTIME_ARN", "")
 AWSCONFIG_RUNTIME_ARN = os.environ.get("AWSCONFIG_RUNTIME_ARN", "")
 ZSCALER_RUNTIME_ARN = os.environ.get("ZSCALER_RUNTIME_ARN", "")
+JIRA_RUNTIME_ARN = os.environ.get("JIRA_RUNTIME_ARN", "")
 
 _missing = [
     name for name, val in [
         ("SHAREPOINT_RUNTIME_ARN", SHAREPOINT_RUNTIME_ARN),
         ("AWSCONFIG_RUNTIME_ARN", AWSCONFIG_RUNTIME_ARN),
         ("ZSCALER_RUNTIME_ARN", ZSCALER_RUNTIME_ARN),
+        ("JIRA_RUNTIME_ARN", JIRA_RUNTIME_ARN),
     ] if not val
 ]
 if _missing:
@@ -73,9 +76,10 @@ enterprise security analysts.
 
 WORKFLOW
 1. Call the relevant specialist tools (sharepoint_lookup, awsconfig_lookup,
-   zscaler_lookup) to gather evidence. Run them in parallel when the query
-   spans multiple domains. Skip a tool if the query clearly does not touch
-   that source.
+   zscaler_lookup, jira_lookup) to gather evidence. Run them in parallel when
+   the query spans multiple domains. Skip a tool if the query clearly does not
+   touch that source. Use jira_lookup for questions about Jira issues/tickets
+   or to raise a ticket for a confirmed conflict.
 2. When the user asks about LIVE findings, the latest scan, or current
    compliance posture (rather than what a policy *says*), prefer the
    conflicts/scan-history tools (query_conflicts, query_scan_runs) so the
@@ -196,6 +200,17 @@ def zscaler_lookup(query: str) -> str:
         query: Natural-language query, e.g. "is github.com allowed for engineering?".
     """
     return _invoke_runtime(ZSCALER_RUNTIME_ARN, query)
+
+
+@tool
+def jira_lookup(query: str) -> str:
+    """Look up or act on Jira issues, tickets, projects, and sprints.
+
+    Args:
+        query: Natural-language query, e.g. "open issues assigned to me in MIG"
+            or "create a bug for the dropbox URL conflict".
+    """
+    return _invoke_runtime(JIRA_RUNTIME_ARN, query)
 
 
 # ──────────────────────────── Memory helpers ──────────────────────
@@ -363,7 +378,7 @@ def build_agent() -> Agent:
     return Agent(
         model=BedrockModel(**model_kwargs),
         system_prompt=SYSTEM_PROMPT,
-        tools=[sharepoint_lookup, awsconfig_lookup, zscaler_lookup],
+        tools=[sharepoint_lookup, awsconfig_lookup, zscaler_lookup, jira_lookup],
     )
 
 

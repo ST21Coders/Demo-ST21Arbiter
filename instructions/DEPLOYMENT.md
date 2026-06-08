@@ -16,7 +16,7 @@ CodeBuild image builds).
    anyway and run in a no-op fallback: files still move raw→processed, but
    the auto-ingest chain and the scheduled scanner are off.
 2. **Out-of-band scripts** — `setup_bedrock_kb.py` (creates the KB +
-   Guardrail) + `deploy_agents.py` (builds + ships the 4 AgentCore runtimes).
+   Guardrail) + `deploy_agents.py` (builds + ships the 5 AgentCore runtimes).
 3. **Second pass** — after patching the resulting IDs into
    `Infra/params/dev.json`, re-run `./deploy.sh`. Both stacks pick up the new
    env vars; the F1 auto-detect chain and the scheduled scanner activate.
@@ -340,11 +340,23 @@ aws bedrock-agentcore-control get-memory --memory-id <MEMORY_ID> --region us-eas
 
 ---
 
-## 7. Build & deploy the 4 AgentCore Runtimes
+## 7. Build & deploy the 5 AgentCore Runtimes
 
 `scripts/deploy_agents.py` provisions a CodeBuild project (Graviton/arm64),
 builds each agent image, pushes to ECR, then creates/updates the AgentCore
-Runtimes and patches the api_handler Lambda with the resulting master ARN.
+Runtimes and patches the api_handler Lambda with the resulting runtime ARNs
+(master + each specialist, for the MCP page's per-agent chat routing).
+
+> **JIRA secret (optional, for the JIRA specialist):** the `jira-specialist`
+> runtime reads Jira credentials from Secrets Manager id `dev/st21arbiter-poc/jira`.
+> Create it before this step, or the agent runs in "(JIRA not configured)" mode:
+> ```bash
+> aws secretsmanager create-secret --region us-east-1 \
+>   --name dev/st21arbiter-poc/jira \
+>   --secret-string '{"url":"https://<your>.atlassian.net","email":"<you>@<co>.com","api_token":"<token>"}'
+> ```
+> `url` = Jira Cloud base URL · `email` = Atlassian account (USER) · `api_token`
+> from id.atlassian.com → Security → API tokens. Never commit these values.
 
 ```bash
 cd ST21-ARBITER
@@ -366,7 +378,7 @@ aws bedrock-agentcore-control list-agent-runtimes --region us-east-1 \
   --output table
 ```
 
-Four runtimes in `READY` state.
+Five runtimes in `READY` state (sharepoint, awsconfig, zscaler, jira, master).
 
 ```bash
 aws lambda get-function-configuration --function-name dev-st21arbiter-poc-api-handler \

@@ -62,6 +62,21 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-awsconfig-specialist"
 
+  JiraSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/jira-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-jira-specialist"
+
   # ──────────────────────────── AgentCore Runtime Role ─────────
   # Assumed by the bedrock-agentcore service to run agent containers.
   # Permissions cover: model invocation, KB retrieval, ECR image pull,
@@ -213,6 +228,109 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-agentcore-runtime-role"
 
+  # ──────────────────────────── JIRA Agent Runtime Role ───────
+  # Tier-0 least-privilege role for the jira_specialist runtime ONLY. The
+  # JIRA agent calls an EXTERNAL SaaS (Jira Cloud) and must not inherit the
+  # shared role's broad grants (AWS Config, KB retrieve, sessions table,
+  # AgentCore Memory). It needs only: read its one secret, invoke the model +
+  # guardrail, pull its image, write its logs, decrypt with the relevant CMKs,
+  # trace, manage its ENIs, and write its token-usage row. deploy_agents.py
+  # attaches this role to the jira runtime via the `role_export` override.
+  JiraAgentRuntimeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-jira-agent-runtime-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: bedrock-agentcore.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: JiraAgentRuntimePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: BedrockModelAndGuardrail
+                Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                  - bedrock:ApplyGuardrail
+                Resource: "*"
+              - Sid: JiraSecretOnly
+                # Scoped to the single Jira secret (Secrets Manager appends a
+                # random 6-char suffix, hence the trailing wildcard). No access
+                # to any other secret under the project path.
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Environment}/${ProjectName}/jira-*"
+              - Sid: TokenUsageWrite
+                Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Environment}-${ProjectName}-token-usage"
+              - Sid: ECRImagePull
+                Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource: "*"
+              - Sid: CloudWatchLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                Resource:
+                  - !Sub
+                    - "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/${RuntimePrefix}_jira_specialist*"
+                    - RuntimePrefix: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}"]]
+                  - !Sub
+                    - "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/${RuntimePrefix}_jira_specialist*:*"
+                    - RuntimePrefix: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}"]]
+              - Sid: KMSDecrypt
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                  - kms:DescribeKey
+                Resource:
+                  # DataAtRest: ECR image layers. Secrets: the Jira secret (if
+                  # re-encrypted with the CMK). DynamoDB: token-usage table CMK —
+                  # required or PutItem silently fails (encryption context).
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-SecretsKeyArn"
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+              - Sid: XRay
+                Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                Resource: "*"
+              - Sid: VPCNetworking
+                Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:AssignPrivateIpAddresses
+                  - ec2:UnassignPrivateIpAddresses
+                Resource: "*"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-jira-agent-runtime-role"
+
   # ──────────────────────────── AgentCore Security Group ───────
   # Outbound-only. Inbound is not used because invocations come in over
   # the AgentCore service's managed ingress, not directly into the VPC.
@@ -237,6 +355,10 @@ Outputs:
     Value: !GetAtt AgentCoreRuntimeRole.Arn
     Export:
       Name: !Sub "${Environment}-${ProjectName}-AgentCoreRuntimeRoleArn"
+  JiraAgentRuntimeRoleArn:
+    Value: !GetAtt JiraAgentRuntimeRole.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-JiraAgentRuntimeRoleArn"
   AgentCoreSGId:
     Value: !Ref AgentCoreSG
     Export:
@@ -249,3 +371,7 @@ Outputs:
     Value: !GetAtt AwsConfigSpecialistRepo.RepositoryUri
     Export:
       Name: !Sub "${Environment}-${ProjectName}-AwsConfigSpecialistRepoUri"
+  JiraSpecialistRepoUri:
+    Value: !GetAtt JiraSpecialistRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-JiraSpecialistRepoUri"

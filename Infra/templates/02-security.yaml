@@ -123,6 +123,9 @@ Resources:
                   - bedrock-agentcore:InvokeAgentRuntime
                   - bedrock-agentcore:ListEvents
                   - bedrock-agentcore:GetEvent
+                  # Read-only runtime status for GET /agent-status (MCP page).
+                  - bedrock-agentcore:ListAgentRuntimes
+                  - bedrock-agentcore:GetAgentRuntime
                   - bedrock:InvokeModel
                   - bedrock:Retrieve
                   - bedrock:ApplyGuardrail

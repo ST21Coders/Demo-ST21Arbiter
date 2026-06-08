@@ -1,29 +1,29 @@
 import { useState } from 'react'
 import { Shield, AlertTriangle, Eye, Lock, ToggleLeft, ToggleRight, Info, CheckCircle } from 'lucide-react'
+import { GUARDRAIL, AGENT_MODELS } from '../config'
 
+// The four AgentCore runtimes actually deployed by scripts/deploy_agents.py.
+// Models are mirrored from params/dev.json via config.js (default Nova 2 Lite).
 const AGENTS = [
-  { id: 'master',      name: 'Master Orchestrator',  model: 'claude-sonnet-4-6-20251006-v1:0', role: 'Conflict detection & sub-agent coordination' },
-  { id: 'doc',         name: 'Document Specialist',  model: 'claude-haiku-4-5-20251001-v1:0',  role: 'Policy document analysis (SharePoint)' },
-  { id: 'net',         name: 'Network Specialist',   model: 'claude-haiku-4-5-20251001-v1:0',  role: 'Security group & VPC analysis (AWSConfig)' },
-  { id: 'zsc',         name: 'Zscaler Specialist',   model: 'claude-haiku-4-5-20251001-v1:0',  role: 'URL categorization analysis (Zscaler ZIA)' },
-  { id: 'iam',         name: 'IAM & Data Specialist', model: 'claude-haiku-4-5-20251001-v1:0', role: 'S3 / IAM policy analysis (AWSConfig)' },
-  { id: 'reasoner',    name: 'Conflict Reasoner',    model: 'claude-sonnet-4-6-20251006-v1:0', role: 'Cross-domain conflict determination & scoring' },
-  { id: 'remediation', name: 'Remediation Planner',  model: 'claude-sonnet-4-6-20251006-v1:0', role: 'Generates ordered remediation steps' },
+  { id: 'master',     name: 'Master Orchestrator', runtime: 'dev_st21arbiter_poc_master_orchestrator', model: AGENT_MODELS.master,     role: 'Conflict detection & specialist coordination' },
+  { id: 'sharepoint', name: 'SharePoint Specialist', runtime: 'dev_st21arbiter_poc_sharepoint_specialist', model: AGENT_MODELS.sharepoint, role: 'Policy document analysis (SharePoint KB)' },
+  { id: 'awsconfig',  name: 'AWSConfig Specialist', runtime: 'dev_st21arbiter_poc_awsconfig_specialist',  model: AGENT_MODELS.awsconfig,  role: 'Security group / IAM / S3 posture (AWS Config)' },
+  { id: 'zscaler',    name: 'Zscaler Specialist',  runtime: 'dev_st21arbiter_poc_zscaler_specialist',   model: AGENT_MODELS.zscaler,    role: 'URL categorization & allowlist analysis (Zscaler ZIA)' },
 ]
 
+// Denied topics (topicPolicyConfig) from scripts/setup_bedrock_kb.py.
 const GUARDRAIL_TOPICS = [
-  { id: 'sec_bypass',   label: 'Security Bypass',    desc: 'Blocks attempts to bypass security controls or guardrails', active: true },
-  { id: 'audit_hiding', label: 'Audit Hiding',       desc: 'Blocks requests to suppress or falsify audit records',      active: true },
-  { id: 'cred_sharing', label: 'Credential Sharing', desc: 'Blocks disclosure of credentials or access keys',           active: true },
+  { id: 'cred_disclosure', label: 'Credential Disclosure',     desc: 'Requests asking the agent to reveal stored credentials, API keys, or secrets', active: true },
+  { id: 'infra_destruct',  label: 'Infrastructure Destruction', desc: 'Requests to delete VPCs, subnets, production databases, or critical infrastructure', active: true },
+  { id: 'politics',        label: 'Politics',                   desc: 'Requests for political opinions, endorsements, or partisan commentary', active: true },
 ]
 
+// PII entities (sensitiveInformationPolicyConfig) from scripts/setup_bedrock_kb.py.
 const PII_RULES = [
-  { label: 'Email address',  action: 'ANONYMIZE' },
-  { label: 'SSN',            action: 'BLOCK' },
-  { label: 'Credit card',    action: 'BLOCK' },
-  { label: 'AWS Access Key', action: 'BLOCK' },
-  { label: 'AWS Secret Key', action: 'BLOCK' },
-  { label: 'Password',       action: 'BLOCK' },
+  { label: 'US Social Security Number', action: 'ANONYMIZE' },
+  { label: 'Credit / Debit card',      action: 'ANONYMIZE' },
+  { label: 'AWS Access Key',           action: 'BLOCK' },
+  { label: 'AWS Secret Key',           action: 'BLOCK' },
 ]
 
 function Toggle({ on, onChange, disabled }) {
@@ -44,6 +44,7 @@ function Toggle({ on, onChange, disabled }) {
 export default function LLMControl() {
   const [guardrailEnabled, setGuardrailEnabled] = useState(true)
   const [topics, setTopics] = useState(GUARDRAIL_TOPICS)
+  const [version, setVersion] = useState(GUARDRAIL.version)
 
   function toggleTopic(id) {
     setTopics(prev => prev.map(t => t.id === id ? { ...t, active: !t.active } : t))
@@ -69,10 +70,24 @@ export default function LLMControl() {
             <Shield size={20} className={guardrailEnabled ? 'text-indigo-600' : 'text-red-600'} />
             <div>
               <p className="font-semibold text-slate-900 text-sm">Bedrock Guardrail</p>
-              <p className="text-xs text-slate-600">mig-arbiter-guardrail · All LLM calls wrapped</p>
+              <p className="text-xs text-slate-600">{GUARDRAIL.name}</p>
             </div>
           </div>
-          <Toggle on={guardrailEnabled} onChange={setGuardrailEnabled} />
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 text-xs text-slate-600">
+              <span className="text-slate-500">Version</span>
+              <select
+                value={version}
+                onChange={(e) => setVersion(e.target.value)}
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              >
+                {GUARDRAIL.versions.map(v => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </label>
+            <Toggle on={guardrailEnabled} onChange={setGuardrailEnabled} />
+          </div>
         </div>
 
         {!guardrailEnabled && (
@@ -131,9 +146,10 @@ export default function LLMControl() {
             <div key={agent.id}
                  className={`flex items-start gap-3 py-3 ${i < AGENTS.length - 1 ? 'border-b border-slate-100' : ''}`}>
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 flex-shrink-0" />
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-slate-900">{agent.name}</p>
                 <p className="text-xs text-slate-500 mt-0.5">{agent.role}</p>
+                <p className="text-[10px] font-mono text-slate-400 mt-0.5 truncate">{agent.runtime}</p>
               </div>
               <div className="text-right flex-shrink-0">
                 <p className="text-xs font-mono text-indigo-700 truncate max-w-[240px]">{agent.model}</p>
@@ -150,8 +166,9 @@ export default function LLMControl() {
       <div className="rounded-xl px-4 py-3 flex items-start gap-2 bg-slate-50 border border-slate-200">
         <Info size={12} className="text-slate-400 mt-0.5 flex-shrink-0" />
         <p className="text-xs text-slate-500">
-          In POC mode these toggles update local state only. Once connected to AWS, changes will call the
-          Bedrock Guardrails API to update the live guardrail version and SSM Parameter Store for model overrides.
+          Toggles and the version selector update local state only. Guardrail id/version and per-agent
+          models are sourced from Infra/params/dev.json at build time; to change a foundation model,
+          edit dev.json and re-run scripts/deploy_agents.py.
         </p>
       </div>
     </div>
