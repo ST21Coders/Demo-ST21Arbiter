@@ -123,6 +123,7 @@ def record_usage(
     input_tokens: int,
     output_tokens: int,
     guardrail_blocked: bool = False,
+    user_email: str = "",
 ) -> None:
     """Best-effort write of one usage record to DDB. Never raises.
 
@@ -130,6 +131,10 @@ def record_usage(
     pre-Bedrock failures and would dilute the KPI averages without signal.
     Defensively clamps persona to the known set so a typo upstream doesn't
     bypass the GSI partitioning.
+
+    `user_email` is the user's real email forwarded from the API handler. When
+    empty (legacy callers that have not been updated yet), fall back to
+    `actor_id` so the column is never blank on the DDB row.
     """
     if not _table():
         return
@@ -145,6 +150,9 @@ def record_usage(
     timestamp = now.isoformat()
     session_id_safe = (session_id or "adhoc")[:128]
     actor_id_safe = (actor_id or "anonymous")[:128]
+    # Real email when forwarded, else fall back to the Cognito sub so the
+    # column is never blank and legacy callers don't regress.
+    user_email_safe = (user_email or "").strip()[:200] or actor_id_safe
     # Mix a short uuid into the SK so master + specialists with sub-millisecond
     # timestamps never collide on identical (timestamp, session, agent).
     sk = f"ts#{timestamp}#{session_id_safe}#{agent_safe}#{uuid.uuid4().hex[:6]}"
@@ -155,7 +163,8 @@ def record_usage(
         "timestamp": timestamp,
         "agent": agent_safe,
         "persona": persona_safe,
-        "user_email": actor_id_safe,
+        "user_id": actor_id_safe,
+        "user_email": user_email_safe,
         "session_id": session_id_safe,
         "model_id": model_id or "",
         "input_tokens": input_t,
@@ -181,6 +190,7 @@ def record_from_agent_result(
     session_id: str,
     chat_type: str,
     model_id: str | None = None,
+    user_email: str = "",
 ) -> None:
     """Convenience wrapper: extract usage from a Strands AgentResult and write."""
     input_t, output_t = extract_usage(agent_result)
@@ -194,4 +204,5 @@ def record_from_agent_result(
         input_tokens=input_t,
         output_tokens=output_t,
         guardrail_blocked=False,
+        user_email=user_email,
     )

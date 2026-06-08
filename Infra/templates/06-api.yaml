@@ -312,6 +312,18 @@ Resources:
             RestApiId: !Ref ArbiterApi
             Path: /audit
             Method: GET
+        TokenUsageGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /token-usage
+            Method: GET
+        TokenUsageSummaryGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /token-usage/summary
+            Method: GET
         ChatPost:
           Type: Api
           Properties:

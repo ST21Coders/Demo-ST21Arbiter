@@ -22,6 +22,14 @@ const PERSONA_COLORS = {
   grc:      '#6366f1',
   employee: '#0ea5e9',
 }
+// Display labels for persona ids — used in the cost-card subtitle when a single
+// persona is filtered. Mirrors the persona ids on Cognito group memberships.
+const PERSONA_LABELS = {
+  ciso:     'CISO',
+  soc:      'SOC',
+  grc:      'GRC',
+  employee: 'Employee',
+}
 
 const RANGE_OPTIONS = [
   { id: 'today', label: 'Today',   days: 1  },
@@ -31,8 +39,11 @@ const RANGE_OPTIONS = [
 
 function startOfRange(rangeId) {
   if (rangeId === 'today') {
-    const d = new Date(); d.setHours(0, 0, 0, 0)
-    return d.getTime()
+    // Use UTC midnight so the boundary matches the backend's UTC cutoff in
+    // api_handler.py::_parse_token_usage_filters. Building from local-tz
+    // midnight drifts the "Today" window in any non-UTC system timezone.
+    const d = new Date()
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0)
   }
   const opt = RANGE_OPTIONS.find(r => r.id === rangeId) || RANGE_OPTIONS[1]
   return Date.now() - opt.days * 24 * 3600 * 1000
@@ -54,6 +65,26 @@ function formatTokens(n) {
   return String(n)
 }
 function formatCost(c) { return '$' + (c || 0).toFixed(4) }
+
+// Exported so a unit test can hit the reducer directly without going through
+// Recharts (the test stub returns null for <Tooltip>, so cost-in-tooltip can't
+// be asserted via DOM). Sums total_tokens and estimated_cost per persona and
+// returns the four-element array in canonical persona order.
+export function byPersonaWithCost(records) {
+  const acc = {}
+  for (const r of records) {
+    const prev = acc[r.persona] || { tokens: 0, cost: 0 }
+    acc[r.persona] = {
+      tokens: prev.tokens + (r.total_tokens || 0),
+      cost:   prev.cost   + (r.estimated_cost || 0),
+    }
+  }
+  return ['ciso', 'soc', 'grc', 'employee'].map(p => ({
+    persona: p,
+    total:   acc[p]?.tokens || 0,
+    cost:    acc[p]?.cost   || 0,
+  }))
+}
 
 // Hard cap on rendered table rows so an unfiltered 30d view doesn't paint
 // thousands of <tr>s. The CSV export uses the full filtered set.
@@ -98,12 +129,14 @@ export default function TokenTracking() {
       .map(a => ({ agent: a, total: acc[a] || 0 }))
   }, [records])
 
-  const byPersona = useMemo(() => {
-    const acc = {}
-    for (const r of records) acc[r.persona] = (acc[r.persona] || 0) + r.total_tokens
-    return ['ciso', 'soc', 'grc', 'employee']
-      .map(p => ({ persona: p, total: acc[p] || 0 }))
-  }, [records])
+  const byPersona = useMemo(() => byPersonaWithCost(records), [records])
+
+  // Cost-card subtitle — names the persona context the displayed cost reflects.
+  const costSubtext = useMemo(() => {
+    if (personaFilter === 'all') return 'Across all personas · Nova 2 Lite list pricing'
+    const label = PERSONA_LABELS[personaFilter] || personaFilter
+    return `${label} · Nova 2 Lite list pricing`
+  }, [personaFilter])
 
   function exportCSV() {
     const csv = tokenUsageToCsv(records)
@@ -143,7 +176,7 @@ export default function TokenTracking() {
         <KpiCard
           label="Estimated cost"
           value={formatCost(summary.totalCost)}
-          subtext="Nova 2 Lite list pricing"
+          subtext={costSubtext}
         />
         <KpiCard
           label="Avg tokens / chat"
@@ -237,7 +270,7 @@ export default function TokenTracking() {
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="persona" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} />
               <YAxis tickFormatter={formatTokens} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} />
-              <Tooltip contentStyle={{ fontSize: 11 }} formatter={v => formatTokens(v)} />
+              <Tooltip contentStyle={{ fontSize: 11 }} content={<PersonaTooltip />} />
               <Bar dataKey="total" name="Tokens">
                 {byPersona.map((r, i) => <Cell key={i} fill={PERSONA_COLORS[r.persona]} />)}
               </Bar>
@@ -245,6 +278,11 @@ export default function TokenTracking() {
           </ResponsiveContainer>
         </ChartCard>
       </div>
+
+      {/* Per-user breakdown — derives entirely from the already-filtered records.
+          Gated on `loading` so the empty-state row doesn't briefly satisfy DOM
+          waits for the records table below before records arrive. */}
+      {!loading && <UserBreakdownCard records={records} />}
 
       {/* Records table */}
       {loading ? (
@@ -365,6 +403,125 @@ function ChartCard({ title, subtitle, children }) {
         {subtitle && <p className="text-[10px] text-slate-400">{subtitle}</p>}
       </div>
       {children}
+    </div>
+  )
+}
+
+// Recharts custom tooltip for the persona bar chart — shows both the bar value
+// (total tokens) and the per-persona cost. A `formatter` callback fires once
+// per dataKey, so to surface cost (which is not its own series) we need a
+// content-prop tooltip that reads the row payload directly.
+function PersonaTooltip({ active, payload }) {
+  if (!active || !payload || !payload.length) return null
+  const row = payload[0].payload || {}
+  const label = PERSONA_LABELS[row.persona] || row.persona
+  return (
+    <div
+      className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px]"
+      style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.08)' }}
+    >
+      <p className="font-semibold text-slate-700">{label}</p>
+      <p className="text-slate-600">Tokens: <span className="font-mono">{formatTokens(row.total)}</span></p>
+      <p className="text-slate-600">Cost: <span className="font-mono">{formatCost(row.cost)}</span></p>
+    </div>
+  )
+}
+
+// Per-user breakdown card: aggregates the filtered records by user_email and
+// renders a sortable table styled like the records table below. Persona on
+// each row is the persona on that user's most-recent row in the window.
+function UserBreakdownCard({ records }) {
+  const rows = useMemo(() => {
+    const acc = new Map()
+    for (const r of records) {
+      const key = r.user_email || '(unknown)'
+      const prev = acc.get(key) || {
+        email:    key,
+        persona:  r.persona,
+        sessions: new Set(),
+        tokens:   0,
+        cost:     0,
+        latestTs: 0,
+      }
+      prev.sessions.add(r.session_id)
+      prev.tokens += (r.total_tokens || 0)
+      prev.cost   += (r.estimated_cost || 0)
+      const ts = new Date(r.timestamp).getTime()
+      if (ts > prev.latestTs) {
+        prev.latestTs = ts
+        prev.persona  = r.persona  // persona on the most-recent row
+      }
+      acc.set(key, prev)
+    }
+    return Array.from(acc.values())
+      .map(u => ({
+        email:    u.email,
+        persona:  u.persona,
+        chats:    u.sessions.size,
+        tokens:   u.tokens,
+        cost:     u.cost,
+        latestTs: u.latestTs,
+      }))
+      .sort((a, b) => b.tokens - a.tokens)
+  }, [records])
+
+  return (
+    <div
+      className="rounded-xl overflow-hidden bg-white border border-slate-200"
+      style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}
+    >
+      <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+        <p className="text-xs font-semibold text-slate-700">Token usage by user</p>
+        <p className="text-[10px] text-slate-500 mt-0.5">
+          Aggregated across the filtered range · sorted by total tokens
+        </p>
+      </div>
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-slate-200 bg-slate-50">
+            <th className="text-left  px-4 py-3 text-slate-500 font-medium tracking-wide">User</th>
+            <th className="text-left  px-4 py-3 text-slate-500 font-medium tracking-wide">Persona</th>
+            <th className="text-right px-4 py-3 text-slate-500 font-medium tracking-wide">Chats</th>
+            <th className="text-right px-4 py-3 text-slate-500 font-medium tracking-wide">Tokens</th>
+            <th className="text-right px-4 py-3 text-slate-500 font-medium tracking-wide">Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="text-center text-slate-500 py-12">
+                No usage records in this range.
+              </td>
+            </tr>
+          ) : rows.map((u, i) => (
+            <tr
+              key={u.email}
+              className={`hover:bg-slate-50 ${i < rows.length - 1 ? 'border-b border-slate-100' : ''}`}
+            >
+              <td className="px-4 py-2 text-slate-700 max-w-[260px] truncate" title={u.email}>
+                {u.email}
+              </td>
+              <td className="px-4 py-2">
+                <span
+                  className="font-semibold uppercase text-[10px] tracking-wider"
+                  style={{ color: PERSONA_COLORS[u.persona] || '#475569' }}
+                >
+                  {u.persona}
+                </span>
+              </td>
+              <td className="px-4 py-2 text-right text-slate-700 font-mono tabular-nums">
+                {u.chats.toLocaleString()}
+              </td>
+              <td className="px-4 py-2 text-right text-slate-900 font-mono font-semibold tabular-nums">
+                {formatTokens(u.tokens)}
+              </td>
+              <td className="px-4 py-2 text-right text-slate-600 font-mono tabular-nums">
+                {formatCost(u.cost)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

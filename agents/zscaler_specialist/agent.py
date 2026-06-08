@@ -142,6 +142,7 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     persona    = (payload.get("persona")    or "employee")[:16]
     session_id = (payload.get("session_id") or "adhoc")[:128]
     chat_type  = (payload.get("chat_type")  or "analyst")[:16]
+    user_email = (payload.get("user_email") or "")[:200]
     log.info("Zscaler specialist: persona=%s session=%s prompt=%s",
              persona, session_id, prompt[:200])
     agent = build_agent()
@@ -149,6 +150,7 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     record_from_agent_result(
         agent_result, agent="zscaler", persona=persona, actor_id=actor_id,
         session_id=session_id, chat_type=chat_type, model_id=MODEL_ID,
+        user_email=user_email,
     )
     return {"result": str(agent_result)}
 
