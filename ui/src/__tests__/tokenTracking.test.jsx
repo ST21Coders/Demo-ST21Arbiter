@@ -3,7 +3,7 @@ import { render, screen, fireEvent, within, waitFor } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom'
 import { PersonaProvider, usePersona } from '../contexts/PersonaContext'
 import Sidebar from '../components/Sidebar'
-import TokenTracking from '../pages/TokenTracking'
+import TokenTracking, { byPersonaWithCost } from '../pages/TokenTracking'
 
 // Drive the active persona via the same module-mock idiom as settings.test.jsx.
 // Setting mocks.groups before each render is enough — PersonaProvider derives
@@ -210,5 +210,142 @@ describe('TokenTracking — CSV export', () => {
     fireEvent.click(exportBtn)
     expect(global.URL.createObjectURL).toHaveBeenCalledTimes(1)
     expect(global.URL.revokeObjectURL).toHaveBeenCalledTimes(1)
+  })
+})
+
+// ── 6. user_email distinct from user_id ──────────────────────────────────────
+// Live-mode acceptance ("the two fields are distinct") is covered by manual
+// backend smoke. Mock records do not carry a `user_id` field, so this test
+// asserts only the email-shaped value flows through the User column.
+describe('TokenTracking — user_email distinct from user_id', () => {
+  it('User column cells contain email-shaped values (mock CISO)', async () => {
+    mocks.groups = ['ciso']
+    renderTokenTrackingGuarded()
+
+    // Wait for the data load to populate the records table.
+    const rows = await screen.findAllByRole('row', {}, { timeout: 2000 })
+    expect(rows.length).toBeGreaterThan(1)
+
+    // At least one cell anywhere on the page must be email-shaped — this
+    // covers both the records-table User column and the per-user breakdown
+    // card. The inverse of the bug we are fixing (empty email column).
+    const emailCells = screen.getAllByText(/@/)
+    expect(emailCells.length).toBeGreaterThan(0)
+  })
+})
+
+// ── 7. Per-user breakdown card ───────────────────────────────────────────────
+describe('TokenTracking — per-user breakdown card', () => {
+  it('renders a sorted user table with email rows', async () => {
+    mocks.groups = ['ciso']
+    renderTokenTrackingGuarded()
+
+    // Wait for records to populate so the card is rendered (gated on !loading).
+    await screen.findAllByRole('row', {}, { timeout: 2000 })
+
+    // Find the per-user card by its heading text (exact text from TokenTracking.jsx).
+    const heading = await screen.findByText('Token usage by user')
+    // The heading lives in the card's header; walk up to the rounded-xl container.
+    const card = heading.closest('div.rounded-xl')
+    expect(card).not.toBeNull()
+
+    // Header row + at least 4 data rows (mock data carries 4 distinct users).
+    const cardRows = within(card).getAllByRole('row')
+    expect(cardRows.length).toBeGreaterThanOrEqual(5)
+
+    // Helper: parse the "Tokens" column's formatted string (e.g. "1.2M",
+    // "350.5K", or a raw integer) back to a comparable number.
+    function parseTokens(text) {
+      const t = (text || '').trim()
+      if (t.endsWith('M')) return parseFloat(t) * 1_000_000
+      if (t.endsWith('K')) return parseFloat(t) * 1_000
+      return parseFloat(t) || 0
+    }
+
+    // Tokens column is the 4th column (User · Persona · Chats · Tokens · Cost).
+    // Pull data rows (skip header) and verify descending order on tokens.
+    const dataRows = cardRows.slice(1)
+    const firstCells  = within(dataRows[0]).getAllByRole('cell')
+    const secondCells = within(dataRows[1]).getAllByRole('cell')
+    expect(firstCells.length).toBe(5)
+    const firstTokens  = parseTokens(firstCells[3].textContent)
+    const secondTokens = parseTokens(secondCells[3].textContent)
+    expect(firstTokens).toBeGreaterThanOrEqual(secondTokens)
+
+    // Every visible user cell (first column of each data row) is email-shaped.
+    for (const row of dataRows) {
+      const cells = within(row).getAllByRole('cell')
+      expect(cells[0].textContent).toMatch(/@/)
+    }
+  })
+})
+
+// ── 8. KPI subtitle reflects persona filter ──────────────────────────────────
+describe('TokenTracking — KPI subtitle', () => {
+  it('defaults to "Across all personas" when persona filter is all', async () => {
+    mocks.groups = ['ciso']
+    renderTokenTrackingGuarded()
+    // Wait for data so the page has fully rendered.
+    await screen.findAllByRole('row', {}, { timeout: 2000 })
+    expect(screen.getByText(/Across all personas/i)).toBeInTheDocument()
+  })
+
+  it('switches to "CISO · Nova 2 Lite list pricing" when persona filter is ciso', async () => {
+    mocks.groups = ['ciso']
+    renderTokenTrackingGuarded()
+    await screen.findAllByRole('row', {}, { timeout: 2000 })
+
+    // Second <select> is the persona filter (agent is first).
+    const selects = screen.getAllByRole('combobox')
+    expect(selects.length).toBeGreaterThanOrEqual(2)
+    const personaSelect = selects[1]
+    fireEvent.change(personaSelect, { target: { value: 'ciso' } })
+
+    // Wait for re-render — subtitle copy flips.
+    const subtitle = await screen.findByText(/CISO · Nova 2 Lite/i, {}, { timeout: 2000 })
+    expect(subtitle).toBeInTheDocument()
+  })
+})
+
+// ── 9. byPersonaWithCost reducer ─────────────────────────────────────────────
+// Pure-function smoke test for the exported reducer. The Recharts <Tooltip>
+// stub returns null in tests so the cost UI is unobservable via DOM — testing
+// the reducer directly is how cost correctness is verified.
+describe('TokenTracking — byPersonaWithCost reducer', () => {
+  it('returns four entries in canonical order with summed tokens and costs', () => {
+    const fixture = [
+      // ciso: 2 rows
+      { persona: 'ciso',     total_tokens: 1000, estimated_cost: 0.10 },
+      { persona: 'ciso',     total_tokens:  500, estimated_cost: 0.05 },
+      // soc: 1 row
+      { persona: 'soc',      total_tokens: 2000, estimated_cost: 0.20 },
+      // grc: 2 rows
+      { persona: 'grc',      total_tokens:  300, estimated_cost: 0.03 },
+      { persona: 'grc',      total_tokens:  700, estimated_cost: 0.07 },
+      // employee: 1 row
+      { persona: 'employee', total_tokens:  400, estimated_cost: 0.04 },
+    ]
+
+    const result = byPersonaWithCost(fixture)
+
+    // (i) Four entries in canonical persona order.
+    expect(result).toHaveLength(4)
+    expect(result.map(r => r.persona)).toEqual(['ciso', 'soc', 'grc', 'employee'])
+
+    // (ii) Sum of all four costs equals sum of fixture costs (within 1e-6).
+    const totalCost = result.reduce((s, r) => s + r.cost, 0)
+    const fixtureCost = fixture.reduce((s, r) => s + r.estimated_cost, 0)
+    expect(Math.abs(totalCost - fixtureCost)).toBeLessThan(1e-6)
+
+    // (iii) Per-persona `total` equals sum of total_tokens for that persona.
+    const byPersona = {
+      ciso:     1500,
+      soc:      2000,
+      grc:      1000,
+      employee:  400,
+    }
+    for (const entry of result) {
+      expect(entry.total).toBe(byPersona[entry.persona])
+    }
   })
 })

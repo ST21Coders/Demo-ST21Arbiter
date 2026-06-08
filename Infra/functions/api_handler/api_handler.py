@@ -241,6 +241,10 @@ def _handle_chat(event):
     # unauthenticated invocation still partitions cleanly.
     groups = _caller_groups(event)
     persona = next((g for g in ("ciso", "soc", "grc", "employee") if g in groups), "employee")
+    # Forward the caller's real email from the Cognito IdToken claims so token
+    # usage rows can attribute spend to a human, not just a Cognito `sub`.
+    claims = _caller_claims(event)
+    user_email = (claims.get("email") or "")[:200]
 
     try:
         resp = agentcore.invoke_agent_runtime(
@@ -251,6 +255,7 @@ def _handle_chat(event):
                 "actor_id": actor_id,
                 "chat_type": chat_type,
                 "persona": persona,
+                "user_email": user_email,
             }).encode("utf-8"),
             contentType="application/json",
             accept="application/json",
@@ -565,28 +570,95 @@ def _compute_token_summary(records: list) -> dict:
 
     Mirrors the JS-side _computeTokenSummary in ui/src/hooks/useApi.js so mock
     and live mode produce the same KPI numbers given the same records.
+
+    Also emits three breakdown maps consumed by the Token Tracking page (and
+    future "top spenders" surfaces): by_agent, by_persona, by_user. For
+    by_user, `persona` is the persona on the user's most-recent row in the
+    window (latest `ts` wins).
     """
     input_t = 0
     output_t = 0
     cost = 0.0
     blocked = 0
     sessions: set = set()
+    # Breakdown buckets. Cost accumulates as float to match the existing
+    # totalCost pattern above; the per-bucket float is rounded to 6 dp when
+    # the response dict is assembled so json.dumps stays clean.
+    by_agent: dict = {}
+    by_persona: dict = {}
+    by_user: dict = {}
+
     for r in records:
-        input_t += _to_int_or_zero(r.get("input_tokens", 0))
-        output_t += _to_int_or_zero(r.get("output_tokens", 0))
+        r_input = _to_int_or_zero(r.get("input_tokens", 0))
+        r_output = _to_int_or_zero(r.get("output_tokens", 0))
+        input_t += r_input
+        output_t += r_output
+        r_total = r_input + r_output
+        r_cost = 0.0
         c = r.get("estimated_cost")
         if c is not None:
             try:
-                cost += float(c)
+                r_cost = float(c)
+                cost += r_cost
             except (TypeError, ValueError):
-                pass
+                r_cost = 0.0
         if r.get("guardrail_blocked"):
             blocked += 1
         sid = r.get("session_id")
         if sid:
             sessions.add(sid)
+
+        agent_id = r.get("agent") or ""
+        persona = r.get("persona") or ""
+        user_email = r.get("user_email") or ""
+        ts = r.get("timestamp") or ""
+
+        if agent_id:
+            bucket = by_agent.setdefault(agent_id, {"tokens": 0, "cost": 0.0, "count": 0})
+            bucket["tokens"] += r_total
+            bucket["cost"] += r_cost
+            bucket["count"] += 1
+
+        if persona:
+            bucket = by_persona.setdefault(persona, {"tokens": 0, "cost": 0.0, "count": 0})
+            bucket["tokens"] += r_total
+            bucket["cost"] += r_cost
+            bucket["count"] += 1
+
+        if user_email:
+            bucket = by_user.setdefault(
+                user_email,
+                {"tokens": 0, "cost": 0.0, "count": 0, "persona": persona, "_latest_ts": ts},
+            )
+            bucket["tokens"] += r_total
+            bucket["cost"] += r_cost
+            bucket["count"] += 1
+            # Track the persona on the user's most recent row in the window.
+            if ts and ts >= bucket.get("_latest_ts", ""):
+                bucket["_latest_ts"] = ts
+                bucket["persona"] = persona
+
     total = input_t + output_t
     chats = len(sessions)
+
+    by_agent_out = {
+        k: {"tokens": v["tokens"], "cost": round(v["cost"], 6), "count": v["count"]}
+        for k, v in by_agent.items()
+    }
+    by_persona_out = {
+        k: {"tokens": v["tokens"], "cost": round(v["cost"], 6), "count": v["count"]}
+        for k, v in by_persona.items()
+    }
+    by_user_out = {
+        k: {
+            "tokens": v["tokens"],
+            "cost": round(v["cost"], 6),
+            "count": v["count"],
+            "persona": v.get("persona", ""),
+        }
+        for k, v in by_user.items()
+    }
+
     return {
         "totalTokens": total,
         "inputTokens": input_t,
@@ -595,6 +667,9 @@ def _compute_token_summary(records: list) -> dict:
         "avgPerChat": (total // chats) if chats else 0,
         "chats": chats,
         "blocked": blocked,
+        "by_agent": by_agent_out,
+        "by_persona": by_persona_out,
+        "by_user": by_user_out,
     }
 
 
