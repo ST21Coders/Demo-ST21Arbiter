@@ -226,11 +226,12 @@ describe('TokenTracking — user_email distinct from user_id', () => {
     const rows = await screen.findAllByRole('row', {}, { timeout: 2000 })
     expect(rows.length).toBeGreaterThan(1)
 
-    // At least one cell anywhere on the page must be email-shaped — this
-    // covers both the records-table User column and the per-user breakdown
-    // card. The inverse of the bug we are fixing (empty email column).
-    const emailCells = screen.getAllByText(/@/)
-    expect(emailCells.length).toBeGreaterThan(0)
+    // At least one cell anywhere on the page must contain a resolved
+    // persona display name. The User column resolves user_email via
+    // resolveUserDisplay() to one of {Diana Osei, Marcus Webb, Priya Nair,
+    // Sarah Chen} for known emails, or "Anonymous" for UUID/missing values.
+    const nameCells = screen.getAllByText(/Diana Osei|Marcus Webb|Priya Nair|Sarah Chen|Anonymous/)
+    expect(nameCells.length).toBeGreaterThan(0)
   })
 })
 
@@ -272,10 +273,12 @@ describe('TokenTracking — per-user breakdown card', () => {
     const secondTokens = parseTokens(secondCells[3].textContent)
     expect(firstTokens).toBeGreaterThanOrEqual(secondTokens)
 
-    // Every visible user cell (first column of each data row) is email-shaped.
+    // Every visible user cell (first column of each data row) carries a
+    // resolved display name — either a known persona's full name or the
+    // "Anonymous" fallback for missing/UUID emails.
     for (const row of dataRows) {
       const cells = within(row).getAllByRole('cell')
-      expect(cells[0].textContent).toMatch(/@/)
+      expect(cells[0].textContent).toMatch(/Diana Osei|Marcus Webb|Priya Nair|Sarah Chen|Anonymous/)
     }
   })
 })
