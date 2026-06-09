@@ -412,13 +412,49 @@ const UC_ENRICHMENT = {
   },
 }
 
-// Final export — RAW_CONFLICTS rows enriched with scanner schema fields.
-export const MOCK_CONFLICTS = RAW_CONFLICTS.map(c => ({ ...c, ...(UC_ENRICHMENT[c.conflict_id] || {}) }))
+// ── Team / tag ownership ──────────────────────────────────────────────────────
+// Mirrors scripts/seed_mock_data.py OWNERSHIP (keyed by rule_key) so mock mode
+// renders identical team data to a live scan. owner_team = policy owner;
+// consumer_team = team affected/blocked; platform_team = control manager.
+export const TEAM_LABELS = {
+  'platform-security': 'Security Platform',
+  'network-eng':       'Network Engineering',
+  'cloud-infra':       'Cloud Infrastructure',
+  'data-governance':   'Data Governance',
+  'app-dev':           'Application Development',
+  'vendor-mgmt':       'Vendor Management',
+  'unassigned':        'Unassigned',
+}
+export const TEAMS = Object.keys(TEAM_LABELS).filter(t => t !== 'unassigned')
+export const TAGS = ['infrastructure', 'database', 'network', 'application', 'identity', 'data-residency', 'vendor']
+
+const OWNERSHIP_BY_RULE = {
+  UC01: { owner_team: 'data-governance',   consumer_team: 'app-dev',     platform_team: 'network-eng',       tags: ['application', 'network'] },
+  UC02: { owner_team: 'vendor-mgmt',       consumer_team: 'app-dev',     platform_team: 'network-eng',       tags: ['vendor', 'network'] },
+  UC03: { owner_team: 'data-governance',   consumer_team: 'app-dev',     platform_team: 'network-eng',       tags: ['application', 'network'] },
+  UC04: { owner_team: 'platform-security', consumer_team: 'cloud-infra', platform_team: 'network-eng',       tags: ['network', 'data-residency'] },
+  UC05: { owner_team: 'platform-security', consumer_team: 'app-dev',     platform_team: 'platform-security', tags: ['identity'] },
+  UC06: { owner_team: 'network-eng',       consumer_team: 'cloud-infra', platform_team: 'network-eng',       tags: ['network', 'infrastructure'] },
+  UC07: { owner_team: 'cloud-infra',       consumer_team: 'app-dev',     platform_team: 'cloud-infra',       tags: ['infrastructure', 'network'] },
+  UC08: { owner_team: 'cloud-infra',       consumer_team: 'app-dev',     platform_team: 'cloud-infra',       tags: ['infrastructure', 'network'] },
+  UC09: { owner_team: 'data-governance',   consumer_team: 'cloud-infra', platform_team: 'cloud-infra',       tags: ['data-residency', 'infrastructure'] },
+  UC10: { owner_team: 'data-governance',   consumer_team: 'app-dev',     platform_team: 'network-eng',       tags: ['data-residency', 'application'] },
+  UC11: { owner_team: 'vendor-mgmt',       consumer_team: 'app-dev',     platform_team: 'network-eng',       tags: ['vendor', 'network'] },
+  UC12: { owner_team: 'data-governance',   consumer_team: 'app-dev',     platform_team: 'network-eng',       tags: ['application', 'network'] },
+}
+const OWNERSHIP_DEFAULT = { owner_team: 'unassigned', consumer_team: '', platform_team: '', tags: ['untriaged'] }
+export function ownershipForRule(ruleKey) { return OWNERSHIP_BY_RULE[ruleKey] || OWNERSHIP_DEFAULT }
+
+// Final export — RAW_CONFLICTS rows enriched with scanner schema fields + ownership.
+export const MOCK_CONFLICTS = RAW_CONFLICTS.map(c => {
+  const merged = { ...c, ...(UC_ENRICHMENT[c.conflict_id] || {}) }
+  return { ...ownershipForRule(merged.rule_key), ...merged }
+})
 
 // 14 compliant alignments the scanner records as positive evidence of working
 // controls. Heat map cells aggregate these alongside conflicts (compliant=true).
 // Used as the false-positive guard: scanner must NOT flag any of these as conflicts.
-export const MOCK_COMPLIANT = [
+const MOCK_COMPLIANT_RAW = [
   { conflict_id: 'COMPLIANT-UC01-BOX', rule_key: 'UC01', compliant: true, domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'Box.com approved and accessible — policy ↔ enforcement aligned', detected_at: new Date(Date.now() - 90 * 60000).toISOString() },
   { conflict_id: 'COMPLIANT-UC02-BEYONDTRUST', rule_key: 'UC02', compliant: true, domain: 'VENDOR_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'BeyondTrust Remote Support whitelisted and SIEM-logged', detected_at: new Date(Date.now() - 100 * 60000).toISOString() },
   { conflict_id: 'COMPLIANT-UC03-CHROME', rule_key: 'UC03', compliant: true, domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'Chrome Enterprise permitted — browser policy aligned', detected_at: new Date(Date.now() - 110 * 60000).toISOString() },
@@ -434,6 +470,7 @@ export const MOCK_COMPLIANT = [
   { conflict_id: 'COMPLIANT-UC11-US', rule_key: 'UC11', compliant: true, domain: 'VENDOR_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'US-based vendor access permitted by ZTNA — country list compliant', detected_at: new Date(Date.now() - 210 * 60000).toISOString() },
   { conflict_id: 'COMPLIANT-UC12-GENERAL', rule_key: 'UC12', compliant: true, domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'General employee social-media block applied as intended', detected_at: new Date(Date.now() - 220 * 60000).toISOString() },
 ]
+export const MOCK_COMPLIANT = MOCK_COMPLIANT_RAW.map(c => ({ ...ownershipForRule(c.rule_key), ...c }))
 
 export const MOCK_CHANGE_REQUESTS = [
   {

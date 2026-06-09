@@ -9,6 +9,7 @@ import { SeverityBadge, StatusBadge } from '../components/SeverityBadge'
 import ActionRequestModal from '../components/ActionRequestModal'
 import { formatDistanceToNow } from 'date-fns'
 import { getEmail } from '../hooks/useAuth'
+import { TEAM_LABELS } from '../mockData'
 
 const STAT_COLORS = {
   pending:   { border: '#f59e0b', glow: 'rgba(245,158,11,0.08)', icon: 'rgba(245,158,11,0.10)', text: '#b45309' },
@@ -124,6 +125,11 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
           <p className="text-xs text-slate-500 mt-0.5">
             by {cr.requested_by} · {formatDistanceToNow(new Date(cr.created_at), { addSuffix: true })}
           </p>
+          {cr.routed_team && (
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              routed to <span className="text-slate-700 font-medium">{TEAM_LABELS[cr.routed_team] || cr.routed_team}</span>
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className="text-xs px-2 py-0.5 rounded font-mono font-medium"
@@ -136,6 +142,33 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
 
       {expanded && (
         <div className="px-4 pb-4 space-y-4 border-t border-slate-100">
+
+          {/* Team ownership & routing (denormalized from the linked finding) */}
+          {(cr.owner_team || cr.consumer_team || cr.platform_team || cr.tags?.length) && (
+            <div className="mt-4">
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-2">Ownership & Routing</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[['Owner', cr.owner_team], ['Consumer', cr.consumer_team], ['Platform', cr.platform_team]].map(([lbl, team]) => team ? (
+                  <div key={lbl}>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">{lbl} Team</p>
+                    <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                      {TEAM_LABELS[team] || team}
+                    </span>
+                  </div>
+                ) : null)}
+              </div>
+              {cr.tags?.length > 0 && (
+                <div className="flex gap-1.5 flex-wrap mt-2">
+                  {cr.tags.map(t => (
+                    <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">{t}</span>
+                  ))}
+                </div>
+              )}
+              {cr.jira_project_key && (
+                <p className="text-[11px] text-slate-500 mt-2">JIRA project: <span className="font-mono text-slate-700">{cr.jira_project_key}</span>{cr.jira_component ? ` · ${cr.jira_component}` : ''}</p>
+              )}
+            </div>
+          )}
 
           {/* Approval progress */}
           <div className="mt-4">

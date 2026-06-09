@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { API_URL, CHAT_URL, USE_MOCK } from '../config'
 import { MOCK_CONFLICTS, MOCK_CHANGE_REQUESTS, MOCK_AUDIT, MOCK_TOKEN_USAGE } from '../mockData'
 import { authHeaders, refresh, signIn } from './useAuth'
@@ -87,10 +87,19 @@ export function useChangeRequests() {
   const createAction = useCallback(async (payload) => {
     if (USE_MOCK) {
       await sleep(800)
+      // Mirror the backend: denormalize the linked finding's team ownership onto
+      // the CR so mock mode renders the same routing as live.
+      const src = MOCK_CONFLICTS.find(c => c.conflict_id === payload.conflict_id)
+      const ownership = src ? {
+        owner_team: src.owner_team, consumer_team: src.consumer_team,
+        platform_team: src.platform_team, routed_team: src.owner_team,
+        tags: src.tags, jira_project_key: 'DEVARBITER',
+      } : {}
       const cr = {
         cr_id: `CR-${Date.now()}`,
         status: payload.target_environment === 'DEV' ? 'AUTO_APPROVED' : 'PENDING_APPROVAL',
         ...payload,
+        ...ownership,
         created_at: new Date().toISOString(),
         approvers: payload.target_environment === 'PROD' ? [
           { role: 'ciso', email: 'ciso@meridianinsurance.com', status: 'PENDING', description: 'CISO approval required' },
@@ -347,6 +356,79 @@ export async function triggerScan() {
 export async function getScanRun(scanRunId) {
   if (USE_MOCK) return { scan_run_id: scanRunId, status: 'COMPLETED' }
   return apiFetch(`/scan-runs/${encodeURIComponent(scanRunId)}`)
+}
+
+// Live scan feed — the shared spine for "real-time" conflict detection.
+// Polls /scan-runs on one timer and fires onNewScan(run) the first time it sees
+// a newly-finished (COMPLETED/FAILED) run, so any page can re-pull findings the
+// moment a background F1 scan (upload → ingest → scan) completes — no manual
+// refresh, whether the scan was manual, auto-ingest, or the daily cron.
+//
+// StrictMode-safe: each mount primes on its first observation (records the run
+// that already exists and does NOT fire for it) so the dev double-mount never
+// double-fires; an in-flight guard keeps the single timer single-flight. Returns
+// { activeRun } — the newest RUNNING run — for a live "scanning…" pill.
+// No-op in mock mode (no real scan-runs exist) so static mock data stays stable.
+export function useScanFeed({ onNewScan, intervalMs = 5000, enabled = true } = {}) {
+  const onNewScanRef = useRef(onNewScan)
+  onNewScanRef.current = onNewScan
+  const [activeRun, setActiveRun] = useState(null)
+
+  useEffect(() => {
+    if (!enabled || USE_MOCK) return
+    let cancelled = false
+    let inFlight = false
+    let primed = false      // suppress firing for the run that exists at mount
+    let lastSeenKey = null  // scan_run_id|finished_at of the newest finished run
+
+    const tick = async () => {
+      if (inFlight || cancelled) return
+      inFlight = true
+      try {
+        const { scan_runs = [] } = await listScanRuns(10)
+        if (cancelled) return
+        const up = (s) => (s || '').toUpperCase()
+        // A scan_run_id that already has a terminal (COMPLETED/FAILED) row is
+        // done — ignore its orphaned RUNNING pre-write row. (api_handler writes a
+        // RUNNING row on POST /scan, the scanner then writes its own terminal row
+        // under the SAME scan_run_id, so the pre-write never flips and would
+        // otherwise keep a "scanning…" indicator on forever.) Also ignore stale
+        // RUNNING rows >10min old (crashed scans).
+        const terminalIds = new Set(
+          scan_runs.filter(r => ['COMPLETED', 'FAILED'].includes(up(r.status)))
+                   .map(r => r.scan_run_id)
+        )
+        const tenMinAgo = Date.now() - 10 * 60_000
+        const active = scan_runs.find(r =>
+          up(r.status) === 'RUNNING' &&
+          !terminalIds.has(r.scan_run_id) &&
+          new Date(r.started_at || 0).getTime() > tenMinAgo
+        )
+        setActiveRun(active || null)
+        const newest = scan_runs
+          .filter(r => ['COMPLETED', 'FAILED'].includes(up(r.status)))
+          .sort((a, b) => (b.finished_at || b.started_at || '')
+            .localeCompare(a.finished_at || a.started_at || ''))[0]
+        if (!newest) return
+        const key = `${newest.scan_run_id}|${newest.finished_at || newest.started_at || ''}`
+        if (!primed) { primed = true; lastSeenKey = key; return }
+        if (key !== lastSeenKey) {
+          lastSeenKey = key
+          onNewScanRef.current?.(newest)
+        }
+      } catch {
+        // Keep prior state; the next tick retries.
+      } finally {
+        inFlight = false
+      }
+    }
+
+    tick()
+    const id = setInterval(tick, intervalMs)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [enabled, intervalMs])
+
+  return { activeRun }
 }
 
 // Lazy GET /findings/{id} for the FindingDetail page.

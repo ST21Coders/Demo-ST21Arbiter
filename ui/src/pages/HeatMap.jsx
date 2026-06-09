@@ -4,10 +4,10 @@ import {
   BarChart3, Network, HeartPulse,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useFindings } from '../hooks/useApi'
+import { useFindings, useScanFeed } from '../hooks/useApi'
 import {
   buildConflictMatrix, buildDomainSourceMatrix,
-  DOMAIN_LABELS, DOMAIN_KEYS, SOURCE_PAIRS,
+  DOMAIN_LABELS, DOMAIN_KEYS, SOURCE_PAIRS, TEAMS, TEAM_LABELS,
 } from '../mockData'
 import { AGENT_MODELS, modelLabel } from '../config'
 
@@ -685,15 +685,21 @@ function SourceSeverityMatrixView({ findings }) {
 function ConflictMatrix({ findings, loading }) {
   const navigate = useNavigate()
   const [matrixTab, setMatrixTab] = useState('domain-source')
-  const contradictions = findings.filter(f => f.conflict_type === 'CONTRADICTION').length
-  const gaps          = findings.filter(f => f.conflict_type === 'GAP').length
-  const drifts        = findings.filter(f => f.conflict_type === 'DRIFT').length
+  const [teamScope, setTeamScope] = useState('')
+  // Per-team segregation: scope the matrix to a single team across all three
+  // ownership axes (owner / consumer / platform).
+  const scoped = teamScope
+    ? findings.filter(f => [f.owner_team, f.consumer_team, f.platform_team].includes(teamScope))
+    : findings
+  const contradictions = scoped.filter(f => f.conflict_type === 'CONTRADICTION').length
+  const gaps          = scoped.filter(f => f.conflict_type === 'GAP').length
+  const drifts        = scoped.filter(f => f.conflict_type === 'DRIFT').length
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Total Conflicts', value: findings.length,                                                       color: 'text-slate-900' },
+          { label: 'Total Conflicts', value: scoped.length,                                                         color: 'text-slate-900' },
           { label: 'Contradiction',   value: contradictions,                                                        color: 'text-rose-700' },
           { label: 'Gap',             value: gaps,                                                                  color: 'text-amber-700' },
           { label: 'Drift',           value: drifts,                                                                color: 'text-orange-700' },
@@ -705,7 +711,7 @@ function ConflictMatrix({ findings, loading }) {
         ))}
       </div>
 
-      <div className="flex gap-2 text-xs">
+      <div className="flex gap-2 text-xs items-center">
         <button
           onClick={() => setMatrixTab('domain-source')}
           className={matrixTab === 'domain-source' ? 'btn-primary' : 'btn-ghost'}
@@ -714,15 +720,19 @@ function ConflictMatrix({ findings, loading }) {
           onClick={() => setMatrixTab('source-severity')}
           className={matrixTab === 'source-severity' ? 'btn-primary' : 'btn-ghost'}
         >Source × Severity</button>
+        <select value={teamScope} onChange={e => setTeamScope(e.target.value)} className="input w-44 text-xs ml-auto">
+          <option value="">All Teams</option>
+          {TEAMS.map(t => <option key={t} value={t}>{TEAM_LABELS[t]}</option>)}
+        </select>
       </div>
 
       {matrixTab === 'domain-source'
         ? <DomainSourceMatrixView
-            findings={findings}
+            findings={scoped}
             loading={loading}
-            onCellClick={(dk, sp) => navigate(`/findings?domain=${dk}&source=${encodeURIComponent(sp)}`)}
+            onCellClick={(dk, sp) => navigate(`/findings?domain=${dk}&source=${encodeURIComponent(sp)}${teamScope ? `&team=${teamScope}` : ''}`)}
           />
-        : <SourceSeverityMatrixView findings={findings} />
+        : <SourceSeverityMatrixView findings={scoped} />
       }
 
       <div className="flex items-center gap-4 pt-1">
@@ -817,6 +827,11 @@ export default function HeatMap() {
 
   useEffect(() => { load() }, [load])
 
+  // Live scan feed: re-render the conflict matrix the moment a background scan
+  // completes. Silent auto-refresh — the matrix is a glanceable view, not an
+  // editable list.
+  const { activeRun } = useScanFeed({ onNewScan: () => load() })
+
   const onlineConnectors    = INGESTION.filter(i => i.status === 'ONLINE').length
   const degradedConnectors  = INGESTION.filter(i => i.status === 'DEGRADED').length
   const activeAgents        = AGENTCORE.bedrockAgents.agents.length
@@ -830,9 +845,16 @@ export default function HeatMap() {
             ARBITER architecture · ingestion → AgentCore → outputs · Meridian Insurance Group
           </p>
         </div>
-        <button onClick={() => load()} className="btn-ghost flex items-center gap-1.5 text-xs">
-          <RefreshCw size={13} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          {activeRun && (
+            <span className="flex items-center gap-1.5 text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md">
+              <Loader2 size={11} className="animate-spin" /> Scanning…
+            </span>
+          )}
+          <button onClick={() => load()} className="btn-ghost flex items-center gap-1.5 text-xs">
+            <RefreshCw size={13} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-3">
