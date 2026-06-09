@@ -407,6 +407,29 @@ def _handle_uploads_list(event):
 
 
 # ──────────────────────────── /findings ─────────────────────────
+def _latest_completed_scan_run_id():
+    """scan_run_id of the most recent COMPLETED scan-run, or None.
+
+    Used to reconcile the findings view: the scanner upserts conflicts-v2 by
+    conflict_id and never deletes, so scoping to the latest completed run is
+    what makes a resolved conflict actually disappear. Returns None (callers
+    fall back to the full set) when no completed run exists yet or on error.
+    """
+    if not scan_runs_table:
+        return None
+    try:
+        resp = scan_runs_table.scan(Limit=50)
+        runs = [r for r in resp.get("Items", [])
+                if (r.get("status") or "").upper() == "COMPLETED"]
+    except Exception:
+        logger.exception("latest scan-run lookup failed")
+        return None
+    if not runs:
+        return None
+    runs.sort(key=lambda r: r.get("started_at") or "", reverse=True)
+    return runs[0].get("scan_run_id")
+
+
 def _handle_list_findings(event):
     """Return all conflicts. UI shape: {findings: [...]}.
 
@@ -424,6 +447,20 @@ def _handle_list_findings(event):
     except Exception as e:
         logger.exception("findings scan failed")
         return _err(502, f"{type(e).__name__}: {e}")
+    # Reconcile resolved conflicts. The scanner never deletes rows, so a
+    # conflict that is no longer detected lingers with its OLD scan_run_id.
+    # Scope to the latest COMPLETED run so resolved conflicts disappear. Done
+    # over the full item set (incl the compliant rows every scan also writes)
+    # so an all-resolved scan correctly shows zero conflicts. Safety: only
+    # apply when that run actually wrote rows here, so a scan_run_id mismatch
+    # or a fresh pre-scan seed never blanks the UI. Opt out with ?latest_only=false.
+    latest_only = (qs.get("latest_only") or "true").lower() in ("1", "true", "yes")
+    if latest_only:
+        latest_run = _latest_completed_scan_run_id()
+        if latest_run:
+            scoped = [i for i in items if i.get("scan_run_id") == latest_run]
+            if scoped:
+                items = scoped
     sev = (qs.get("severity") or "").strip().upper()
     status = (qs.get("status") or "").strip().upper()
     domain = (qs.get("domain") or "").strip().upper()
@@ -1177,6 +1214,53 @@ def _handle_agent_status(event):
     return _ok({"servers": servers})
 
 
+# ──────────────────────────── team ownership / routing ──────────
+# Maps an owning team → its JIRA destination. For the demo every team routes to
+# the one real project (DEVARBITER) so a ticket never fails on a non-existent
+# project; the owning team is surfaced in the issue body and on the CR. Swap to
+# per-team projects/components once Meridian's JIRA structure is confirmed.
+TEAM_ROUTING = {
+    "platform-security": {"project_key": "DEVARBITER", "component": "Security Platform"},
+    "network-eng":       {"project_key": "DEVARBITER", "component": "Network Engineering"},
+    "cloud-infra":       {"project_key": "DEVARBITER", "component": "Cloud Infrastructure"},
+    "data-governance":   {"project_key": "DEVARBITER", "component": "Data Governance"},
+    "app-dev":           {"project_key": "DEVARBITER", "component": "Application Development"},
+    "vendor-mgmt":       {"project_key": "DEVARBITER", "component": "Vendor Management"},
+}
+_DEFAULT_ROUTING = {"project_key": "DEVARBITER", "component": None}
+
+
+def _route_for_team(owner_team: str) -> dict:
+    return TEAM_ROUTING.get((owner_team or "").strip(), _DEFAULT_ROUTING)
+
+
+def _finding_ownership(conflict_id: str) -> dict:
+    """Server-side lookup of a finding's team ownership.
+
+    Never trust the client for this — owner_team drives ticket routing (and,
+    post-demo, RBAC scoping). Returns blanks when the finding or its ownership
+    can't be resolved, so callers degrade gracefully to the DEVARBITER default.
+    """
+    out = {"owner_team": "", "consumer_team": "", "platform_team": "", "tags": []}
+    tbl = _findings_table()
+    if not tbl or not conflict_id:
+        return out
+    try:
+        resp = tbl.query(KeyConditionExpression=Key("conflict_id").eq(conflict_id),
+                         Limit=1, ScanIndexForward=False)
+        items = resp.get("Items", [])
+    except Exception:
+        logger.exception("finding ownership lookup failed")
+        return out
+    if items:
+        f = items[0]
+        out["owner_team"] = f.get("owner_team") or ""
+        out["consumer_team"] = f.get("consumer_team") or ""
+        out["platform_team"] = f.get("platform_team") or ""
+        out["tags"] = list(f.get("tags") or [])
+    return out
+
+
 # ──────────────────────────── /jira/tickets ─────────────────────
 def _audit_jira(event, *, key, summary, severity, conflict_id, status, mock):
     """Best-effort audit row for a JIRA link/create."""
@@ -1215,6 +1299,15 @@ def _handle_jira_create(event):
     description = (body.get("description") or "").strip()
     project_key = (body.get("project_key") or "DEVARBITER").strip()
     severity = (body.get("severity") or "MEDIUM").strip()
+
+    # Route by the finding's OWNING team (server-derived, never client-supplied).
+    # Component routing requires the component to pre-exist in JIRA, so we
+    # annotate the issue body with the team rather than risk a create failure.
+    ownership = _finding_ownership(conflict_id)
+    routing = _route_for_team(ownership["owner_team"])
+    project_key = routing["project_key"] or project_key
+    if ownership["owner_team"]:
+        description = (description + f"\n\nRouted to team: {ownership['owner_team']}").strip()
 
     jira_arn = SPECIALIST_RUNTIME_ARNS.get("jira")
     if not jira_arn:
@@ -1389,6 +1482,12 @@ def _handle_create_action(event):
     auto = (target_env == "DEV") or not chain
     status = "AUTO_APPROVED" if auto else "PENDING_APPROVAL"
 
+    # Denormalize the linked finding's team ownership onto the CR so the Action
+    # Center can show where the work routes. Server-derived — owner_team is never
+    # taken from the request body.
+    ownership = _finding_ownership(conflict_id)
+    routing = _route_for_team(ownership["owner_team"])
+
     cr_id = f"CR-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{(conflict_id or 'NEW')[-6:].upper()}"
     now_iso = datetime.now(timezone.utc).isoformat()
     item = {
@@ -1403,6 +1502,12 @@ def _handle_create_action(event):
         "description": description or f"Remediate {conflict_id}",
         "requested_by": requested_by,
         "justification": justification,
+        "owner_team": ownership["owner_team"],
+        "consumer_team": ownership["consumer_team"],
+        "platform_team": ownership["platform_team"],
+        "routed_team": ownership["owner_team"],
+        "tags": ownership["tags"],
+        "jira_project_key": routing["project_key"],
         "created_at": now_iso,
         "approvers": chain,
         "total_approvers_needed": sum(1 for a in chain if a.get("type") != "NOTIFICATION"),
@@ -1411,6 +1516,8 @@ def _handle_create_action(event):
             {"ts": now_iso, "actor": user_id, "from_status": "—", "to_status": status, "comment": "Created"},
         ],
     }
+    if routing.get("component"):
+        item["jira_component"] = routing["component"]
     try:
         crs_table.put_item(Item=item)
     except Exception as e:

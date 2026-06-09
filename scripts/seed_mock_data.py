@@ -38,6 +38,7 @@ T_CONFLICTS_V2 = f"{PREFIX}-conflicts-v2"
 T_CHANGE_REQS  = f"{PREFIX}-change-requests"
 T_AUDIT        = f"{PREFIX}-audit-log"
 T_SCAN_RUNS    = f"{PREFIX}-scan-runs"
+T_OWNERSHIP_RULES = f"{PREFIX}-ownership-rules"
 
 ddb = boto3.resource("dynamodb", region_name=REGION)
 ddb_client = boto3.client("dynamodb", region_name=REGION)
@@ -194,10 +195,51 @@ UC_DATA = [
 ]
 
 
+# ── Team / tag ownership (placeholder taxonomy — swap for Meridian's real org) ──
+# owner_team    = team that owns/authors the policy intent
+# consumer_team = team affected/blocked by the conflict
+# platform_team = team that manages the enforcing control (Zscaler / AWS / etc.)
+# Keyed by rule_key so it drives BOTH the seeded findings (live-mode demo before a
+# real scan) AND the ownership-rules table (which the scanner's enrichment.py reads).
+OWNERSHIP = {
+    "UC01": {"owner_team": "data-governance",  "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["application", "network"]},
+    "UC02": {"owner_team": "vendor-mgmt",       "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["vendor", "network"]},
+    "UC03": {"owner_team": "data-governance",   "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["application", "network"]},
+    "UC04": {"owner_team": "platform-security", "consumer_team": "cloud-infra", "platform_team": "network-eng",       "tags": ["network", "data-residency"]},
+    "UC05": {"owner_team": "platform-security", "consumer_team": "app-dev",     "platform_team": "platform-security", "tags": ["identity"]},
+    "UC06": {"owner_team": "network-eng",       "consumer_team": "cloud-infra", "platform_team": "network-eng",       "tags": ["network", "infrastructure"]},
+    "UC07": {"owner_team": "cloud-infra",       "consumer_team": "app-dev",     "platform_team": "cloud-infra",       "tags": ["infrastructure", "network"]},
+    "UC08": {"owner_team": "cloud-infra",       "consumer_team": "app-dev",     "platform_team": "cloud-infra",       "tags": ["infrastructure", "network"]},
+    "UC09": {"owner_team": "data-governance",   "consumer_team": "cloud-infra", "platform_team": "cloud-infra",       "tags": ["data-residency", "infrastructure"]},
+    "UC10": {"owner_team": "data-governance",   "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["data-residency", "application"]},
+    "UC11": {"owner_team": "vendor-mgmt",       "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["vendor", "network"]},
+    "UC12": {"owner_team": "data-governance",   "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["application", "network"]},
+}
+_OWNERSHIP_DEFAULT = {"owner_team": "unassigned", "consumer_team": "", "platform_team": "", "tags": ["untriaged"]}
+
+
+def _ownership_for(rule_key):
+    return OWNERSHIP.get(rule_key, _OWNERSHIP_DEFAULT)
+
+
+def ownership_rule_rows():
+    """Rows for the ownership-rules table — one per UC (match on rule_key) plus a
+    wildcard default. Mirrors enrichment.py's expected shape so live scans
+    produce the same team data the seeded findings show."""
+    rows, prio = [], 10
+    for rk in sorted(OWNERSHIP):
+        rows.append({"rule_id": f"rule-{rk.lower()}", "priority": prio,
+                     "match": {"rule_key": rk}, **OWNERSHIP[rk]})
+        prio += 10
+    rows.append({"rule_id": "rule-default", "priority": 999, "match": {}, **_OWNERSHIP_DEFAULT})
+    return rows
+
+
 def conflict_item(uc):
     (rule_key, severity, domain, source_pair, title, src_pol, src_tech,
      pol_cites, enf_evid, regulatory, fp_score, c_type, domains_list, age) = uc
     return {
+        **_ownership_for(rule_key),
         "conflict_id":          f"ARBITER-{rule_key}",
         "detected_at":          iso(age),
         "status":               "OPEN",
@@ -248,6 +290,7 @@ COMPLIANT_ROWS = [
 def compliant_item(row, age_seconds):
     cid, rule_key, domain, source_pair, domains_list, title = row
     return {
+        **_ownership_for(rule_key),
         "conflict_id":  cid,
         "detected_at":  iso(age_seconds),
         "status":       "COMPLIANT",
@@ -390,6 +433,9 @@ def main() -> int:
 
     n = put_into(T_SCAN_RUNS, [SCAN_RUN_ROW])
     print(f"  ✓ scan-runs           : wrote {n} rows (post-Step-2)")
+
+    n = put_into(T_OWNERSHIP_RULES, ownership_rule_rows())
+    print(f"  ✓ ownership-rules     : wrote {n} rows (12 UC + wildcard default)")
 
     print()
     print("Done.")

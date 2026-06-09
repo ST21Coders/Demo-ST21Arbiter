@@ -84,6 +84,20 @@ Resources:
                     - "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}/index/*"
                     - TableName:
                         Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ScanRunsTableName"
+              # ownership-rules: read-only (Scan to load the rule set each run +
+              # GetItem/Query). This role does NOT use a project wildcard, so the
+              # new table MUST be granted explicitly or enrichment.py's load
+              # AccessDenies and the scanner silently writes zero-ownership rows.
+              - Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                Resource:
+                  - !Sub
+                    - "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}"
+                    - TableName:
+                        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-OwnershipRulesTableName"
         - PolicyName: ScannerKmsPolicy
           PolicyDocument:
             Version: "2012-10-17"
@@ -134,6 +148,8 @@ Resources:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ScanRunsTableName"
           AUDIT_TABLE:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-AuditLogTableName"
+          OWNERSHIP_RULES_TABLE:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-OwnershipRulesTableName"
           RULE_PACK_VERSION: v1
       VpcConfig:
         SubnetIds:
