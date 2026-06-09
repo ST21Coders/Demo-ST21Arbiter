@@ -1,0 +1,46 @@
+{
+  "_comment": "Generators for oversized payloads. The test runner reads each descriptor and produces the actual bytes at runtime so we don't ship megabytes of zeros into git. 'kind' controls where the payload goes: 'json-string' = body field value, 'header' = HTTP header value, 'query' = query-string value, 'path' = path segment. PASS = HTTP 4xx with a sane JSON error body; FAIL = 500, hung connection, or stack trace.",
+  "family": "oversized",
+  "payloads": [
+    {
+      "id": "body-1mb-string",
+      "size_bytes": 1048576,
+      "kind": "json-string",
+      "fill_char": "A",
+      "expected_blocked": true,
+      "rationale": "1 MiB body string — should exceed any reasonable input cap and be rejected with 413 or 400."
+    },
+    {
+      "id": "body-10mb-string",
+      "size_bytes": 10485760,
+      "kind": "json-string",
+      "fill_char": "A",
+      "expected_blocked": true,
+      "rationale": "10 MiB body string — well above the API Gateway 10 MB hard cap; expect rejection at the gateway layer."
+    },
+    {
+      "id": "header-8kb",
+      "size_bytes": 8192,
+      "kind": "header",
+      "fill_char": "x",
+      "expected_blocked": true,
+      "rationale": "8 KiB single header value — common upstream limit; API Gateway caps at 10 KiB total."
+    },
+    {
+      "id": "query-4kb",
+      "size_bytes": 4096,
+      "kind": "query",
+      "fill_char": "z",
+      "expected_blocked": true,
+      "rationale": "4 KiB query-string value — should be rejected or truncated cleanly without crashing."
+    },
+    {
+      "id": "path-2kb",
+      "size_bytes": 2048,
+      "kind": "path",
+      "fill_char": "p",
+      "expected_blocked": true,
+      "rationale": "2 KiB path segment in place of an id — defends against catastrophic regex on the path parser."
+    }
+  ]
+}

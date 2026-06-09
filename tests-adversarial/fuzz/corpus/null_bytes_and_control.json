@@ -1,0 +1,42 @@
+{
+  "_comment": "Null bytes, BOM markers, and Unicode-control characters. These exploit C-string truncation, encoding confusion, and visual spoofing. Most JSON parsers handle them as literal Unicode code points, so the test verifies the API does not crash on them and does not drop the rest of the string after a control character. PASS = handled cleanly, no 500. FAIL = 500 or stack trace.",
+  "family": "null_bytes_and_control",
+  "payloads": [
+    {
+      "id": "ctrl-null-byte-mid-string",
+      "payload": "harmless\u0000admin",
+      "expected_blocked": false,
+      "rationale": "Embedded NUL byte - should round-trip as JSON \\u0000 OR be rejected at parse time, never silently truncated."
+    },
+    {
+      "id": "ctrl-utf8-bom",
+      "payload": "\ufeffhello",
+      "expected_blocked": false,
+      "rationale": "Leading UTF-8 BOM - verify the server does not error on a BOM-prefixed string."
+    },
+    {
+      "id": "ctrl-rtl-override",
+      "payload": "user\u202eadmin",
+      "expected_blocked": false,
+      "rationale": "Right-to-left override - exploited in spoofing attacks. Server must store and echo verbatim or normalize, never crash."
+    },
+    {
+      "id": "ctrl-zero-width-joiner",
+      "payload": "po\u200dlicy",
+      "expected_blocked": false,
+      "rationale": "Zero-width joiner mid-token - defeats keyword-based filters."
+    },
+    {
+      "id": "ctrl-form-feed-vtab",
+      "payload": "line1\fline2\u000bline3",
+      "expected_blocked": false,
+      "rationale": "Form-feed + vertical tab - uncommon whitespace, exercises any logging path."
+    },
+    {
+      "id": "ctrl-high-surrogate-orphan-escape",
+      "payload": "broken\\ud834text",
+      "expected_blocked": true,
+      "rationale": "Literal backslash-u-d834 sequence (escape, not a true orphan surrogate). Some parsers will try to decode this as a half-pair and fail. PASS = clean rejection or echo as literal text."
+    }
+  ]
+}

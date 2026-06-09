@@ -1,0 +1,536 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": null,
+  "_comment": "Hand-curated inventory. Source of truth for the coverage matrix. Edited by humans; reconciled against source tree by scripts/check_manifest_drift.py at every run start. Page persona access pulled from ui/src/contexts/PersonaContext.jsx (PERSONAS[*].access x ROUTE_ACCESS). API routes pulled from Infra/functions/api_handler/api_handler.py lines 133-216. Agent tools pulled from @tool decorators across agents/*/agent.py.",
+  "personas": [
+    {
+      "id": "ciso",
+      "username": "ciso_daiana",
+      "cognito_group": "ciso",
+      "label": "CISO"
+    },
+    {
+      "id": "soc",
+      "username": "soc_marcus",
+      "cognito_group": "soc",
+      "label": "SOC"
+    },
+    {
+      "id": "grc",
+      "username": "grc_priya",
+      "cognito_group": "grc",
+      "label": "GRC"
+    },
+    {
+      "id": "employee",
+      "username": "emp_sarah",
+      "cognito_group": "employee",
+      "label": "Employee"
+    }
+  ],
+  "runtimes": [
+    {
+      "id": "master_orchestrator",
+      "agentcore_runtime_name": "dev_st21arbiter_poc_master_orchestrator",
+      "source_in_repo": true
+    },
+    {
+      "id": "sharepoint_specialist",
+      "agentcore_runtime_name": "dev_st21arbiter_poc_sharepoint_specialist",
+      "source_in_repo": true
+    },
+    {
+      "id": "awsconfig_specialist",
+      "agentcore_runtime_name": "dev_st21arbiter_poc_awsconfig_specialist",
+      "source_in_repo": true
+    },
+    {
+      "id": "zscaler_specialist",
+      "agentcore_runtime_name": "dev_st21arbiter_poc_zscaler_specialist",
+      "source_in_repo": true
+    },
+    {
+      "id": "jira_specialist",
+      "agentcore_runtime_name": "dev_st21arbiter_poc_jira_specialist",
+      "source_in_repo": false,
+      "note": "Deployed runtime exists but its source is not in this repo (CLAUDE.md off-limits list). Black-box probe only via /chat — see agent_tools[].note."
+    }
+  ],
+  "pages": [
+    {
+      "id": "dashboard",
+      "file": "ui/src/pages/Dashboard.jsx",
+      "route": "/",
+      "label": "Dashboard",
+      "accessible_to": ["ciso", "soc", "grc"],
+      "blocked_for": ["employee"]
+    },
+    {
+      "id": "findings",
+      "file": "ui/src/pages/Findings.jsx",
+      "route": "/findings",
+      "label": "Findings",
+      "accessible_to": ["ciso", "soc", "grc"],
+      "blocked_for": ["employee"]
+    },
+    {
+      "id": "finding-detail",
+      "file": "ui/src/pages/FindingDetail.jsx",
+      "route": "/findings/:id",
+      "label": "Finding Detail",
+      "accessible_to": ["ciso", "soc", "grc"],
+      "blocked_for": ["employee"],
+      "note": "Shares the 'findings' access key in ROUTE_ACCESS via App.jsx (path='/findings' on the <Guarded>) — gating is identical to /findings."
+    },
+    {
+      "id": "heatmap",
+      "file": "ui/src/pages/HeatMap.jsx",
+      "route": "/heatmap",
+      "label": "HeatMap",
+      "accessible_to": ["ciso", "soc", "grc"],
+      "blocked_for": ["employee"]
+    },
+    {
+      "id": "actions",
+      "file": "ui/src/pages/ActionCenter.jsx",
+      "route": "/actions",
+      "label": "Action Center",
+      "accessible_to": ["ciso", "soc"],
+      "blocked_for": ["grc", "employee"]
+    },
+    {
+      "id": "governance",
+      "file": "ui/src/pages/Governance.jsx",
+      "route": "/governance",
+      "label": "Governance",
+      "accessible_to": ["ciso", "grc"],
+      "blocked_for": ["soc", "employee"]
+    },
+    {
+      "id": "audit",
+      "file": "ui/src/pages/AuditLogs.jsx",
+      "route": "/audit",
+      "label": "Audit Logs",
+      "accessible_to": ["ciso", "soc", "grc"],
+      "blocked_for": ["employee"]
+    },
+    {
+      "id": "analyst",
+      "file": "ui/src/pages/AnalystView.jsx",
+      "route": "/analyst",
+      "label": "Analyst View (chat)",
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "blocked_for": []
+    },
+    {
+      "id": "llm-control",
+      "file": "ui/src/pages/LLMControl.jsx",
+      "route": "/llm-control",
+      "label": "LLM Control",
+      "accessible_to": ["ciso"],
+      "blocked_for": ["soc", "grc", "employee"]
+    },
+    {
+      "id": "pipeline",
+      "file": "ui/src/pages/DataPipeline.jsx",
+      "route": "/pipeline",
+      "label": "Data Pipeline",
+      "accessible_to": ["ciso"],
+      "blocked_for": ["soc", "grc", "employee"]
+    },
+    {
+      "id": "mcp-chat",
+      "file": "ui/src/pages/MCPChat.jsx",
+      "route": "/mcp-chat",
+      "label": "MCP Chat",
+      "accessible_to": ["ciso"],
+      "blocked_for": ["soc", "grc", "employee"]
+    },
+    {
+      "id": "token-usage",
+      "file": "ui/src/pages/TokenTracking.jsx",
+      "route": "/token-usage",
+      "label": "Token Tracking",
+      "accessible_to": ["ciso"],
+      "blocked_for": ["soc", "grc", "employee"]
+    },
+    {
+      "id": "personas",
+      "file": "ui/src/pages/Personas.jsx",
+      "route": "/personas",
+      "label": "Personas",
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "blocked_for": [],
+      "note": "No entry in ROUTE_ACCESS (PersonaContext.jsx) — universally reachable by any authenticated persona. Demo / informational page."
+    },
+    {
+      "id": "settings",
+      "file": "ui/src/pages/Settings.jsx",
+      "route": "/settings",
+      "label": "Settings",
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "blocked_for": [],
+      "note": "No <Guarded> wrapper in App.jsx — universally reachable. Sections inside self-gate by route access."
+    },
+    {
+      "id": "signin",
+      "file": "ui/src/pages/SignIn.jsx",
+      "route": "/signin",
+      "label": "Sign In",
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "blocked_for": [],
+      "note": "Public route reachable while unauthenticated (sits outside <RequireAuth> in App.jsx). The /callback route is the Cognito Hosted UI return path and is exercised together with /signin in the cognito-hosted-ui E2E spec; it is not a separate page file."
+    }
+  ],
+  "api_routes": [
+    {
+      "id": "get-health",
+      "method": "GET",
+      "path": "/health",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 133,
+      "auth_required": false,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "note": "Smoke health endpoint. Returns 200 unauthenticated."
+    },
+    {
+      "id": "post-chat",
+      "method": "POST",
+      "path": "/chat",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 136,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "note": "Routed via the Lambda Function URL (AuthType=NONE) in production, not via API Gateway. JWT decoded manually — signature not verified (documented-unsafe per AC11)."
+    },
+    {
+      "id": "get-findings",
+      "method": "GET",
+      "path": "/findings",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 139,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "get-finding-by-id",
+      "method": "GET",
+      "path": "/findings/{conflict_id}",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 195,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "post-scan",
+      "method": "POST",
+      "path": "/scan",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 185,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "get-scan-runs",
+      "method": "GET",
+      "path": "/scan-runs",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 188,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "get-scan-run-by-id",
+      "method": "GET",
+      "path": "/scan-runs/{scan_run_id}",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 191,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "get-conversations",
+      "method": "GET",
+      "path": "/conversations",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 154,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "get-conversation-by-id",
+      "method": "GET",
+      "path": "/conversations/{session_id}",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 170,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "note": "IDOR-critical: cross-user session ids must return 404, not 200 or 403 (see tests/security/test_auth_and_authorization.py)."
+    },
+    {
+      "id": "delete-conversation-by-id",
+      "method": "DELETE",
+      "path": "/conversations/{session_id}",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 172,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "get-conversation-messages",
+      "method": "GET",
+      "path": "/conversations/{session_id}/messages",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 168,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "get-actions",
+      "method": "GET",
+      "path": "/actions",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 142,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "post-actions",
+      "method": "POST",
+      "path": "/actions",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 200,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "note": "Mass-assignment target — fuzz layer covers."
+    },
+    {
+      "id": "post-action-approve",
+      "method": "POST",
+      "path": "/actions/{cr_id}/approve",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 207,
+      "auth_required": true,
+      "accessible_to": ["ciso"],
+      "note": "Spec restricts the approve transition to CISO per §4.2; auth-abuse layer probes a SOC token hitting this."
+    },
+    {
+      "id": "post-action-reject",
+      "method": "POST",
+      "path": "/actions/{cr_id}/reject",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 209,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "post-action-execute",
+      "method": "POST",
+      "path": "/actions/{cr_id}/execute",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 211,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "post-action-escalate",
+      "method": "POST",
+      "path": "/actions/{cr_id}/escalate",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 213,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "get-audit",
+      "method": "GET",
+      "path": "/audit",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 145,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "get-token-usage",
+      "method": "GET",
+      "path": "/token-usage",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 148,
+      "auth_required": true,
+      "accessible_to": ["ciso"],
+      "note": "CISO-only. AC9 mandates a soc-forbidden test against this route."
+    },
+    {
+      "id": "get-token-usage-summary",
+      "method": "GET",
+      "path": "/token-usage/summary",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 151,
+      "auth_required": true,
+      "accessible_to": ["ciso"],
+      "note": "CISO-only. Auth-abuse layer probes non-CISO tokens."
+    },
+    {
+      "id": "get-dashboard",
+      "method": "GET",
+      "path": "/dashboard",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 176,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "get-mcp-health",
+      "method": "GET",
+      "path": "/mcp-health",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 179,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "post-uploads-presign",
+      "method": "POST",
+      "path": "/uploads/presign",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 157,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "note": "KB-poisoning surface — fuzz layer generates presigned URL only, does not upload poisoned content."
+    },
+    {
+      "id": "get-uploads-list",
+      "method": "GET",
+      "path": "/uploads/list",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 160,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "post-jira-tickets",
+      "method": "POST",
+      "path": "/jira/tickets",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 182,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    }
+  ],
+  "agent_tools": [
+    {
+      "id": "master.sharepoint_lookup",
+      "agent": "master_orchestrator",
+      "tool_name": "sharepoint_lookup",
+      "file": "agents/master_orchestrator/agent.py",
+      "line": 171,
+      "callable_via": "chat",
+      "probe": "Find our policy on remote access."
+    },
+    {
+      "id": "master.awsconfig_lookup",
+      "agent": "master_orchestrator",
+      "tool_name": "awsconfig_lookup",
+      "file": "agents/master_orchestrator/agent.py",
+      "line": 181,
+      "callable_via": "chat",
+      "probe": "Are any S3 buckets non-compliant right now?"
+    },
+    {
+      "id": "master.zscaler_lookup",
+      "agent": "master_orchestrator",
+      "tool_name": "zscaler_lookup",
+      "file": "agents/master_orchestrator/agent.py",
+      "line": 191,
+      "callable_via": "chat",
+      "probe": "Is github.com allowed by our Zscaler policy?"
+    },
+    {
+      "id": "sharepoint.retrieve_policies",
+      "agent": "sharepoint_specialist",
+      "tool_name": "retrieve_policies",
+      "file": "agents/sharepoint_specialist/agent.py",
+      "line": 48,
+      "callable_via": "chat",
+      "probe": "Find our policy on remote access.",
+      "note": "Reached transitively from the master via sharepoint_lookup. No direct fan-out path from /chat."
+    },
+    {
+      "id": "awsconfig.list_config_rules",
+      "agent": "awsconfig_specialist",
+      "tool_name": "list_config_rules",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 59,
+      "callable_via": "chat",
+      "probe": "List our active AWS Config rules."
+    },
+    {
+      "id": "awsconfig.get_rule_compliance",
+      "agent": "awsconfig_specialist",
+      "tool_name": "get_rule_compliance",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 88,
+      "callable_via": "chat",
+      "probe": "What is the compliance state of `s3-bucket-public-read-prohibited`?"
+    },
+    {
+      "id": "awsconfig.list_noncompliant_resources",
+      "agent": "awsconfig_specialist",
+      "tool_name": "list_noncompliant_resources",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 123,
+      "callable_via": "chat",
+      "probe": "Which resources fail `s3-bucket-public-read-prohibited`?"
+    },
+    {
+      "id": "awsconfig.retrieve_awsconfig_docs",
+      "agent": "awsconfig_specialist",
+      "tool_name": "retrieve_awsconfig_docs",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 149,
+      "callable_via": "chat",
+      "probe": "Summarize our AWS Config conformance pack history."
+    },
+    {
+      "id": "zscaler.retrieve_zscaler_policy",
+      "agent": "zscaler_specialist",
+      "tool_name": "retrieve_zscaler_policy",
+      "file": "agents/zscaler_specialist/agent.py",
+      "line": 68,
+      "callable_via": "chat",
+      "probe": "Is github.com allowed by our Zscaler policy?",
+      "note": "Reached transitively from the master via zscaler_lookup."
+    },
+    {
+      "id": "zscaler.lookup_url_category",
+      "agent": "zscaler_specialist",
+      "tool_name": "lookup_url_category",
+      "file": "agents/zscaler_specialist/agent.py",
+      "line": 100,
+      "callable_via": "chat",
+      "probe": "Look up the Zscaler category for https://example.com .",
+      "note": "Triggers a live Zscaler ZIA API call. Cap at one invocation per run (spec §11 risk 3)."
+    },
+    {
+      "id": "jira.black_box",
+      "agent": "jira_specialist",
+      "tool_name": "<unknown>",
+      "file": "agents/jira_specialist/agent.py",
+      "line": null,
+      "callable_via": "chat",
+      "probe": "Open a Jira ticket for this finding.",
+      "note": "Source not in this repo (CLAUDE.md off-limits). Tool name(s) unknown — black-box only. Test asserts (a) HTTP 200, (b) no stack trace, (c) no 12-digit account id. See AC19 and task 20.",
+      "source_in_repo": false
+    },
+    {
+      "id": "master.chat_surface",
+      "agent": "master_orchestrator",
+      "tool_name": "chat_surface",
+      "file": null,
+      "line": null,
+      "callable_via": "chat",
+      "synthetic": true,
+      "note": "Sentinel entry for LLM red-team coverage. Probes land at /chat which routes through the master orchestrator; the specific tool invoked is non-deterministic."
+    }
+  ]
+}

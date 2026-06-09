@@ -1,0 +1,42 @@
+{
+  "_comment": "Path-traversal payloads aimed at routes that take a path parameter (e.g. /findings/{id}, /scan-runs/{id}, /conversations/{id}, /actions/{id}/...). PASS = 400/404 with a clean JSON body. FAIL = 500 OR 200 with a directory listing OR any leaked filesystem content. Payloads cover dot-slash variants, URL-encoded and double-encoded forms, Windows backslash, and a few mixed-case bypass variants.",
+  "family": "path_traversal",
+  "payloads": [
+    {
+      "id": "ptrav-classic",
+      "payload": "../../../etc/passwd",
+      "expected_blocked": true,
+      "rationale": "Classic ../../../etc/passwd — the textbook path traversal."
+    },
+    {
+      "id": "ptrav-url-encoded",
+      "payload": "%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd",
+      "expected_blocked": true,
+      "rationale": "URL-encoded form — exploits naive decoders."
+    },
+    {
+      "id": "ptrav-double-encoded",
+      "payload": "%252e%252e%252f%252e%252e%252fetc%252fpasswd",
+      "expected_blocked": true,
+      "rationale": "Double-URL-encoded — exploits double-decode bugs."
+    },
+    {
+      "id": "ptrav-windows-backslash",
+      "payload": "..\\..\\..\\windows\\system32\\drivers\\etc\\hosts",
+      "expected_blocked": true,
+      "rationale": "Windows-style backslash path — defends against naive replace('/', '_') sanitizers."
+    },
+    {
+      "id": "ptrav-mixed-encoding",
+      "payload": "..%2f..%2f..%2fetc/passwd",
+      "expected_blocked": true,
+      "rationale": "Mix of encoded and literal slashes — defeats single-pass decoders."
+    },
+    {
+      "id": "ptrav-leading-slash",
+      "payload": "/etc/passwd",
+      "expected_blocked": true,
+      "rationale": "Absolute path attempt as path-param value."
+    }
+  ]
+}

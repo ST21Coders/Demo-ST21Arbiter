@@ -1,0 +1,60 @@
+{
+  "_comment": "Curated SQL injection payloads. ARBITER's backend is DynamoDB (NoSQL) so a real SQL backend won't be hit, but these are still useful negative tests against any string-template logic (e.g. the partial /findings filters where severity/status/domain land in DDB FilterExpression strings). PASS = no 500, no stack trace, no payload reflection. Payloads sourced from PortSwigger SQL injection cheat sheet and OWASP Testing Guide.",
+  "family": "sqli",
+  "payloads": [
+    {
+      "id": "sqli-or-1-1",
+      "payload": "' OR 1=1--",
+      "expected_blocked": false,
+      "rationale": "Classic tautology — harmless against DDB but must not 500. expected_blocked=false because DDB will treat it as a literal string value."
+    },
+    {
+      "id": "sqli-drop-table",
+      "payload": "'; DROP TABLE users;--",
+      "expected_blocked": false,
+      "rationale": "Statement terminator + DROP — exercises any DDB FilterExpression that builds strings via f-string concatenation."
+    },
+    {
+      "id": "sqli-union-select",
+      "payload": "' UNION SELECT NULL,NULL,NULL--",
+      "expected_blocked": false,
+      "rationale": "UNION-based exfil pattern. Harmless against DDB; verifies the API doesn't error on unbalanced quotes."
+    },
+    {
+      "id": "sqli-comment-bypass",
+      "payload": "admin'--",
+      "expected_blocked": false,
+      "rationale": "SQL comment to bypass password check — tests login-flow-style string handling even though /chat doesn't use SQL."
+    },
+    {
+      "id": "sqli-time-based-sleep",
+      "payload": "'; WAITFOR DELAY '0:0:5'--",
+      "expected_blocked": false,
+      "rationale": "Time-based SQLi probe (T-SQL). API should reject as invalid input OR treat as literal string — never hang for 5s."
+    },
+    {
+      "id": "sqli-boolean-or",
+      "payload": "' OR 'a'='a",
+      "expected_blocked": false,
+      "rationale": "Boolean-based — common entry-level probe. Verifies the API handles unbalanced quotes without crashing."
+    },
+    {
+      "id": "sqli-stacked-queries",
+      "payload": "'; INSERT INTO audit (event) VALUES ('pwned');--",
+      "expected_blocked": false,
+      "rationale": "Stacked-query attempt. DDB doesn't have INSERT, but verifies API doesn't crash on multi-statement payloads."
+    },
+    {
+      "id": "sqli-hex-encoded",
+      "payload": "0x27204F522031203D2031202D2D",
+      "expected_blocked": false,
+      "rationale": "Hex-encoded version of ' OR 1=1-- — defeats keyword-based input filters."
+    },
+    {
+      "id": "sqli-double-quotes",
+      "payload": "\" OR \"\"=\"",
+      "expected_blocked": false,
+      "rationale": "Double-quote variant — common in JSON-body contexts where single quotes are unaffected."
+    }
+  ]
+}

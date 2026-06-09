@@ -40,6 +40,15 @@ htmlcov/
 packaged-*.yaml
 packaged-*.yml
 
+# Adversarial harness (tests-adversarial/)
+# Run artifacts live at the repo root; secrets, venv, and Playwright storage
+# stay under tests-adversarial/.
+test-reports/
+tests-adversarial/.env
+tests-adversarial/.venv/
+tests-adversarial/node_modules/
+tests-adversarial/e2e/storage-states/
+
 # OS / editor noise
 .DS_Store
 .idea/

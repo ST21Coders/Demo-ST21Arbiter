@@ -1,0 +1,103 @@
+{
+  "_comment": "Per-page primary interaction probes. Authored in task 11c (deferred from task 9). Each entry maps a manifest page id to ONE primary interaction the CISO persona can perform. PASS = the interaction triggers without an uncaught console error and the expected DOM signal (a new element, a class change, an XHR firing) is observed. FAIL = a console error fires OR no DOM signal is observed within the timeout. Severity is 'medium' by default. Pages where no interactive element is sensible to probe in a deployed-env smoke (page is purely read-only, requires a specific data row to be loaded, or would write to backend state) are encoded with interaction_id: null and a reason. Those pages are skipped at runtime with the reason recorded in results.json so the coverage matrix shows the gap explicitly rather than silently omitting them. Selectors are kept loose (role-based or text-based) to survive minor Tailwind class shuffles. Severity classifications: 'medium' applies when an interaction is expected to work and silently breaking it would degrade the demo; 'low' for purely cosmetic ones. The spec at e2e/tests/interactions.spec.js iterates this map. Note: signin and the four backend-write-heavy interactions are intentionally null — see per-entry reason.",
+  "interactions": {
+    "dashboard": {
+      "interaction_id": "click-findings-link-card",
+      "description": "Click the 'Open findings' / Findings card on the dashboard to navigate into /findings.",
+      "selector_text": "Findings",
+      "expected_signal": "url",
+      "expected_url_contains": "/findings",
+      "severity": "medium"
+    },
+    "findings": {
+      "interaction_id": "row-click",
+      "description": "Click the first findings table row to open the finding detail.",
+      "selector_role": "row",
+      "expected_signal": "url",
+      "expected_url_contains": "/findings/",
+      "severity": "medium"
+    },
+    "finding-detail": {
+      "interaction_id": null,
+      "reason": "Direct navigation to /findings/:id with the literal ':id' placeholder lands on a not-found shell; there is no stable interactive element without a real finding id from a prior /findings list call. Covered by the row-click follow-through from the 'findings' interaction in a future cross-page test if needed."
+    },
+    "heatmap": {
+      "interaction_id": "click-domain-tile",
+      "description": "Click the first heatmap domain tile to drill into its findings.",
+      "selector_role": "button",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
+    "actions": {
+      "interaction_id": "open-action-card",
+      "description": "Click the first action card or row to expand its details panel. Does NOT click approve/reject/execute (those mutate backend state — covered in the auth-abuse and fuzz layers).",
+      "selector_role": "button",
+      "expected_signal": "no-console-error",
+      "severity": "medium"
+    },
+    "governance": {
+      "interaction_id": "click-policy-row",
+      "description": "Click the first policy row in the Governance table.",
+      "selector_role": "row",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
+    "audit": {
+      "interaction_id": "filter-toggle",
+      "description": "Click a filter chip or column header on the Audit Logs page (filter, not row, because rows are immutable log entries).",
+      "selector_role": "button",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
+    "analyst": {
+      "interaction_id": null,
+      "reason": "Sending a chat prompt here would cost Bedrock tokens against the LLM layer's budget and would write a session row to DDB. The /analyst chat is covered by the LLM red-team layer at task 17. Mounting the page is already covered by e2e.page.analyst.ciso (task 9)."
+    },
+    "llm-control": {
+      "interaction_id": "click-control-tab",
+      "description": "Click a tab/toggle on the LLM Control Panel (read-only UI; no backend mutation).",
+      "selector_role": "button",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
+    "pipeline": {
+      "interaction_id": "click-stage",
+      "description": "Click a pipeline stage card to expand details.",
+      "selector_role": "button",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
+    "mcp-chat": {
+      "interaction_id": "select-second-server",
+      "description": "Click the second MCP server in the sidebar to switch the active server. Does NOT send a chat prompt (that is covered by e2e.mcp-chat.sidebar-cosmetic).",
+      "selector_text": "Conflict Detector MCP",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
+    "token-usage": {
+      "interaction_id": "click-tab",
+      "description": "Click a Governance/Token Tracking tab or filter to change the chart range. Read-only — no backend mutation.",
+      "selector_role": "button",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
+    "personas": {
+      "interaction_id": "click-persona-card",
+      "description": "Click a persona card on the demo/info Personas page.",
+      "selector_role": "button",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
+    "settings": {
+      "interaction_id": "click-section-tab",
+      "description": "Click a settings section tab (Profile / Session / Theme).",
+      "selector_role": "button",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
+    "signin": {
+      "interaction_id": null,
+      "reason": "Authenticated personas hitting /signin are redirected away (Navigate to='/' replace). There is no interactive element on the page for an authenticated persona. The Cognito Hosted UI flow is exercised by the no-auth project's cognito-hosted-ui.spec.js."
+    }
+  }
+}

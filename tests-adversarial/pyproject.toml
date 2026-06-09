@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arbiter-adversarial-harness"
+version = "0.1.0"
+description = "Full-app adversarial testing harness for ARBITER (ST21). Read-only against deployed dev."
+requires-python = ">=3.13"
+dependencies = [
+    "pytest>=8.0",
+    "hypothesis>=6.100",
+    "jinja2>=3.1",
+    "pyyaml>=6.0",
+    "boto3>=1.34",
+    "requests>=2.32",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "moto>=5.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "fuzz", "auth", "llm"]
+# Use --import-mode=importlib so two test files with the same basename
+# (e.g. `tests/test_hypothesis_strategies.py` and
+# `fuzz/test_hypothesis_strategies.py`) don't collide in `sys.modules`.
+# Without it, pytest's classic prepend mode caches the first import by
+# basename and refuses to load the second with an `import file mismatch`
+# error. importlib mode looks up each file by its full path.
+addopts = "-ra --import-mode=importlib"
+# Add the harness root to sys.path so test modules can do
+# `from fuzz._payloads import ...`, `from auth.conftest import ...`,
+# `from scripts import emit_storage_states`, etc. without installing
+# every layer as a package. The `src/` tree is on path via the editable
+# install (see `[tool.setuptools.packages.find]`); pythonpath covers
+# the layer dirs and the `scripts/` helper module.
+pythonpath = ["."]
+markers = [
+    "destructive: marks a fuzz test as targeting a mutating HTTP method (POST/PUT/PATCH/DELETE); skipped unless --include-destructive is passed",
+]
