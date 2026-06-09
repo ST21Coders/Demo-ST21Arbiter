@@ -96,7 +96,11 @@ describe('Edge cases — policy mandate references', () => {
   })
 
   it('source_policy references the expected MIG-POL section', () => {
+    // Cross-tool conflicts (UC14: Zscaler vs Palo Alto) have no policy doc — their
+    // source_policy names the contradicting enforcement rule instead.
+    const CROSS_TOOL = new Set(['ARBITER-UC14'])
     MOCK_CONFLICTS.forEach(f => {
+      if (CROSS_TOOL.has(f.conflict_id)) return
       expect(f.source_policy).toMatch(/MIG-POL-/)
     })
   })

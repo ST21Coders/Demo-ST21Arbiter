@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronDown, ChevronRight, Loader2, ScanLine, ExternalLink, Zap, Download } from 'lucide-react'
-import { useFindings, useChangeRequests } from '../hooks/useApi'
+import { ChevronDown, ChevronRight, Loader2, ScanLine, ExternalLink, Zap, Download, RefreshCw } from 'lucide-react'
+import { useFindings, useChangeRequests, useScanFeed } from '../hooks/useApi'
 import { SeverityBadge, StatusBadge, TypeBadge } from '../components/SeverityBadge'
 import ActionRequestModal from '../components/ActionRequestModal'
-import { DOMAIN_LABELS, DOMAIN_KEYS, SOURCE_PAIRS, findingsToCsv } from '../mockData'
+import { DOMAIN_LABELS, DOMAIN_KEYS, SOURCE_PAIRS, findingsToCsv, TEAMS, TEAM_LABELS } from '../mockData'
 import { formatDistanceToNow } from 'date-fns'
 
 const SEVERITY_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 }
@@ -29,10 +29,21 @@ export default function Findings() {
   const [filterDomain, setFilterDomain] = useState(searchParams.get('domain') || '')
   const [filterType, setFilterType] = useState(searchParams.get('type') || '')
   const [filterFramework, setFilterFramework] = useState(searchParams.get('framework') || '')
+  const [filterTeam, setFilterTeam] = useState(searchParams.get('team') || '')
   const filterSource = searchParams.get('source') || ''   // from dashboard heat-map drill-in
   const [actionTarget, setActionTarget] = useState(null)
+  // Live scan feed: when a background scan (upload/auto-ingest/cron) finishes we
+  // surface a non-destructive "refresh" badge rather than mutating the list under
+  // a reviewer mid-read. `activeRun` drives a live "scanning…" pill.
+  const [pendingScan, setPendingScan] = useState(null)
+  const { activeRun } = useScanFeed({ onNewScan: (run) => setPendingScan(run) })
 
   useEffect(() => { load() }, [load])
+
+  function applyPendingScan() {
+    setPendingScan(null)
+    load()
+  }
 
   function setFilter(key, setter, value) {
     setter(value)
@@ -42,7 +53,7 @@ export default function Findings() {
   }
 
   function clearFilters() {
-    setFilterSev(''); setFilterStatus(''); setFilterDomain(''); setFilterType(''); setFilterFramework('')
+    setFilterSev(''); setFilterStatus(''); setFilterDomain(''); setFilterType(''); setFilterFramework(''); setFilterTeam('')
     setSearchParams({}, { replace: true })
   }
 
@@ -53,6 +64,9 @@ export default function Findings() {
     .filter(f => !filterType || (f.conflict_type || f.type) === filterType)
     .filter(f => !filterSource || f.source_pair === filterSource)
     .filter(f => !filterFramework || (f.regulatory || []).some(r => r.startsWith(filterFramework)))
+    // Team filter spans all three ownership axes — a team cares about conflicts it
+    // owns, consumes, OR manages the enforcing platform for.
+    .filter(f => !filterTeam || [f.owner_team, f.consumer_team, f.platform_team].includes(filterTeam))
     .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity])
 
   function exportCsv() {
@@ -66,7 +80,7 @@ export default function Findings() {
     URL.revokeObjectURL(url)
   }
 
-  const filtersActive = filterSev || filterStatus || filterDomain || filterType || filterFramework || filterSource
+  const filtersActive = filterSev || filterStatus || filterDomain || filterType || filterFramework || filterSource || filterTeam
 
   function toggle(id) {
     setExpanded(prev => prev === id ? null : id)
@@ -107,6 +121,18 @@ export default function Findings() {
         </div>
       </div>
 
+      {/* Live-scan refresh badge — non-destructive: the list only changes when
+          the reviewer clicks. Shown once a background scan completes. */}
+      {pendingScan && !activeRun && (
+        <button
+          onClick={applyPendingScan}
+          className="w-full flex items-center justify-center gap-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg hover:bg-emerald-100 transition-colors"
+        >
+          <RefreshCw size={13} />
+          Scan complete — {pendingScan.totals?.conflicts ?? 0} conflict{(pendingScan.totals?.conflicts ?? 0) !== 1 ? 's' : ''} detected. Click to refresh.
+        </button>
+      )}
+
       {/* Filters */}
       <div className="flex gap-2 flex-wrap items-center">
         <select value={filterSev} onChange={e => setFilter('severity', setFilterSev, e.target.value)} className="input w-36 text-xs">
@@ -128,6 +154,10 @@ export default function Findings() {
         <select value={filterFramework} onChange={e => setFilter('framework', setFilterFramework, e.target.value)} className="input w-40 text-xs">
           <option value="">All Frameworks</option>
           {FRAMEWORKS.map(f => <option key={f} value={f}>{f}</option>)}
+        </select>
+        <select value={filterTeam} onChange={e => setFilter('team', setFilterTeam, e.target.value)} className="input w-44 text-xs">
+          <option value="">All Teams</option>
+          {TEAMS.map(t => <option key={t} value={t}>{TEAM_LABELS[t]}</option>)}
         </select>
         {filterSource && (
           <span className="text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md">
@@ -181,6 +211,11 @@ export default function Findings() {
                       {f.source_technical && <> · <span className="text-slate-600">{f.source_technical}</span></>}
                       {' · '}detected {formatDistanceToNow(new Date(f.detected_at), { addSuffix: true })}
                     </p>
+                    {f.owner_team && (
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        owner: <span className="text-slate-700 font-medium">{TEAM_LABELS[f.owner_team] || f.owner_team}</span>
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <TypeBadge type={f.conflict_type || f.type} />
@@ -212,6 +247,29 @@ export default function Findings() {
                         ))}
                       </ol>
                     </div>
+
+                    {(f.owner_team || f.consumer_team || f.platform_team || f.tags?.length) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {[['Owner', f.owner_team], ['Consumer', f.consumer_team], ['Platform', f.platform_team]].map(([lbl, team]) => team ? (
+                          <div key={lbl}>
+                            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">{lbl} Team</p>
+                            <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                              {TEAM_LABELS[team] || team}
+                            </span>
+                          </div>
+                        ) : null)}
+                        {f.tags?.length > 0 && (
+                          <div className="sm:col-span-3">
+                            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Tags</p>
+                            <div className="flex gap-1.5 flex-wrap">
+                              {f.tags.map(t => (
+                                <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">{t}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Domains:</p>

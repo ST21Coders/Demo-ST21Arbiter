@@ -1,13 +1,14 @@
 """ARBITER deterministic rule-pack for the autonomous scanner.
 
-Each rule matcher takes structured observations from the three specialists
+Each rule matcher takes structured observations from the four specialists
 (SharePoint policy citations, Zscaler rule snapshots, AWS Config resource
-snapshots) and either emits a structured Finding or returns None.
+snapshots, Palo Alto firewall-rule snapshots) and either emits a structured
+Finding or returns None.
 
-The 12 matchers map 1:1 to the use cases in
-`BaselineFiles/ARBITER-POC-Scope-and-Use-Cases-V1.0.docx`. The compliant_*
-helpers emit 14 alignment rows the scanner records as evidence of working
-controls (and as a false-positive guard).
+The 14 matchers map 1:1 to the use cases in
+`BaselineFiles/ARBITER-POC-Scope-and-Use-Cases-V1.0.docx` (UC13/UC14 add the
+Palo Alto perimeter source). The compliant_* helpers emit 16 alignment rows the
+scanner records as evidence of working controls (and as a false-positive guard).
 
 This module is imported by `agents/master_orchestrator/agent.py` when the
 runtime is invoked with `{"scan": true, ...}`.
@@ -41,6 +42,13 @@ def _has_zscaler_rule(zscaler: list[dict], rule_id: str) -> dict | None:
 def _has_aws_resource(awsconfig: list[dict], resource_id: str) -> dict | None:
     for r in awsconfig or []:
         if r.get("resource_id") == resource_id:
+            return r
+    return None
+
+
+def _has_paloalto_rule(paloalto: list[dict], rule_id: str) -> dict | None:
+    for r in paloalto or []:
+        if r.get("rule_id") == rule_id:
             return r
     return None
 
@@ -112,7 +120,7 @@ def _compliant(*, cid: str, rule_key: str, domain: str, source_pair: str,
 
 # ── 12 conflict matchers (UC01..UC12) ────────────────────────────────────────
 
-def uc01_dropbox_block(sp, zs, aws):
+def uc01_dropbox_block(sp, zs, aws, pa=None):
     rule = _has_zscaler_rule(zs, "ZIA-URLCAT-CLOUD-BLK-042")
     has_policy = _has_policy_quote(sp, "MIG-POL-001", "2.1", "Dropbox Business")
     if not rule or not has_policy:
@@ -135,7 +143,7 @@ def uc01_dropbox_block(sp, zs, aws):
     )
 
 
-def uc02_remote_tools_block(sp, zs, aws):
+def uc02_remote_tools_block(sp, zs, aws, pa=None):
     rule = _has_zscaler_rule(zs, "ZIA-APP-CTRL-REMOTE-BLOCK-007")
     has_policy = _has_policy_quote(sp, "MIG-POL-001", "2.3", "TeamViewer")
     if not rule or not has_policy:
@@ -164,7 +172,7 @@ def uc02_remote_tools_block(sp, zs, aws):
     )
 
 
-def uc03_firefox_block(sp, zs, aws):
+def uc03_firefox_block(sp, zs, aws, pa=None):
     rule = _has_zscaler_rule(zs, "ZIA-APP-CTRL-BROWSER-FF-009")
     has_policy = _has_policy_quote(sp, "MIG-POL-001", "4", "Firefox")
     if not rule or not has_policy:
@@ -187,7 +195,7 @@ def uc03_firefox_block(sp, zs, aws):
     )
 
 
-def uc04_ssl_bypass(sp, zs, aws):
+def uc04_ssl_bypass(sp, zs, aws, pa=None):
     rule = _has_zscaler_rule(zs, "ZIA-SSL-BYPASS-FIN-DOMAINS")
     has_policy = _has_policy_quote(sp, "MIG-POL-002", "2.2", "SSL/TLS inspection")
     if not rule or not has_policy:
@@ -214,7 +222,7 @@ def uc04_ssl_bypass(sp, zs, aws):
     )
 
 
-def uc05_mfa_admin_only(sp, zs, aws):
+def uc05_mfa_admin_only(sp, zs, aws, pa=None):
     rule = _has_zscaler_rule(zs, "ZPA-AUTHPOL-ADMIN-MFA-ONLY")
     has_policy = _has_policy_quote(sp, "MIG-POL-002", "4.1", "MFA")
     if not rule or not has_policy:
@@ -237,7 +245,7 @@ def uc05_mfa_admin_only(sp, zs, aws):
     )
 
 
-def uc06_iot_monitor(sp, zs, aws):
+def uc06_iot_monitor(sp, zs, aws, pa=None):
     rule = _has_zscaler_rule(zs, "ZIA-IOT-MONITOR-ONLY-VLAN-19")
     has_policy = _has_policy_quote(sp, "MIG-POL-002", "5.1", "IoT")
     if not rule or not has_policy:
@@ -260,7 +268,7 @@ def uc06_iot_monitor(sp, zs, aws):
     )
 
 
-def uc07_alb_no_waf(sp, zs, aws):
+def uc07_alb_no_waf(sp, zs, aws, pa=None):
     res = _has_aws_resource(aws, "alb-mig-prod-claims-api-001")
     has_policy = _has_policy_quote(sp, "MIG-POL-004", "2", "WAF")
     if not res or not has_policy:
@@ -287,7 +295,7 @@ def uc07_alb_no_waf(sp, zs, aws):
     )
 
 
-def uc08_vpc_peering(sp, zs, aws):
+def uc08_vpc_peering(sp, zs, aws, pa=None):
     res = _has_aws_resource(aws, "pcx-mig-prod-dev-001")
     has_policy = _has_policy_quote(sp, "MIG-POL-004", "3", "VPC peering")
     if not res or not has_policy:
@@ -310,7 +318,7 @@ def uc08_vpc_peering(sp, zs, aws):
     )
 
 
-def uc09_s3_eu_west(sp, zs, aws):
+def uc09_s3_eu_west(sp, zs, aws, pa=None):
     res = _has_aws_resource(aws, "mig-prod-claims-data-primary")
     has_policy = _has_policy_quote(sp, "MIG-POL-003", "3", "continental United States")
     if not res or not has_policy:
@@ -337,7 +345,7 @@ def uc09_s3_eu_west(sp, zs, aws):
     )
 
 
-def uc10_dlp_blanket(sp, zs, aws):
+def uc10_dlp_blanket(sp, zs, aws, pa=None):
     rule = _has_zscaler_rule(zs, "ZIA-DLP-PII-BLOCK-ALL-EXTERNAL")
     has_policy = _has_policy_quote(sp, "MIG-POL-003", "2.1", "Milliman")
     if not rule or not has_policy:
@@ -360,7 +368,7 @@ def uc10_dlp_blanket(sp, zs, aws):
     )
 
 
-def uc11_geo_restrict(sp, zs, aws):
+def uc11_geo_restrict(sp, zs, aws, pa=None):
     rule = _has_zscaler_rule(zs, "ZPA-GEO-RESTRICT-INDIA-US-ONLY")
     has_policy = _has_policy_quote(sp, "MIG-POL-005", "5", "India and US only")
     if not rule or not has_policy:
@@ -388,7 +396,7 @@ def uc11_geo_restrict(sp, zs, aws):
     )
 
 
-def uc12_social_blanket(sp, zs, aws):
+def uc12_social_blanket(sp, zs, aws, pa=None):
     rule = _has_zscaler_rule(zs, "ZIA-URLCAT-SOCIAL-BLOCK-ALL")
     has_policy = _has_policy_quote(sp, "MIG-POL-001", "3", "Marketing")
     if not rule or not has_policy:
@@ -411,9 +419,65 @@ def uc12_social_blanket(sp, zs, aws):
     )
 
 
-# ── 14 compliant alignments (false-positive guard) ───────────────────────────
+# ── Palo Alto perimeter matchers (UC13..UC14) ────────────────────────────────
 
-def emit_compliants(sp, zs, aws) -> list[dict]:
+def uc13_perimeter_egress_allow(sp, zs, aws, pa=None):
+    rule = _has_paloalto_rule(pa, "PAN-SEC-EGRESS-ANYANY-ALLOW-001")
+    has_policy = _has_policy_quote(sp, "MIG-POL-002", "6", "default-deny")
+    if not rule or not has_policy:
+        return None
+    if (rule.get("raw", {}) or {}).get("action", "").lower() != "allow":
+        return None
+    return _finding(
+        rule_key="UC13", severity="HIGH", conflict_type="GAP", domain="NETWORK_SECURITY",
+        source_pair="SharePoint+Palo Alto", source_policy="MIG-POL-002 §6",
+        source_technical="PAN-SEC-EGRESS-ANYANY-ALLOW-001",
+        title="Palo Alto permits any/any outbound — policy mandates default-deny egress",
+        finding_text="MIG-POL-002 §6 mandates default-deny perimeter egress with explicit allow-listing; Palo Alto rule PAN-SEC-EGRESS-ANYANY-ALLOW-001 permits any source to any destination outbound.",
+        impact="Unrestricted outbound path at the perimeter firewall. Data exfiltration and C2 channels unmitigated despite a default-deny policy. PCI DSS Req 1.3 egress-control gap.",
+        remediation=["Replace PAN-SEC-EGRESS-ANYANY-ALLOW-001 with an explicit allow-list of approved destinations / App-IDs.",
+                     "Set the perimeter egress default action to deny-and-log.",
+                     "Reconcile the allow-list with the Zscaler ZIA category policy."],
+        policy_citations=[{"doc": "MIG-POL-002", "version": "v5.1", "section": "6",
+                           "quote": "Perimeter egress must be default-deny. Outbound access to high-risk or uncategorised destinations is prohibited without an explicit, documented allow-list entry.",
+                           "confidence": Decimal("0.96")}],
+        enforcement_evidence=[{"source": "PaloAlto", "rule_id": "PAN-SEC-EGRESS-ANYANY-ALLOW-001", "action": "ALLOW",
+                               "raw": rule.get("raw", {})}],
+        regulatory=["PCI DSS 1.3", "ISO 27001 A.8.20"], domains_list=["SharePoint", "PaloAlto"], fp_score=0.05,
+    )
+
+
+def uc14_zscaler_paloalto_bypass(sp, zs, aws, pa=None):
+    zrule = _has_zscaler_rule(zs, "ZIA-URLCAT-ANONYMIZER-BLOCK")
+    parule = _has_paloalto_rule(pa, "PAN-SEC-APP-TOR-ALLOW-022")
+    if not zrule or not parule:
+        return None
+    if (parule.get("raw", {}) or {}).get("action", "").lower() != "allow":
+        return None
+    return _finding(
+        rule_key="UC14", severity="CRITICAL", conflict_type="CONTRADICTION", domain="NETWORK_SECURITY",
+        source_pair="Zscaler+Palo Alto", source_policy="ZIA-URLCAT-ANONYMIZER-BLOCK",
+        source_technical="PAN-SEC-APP-TOR-ALLOW-022",
+        title="Anonymizer traffic blocked by Zscaler but allowed by Palo Alto — enforcement bypass",
+        finding_text="Zscaler ZIA rule ZIA-URLCAT-ANONYMIZER-BLOCK blocks the Anonymizer/Tor category, while Palo Alto rule PAN-SEC-APP-TOR-ALLOW-022 permits the 'tor' App-ID outbound. Traffic egressing via the Palo Alto perimeter bypasses the Zscaler control.",
+        impact="Two security teams' controls disagree, creating a live bypass: hosts routed through the firewall path can reach anonymizer/Tor destinations the web proxy is meant to block. Data-exfiltration and C2 risk; undermines the SSL-inspection control.",
+        remediation=["Align the Palo Alto rulebase with the Zscaler category policy — deny the 'tor' / anonymizer App-IDs at the perimeter.",
+                     "Establish a single source of truth for category enforcement across Zscaler and Palo Alto.",
+                     "Audit egress paths that bypass the Zscaler tunnel."],
+        policy_citations=[],
+        enforcement_evidence=[
+            {"source": "Zscaler", "rule_id": "ZIA-URLCAT-ANONYMIZER-BLOCK", "action": "BLOCK",
+             "raw": zrule.get("raw", {})},
+            {"source": "PaloAlto", "rule_id": "PAN-SEC-APP-TOR-ALLOW-022", "action": "ALLOW",
+             "raw": parule.get("raw", {})},
+        ],
+        regulatory=["PCI DSS 1.3", "NAIC MDL-668"], domains_list=["Zscaler", "PaloAlto"], fp_score=0.04,
+    )
+
+
+# ── 16 compliant alignments (false-positive guard) ───────────────────────────
+
+def emit_compliants(sp, zs, aws, pa=None) -> list[dict]:
     rows = [
         ("COMPLIANT-UC01-BOX",         "UC01", "ACCESS_MGMT",      "SharePoint+Zscaler",     ["SharePoint","Zscaler"],   "Box.com approved and accessible — policy ↔ enforcement aligned"),
         ("COMPLIANT-UC02-BEYONDTRUST", "UC02", "VENDOR_MGMT",      "SharePoint+Zscaler",     ["SharePoint","Zscaler"],   "BeyondTrust Remote Support whitelisted and SIEM-logged"),
@@ -429,6 +493,8 @@ def emit_compliants(sp, zs, aws) -> list[dict]:
         ("COMPLIANT-UC10-INTERNAL",    "UC10", "DATA_GOVERNANCE",  "SharePoint+Zscaler",     ["SharePoint","Zscaler"],   "Internal-only data flows correctly unblocked by DLP"),
         ("COMPLIANT-UC11-US",          "UC11", "VENDOR_MGMT",      "SharePoint+Zscaler",     ["SharePoint","Zscaler"],   "US-based vendor access permitted by ZTNA — country list compliant"),
         ("COMPLIANT-UC12-GENERAL",     "UC12", "ACCESS_MGMT",      "SharePoint+Zscaler",     ["SharePoint","Zscaler"],   "General employee social-media block applied as intended"),
+        ("COMPLIANT-UC13-MGMTDENY",    "UC13", "NETWORK_SECURITY", "SharePoint+Palo Alto",   ["SharePoint","PaloAlto"],  "PAN-SEC-MGMT-DENY-EXTERNAL denies management-plane access from the internet — egress policy aligned"),
+        ("COMPLIANT-UC14-MALWARE",     "UC14", "NETWORK_SECURITY", "Zscaler+Palo Alto",      ["Zscaler","PaloAlto"],     "Zscaler and Palo Alto both block the Malware/Botnet category — enforcement consistent"),
     ]
     return [_compliant(cid=r[0], rule_key=r[1], domain=r[2], source_pair=r[3], domains_list=r[4], title=r[5]) for r in rows]
 
@@ -440,20 +506,23 @@ MATCHERS = [
     uc04_ssl_bypass,    uc05_mfa_admin_only,     uc06_iot_monitor,
     uc07_alb_no_waf,    uc08_vpc_peering,        uc09_s3_eu_west,
     uc10_dlp_blanket,   uc11_geo_restrict,       uc12_social_blanket,
+    uc13_perimeter_egress_allow, uc14_zscaler_paloalto_bypass,
 ]
 
 
-def run_rule_pack(sharepoint: list[dict], zscaler: list[dict], awsconfig: list[dict]) -> list[dict]:
-    """Run all 12 matchers + emit 14 compliant rows. Returns combined finding list."""
+def run_rule_pack(sharepoint: list[dict], zscaler: list[dict], awsconfig: list[dict],
+                  paloalto: list[dict] | None = None) -> list[dict]:
+    """Run all 14 matchers + emit 16 compliant rows. Returns combined finding list."""
+    paloalto = paloalto or []
     findings: list[dict] = []
     for m in MATCHERS:
         try:
-            r = m(sharepoint, zscaler, awsconfig)
+            r = m(sharepoint, zscaler, awsconfig, paloalto)
             if r is not None:
                 findings.append(r)
         except Exception:
             # Matchers are individually fallible; a single broken matcher
             # must not abort the whole scan.
             continue
-    findings.extend(emit_compliants(sharepoint, zscaler, awsconfig))
+    findings.extend(emit_compliants(sharepoint, zscaler, awsconfig, paloalto))
     return findings

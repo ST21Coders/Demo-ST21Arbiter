@@ -47,30 +47,30 @@ export function resolveUserDisplay(userEmail, persona) {
 // Consistent colors across the three charts + the table accents. Agent colors
 // match the project's existing finding-source palette where possible.
 const AGENT_COLORS = {
-  master:     '#6366f1',
+  master: '#6366f1',
   sharepoint: '#0ea5e9',
-  awsconfig:  '#f59e0b',
-  zscaler:    '#ec4899',
+  awsconfig: '#f59e0b',
+  zscaler: '#ec4899',
 }
 const PERSONA_COLORS = {
-  ciso:     '#f59e0b',
-  soc:      '#f472b6',
-  grc:      '#6366f1',
+  ciso: '#f59e0b',
+  soc: '#f472b6',
+  grc: '#6366f1',
   employee: '#0ea5e9',
 }
 // Display labels for persona ids — used in the cost-card subtitle when a single
 // persona is filtered. Mirrors the persona ids on Cognito group memberships.
 const PERSONA_LABELS = {
-  ciso:     'CISO',
-  soc:      'SOC',
-  grc:      'GRC',
+  ciso: 'CISO',
+  soc: 'SOC',
+  grc: 'GRC',
   employee: 'Employee',
 }
 
 const RANGE_OPTIONS = [
-  { id: 'today', label: 'Today',   days: 1  },
-  { id: '7d',    label: '7 days',  days: 7  },
-  { id: '30d',   label: '30 days', days: 30 },
+  { id: 'today', label: 'Today', days: 1 },
+  { id: '7d', label: '7 days', days: 7 },
+  { id: '30d', label: '30 days', days: 30 },
 ]
 
 function startOfRange(rangeId) {
@@ -90,14 +90,14 @@ function startOfRange(rangeId) {
 function bucketKey(ts, granularity) {
   const d = new Date(ts)
   if (granularity === 'hour') { d.setMinutes(0, 0, 0) }
-  else                        { d.setHours(0, 0, 0, 0) }
+  else { d.setHours(0, 0, 0, 0) }
   return d.toISOString()
 }
 
 function formatTokens(n) {
   if (!n) return '0'
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M'
-  if (n >= 1000)      return (n / 1000).toFixed(1) + 'K'
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K'
   return String(n)
 }
 function formatCost(c) { return '$' + (c || 0).toFixed(4) }
@@ -112,13 +112,13 @@ export function byPersonaWithCost(records) {
     const prev = acc[r.persona] || { tokens: 0, cost: 0 }
     acc[r.persona] = {
       tokens: prev.tokens + (r.total_tokens || 0),
-      cost:   prev.cost   + (r.estimated_cost || 0),
+      cost: prev.cost + (r.estimated_cost || 0),
     }
   }
   return ['ciso', 'soc', 'grc', 'employee'].map(p => ({
     persona: p,
-    total:   acc[p]?.tokens || 0,
-    cost:    acc[p]?.cost   || 0,
+    total: acc[p]?.tokens || 0,
+    cost: acc[p]?.cost || 0,
   }))
 }
 
@@ -128,16 +128,16 @@ const TABLE_ROW_CAP = 250
 
 export default function TokenTracking() {
   const { records, summary, loading, load } = useTokenUsage()
-  const [range, setRange]                 = useState('7d')
-  const [agentFilter, setAgentFilter]     = useState('all')
+  const [range, setRange] = useState('7d')
+  const [agentFilter, setAgentFilter] = useState('all')
   const [personaFilter, setPersonaFilter] = useState('all')
 
   useEffect(() => {
     const from = new Date(startOfRange(range)).toISOString()
-    const to   = new Date().toISOString()
+    const to = new Date().toISOString()
     load({
       from, to,
-      agent:   agentFilter   === 'all' ? undefined : agentFilter,
+      agent: agentFilter === 'all' ? undefined : agentFilter,
       persona: personaFilter === 'all' ? undefined : personaFilter,
     })
   }, [load, range, agentFilter, personaFilter])
@@ -151,7 +151,7 @@ export default function TokenTracking() {
     for (const r of records) {
       const key = bucketKey(r.timestamp, granularity)
       const cur = buckets.get(key) || { ts: key, input: 0, output: 0 }
-      cur.input  += r.input_tokens
+      cur.input += r.input_tokens
       cur.output += r.output_tokens
       buckets.set(key, cur)
     }
@@ -234,9 +234,8 @@ export default function TokenTracking() {
             <button
               key={r.id}
               onClick={() => setRange(r.id)}
-              className={`text-[11px] px-3 py-1 rounded-md font-medium transition-colors ${
-                range === r.id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
-              }`}
+              className={`text-[11px] px-3 py-1 rounded-md font-medium transition-colors ${range === r.id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'
+                }`}
             >
               {r.label}
             </button>
@@ -280,7 +279,7 @@ export default function TokenTracking() {
                 formatter={v => formatTokens(v)}
               />
               <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} iconSize={10} />
-              <Area type="monotone" dataKey="input"  name="Input"  stackId="1" stroke="#6366f1" fill="#6366f1" fillOpacity={0.55} />
+              <Area type="monotone" dataKey="input" name="Input" stackId="1" stroke="#6366f1" fill="#6366f1" fillOpacity={0.55} />
               <Area type="monotone" dataKey="output" name="Output" stackId="1" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.55} />
             </AreaChart>
           </ResponsiveContainer>
@@ -413,12 +412,12 @@ export default function TokenTracking() {
 function KpiCard({ label, value, subtext, tone = 'normal' }) {
   const accent =
     tone === 'warn' ? 'border-amber-200   bg-amber-50'
-    : tone === 'ok' ? 'border-emerald-200 bg-emerald-50'
-    :                 'border-slate-200   bg-white'
+      : tone === 'ok' ? 'border-emerald-200 bg-emerald-50'
+        : 'border-slate-200   bg-white'
   const valueColor =
     tone === 'warn' ? 'text-amber-700'
-    : tone === 'ok' ? 'text-emerald-700'
-    :                 'text-slate-900'
+      : tone === 'ok' ? 'text-emerald-700'
+        : 'text-slate-900'
   return (
     <div className={`rounded-xl border px-4 py-3 ${accent}`}>
       <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{label}</p>
@@ -476,17 +475,17 @@ function UserBreakdownCard({ records }) {
         name,
         persona:  r.persona,
         sessions: new Set(),
-        tokens:   0,
-        cost:     0,
+        tokens: 0,
+        cost: 0,
         latestTs: 0,
       }
       prev.sessions.add(r.session_id)
       prev.tokens += (r.total_tokens || 0)
-      prev.cost   += (r.estimated_cost || 0)
+      prev.cost += (r.estimated_cost || 0)
       const ts = new Date(r.timestamp).getTime()
       if (ts > prev.latestTs) {
         prev.latestTs = ts
-        prev.persona  = r.persona  // persona on the most-recent row
+        prev.persona = r.persona  // persona on the most-recent row
       }
       acc.set(name, prev)
     }

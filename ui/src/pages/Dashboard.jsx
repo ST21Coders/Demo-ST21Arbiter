@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ScanLine, ShieldAlert, ShieldCheck, Clock, AlertTriangle, ArrowRight, Loader2, TrendingUp, Activity, Upload, FileText, Zap } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
-import { useFindings, useDashboard, triggerScan, getScanRun } from '../hooks/useApi'
+import { useFindings, useDashboard, triggerScan, getScanRun, useScanFeed } from '../hooks/useApi'
 import { SeverityBadge, StatusBadge, TypeBadge } from '../components/SeverityBadge'
 import {
   buildDomainSourceMatrix, DOMAIN_LABELS, DOMAIN_KEYS, SOURCE_PAIRS,
@@ -248,6 +248,13 @@ export default function Dashboard() {
 
   useEffect(() => { load() }, [load])
 
+  // Live scan feed: any background scan (upload/auto-ingest/daily cron, or a
+  // manual scan from another tab) refreshes the tiles silently — dashboard KPIs
+  // aren't being mid-edited, so silent auto-refresh is the right UX here.
+  const { activeRun } = useScanFeed({
+    onNewScan: () => { load(); reloadDash() },
+  })
+
   // KPI sources: aggregate endpoint takes precedence; otherwise compute from findings.
   const kpiSev = dashAgg?.kpis?.active_conflicts || {
     CRITICAL: findings.filter(f => f.severity === 'CRITICAL' && !f.compliant).length,
@@ -328,12 +335,16 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {scanning && (
+      {(scanning || activeRun) && (
         <div className="rounded-xl p-4 flex items-center gap-3 bg-indigo-50 border border-indigo-200">
           <Loader2 size={15} className="animate-spin text-indigo-600 flex-shrink-0" />
           <div>
             <p className="text-sm text-indigo-800 font-medium">AI scan in progress</p>
-            <p className="text-xs text-indigo-600 mt-0.5">Dispatching specialist agents across MIG-POL-001–005 · Zscaler · AWS Config…</p>
+            <p className="text-xs text-indigo-600 mt-0.5">
+              {activeRun && !scanning
+                ? `Autonomous scan running (${activeRun.triggered_by || 'background'}) — tiles refresh on completion…`
+                : 'Dispatching specialist agents across MIG-POL-001–005 · Zscaler · AWS Config…'}
+            </p>
           </div>
         </div>
       )}

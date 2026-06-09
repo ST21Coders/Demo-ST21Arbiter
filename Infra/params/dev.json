@@ -63,7 +63,7 @@
   {
     "_comment_observability": "Alarm fan-out target; replace with the demo operator's email.",
     "ParameterKey": "AlarmEmail",
-    "ParameterValue": "sridhardevops441@gmail.com"
+    "ParameterValue": "sridharn@smartek21.com"
   },
   {
     "_comment_ui": "10-ui-hosting (Plan/) toggles to keep CFN noise low in demo.",
@@ -88,5 +88,47 @@
   {
     "ParameterKey": "KbDataSourceId",
     "ParameterValue": "KLUEZ1RNM5"
+  },
+  {
+    "_comment_models": "Foundation model per AgentCore runtime. scripts/deploy_agents.py sets MODEL_ID on each runtime from these (blank → DefaultModelId); Infra/post_deploy_ui.py mirrors them into the UI's Agent Registry. To switch a model: edit the value here and re-run scripts/deploy_agents.py. Default is Amazon Nova 2 Lite (first-party, no Marketplace subscription).",
+    "ParameterKey": "DefaultModelId",
+    "ParameterValue": "us.amazon.nova-2-lite-v1:0"
+  },
+  {
+    "ParameterKey": "MasterModelId",
+    "ParameterValue": "us.amazon.nova-2-lite-v1:0"
+  },
+  {
+    "ParameterKey": "SharepointModelId",
+    "ParameterValue": "us.amazon.nova-2-lite-v1:0"
+  },
+  {
+    "ParameterKey": "AwsConfigModelId",
+    "ParameterValue": "us.amazon.nova-2-lite-v1:0"
+  },
+  {
+    "ParameterKey": "ZscalerModelId",
+    "ParameterValue": "us.amazon.nova-2-lite-v1:0"
+  },
+  {
+    "ParameterKey": "PaloaltoModelId",
+    "ParameterValue": "us.amazon.nova-2-lite-v1:0"
+  },
+  {
+    "ParameterKey": "JiraModelId",
+    "ParameterValue": "us.amazon.nova-2-lite-v1:0"
+  },
+  {
+    "_comment_guardrail": "Bedrock Guardrail (name dev-st21arbiter-poc-guardrail) created by scripts/setup_bedrock_kb.py. Refresh GuardrailId after KB setup, same as KbId. GuardrailVersions is the comma-separated switcher list shown on the LLM Control page; add new published versions here as they exist.",
+    "ParameterKey": "GuardrailId",
+    "ParameterValue": "e0axl6y90il0"
+  },
+  {
+    "ParameterKey": "GuardrailVersion",
+    "ParameterValue": "Version 1"
+  },
+  {
+    "ParameterKey": "GuardrailVersions",
+    "ParameterValue": "DRAFT,Version 1"
   }
 ]

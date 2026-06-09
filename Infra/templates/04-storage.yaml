@@ -386,6 +386,35 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-token-usage"
 
+  # ──────────────────────────── ownership-rules ────────────────
+  # Deterministic team/tag ownership rules engine. The scanner Lambda reads
+  # this table once per run and enriches each finding with owner_team /
+  # consumer_team / platform_team / tags via first-match-by-priority (see
+  # Infra/functions/scanner/enrichment.py). conflicts-v2 needs NO schema change
+  # — the enriched fields are non-key attributes (DynamoDB is schemaless for
+  # non-key data) and the read path Scans+filters, so no GSI is required.
+  OwnershipRulesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Environment}-${ProjectName}-ownership-rules"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+      AttributeDefinitions:
+        - AttributeName: rule_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: rule_id
+          KeyType: HASH
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-ownership-rules"
+
   # ──────────────────────────── OpenSearch Serverless ──────────
   OpenSearchCollection:
     Type: AWS::OpenSearchServerless::Collection
@@ -520,3 +549,7 @@ Outputs:
     Value: !Ref TokenUsageTable
     Export:
       Name: !Sub "${Environment}-${ProjectName}-TokenUsageTableName"
+  OwnershipRulesTableName:
+    Value: !Ref OwnershipRulesTable
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-OwnershipRulesTableName"

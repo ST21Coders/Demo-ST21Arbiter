@@ -219,6 +219,14 @@ Resources:
           ALLOWED_ORIGIN: !Ref AllowedOrigin
           # Filled in by deploy_agents.py after AgentCore runtimes are up.
           MASTER_AGENT_RUNTIME_ARN: ""
+          # Specialist runtime ARNs for direct per-agent chat routing from the
+          # MCP page (POST /chat with a "target"). Patched by deploy_agents.py
+          # alongside MASTER_AGENT_RUNTIME_ARN.
+          SHAREPOINT_RUNTIME_ARN: ""
+          AWSCONFIG_RUNTIME_ARN: ""
+          ZSCALER_RUNTIME_ARN: ""
+          PALOALTO_RUNTIME_ARN: ""
+          JIRA_RUNTIME_ARN: ""
           # Set by deploy_agents.py alongside MASTER_AGENT_RUNTIME_ARN. Read by
           # GET /conversations/{id}/messages to list events from AgentCore Memory.
           MEMORY_ID: ""
@@ -392,6 +400,12 @@ Resources:
           Properties:
             RestApiId: !Ref ArbiterApi
             Path: /mcp-health
+            Method: GET
+        AgentStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /agent-status
             Method: GET
         JiraTicketCreate:
           Type: Api
