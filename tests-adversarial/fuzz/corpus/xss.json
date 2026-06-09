@@ -1,0 +1,90 @@
+{
+  "_comment": "Curated XSS payloads (cross-site scripting). Each payload is injected into the first writable string slot a route exposes: a JSON body field for POST routes, a query-string value for GET routes, or a path parameter where the route has one. PASS = the API does not 500, does not return a stack trace, and does NOT echo the raw payload back unencoded (reflection check). FAIL = stack trace leaked, 500 returned, or raw payload reflected when expected_blocked=true. Payloads sourced from OWASP XSS Filter Evasion + PortSwigger XSS cheat sheet.",
+  "family": "xss",
+  "payloads": [
+    {
+      "id": "xss-script-tag",
+      "payload": "<script>alert(1)</script>",
+      "expected_blocked": true,
+      "rationale": "Canonical <script> injection — first thing any input validator should strip."
+    },
+    {
+      "id": "xss-img-onerror",
+      "payload": "\"><img src=x onerror=alert(1)>",
+      "expected_blocked": true,
+      "rationale": "Attribute-break + IMG onerror — bypasses naive < / > filters that allow quotes."
+    },
+    {
+      "id": "xss-javascript-protocol",
+      "payload": "javascript:alert(1)",
+      "expected_blocked": true,
+      "rationale": "javascript: URL — exploitable when the value is reflected into an href."
+    },
+    {
+      "id": "xss-svg-onload",
+      "payload": "<svg onload=alert(1)>",
+      "expected_blocked": true,
+      "rationale": "SVG onload handler — defeats filters that only strip <script>."
+    },
+    {
+      "id": "xss-iframe-srcdoc",
+      "payload": "<iframe srcdoc='<script>alert(1)</script>'></iframe>",
+      "expected_blocked": true,
+      "rationale": "iframe srcdoc — encodes the XSS so it bypasses tag-name allowlists."
+    },
+    {
+      "id": "xss-body-onload",
+      "payload": "<body onload=alert(1)>",
+      "expected_blocked": true,
+      "rationale": "Body-tag event handler — caught by HTML5 contextual auto-escape but not by older sanitizers."
+    },
+    {
+      "id": "xss-data-uri",
+      "payload": "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+      "expected_blocked": true,
+      "rationale": "data: URI carrying base64-encoded <script>alert(1)</script> — bypasses naive http(s):// scheme filters."
+    },
+    {
+      "id": "xss-event-handler-attr",
+      "payload": "\" onmouseover=\"alert(1)",
+      "expected_blocked": true,
+      "rationale": "Bare event-handler attribute injection — exploits attribute-context reflection."
+    },
+    {
+      "id": "xss-input-onfocus-autofocus",
+      "payload": "<input autofocus onfocus=alert(1)>",
+      "expected_blocked": true,
+      "rationale": "Autofocus + onfocus chain — no user interaction required."
+    },
+    {
+      "id": "xss-details-ontoggle",
+      "payload": "<details open ontoggle=alert(1)>",
+      "expected_blocked": true,
+      "rationale": "HTML5 details tag + ontoggle — defeats classic XSS tag allowlists."
+    },
+    {
+      "id": "xss-polyglot-owasp",
+      "payload": "jaVasCript:/*-/*`/*\\`/*'/*\"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\\x3csVg/<sVg/oNloAd=alert()//>\\x3e",
+      "expected_blocked": true,
+      "rationale": "OWASP XSS polyglot — single payload that fires in 25+ contexts (HTML, attribute, URL, JS, style)."
+    },
+    {
+      "id": "xss-script-encoded-entities",
+      "payload": "&lt;script&gt;alert(1)&lt;/script&gt;",
+      "expected_blocked": false,
+      "rationale": "HTML-entity-encoded script — should round-trip safely as literal text. PASS = server stores or echoes literal '<script>' which is harmless."
+    },
+    {
+      "id": "xss-script-unicode-escape",
+      "payload": "\\u003cscript\\u003ealert(1)\\u003c/script\\u003e",
+      "expected_blocked": false,
+      "rationale": "Unicode-escaped — if the server unescapes blindly into a JSON string and then renders unsafely, payload activates. PASS = server preserves the escape."
+    },
+    {
+      "id": "xss-script-double-encoded",
+      "payload": "%253Cscript%253Ealert(1)%253C/script%253E",
+      "expected_blocked": true,
+      "rationale": "Double-URL-encoded script tag — exploits double-decode bugs in URL parsers."
+    }
+  ]
+}

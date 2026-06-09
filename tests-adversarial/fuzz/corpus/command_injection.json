@@ -1,0 +1,42 @@
+{
+  "_comment": "Shell command injection payloads. ARBITER's Lambdas don't shell out, but these are still useful regression-tests against any future code that might pipe a user value into a subprocess (e.g. via boto3 calls or a script invocation). PASS = no 500, no payload reflection, no obvious 'whoami' style output. FAIL = command output leaked or stack trace from a subprocess.",
+  "family": "command_injection",
+  "payloads": [
+    {
+      "id": "cmdi-semicolon-ls",
+      "payload": "; ls -la /",
+      "expected_blocked": true,
+      "rationale": "Semicolon command separator."
+    },
+    {
+      "id": "cmdi-pipe-cat-passwd",
+      "payload": "| cat /etc/passwd",
+      "expected_blocked": true,
+      "rationale": "Pipe to a sensitive file read."
+    },
+    {
+      "id": "cmdi-backticks-whoami",
+      "payload": "`whoami`",
+      "expected_blocked": true,
+      "rationale": "Backtick command substitution."
+    },
+    {
+      "id": "cmdi-dollar-paren-id",
+      "payload": "$(id)",
+      "expected_blocked": true,
+      "rationale": "$()-style command substitution."
+    },
+    {
+      "id": "cmdi-and-rm",
+      "payload": "&& rm -rf /tmp/x",
+      "expected_blocked": true,
+      "rationale": "Logical-AND chain — exploits unquoted shell argument concatenation."
+    },
+    {
+      "id": "cmdi-newline-shutdown",
+      "payload": "test\nshutdown -h now",
+      "expected_blocked": true,
+      "rationale": "Embedded newline + shutdown — defeats single-line input filters."
+    }
+  ]
+}

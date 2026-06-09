@@ -1,0 +1,41 @@
+{
+  "_comment": "Header-injection / response-splitting payloads. CRLF in a header value can cause naive frameworks to split the request or response and inject new headers. The Python requests library refuses to send raw CRLF in a header value (it raises InvalidHeader) - the runner catches this and records the payload as 'client-blocked' (treated as PASS since the attack didn't reach the server). PASS = 4xx, client-blocked, or sanitized header. FAIL = the injected header is reflected back into the response.",
+  "family": "header_injection",
+  "payloads": [
+    {
+      "id": "crlf-x-forwarded-for",
+      "header_name": "X-Forwarded-For",
+      "header_value": "1.2.3.4\r\nSet-Cookie: harness_pwn=1; HttpOnly",
+      "expected_blocked": true,
+      "rationale": "CRLF after a forwarded-for IP, injecting a Set-Cookie. requests library blocks this client-side; verifies the harness does not synthesize a corrupted request."
+    },
+    {
+      "id": "crlf-user-agent",
+      "header_name": "User-Agent",
+      "header_value": "harness/1.0\r\nX-Admin: true",
+      "expected_blocked": true,
+      "rationale": "User-Agent + CRLF + privileged header. Stops cold at the client lib."
+    },
+    {
+      "id": "newline-only-x-injected",
+      "header_name": "X-Custom-Test",
+      "header_value": "ok\nX-Injected: by-the-test",
+      "expected_blocked": true,
+      "rationale": "LF-only (no CR) injection - some lenient parsers accept this where strict CRLF gets caught."
+    },
+    {
+      "id": "null-byte-host",
+      "header_name": "X-Original-Host",
+      "header_value": "example.com\u0000evil.com",
+      "expected_blocked": true,
+      "rationale": "NULL byte separator - exploits C-string truncation in upstream parsers."
+    },
+    {
+      "id": "long-header-name",
+      "header_name": "X-Harness-Probe-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "header_value": "1",
+      "expected_blocked": false,
+      "rationale": "Overly-long custom header NAME. Should be silently dropped or accepted, never 500. Not technically an injection but a header-budget probe."
+    }
+  ]
+}

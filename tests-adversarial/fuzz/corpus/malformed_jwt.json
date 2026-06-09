@@ -1,0 +1,83 @@
+{
+  "_comment": "Malformed / forged JWTs aimed at the Authorization: Bearer header. These mostly target the /chat Function URL path (which decodes the JWT manually without signature verification per CLAUDE.md). For API Gateway routes the Cognito authorizer rejects most of these at the gateway with 401. Some entries embed a literal Bearer-token value; others describe a structural manipulation (e.g. 'alg-none') the test runner constructs at runtime. PASS for routes behind the authorizer = 401/403. PASS for /chat = either the documented-unsafe acceptance (recorded, not failed — see auth layer AC11) or a 401. FAIL = 500 or success with cross-persona data leak.",
+  "family": "malformed_jwt",
+  "payloads": [
+    {
+      "id": "jwt-no-signature",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoYXJuZXNzLXRlc3QiLCJjb2duaXRvOmdyb3VwcyI6WyJlbXBsb3llZSJdfQ.",
+      "expected_blocked": true,
+      "rationale": "Header.payload.<empty> — signature segment stripped. APIGW Cognito authorizer must 401."
+    },
+    {
+      "id": "jwt-alg-none",
+      "kind": "construct-alg-none",
+      "payload_claims": {"sub": "harness-test", "cognito:groups": ["ciso"]},
+      "expected_blocked": true,
+      "rationale": "alg:none attack — construct a header with alg=none and an empty signature. Classic JWT bypass; APIGW must reject."
+    },
+    {
+      "id": "jwt-non-jwt-string",
+      "value": "not-a-jwt-at-all",
+      "expected_blocked": true,
+      "rationale": "Bearer value that isn't a JWT at all — verifies graceful parse-error handling."
+    },
+    {
+      "id": "jwt-empty",
+      "value": "",
+      "expected_blocked": true,
+      "rationale": "Empty Bearer value — should 401 with a clear message, not 500."
+    },
+    {
+      "id": "jwt-two-segments-only",
+      "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0",
+      "expected_blocked": true,
+      "rationale": "Only header.payload — no trailing dot, no signature segment."
+    },
+    {
+      "id": "jwt-garbage-payload",
+      "value": "eyJhbGciOiJIUzI1NiJ9.!!!not-base64!!!.SIGNATURE",
+      "expected_blocked": true,
+      "rationale": "Invalid base64 in the payload segment. The /chat handler's _caller_claims tolerates this and returns {} — confirms it doesn't crash."
+    },
+    {
+      "id": "jwt-expired",
+      "kind": "construct-expired",
+      "payload_claims": {"sub": "harness-test", "cognito:groups": ["employee"], "exp": 1000000000, "iat": 999999000},
+      "expected_blocked": true,
+      "rationale": "Constructed JWT with exp in 2001 — APIGW authorizer must reject."
+    },
+    {
+      "id": "jwt-wrong-issuer",
+      "kind": "construct-wrong-issuer",
+      "payload_claims": {"sub": "x", "iss": "https://evil.example.com/", "cognito:groups": ["ciso"]},
+      "expected_blocked": true,
+      "rationale": "iss claim points at evil.example.com — APIGW authorizer must reject (issuer mismatch)."
+    },
+    {
+      "id": "jwt-forged-groups-ciso",
+      "kind": "construct-forged-groups",
+      "payload_claims": {"sub": "harness-employee", "cognito:groups": ["ciso", "soc", "grc"]},
+      "expected_blocked": true,
+      "rationale": "Locally-signed JWT claiming all groups — APIGW signature check rejects. /chat is documented-unsafe (no sig verify). See auth layer task 16 for a deeper forged-groups probe."
+    },
+    {
+      "id": "jwt-massive-payload",
+      "kind": "construct-oversized-payload",
+      "payload_claims_size_bytes": 16384,
+      "expected_blocked": true,
+      "rationale": "16 KiB JWT payload — verifies the API doesn't load-bomb on a giant token."
+    },
+    {
+      "id": "jwt-null-bytes",
+      "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4XHUwMDAwYWRtaW4ifQ.SIG",
+      "expected_blocked": true,
+      "rationale": "JWT payload contains a null byte in the sub claim — defends against C-string truncation bugs in the resolver."
+    },
+    {
+      "id": "jwt-control-chars-in-header",
+      "value": "Bearer \r\nX-Injected: 1",
+      "expected_blocked": true,
+      "rationale": "CRLF in the Authorization header value — defends against header-injection during token parsing."
+    }
+  ]
+}

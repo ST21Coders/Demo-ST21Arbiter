@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+{# ─────────────────────────────────────────────────────────────────────────
+   report.html.j2 — the polished, self-contained HTML report.
+
+   Task 22 of the full-app adversarial testing plan.
+
+   This template is rendered once per run. It MUST work offline: no CDN
+   links, no external fonts, no external scripts. The only `http(s)://`
+   URLs in the rendered output are the user-supplied target URLs in the
+   metadata block (verified by the renderer's offline-guarantee test).
+
+   Section order (matches spec §6.2 + the task-22 prompt):
+     A. Header + summary banner
+     B. Findings table (sortable by severity)
+     C. Coverage matrix — pages × personas
+     D. Coverage matrix — API routes × layers
+     E. Coverage matrix — agent tools
+     F. Cost breakdown (rendered at top via the banner and at bottom as detail)
+     G. Run metadata + reproduction footer
+   ───────────────────────────────────────────────────────────────────────── #}
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARBITER adversarial report — {{ metadata.run_id|default("(unknown run)") }}</title>
+  <style>
+    /* ───── reset + base ───── */
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #1f2933;
+      background: #f7f8fa;
+    }
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    section {
+      background: #ffffff;
+      border: 1px solid #e4e7eb;
+      border-radius: 6px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    h1, h2, h3 {
+      font-weight: 600;
+      color: #0f1924;
+      margin-top: 0;
+    }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    h2 { font-size: 17px; margin-bottom: 12px; border-bottom: 1px solid #e4e7eb; padding-bottom: 8px; }
+    h3 { font-size: 14px; margin-bottom: 8px; color: #52606d; }
+    p { margin: 4px 0; }
+    code, .mono {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      background: #f0f3f6;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    a { color: #1d6fd9; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ───── metadata grid ───── */
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px 24px;
+      margin-top: 12px;
+    }
+    .meta-grid div span:first-child {
+      display: block;
+      font-size: 11px;
+      color: #7b8794;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ───── summary banner ───── */
+    .banner {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .banner .stat {
+      flex: 1 1 140px;
+      border-radius: 6px;
+      padding: 12px 14px;
+      border: 1px solid #e4e7eb;
+      background: #fafbfc;
+    }
+    .banner .stat .label {
+      font-size: 11px;
+      color: #7b8794;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .banner .stat .value {
+      font-size: 22px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .stat.passed .value { color: #18794e; }
+    .stat.failed .value { color: #b91c1c; }
+    .stat.skipped .value { color: #b45309; }
+    .stat.docunsafe .value { color: #4338ca; }
+
+    /* ───── progress bar ───── */
+    .progress {
+      margin-top: 8px;
+      background: #e4e7eb;
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .progress .fill {
+      height: 100%;
+      background: #18794e;
+      transition: width 0.2s ease-out;
+    }
+    .progress.over .fill { background: #b91c1c; }
+
+    /* ───── severity pills ───── */
+    .pill {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+    }
+    .pill-critical { background: #fde2e2; color: #991b1b; border-color: #fca5a5; }
+    .pill-high     { background: #fee4cf; color: #9a3412; border-color: #fdba74; }
+    .pill-medium   { background: #fef3c7; color: #854d0e; border-color: #fde68a; }
+    .pill-low      { background: #dbeafe; color: #1e3a8a; border-color: #93c5fd; }
+    .pill-info     { background: #e5e7eb; color: #374151; border-color: #d1d5db; }
+    .pill-unknown  { background: #e5e7eb; color: #374151; border-color: #d1d5db; }
+
+    /* ───── tables ───── */
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid #e4e7eb;
+      padding: 6px 10px;
+      text-align: left;
+      vertical-align: middle;
+    }
+    th {
+      background: #f0f3f6;
+      font-weight: 600;
+      font-size: 12px;
+      color: #334155;
+    }
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    th.sortable::after {
+      content: " ⇅";
+      color: #94a3b8;
+      font-size: 10px;
+    }
+    th.sort-asc::after  { content: " ▲"; color: #334155; }
+    th.sort-desc::after { content: " ▼"; color: #334155; }
+    tbody tr:nth-child(even) { background: #fafbfc; }
+    .truncate {
+      max-width: 320px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    /* ───── matrix cells ───── */
+    .cell {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 8px;
+      min-width: 64px;
+    }
+    .cell-pass        { background: #d1fadf; color: #18794e; }
+    .cell-fail        { background: #fde2e2; color: #991b1b; }
+    .cell-skipped     { background: #fef3c7; color: #854d0e; }
+    .cell-doc-unsafe  { background: #ede9fe; color: #4c1d95; }
+    .cell-notrun      { background: #f0f3f6; color: #7b8794; }
+    .cell-prompt-only { background: #dbeafe; color: #1e3a8a; }
+    .lock::before { content: "🔒"; margin-right: 4px; font-size: 10px; }
+
+    .empty-state {
+      text-align: center;
+      padding: 24px;
+      color: #52606d;
+      font-style: italic;
+    }
+    .empty-state .check {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      line-height: 28px;
+      border-radius: 50%;
+      background: #d1fadf;
+      color: #18794e;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+
+    /* ───── print ───── */
+    @media print {
+      body { background: #ffffff; }
+      section { break-inside: avoid; border: 1px solid #ccc; }
+      th.sortable { cursor: default; }
+      th.sortable::after { content: ""; }
+    }
+
+    /* ───── narrow viewports ───── */
+    @media (max-width: 720px) {
+      main { padding: 12px; }
+      section { padding: 14px 14px; }
+      h1 { font-size: 19px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+
+  {# ─────────────────────── Section A: Header ──────────────────────── #}
+  <section aria-labelledby="hdr">
+    <h1 id="hdr">ARBITER adversarial test report</h1>
+    <p class="mono">
+      Run id: {{ metadata.run_id|default("unknown") }}
+    </p>
+    <div class="meta-grid">
+      <div>
+        <span>Target</span>
+        <span class="mono">{{ metadata.target_base_url|default("(not set)") }}</span>
+      </div>
+      <div>
+        <span>Started</span>
+        <span class="mono">{{ metadata.started_at|default("—") }}</span>
+      </div>
+      <div>
+        <span>Finished</span>
+        <span class="mono">{{ metadata.finished_at|default("—") }}</span>
+      </div>
+      <div>
+        <span>Duration</span>
+        <span class="mono">{{ "%.1f"|format(metadata.duration_seconds|default(0.0)) }} s</span>
+      </div>
+      <div>
+        <span>Harness</span>
+        <span class="mono">{{ metadata.harness_version|default("0.0.0") }}</span>
+      </div>
+      <div>
+        <span>Schema</span>
+        <span class="mono">{{ report.schema_version|default("?") }}</span>
+      </div>
+    </div>
+
+    <div class="banner" role="group" aria-label="Summary">
+      <div class="stat passed">
+        <div class="label">Passed</div>
+        <div class="value">{{ summary.passed|default(0) }}</div>
+      </div>
+      <div class="stat failed">
+        <div class="label">Failed</div>
+        <div class="value">{{ summary.failed|default(0) }}</div>
+      </div>
+      <div class="stat skipped">
+        <div class="label">Skipped</div>
+        <div class="value">{{ summary.skipped|default(0) }}</div>
+      </div>
+      <div class="stat docunsafe">
+        <div class="label">Documented unsafe</div>
+        <div class="value">{{ summary.documented_unsafe|default(0) }}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Cost spent / cap</div>
+        <div class="value">${{ "%.4f"|format(cost.actual_usd|default(0.0)) }}<span style="font-size:13px;font-weight:400;color:#52606d;"> / ${{ "%.2f"|format(cost.cap_usd|default(1.0)) }}</span></div>
+        <div class="progress {% if not cost.under_budget|default(true) %}over{% endif %}">
+          <div class="fill" style="width: {{ "%.1f"|format(cost_pct|default(0.0)) }}%;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ───────────────────── Section B: Findings ─────────────────────── #}
+  <section aria-labelledby="findings-h">
+    <h2 id="findings-h">Findings (ranked by severity)</h2>
+    {% if findings and findings|length > 0 %}
+    <div class="table-wrap">
+      <table id="findings-table" aria-describedby="findings-h">
+        <thead>
+          <tr>
+            <th class="sortable" data-sort="severity" aria-label="Sort by severity">Severity</th>
+            <th class="sortable" data-sort="test_id"  aria-label="Sort by test id">Test ID</th>
+            <th class="sortable" data-sort="layer"    aria-label="Sort by layer">Layer</th>
+            <th class="sortable" data-sort="target_kind" aria-label="Sort by target kind">Target Kind</th>
+            <th class="sortable" data-sort="target_id"   aria-label="Sort by target id">Target ID</th>
+            <th>Summary</th>
+            <th>Evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for f in findings %}
+          <tr>
+            <td><span class="{{ f.pill_class }}">{{ f.severity|default("?") }}</span></td>
+            <td><code>{{ f.test_id }}</code></td>
+            <td>{{ f.layer }}</td>
+            <td>{{ f.target_kind }}</td>
+            <td><code class="truncate">{{ f.target_id }}</code></td>
+            <td class="truncate">{{ f.summary }}</td>
+            <td>
+              {% if f.evidence_path %}
+                <a href="{{ f.evidence_path }}"><code>{{ f.evidence_path }}</code></a>
+              {% else %}
+                <span style="color:#7b8794;">—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <span class="check" aria-hidden="true">✓</span>
+      No failures recorded in this run.
+    </div>
+    {% endif %}
+  </section>
+
+  {# ────────────── Section C: Pages × personas matrix ─────────────── #}
+  <section aria-labelledby="pages-h">
+    <h2 id="pages-h">Coverage — pages × personas</h2>
+    <p>
+      Page coverage:
+      <strong>{{ summary.pages_covered_label|default("0/0") }}</strong> cells tested,
+      {{ summary.failed|default(0) }} failure{{ "s" if (summary.failed|default(0)) != 1 else "" }},
+      {{ (summary.pages_total|default(0)) - (summary.pages_covered|default(0)) }} unrun.
+    </p>
+    <div class="table-wrap">
+      <table aria-describedby="pages-h">
+        <thead>
+          <tr>
+            <th>Page</th>
+            {% for persona in personas %}
+              <th>{{ persona.label|default(persona.id) }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in pages_rows %}
+          <tr>
+            <td><code>{{ row.page_id }}</code></td>
+            {% for c in row.cells %}
+              <td class="{{ c.cell_class }} {% if c.status == 'pass' and not c.allowed %}lock{% endif %}"
+                  title="{{ c.title }}">
+                {{ c.status }}
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# ─────────────── Section D: API routes coverage ────────────────── #}
+  <section aria-labelledby="routes-h">
+    <h2 id="routes-h">Coverage — API routes</h2>
+    <p>
+      Route coverage: <strong>{{ summary.routes_covered_label|default("0/0") }}</strong>
+      routes touched by at least one layer.
+      {% if (summary.routes_total|default(0)) > 0 and (summary.routes_covered|default(0)) == (summary.routes_total|default(0)) %}
+        <span style="color:#18794e;font-weight:600;">✓ All routes covered.</span>
+      {% endif %}
+    </p>
+    <div class="table-wrap">
+      <table aria-describedby="routes-h">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Path</th>
+            <th>E2E</th>
+            <th>Fuzz</th>
+            <th>Auth-abuse</th>
+            <th>LLM</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in routes_rows %}
+          <tr>
+            <td><code>{{ row.method }}</code></td>
+            <td><code class="truncate">{{ row.path }}</code></td>
+            {% for layer in ["e2e","fuzz","auth","llm"] %}
+              {% set cell = row.layers[layer] %}
+              {% if cell %}
+                <td class="{{ cell.cell_class }}"
+                    title="{{ cell.test_id|default('') }}">
+                  {{ cell.status }}
+                </td>
+              {% else %}
+                <td class="cell cell-notrun" title="{{ row.route_id }} × {{ layer }}: not run">—</td>
+              {% endif %}
+            {% endfor %}
+            <td><code>{{ row.route_id }}</code> ({{ row.total_cells }} cell{{ "s" if row.total_cells != 1 else "" }})</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# ─────────────── Section E: Agent tools coverage ───────────────── #}
+  <section aria-labelledby="tools-h">
+    <h2 id="tools-h">Coverage — agent tools</h2>
+    <p>
+      Tool coverage: <strong>{{ summary.tools_covered_label|default("0/0") }}</strong>
+      tools reached by at least one probe.
+    </p>
+    <div class="table-wrap">
+      <table aria-describedby="tools-h">
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Agent / runtime</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in tools_rows %}
+          <tr>
+            <td><code>{{ row.tool_id }}</code></td>
+            <td>{{ row.agent|default("—") }}</td>
+            <td class="{{ row.cell_class }}">{{ row.status }}</td>
+            <td>
+              {% if row.is_sentinel %}
+                <span class="pill pill-info">(sentinel)</span>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {# ─────────────── Section F: Cost breakdown ─────────────────────── #}
+  <section aria-labelledby="cost-h">
+    <h2 id="cost-h">Cost breakdown</h2>
+    <div class="meta-grid">
+      <div>
+        <span>Total spent</span>
+        <span class="mono">${{ "%.6f"|format(cost.actual_usd|default(0.0)) }}</span>
+      </div>
+      <div>
+        <span>Cap</span>
+        <span class="mono">${{ "%.2f"|format(cost.cap_usd|default(1.0)) }}</span>
+      </div>
+      <div>
+        <span>Under budget</span>
+        <span class="mono">{{ "yes" if cost.under_budget|default(true) else "NO" }}</span>
+      </div>
+    </div>
+    <div class="progress {% if not cost.under_budget|default(true) %}over{% endif %}" style="margin-top:12px;">
+      <div class="fill" style="width: {{ "%.1f"|format(cost_pct|default(0.0)) }}%;"></div>
+    </div>
+    {% if cost.per_layer_usd %}
+    <h3 style="margin-top:14px;">Per-layer</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Layer</th><th>Cost (USD)</th><th>Probe count</th></tr>
+        </thead>
+        <tbody>
+        {% for layer, amount in cost.per_layer_usd.items() %}
+          <tr>
+            <td>{{ layer }}</td>
+            <td class="mono">${{ "%.6f"|format(amount) }}</td>
+            <td class="mono">{{ (cost.probe_counts or {}).get(layer, 0) }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+
+  {# ─────────────── Section G: Footer / reproduction ──────────────── #}
+  <section aria-labelledby="repro-h">
+    <h2 id="repro-h">Run metadata + reproduction</h2>
+    <div class="meta-grid">
+      <div>
+        <span>Run id</span>
+        <span class="mono">{{ metadata.run_id|default("unknown") }}</span>
+      </div>
+      <div>
+        <span>Harness version</span>
+        <span class="mono">{{ metadata.harness_version|default("0.0.0") }}</span>
+      </div>
+      <div>
+        <span>Chat function URL</span>
+        <span class="mono">{{ metadata.chat_function_url|default("(not configured)") }}</span>
+      </div>
+      <div>
+        <span>Report schema</span>
+        <span class="mono">{{ report.schema_version|default("?") }}</span>
+      </div>
+    </div>
+    <p style="margin-top:14px;">
+      Raw JSON: <a href="report.json"><code>report.json</code></a> ·
+      Summary: <a href="summary.md"><code>summary.md</code></a>
+    </p>
+    <h3>Diff from last green</h3>
+    {# Task 24: diff_from_last_green is ALWAYS populated. The has_baseline
+       flag inside the summary tells us whether to render the actionable
+       counts or the "no baseline yet" hint (AC15). #}
+    {% set diff = diff_from_last_green or {} %}
+    {% set diff_summary = diff.get('summary') or {} %}
+    {% if diff_summary.get('has_baseline') %}
+      <p>
+        Compared to baseline <code>{{ diff.baseline_run_id|default("(unknown)") }}</code>
+        ({{ diff.baseline_finished_at|default("?") }}):
+      </p>
+      <div class="meta-grid">
+        <div>
+          <span>New failures</span>
+          <span class="mono" style="color:#b91c1c;">{{ diff_summary.new_failure_count|default(0) }}</span>
+        </div>
+        <div>
+          <span>Resolved</span>
+          <span class="mono" style="color:#18794e;">{{ diff_summary.resolved_count|default(0) }}</span>
+        </div>
+        <div>
+          <span>Net change</span>
+          <span class="mono">{{ diff_summary.net_change|default(0) }}</span>
+        </div>
+        <div>
+          <span>New tests</span>
+          <span class="mono">{{ (diff.new_tests|default([]))|length }}</span>
+        </div>
+        <div>
+          <span>Removed tests</span>
+          <span class="mono">{{ (diff.removed_tests|default([]))|length }}</span>
+        </div>
+        <div>
+          <span>Flapping</span>
+          <span class="mono">{{ (diff.flapping|default([]))|length }}</span>
+        </div>
+      </div>
+      {% if diff.new_failures %}
+        <h3 style="margin-top:14px;">New failures since baseline</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Test ID</th><th>Baseline</th><th>Current</th><th>Severity</th></tr>
+            </thead>
+            <tbody>
+            {% for entry in diff.new_failures %}
+              <tr>
+                <td><code>{{ entry.test_id }}</code></td>
+                <td>{{ entry.baseline_status }}</td>
+                <td>{{ entry.current_status }}</td>
+                <td>{{ entry.severity|default("—") }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+      {% if diff.resolved %}
+        <h3 style="margin-top:14px;">Resolved since baseline</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Test ID</th><th>Baseline</th><th>Current</th></tr>
+            </thead>
+            <tbody>
+            {% for entry in diff.resolved %}
+              <tr>
+                <td><code>{{ entry.test_id }}</code></td>
+                <td>{{ entry.baseline_status }}</td>
+                <td>{{ entry.current_status }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    {% else %}
+      <p style="color:#52606d;font-style:italic;">
+        {{ diff_summary.get('promotable_note') or "No baseline yet — promote this run with `npm run test:promote-baseline` to enable diffs on subsequent runs." }}
+      </p>
+    {% endif %}
+  </section>
+
+</main>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────────
+   Findings-table client-side sorter. Vanilla DOM, ~30 lines, no deps.
+   Severity sort uses the explicit tier order (critical > high > medium
+   > low > info > unknown) — alphabetic sort would put "critical" between
+   "ciso" and "high", which is the opposite of useful.
+   ───────────────────────────────────────────────────────────────────── */
+(function () {
+  var TIER = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+  var table = document.getElementById("findings-table");
+  if (!table) { return; }
+  var headers = table.querySelectorAll("th.sortable");
+  headers.forEach(function (th) {
+    th.addEventListener("click", function () {
+      var key = th.getAttribute("data-sort");
+      var asc = !th.classList.contains("sort-asc");
+      headers.forEach(function (h) { h.classList.remove("sort-asc","sort-desc"); });
+      th.classList.add(asc ? "sort-asc" : "sort-desc");
+      var tbody = table.querySelector("tbody");
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr"));
+      rows.sort(function (a, b) {
+        var av = cellValue(a, key);
+        var bv = cellValue(b, key);
+        if (key === "severity") {
+          av = TIER[av.toLowerCase()] === undefined ? 99 : TIER[av.toLowerCase()];
+          bv = TIER[bv.toLowerCase()] === undefined ? 99 : TIER[bv.toLowerCase()];
+          return asc ? av - bv : bv - av;
+        }
+        return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+      });
+      rows.forEach(function (r) { tbody.appendChild(r); });
+    });
+  });
+  function cellValue(row, key) {
+    var idx = { severity: 0, test_id: 1, layer: 2, target_kind: 3, target_id: 4 }[key];
+    if (idx === undefined) { return ""; }
+    var cell = row.children[idx];
+    return (cell ? cell.textContent : "").trim();
+  }
+})();
+</script>
+</body>
+</html>

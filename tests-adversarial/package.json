@@ -1,0 +1,18 @@
+{
+  "name": "arbiter-adversarial-harness",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Full-app adversarial testing harness for ARBITER (ST21). Targets deployed dev CloudFront. See README.md.",
+  "scripts": {
+    "test:e2e": "playwright test --config=e2e/playwright.config.js",
+    "test:fuzz": "python3.13 -m pytest fuzz/",
+    "test:auth": "python3.13 -m pytest auth/",
+    "test:llm": "python3.13 -m pytest llm/",
+    "test:all": "python3.13 -m scripts.run_all",
+    "test:promote-baseline": "python3.13 -m scripts.promote_baseline",
+    "test:check-drift": "python3.13 -m scripts.check_manifest_drift"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0"
+  }
+}
