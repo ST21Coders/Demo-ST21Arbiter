@@ -11,14 +11,14 @@ import {
 // ─── Dataset completeness ────────────────────────────────────────────────────
 
 describe('MOCK_CONFLICTS dataset', () => {
-  it('contains all 12 ARBITER use cases', () => {
-    expect(MOCK_CONFLICTS).toHaveLength(12)
+  it('contains all 14 ARBITER use cases', () => {
+    expect(MOCK_CONFLICTS).toHaveLength(14)
   })
 
   it('every use case has a unique conflict_id', () => {
     const ids = MOCK_CONFLICTS.map(f => f.conflict_id)
     const unique = new Set(ids)
-    expect(unique.size).toBe(12)
+    expect(unique.size).toBe(14)
   })
 
   it('all UC IDs follow ARBITER-UC0N format', () => {
@@ -27,8 +27,8 @@ describe('MOCK_CONFLICTS dataset', () => {
     })
   })
 
-  it('UC01 through UC12 are all present', () => {
-    for (let i = 1; i <= 12; i++) {
+  it('UC01 through UC14 are all present', () => {
+    for (let i = 1; i <= 14; i++) {
       const id = `ARBITER-UC${String(i).padStart(2, '0')}`
       expect(MOCK_CONFLICTS.find(f => f.conflict_id === id)).toBeDefined()
     }
@@ -112,14 +112,14 @@ describe('MOCK_CONFLICTS dataset', () => {
 // ─── Severity distribution ───────────────────────────────────────────────────
 
 describe('Severity distribution', () => {
-  it('has 5 CRITICAL findings', () => {
+  it('has 6 CRITICAL findings', () => {
     const count = MOCK_CONFLICTS.filter(f => f.severity === 'CRITICAL').length
-    expect(count).toBe(5)
+    expect(count).toBe(6)
   })
 
-  it('has 4 HIGH findings', () => {
+  it('has 5 HIGH findings', () => {
     const count = MOCK_CONFLICTS.filter(f => f.severity === 'HIGH').length
-    expect(count).toBe(4)
+    expect(count).toBe(5)
   })
 
   it('has 3 MEDIUM findings', () => {
@@ -132,14 +132,14 @@ describe('Severity distribution', () => {
     expect(count).toBe(0)
   })
 
-  it('CRITICAL findings are UC04, UC05, UC07, UC08, UC09', () => {
+  it('CRITICAL findings are UC04, UC05, UC07, UC08, UC09, UC14', () => {
     const critIds = MOCK_CONFLICTS.filter(f => f.severity === 'CRITICAL').map(f => f.conflict_id).sort()
-    expect(critIds).toEqual(['ARBITER-UC04', 'ARBITER-UC05', 'ARBITER-UC07', 'ARBITER-UC08', 'ARBITER-UC09'])
+    expect(critIds).toEqual(['ARBITER-UC04', 'ARBITER-UC05', 'ARBITER-UC07', 'ARBITER-UC08', 'ARBITER-UC09', 'ARBITER-UC14'])
   })
 
-  it('HIGH findings are UC01, UC02, UC06, UC10', () => {
+  it('HIGH findings are UC01, UC02, UC06, UC10, UC13', () => {
     const highIds = MOCK_CONFLICTS.filter(f => f.severity === 'HIGH').map(f => f.conflict_id).sort()
-    expect(highIds).toEqual(['ARBITER-UC01', 'ARBITER-UC02', 'ARBITER-UC06', 'ARBITER-UC10'])
+    expect(highIds).toEqual(['ARBITER-UC01', 'ARBITER-UC02', 'ARBITER-UC06', 'ARBITER-UC10', 'ARBITER-UC13'])
   })
 
   it('MEDIUM findings are UC03, UC11, UC12', () => {
@@ -151,8 +151,8 @@ describe('Severity distribution', () => {
 // ─── Domain coverage ─────────────────────────────────────────────────────────
 
 describe('Domain coverage', () => {
-  it('every domain is one of SharePoint|Zscaler|AWSConfig', () => {
-    const valid = new Set(['SharePoint', 'Zscaler', 'AWSConfig'])
+  it('every domain is one of SharePoint|Zscaler|AWSConfig|PaloAlto', () => {
+    const valid = new Set(['SharePoint', 'Zscaler', 'AWSConfig', 'PaloAlto'])
     MOCK_CONFLICTS.forEach(f => {
       f.domains.forEach(d => {
         expect(valid.has(d), `${f.conflict_id} has unknown domain: ${d}`).toBe(true)
@@ -174,9 +174,15 @@ describe('Domain coverage', () => {
     })
   })
 
-  it('all conflicts reference SharePoint (policy source)', () => {
+  it('policy-vs-tool conflicts reference SharePoint; cross-tool conflicts pair two enforcement points', () => {
+    // UC14 is a tool-vs-tool conflict (Zscaler vs Palo Alto) with no policy source.
+    const CROSS_TOOL = new Set(['ARBITER-UC14'])
     MOCK_CONFLICTS.forEach(f => {
-      expect(f.domains, `${f.conflict_id} missing SharePoint`).toContain('SharePoint')
+      if (CROSS_TOOL.has(f.conflict_id)) {
+        expect(f.domains.length, `${f.conflict_id} should pair two sources`).toBeGreaterThanOrEqual(2)
+      } else {
+        expect(f.domains, `${f.conflict_id} missing SharePoint`).toContain('SharePoint')
+      }
     })
   })
 })
@@ -211,8 +217,8 @@ describe('Regulatory references', () => {
 describe('countBySeverity()', () => {
   it('returns correct counts for full dataset', () => {
     const result = countBySeverity(MOCK_CONFLICTS)
-    expect(result.CRITICAL).toBe(5)
-    expect(result.HIGH).toBe(4)
+    expect(result.CRITICAL).toBe(6)
+    expect(result.HIGH).toBe(5)
     expect(result.MEDIUM).toBe(3)
     expect(result.LOW).toBe(0)
   })

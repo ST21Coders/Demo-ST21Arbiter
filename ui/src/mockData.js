@@ -324,6 +324,57 @@ const RAW_CONFLICTS = [
     policy_mandates: ['MIG-POL-001-SM01'],
     regulatory: ['SOC 2 CC7.4', 'ISO 27001 A.5.10'],
   },
+
+  // ─── UC13: Perimeter Egress — Policy Default-Deny vs Palo Alto Any/Any Allow ──
+  {
+    conflict_id: 'ARBITER-UC13',
+    severity: 'HIGH',
+    type: 'CROSS_DOMAIN',
+    title: 'Palo Alto permits any/any outbound — policy mandates default-deny egress',
+    source_policy: 'MIG-POL-002-NS06 §6',
+    source_technical: 'PAN-SEC-EGRESS-ANYANY-ALLOW-001',
+    finding:
+      'MIG-POL-002 §6 mandates default-deny perimeter egress with explicit allow-listing of approved destinations. ' +
+      'Palo Alto NGFW security rule PAN-SEC-EGRESS-ANYANY-ALLOW-001 permits any source to any destination outbound (trust → untrust, application=any). ' +
+      'The perimeter firewall contradicts the documented egress posture.',
+    impact:
+      'Unrestricted outbound path at the perimeter firewall. Data-exfiltration and C2 channels are unmitigated despite a default-deny policy. PCI DSS Req 1.3 egress-control gap.',
+    remediation: [
+      'Replace PAN-SEC-EGRESS-ANYANY-ALLOW-001 with an explicit allow-list of approved destinations / App-IDs',
+      'Set the perimeter egress default action to deny-and-log',
+      'Reconcile the allow-list with the Zscaler ZIA category policy',
+    ],
+    domains: ['SharePoint', 'PaloAlto'],
+    status: 'OPEN',
+    detected_at: new Date(Date.now() - 9 * 3600000).toISOString(),
+    policy_mandates: ['MIG-POL-002-NS06'],
+    regulatory: ['PCI DSS 1.3', 'ISO 27001 A.8.20'],
+  },
+
+  // ─── UC14: Tool-vs-Tool — Zscaler Blocks Anonymizer, Palo Alto Allows Tor ─────
+  {
+    conflict_id: 'ARBITER-UC14',
+    severity: 'CRITICAL',
+    type: 'CROSS_DOMAIN',
+    title: 'Anonymizer traffic blocked by Zscaler but allowed by Palo Alto — enforcement bypass',
+    source_policy: 'ZIA-URLCAT-ANONYMIZER-BLOCK',
+    source_technical: 'PAN-SEC-APP-TOR-ALLOW-022',
+    finding:
+      'Zscaler ZIA rule ZIA-URLCAT-ANONYMIZER-BLOCK blocks the Anonymizer/Tor category, while Palo Alto rule PAN-SEC-APP-TOR-ALLOW-022 permits the "tor" App-ID outbound. ' +
+      'Two security teams’ controls disagree: traffic egressing via the Palo Alto perimeter bypasses the Zscaler web-proxy control entirely.',
+    impact:
+      'Live enforcement bypass. Hosts routed through the firewall path can reach anonymizer/Tor destinations the proxy is meant to block. Data-exfiltration and C2 risk; undermines the SSL-inspection control.',
+    remediation: [
+      'Align the Palo Alto rulebase with the Zscaler category policy — deny the "tor" / anonymizer App-IDs at the perimeter',
+      'Establish a single source of truth for category enforcement across Zscaler and Palo Alto',
+      'Audit egress paths that bypass the Zscaler tunnel',
+    ],
+    domains: ['Zscaler', 'PaloAlto'],
+    status: 'OPEN',
+    detected_at: new Date(Date.now() - 1 * 3600000).toISOString(),
+    policy_mandates: [],
+    regulatory: ['PCI DSS 1.3', 'NAIC MDL-668'],
+  },
 ]
 
 // ── Per-UC enrichment: new fields the Scanner + Dashboard require ─────────────
@@ -410,6 +461,21 @@ const UC_ENRICHMENT = {
     policy_citations: [{ doc: 'MIG-POL-001', version: 'v3.4', section: '3', quote: 'URL filtering controls must include exceptions for Marketing, Communications, HR, and Talent Acquisition.', confidence: 0.95 }],
     enforcement_evidence: [{ source: 'Zscaler', rule_id: 'ZIA-URLCAT-SOCIAL-BLOCK-ALL', action: 'BLOCK', raw: { department_exceptions: [] } }],
   },
+  'ARBITER-UC13': {
+    conflict_type: 'GAP', domain: 'NETWORK_SECURITY', source_pair: 'SharePoint+Palo Alto',
+    rule_key: 'UC13', fp_score: 0.05, compliant: false,
+    policy_citations: [{ doc: 'MIG-POL-002', version: 'v5.1', section: '6', quote: 'Perimeter egress must be default-deny. Outbound access to high-risk or uncategorised destinations is prohibited without an explicit, documented allow-list entry.', confidence: 0.96 }],
+    enforcement_evidence: [{ source: 'PaloAlto', rule_id: 'PAN-SEC-EGRESS-ANYANY-ALLOW-001', action: 'ALLOW', raw: { source: 'any', destination: 'any', application: 'any' } }],
+  },
+  'ARBITER-UC14': {
+    conflict_type: 'CONTRADICTION', domain: 'NETWORK_SECURITY', source_pair: 'Zscaler+Palo Alto',
+    rule_key: 'UC14', fp_score: 0.04, compliant: false,
+    policy_citations: [],
+    enforcement_evidence: [
+      { source: 'Zscaler', rule_id: 'ZIA-URLCAT-ANONYMIZER-BLOCK', action: 'BLOCK', raw: { category: 'Anonymizer' } },
+      { source: 'PaloAlto', rule_id: 'PAN-SEC-APP-TOR-ALLOW-022', action: 'ALLOW', raw: { application: ['tor', 'ultrasurf'] } },
+    ],
+  },
 }
 
 // ── Team / tag ownership ──────────────────────────────────────────────────────
@@ -441,6 +507,8 @@ const OWNERSHIP_BY_RULE = {
   UC10: { owner_team: 'data-governance',   consumer_team: 'app-dev',     platform_team: 'network-eng',       tags: ['data-residency', 'application'] },
   UC11: { owner_team: 'vendor-mgmt',       consumer_team: 'app-dev',     platform_team: 'network-eng',       tags: ['vendor', 'network'] },
   UC12: { owner_team: 'data-governance',   consumer_team: 'app-dev',     platform_team: 'network-eng',       tags: ['application', 'network'] },
+  UC13: { owner_team: 'network-eng',       consumer_team: 'app-dev',     platform_team: 'platform-security', tags: ['network', 'infrastructure'] },
+  UC14: { owner_team: 'network-eng',       consumer_team: 'app-dev',     platform_team: 'platform-security', tags: ['network', 'application'] },
 }
 const OWNERSHIP_DEFAULT = { owner_team: 'unassigned', consumer_team: '', platform_team: '', tags: ['untriaged'] }
 export function ownershipForRule(ruleKey) { return OWNERSHIP_BY_RULE[ruleKey] || OWNERSHIP_DEFAULT }
@@ -469,6 +537,8 @@ const MOCK_COMPLIANT_RAW = [
   { conflict_id: 'COMPLIANT-UC10-INTERNAL', rule_key: 'UC10', compliant: true, domain: 'DATA_GOVERNANCE', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'Internal-only data flows correctly unblocked by DLP', detected_at: new Date(Date.now() - 200 * 60000).toISOString() },
   { conflict_id: 'COMPLIANT-UC11-US', rule_key: 'UC11', compliant: true, domain: 'VENDOR_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'US-based vendor access permitted by ZTNA — country list compliant', detected_at: new Date(Date.now() - 210 * 60000).toISOString() },
   { conflict_id: 'COMPLIANT-UC12-GENERAL', rule_key: 'UC12', compliant: true, domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint','Zscaler'], title: 'General employee social-media block applied as intended', detected_at: new Date(Date.now() - 220 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC13-MGMTDENY', rule_key: 'UC13', compliant: true, domain: 'NETWORK_SECURITY', source_pair: 'SharePoint+Palo Alto', domains: ['SharePoint','PaloAlto'], title: 'PAN-SEC-MGMT-DENY-EXTERNAL denies management-plane access from the internet — egress policy aligned', detected_at: new Date(Date.now() - 230 * 60000).toISOString() },
+  { conflict_id: 'COMPLIANT-UC14-MALWARE', rule_key: 'UC14', compliant: true, domain: 'NETWORK_SECURITY', source_pair: 'Zscaler+Palo Alto', domains: ['Zscaler','PaloAlto'], title: 'Zscaler and Palo Alto both block the Malware/Botnet category — enforcement consistent', detected_at: new Date(Date.now() - 240 * 60000).toISOString() },
 ]
 export const MOCK_COMPLIANT = MOCK_COMPLIANT_RAW.map(c => ({ ...ownershipForRule(c.rule_key), ...c }))
 
@@ -575,7 +645,7 @@ export function countBySeverity(findings) {
 
 // Helper: build domain × severity matrix
 export function buildConflictMatrix(findings) {
-  const domains = ['SharePoint', 'Zscaler', 'AWSConfig']
+  const domains = ['SharePoint', 'Zscaler', 'AWSConfig', 'PaloAlto']
   const severities = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
   const matrix = {}
   domains.forEach(d => {
@@ -610,7 +680,7 @@ export const DOMAIN_LABELS = {
   VENDOR_MGMT:      'Vendor Mgmt',
 }
 export const DOMAIN_KEYS = Object.keys(DOMAIN_LABELS)
-export const SOURCE_PAIRS = ['SharePoint+Zscaler', 'SharePoint+AWS Config']
+export const SOURCE_PAIRS = ['SharePoint+Zscaler', 'SharePoint+AWS Config', 'SharePoint+Palo Alto', 'Zscaler+Palo Alto']
 
 export function buildDomainSourceMatrix(findings) {
   // matrix[domainKey][sourcePair] = count

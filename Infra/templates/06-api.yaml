@@ -225,6 +225,7 @@ Resources:
           SHAREPOINT_RUNTIME_ARN: ""
           AWSCONFIG_RUNTIME_ARN: ""
           ZSCALER_RUNTIME_ARN: ""
+          PALOALTO_RUNTIME_ARN: ""
           JIRA_RUNTIME_ARN: ""
           # Set by deploy_agents.py alongside MASTER_AGENT_RUNTIME_ARN. Read by
           # GET /conversations/{id}/messages to list events from AgentCore Memory.

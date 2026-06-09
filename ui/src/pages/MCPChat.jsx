@@ -48,6 +48,16 @@ const MCP_SERVERS = [
     ],
   },
   {
+    id: 'paloalto',
+    name: 'Palo Alto NGFW Specialist',
+    host: 'agentcore · paloalto_specialist',
+    description: 'Answers questions about Palo Alto perimeter firewall security rules, App-ID enforcement, and egress controls.',
+    tools: [
+      { name: 'retrieve_paloalto_policy', desc: 'KB lookup of PAN-OS rulebase exports' },
+      { name: 'lookup_firewall_rule',     desc: 'Live PAN-OS rule / App-ID lookup' },
+    ],
+  },
+  {
     id: 'jira',
     name: 'JIRA Specialist',
     host: 'agentcore · jira_specialist',
@@ -168,6 +178,7 @@ function Message({ msg }) {
 const SUGGESTED = {
   sharepoint: ['What does MIG-POL-001 say about cloud collaboration tools?', 'Find the remote access policy', 'Search policies for MFA requirements'],
   zscaler:    ['Is dropbox.com allowed?', 'What URL categories are blocked?', 'Check the TeamViewer category'],
+  paloalto:   ['Is outbound tor traffic allowed at the perimeter?', 'Show the egress security rules', 'What does PAN-SEC-EGRESS-ANYANY-ALLOW-001 permit?'],
   awsconfig:  ['List non-compliant resources', 'Which Config rules are failing?', 'Show S3 encryption compliance'],
   jira:       ['List my open issues', 'Show issues in the MIG project', 'What is the status of MIG-123?'],
   servicenow: [],

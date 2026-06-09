@@ -502,7 +502,7 @@ export function useAgentStatus() {
       if (USE_MOCK) {
         setStatusById({
           sharepoint: 'READY', zscaler: 'READY', awsconfig: 'READY',
-          jira: 'READY', servicenow: 'PLACEHOLDER',
+          paloalto: 'READY', jira: 'READY', servicenow: 'PLACEHOLDER',
         })
         return
       }

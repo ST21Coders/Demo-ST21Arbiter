@@ -62,6 +62,21 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-awsconfig-specialist"
 
+  PaloaltoSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/paloalto-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-paloalto-specialist"
+
   JiraSpecialistRepo:
     Type: AWS::ECR::Repository
     Properties:
@@ -371,6 +386,10 @@ Outputs:
     Value: !GetAtt AwsConfigSpecialistRepo.RepositoryUri
     Export:
       Name: !Sub "${Environment}-${ProjectName}-AwsConfigSpecialistRepoUri"
+  PaloaltoSpecialistRepoUri:
+    Value: !GetAtt PaloaltoSpecialistRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-PaloaltoSpecialistRepoUri"
   JiraSpecialistRepoUri:
     Value: !GetAtt JiraSpecialistRepo.RepositoryUri
     Export:
