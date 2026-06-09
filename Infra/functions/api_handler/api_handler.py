@@ -63,6 +63,7 @@ SPECIALIST_RUNTIME_ARNS = {
     "sharepoint": os.environ.get("SHAREPOINT_RUNTIME_ARN", "").strip(),
     "awsconfig":  os.environ.get("AWSCONFIG_RUNTIME_ARN", "").strip(),
     "zscaler":    os.environ.get("ZSCALER_RUNTIME_ARN", "").strip(),
+    "paloalto":   os.environ.get("PALOALTO_RUNTIME_ARN", "").strip(),
     "jira":       os.environ.get("JIRA_RUNTIME_ARN", "").strip(),
 }
 SESSIONS_TABLE = os.environ.get("SESSIONS_TABLE", "")
@@ -515,7 +516,7 @@ def _handle_list_audit(event):
 # and the route, but this is the security boundary — the page is callable
 # with any valid IdToken; we must 403 here for non-CISO callers.
 _VALID_PERSONAS_FOR_QUERY = ("ciso", "soc", "grc", "employee")
-_VALID_AGENTS_FOR_QUERY = ("master", "sharepoint", "awsconfig", "zscaler")
+_VALID_AGENTS_FOR_QUERY = ("master", "sharepoint", "awsconfig", "zscaler", "paloalto")
 
 
 def _require_ciso(event):
@@ -1182,6 +1183,7 @@ _AGENT_DISPLAY_NAMES = {
     "sharepoint": "SharePoint Specialist",
     "awsconfig":  "AWS Config Specialist",
     "zscaler":    "Zscaler ZIA Specialist",
+    "paloalto":   "Palo Alto NGFW Specialist",
     "jira":       "JIRA Specialist",
 }
 

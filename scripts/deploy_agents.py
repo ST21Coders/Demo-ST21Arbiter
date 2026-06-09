@@ -112,6 +112,17 @@ AGENTS = [
         "env_overrides": {},
     },
     {
+        "name": "paloalto-specialist",
+        "src": "agents/paloalto_specialist",
+        "repo_export": f"{PREFIX}-PaloaltoSpecialistRepoUri",  # from 09-agentcore
+        "model_param": "PaloaltoModelId",
+        "env_model_var": "PALOALTO_MODEL_ID",
+        # PALOALTO_API_BASE + PALOALTO_SECRET_ID intentionally unset for the
+        # demo — specialist falls back to KB-only mode. Set via env vars when
+        # real PAN-OS / Panorama API creds are provisioned.
+        "env_overrides": {},
+    },
+    {
         "name": "jira-specialist",
         "src": "agents/jira_specialist",
         "repo_export": f"{PREFIX}-JiraSpecialistRepoUri",  # from 09-agentcore
@@ -433,8 +444,12 @@ def _patch_api_handler_lambda(runtime_arns: dict[str, str]) -> None:
     page sends no target and routes to the master. Also drives GET /agent-status.
 
     Preserves any other env vars already set. Triggers a cold start on the
-    next invocation so the new values are picked up. Specialists absent from
-    this run keep their existing value (we only overwrite ARNs we have).
+    next invocation so the new values are picked up. ARNs for agents not built
+    in this run are backfilled from the live runtimes (via find_runtime) so a
+    partial run (e.g. --agents paloalto-specialist master-orchestrator) still
+    sets the COMPLETE set — important because the 06-api SAM template resets
+    every *_RUNTIME_ARN env var to "" on deploy, and the standard workflow runs
+    this patch last to repair it.
     """
     lambda_client = session.client("lambda")
     func_name = f"{PREFIX}-api-handler"
@@ -451,13 +466,21 @@ def _patch_api_handler_lambda(runtime_arns: dict[str, str]) -> None:
         "sharepoint-specialist": "SHAREPOINT_RUNTIME_ARN",
         "awsconfig-specialist":  "AWSCONFIG_RUNTIME_ARN",
         "zscaler-specialist":    "ZSCALER_RUNTIME_ARN",
+        "paloalto-specialist":   "PALOALTO_RUNTIME_ARN",
         "jira-specialist":       "JIRA_RUNTIME_ARN",
     }
-    desired = {
-        env_key: runtime_arns[name]
-        for name, env_key in arn_env_map.items()
-        if runtime_arns.get(name)
-    }
+    desired = {}
+    for name, env_key in arn_env_map.items():
+        arn = runtime_arns.get(name)
+        if not arn:
+            # Backfill from the live runtime so a --agents-scoped run (or a
+            # fresh SAM deploy that blanked the env) doesn't drop the others.
+            runtime_name = f"{PREFIX}-{name}".replace("-", "_")[:63]
+            existing = find_runtime(runtime_name)
+            if existing:
+                arn = existing.get("agentRuntimeArn", "")
+        if arn:
+            desired[env_key] = arn
     if MASTER_MEMORY_ID:
         desired["MEMORY_ID"] = MASTER_MEMORY_ID
     if all(env.get(k) == v for k, v in desired.items()):
@@ -605,6 +628,7 @@ def main() -> None:
                 ("sharepoint-specialist", "SHAREPOINT_RUNTIME_ARN"),
                 ("awsconfig-specialist", "AWSCONFIG_RUNTIME_ARN"),
                 ("zscaler-specialist", "ZSCALER_RUNTIME_ARN"),
+                ("paloalto-specialist", "PALOALTO_RUNTIME_ARN"),
                 ("jira-specialist", "JIRA_RUNTIME_ARN"),
             ]:
                 arn = runtime_arns.get(spec_name)

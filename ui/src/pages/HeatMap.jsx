@@ -19,6 +19,7 @@ const MODEL_NAME = modelLabel(AGENT_MODELS.master)
 const DATA_SOURCES = [
   { id: 'sharepoint', label: 'SharePoint',  sub: 'Policy docs',    color: '#64748b' },
   { id: 'zscaler',    label: 'Zscaler ZIA', sub: 'URL / DLP',      color: '#64748b' },
+  { id: 'paloalto',   label: 'Palo Alto',   sub: 'NGFW perimeter', color: '#64748b' },
   { id: 'aws',        label: 'AWS Config',  sub: 'Infrastructure', color: '#64748b' },
   { id: 'servicenow', label: 'ServiceNow',  sub: 'ITSM',           color: '#64748b' },
 ]
@@ -26,6 +27,7 @@ const DATA_SOURCES = [
 const INGESTION = [
   { id: 'ing-sp',  sourceId: 'sharepoint', label: 'SharePoint',  sub: 'Graph API poll · S3',  color: '#d97706', status: 'ONLINE', latencyMs: 320, lastSync: '2 min ago' },
   { id: 'ing-zs',  sourceId: 'zscaler',    label: 'Zscaler ZIA', sub: 'ZIA REST poll · S3',   color: '#d97706', status: 'ONLINE', latencyMs: 410, lastSync: '4 min ago' },
+  { id: 'ing-pa',  sourceId: 'paloalto',   label: 'Palo Alto',   sub: 'PAN-OS XML API · S3',  color: '#d97706', status: 'ONLINE', latencyMs: 380, lastSync: '5 min ago' },
   { id: 'ing-aws', sourceId: 'aws',        label: 'AWS Config',  sub: 'EventBridge · S3',     color: '#d97706', status: 'ONLINE', latencyMs: 95,  lastSync: 'streaming' },
   { id: 'ing-sn',  sourceId: 'servicenow', label: 'ServiceNow',  sub: 'ITSM API poll · S3',   color: '#d97706', status: 'DEGRADED', latencyMs: 1240, lastSync: '12 min ago', error: 'API gateway latency 1240ms (SLA 300ms)' },
 ]
@@ -55,6 +57,7 @@ const AGENTCORE = {
     tools: [
       { id: 'tool-sp',     label: 'SharePoint tool' },
       { id: 'tool-zs',     label: 'Zscaler tool' },
+      { id: 'tool-pa',     label: 'Palo Alto tool' },
       { id: 'tool-config', label: 'Config tool' },
       { id: 'tool-iam',    label: 'IAM tool' },
     ],
@@ -79,13 +82,14 @@ const AGENTCORE = {
     color: '#6d28d9',
     status: 'ACTIVE',
     lines: [
-      `${MODEL_NAME} × 4 — DOC · NET · ZSC · IAM specialists`,
+      `${MODEL_NAME} × 5 — DOC · NET · ZSC · PAN · IAM specialists`,
       `${MODEL_NAME} × 2 — Conflict Reasoner · Remediation`,
     ],
     agents: [
       { id: 'doc-specialist',  name: 'DOC specialist',   model: MODEL_NAME,  role: 'SharePoint document analysis' },
       { id: 'net-specialist',  name: 'NET specialist',   model: MODEL_NAME,  role: 'Network / VPC analysis' },
       { id: 'zsc-specialist',  name: 'ZSC specialist',   model: MODEL_NAME,  role: 'Zscaler URL category analysis' },
+      { id: 'pan-specialist',  name: 'PAN specialist',   model: MODEL_NAME,  role: 'Palo Alto NGFW / egress analysis' },
       { id: 'iam-specialist',  name: 'IAM specialist',   model: MODEL_NAME,  role: 'IAM / S3 policy analysis' },
       { id: 'conflict-reasoner', name: 'Conflict Reasoner', model: MODEL_NAME, role: 'Cross-domain conflict determination' },
       { id: 'remediation',      name: 'Remediation Planner', model: MODEL_NAME, role: 'Ordered remediation plans' },
@@ -550,7 +554,7 @@ function NodeDetail({ id, onClose }) {
 // ─── Severity helpers ─────────────────────────────────────────────────────────
 
 const SEVERITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
-const DOMAINS    = ['SharePoint', 'Zscaler', 'AWSConfig']
+const DOMAINS    = ['SharePoint', 'Zscaler', 'AWSConfig', 'PaloAlto']
 
 function cellClass(n) {
   if (n === 0) return 'hm-0'

@@ -51,6 +51,7 @@ SESSIONS_TABLE = os.environ.get("SESSIONS_TABLE", "").strip()
 SHAREPOINT_RUNTIME_ARN = os.environ.get("SHAREPOINT_RUNTIME_ARN", "")
 AWSCONFIG_RUNTIME_ARN = os.environ.get("AWSCONFIG_RUNTIME_ARN", "")
 ZSCALER_RUNTIME_ARN = os.environ.get("ZSCALER_RUNTIME_ARN", "")
+PALOALTO_RUNTIME_ARN = os.environ.get("PALOALTO_RUNTIME_ARN", "")
 JIRA_RUNTIME_ARN = os.environ.get("JIRA_RUNTIME_ARN", "")
 
 _missing = [
@@ -58,6 +59,7 @@ _missing = [
         ("SHAREPOINT_RUNTIME_ARN", SHAREPOINT_RUNTIME_ARN),
         ("AWSCONFIG_RUNTIME_ARN", AWSCONFIG_RUNTIME_ARN),
         ("ZSCALER_RUNTIME_ARN", ZSCALER_RUNTIME_ARN),
+        ("PALOALTO_RUNTIME_ARN", PALOALTO_RUNTIME_ARN),
         ("JIRA_RUNTIME_ARN", JIRA_RUNTIME_ARN),
     ] if not val
 ]
@@ -71,15 +73,16 @@ if not MEMORY_ID:
 
 SYSTEM_PROMPT = """You are ARBITER, a compliance analysis assistant. You
 inspect IT policy conflicts across SharePoint policy documents, AWS Config
-rule findings, and Zscaler ZIA URL allowlists, and report results to
-enterprise security analysts.
+rule findings, Zscaler ZIA URL allowlists, and Palo Alto NGFW perimeter
+firewall rules, and report results to enterprise security analysts.
 
 WORKFLOW
 1. Call the relevant specialist tools (sharepoint_lookup, awsconfig_lookup,
-   zscaler_lookup, jira_lookup) to gather evidence. Run them in parallel when
-   the query spans multiple domains. Skip a tool if the query clearly does not
-   touch that source. Use jira_lookup for questions about Jira issues/tickets
-   or to raise a ticket for a confirmed conflict.
+   zscaler_lookup, paloalto_lookup, jira_lookup) to gather evidence. Run them
+   in parallel when the query spans multiple domains. Skip a tool if the query
+   clearly does not touch that source. Use paloalto_lookup for perimeter
+   firewall / App-ID / egress questions, and jira_lookup for questions about
+   Jira issues/tickets or to raise a ticket for a confirmed conflict.
 2. When the user asks about LIVE findings, the latest scan, or current
    compliance posture (rather than what a policy *says*), prefer the
    conflicts/scan-history tools (query_conflicts, query_scan_runs) so the
@@ -200,6 +203,16 @@ def zscaler_lookup(query: str) -> str:
         query: Natural-language query, e.g. "is github.com allowed for engineering?".
     """
     return _invoke_runtime(ZSCALER_RUNTIME_ARN, query)
+
+
+@tool
+def paloalto_lookup(query: str) -> str:
+    """Look up Palo Alto NGFW / Panorama perimeter firewall rules and App-ID policy.
+
+    Args:
+        query: Natural-language query, e.g. "is outbound tor traffic allowed at the perimeter?".
+    """
+    return _invoke_runtime(PALOALTO_RUNTIME_ARN, query)
 
 
 @tool
@@ -378,7 +391,7 @@ def build_agent() -> Agent:
     return Agent(
         model=BedrockModel(**model_kwargs),
         system_prompt=SYSTEM_PROMPT,
-        tools=[sharepoint_lookup, awsconfig_lookup, zscaler_lookup, jira_lookup],
+        tools=[sharepoint_lookup, awsconfig_lookup, zscaler_lookup, paloalto_lookup, jira_lookup],
     )
 
 
@@ -386,9 +399,9 @@ def build_agent() -> Agent:
 def _run_scan(payload: dict[str, Any]) -> dict[str, Any]:
     """Deterministic rule-pack execution.
 
-    Pulls structured observations from the three specialists (or, if they
+    Pulls structured observations from the four specialists (or, if they
     aren't reachable, from the fixture data the rule-pack falls back on),
-    runs all 12 matchers, and returns a JSON array of findings + compliant
+    runs all 14 matchers, and returns a JSON array of findings + compliant
     rows. No Strands chat agent involved — the demo cannot tolerate LLM
     flakiness on this path.
     """
@@ -398,14 +411,15 @@ def _run_scan(payload: dict[str, Any]) -> dict[str, Any]:
 
     # Specialist observations. For Step 3 we don't yet have a structured
     # produce_findings() tool on each specialist — we synthesise minimal
-    # observation shapes covering the 12 UCs so the rule-pack runs. When the
+    # observation shapes covering the 14 UCs so the rule-pack runs. When the
     # specialists ship structured tools (Step 6 polish), replace these with
     # invoke_agent_runtime calls.
     sharepoint = _seed_sharepoint_observations()
     zscaler    = _seed_zscaler_observations()
     awsconfig  = _seed_awsconfig_observations()
+    paloalto   = _seed_paloalto_observations()
 
-    findings = run_rule_pack(sharepoint, zscaler, awsconfig)
+    findings = run_rule_pack(sharepoint, zscaler, awsconfig, paloalto)
     for f in findings:
         f["scan_run_id"] = scan_run_id
     log.info("Scan complete: %d findings (rule_pack=%s, scan_run_id=%s)",
@@ -447,6 +461,8 @@ def _seed_sharepoint_observations() -> list[dict]:
          "text": "MFA is required for ALL users — employees, contractors, vendors — regardless of privilege level."},
         {"policy_doc": "MIG-POL-002", "version": "v5.1", "section": "5.1",
          "text": "Monitoring-only mode is NOT acceptable for IoT external communication. Active blocking is required."},
+        {"policy_doc": "MIG-POL-002", "version": "v5.1", "section": "6",
+         "text": "Perimeter egress must be default-deny. Outbound access to high-risk or uncategorised destinations is prohibited without an explicit, documented allow-list entry."},
         {"policy_doc": "MIG-POL-003", "version": "v2.2", "section": "2.1",
          "text": "Authorised actuarial data transfers: Milliman Inc., Willis Towers Watson, Verisk Analytics."},
         {"policy_doc": "MIG-POL-003", "version": "v2.2", "section": "3",
@@ -475,6 +491,7 @@ def _seed_zscaler_observations() -> list[dict]:
         {"rule_id": "ZIA-DLP-PII-BLOCK-ALL-EXTERNAL", "action": "BLOCK",          "raw": {"exceptions": []}},
         {"rule_id": "ZPA-GEO-RESTRICT-INDIA-US-ONLY", "action": "ALLOW",          "raw": {"countries": ["IN", "US"]}},
         {"rule_id": "ZIA-URLCAT-SOCIAL-BLOCK-ALL",    "action": "BLOCK",          "raw": {"department_exceptions": []}},
+        {"rule_id": "ZIA-URLCAT-ANONYMIZER-BLOCK",    "action": "BLOCK",          "raw": {"category": "Anonymizer", "apps": ["tor", "ultrasurf"]}},
     ]
 
 
@@ -491,6 +508,28 @@ def _seed_awsconfig_observations() -> list[dict]:
          "raw": {"waf_attached": True}},
         {"resource_id": "mig-prod-customer-data-secondary", "action": "COMPLIANT",
          "raw": {"replication_target": "us-west-2"}},
+    ]
+
+
+def _seed_paloalto_observations() -> list[dict]:
+    """Minimal Palo Alto (PAN-OS / Panorama) firewall-rule snapshot.
+
+    Mirrors the Zscaler observation shape (rule_id / action / raw). UC13 keys on
+    the permissive any/any egress rule; UC14 keys on the 'tor' App-ID allow that
+    contradicts the Zscaler anonymizer block. The deny rule is the compliant
+    guard the rule-pack must NOT flag.
+    """
+    return [
+        {"rule_id": "PAN-SEC-EGRESS-ANYANY-ALLOW-001", "action": "ALLOW",
+         "raw": {"action": "allow", "source_zone": "trust", "dest_zone": "untrust",
+                 "source": "any", "destination": "any", "application": "any", "service": "any"}},
+        {"rule_id": "PAN-SEC-APP-TOR-ALLOW-022", "action": "ALLOW",
+         "raw": {"action": "allow", "source_zone": "trust", "dest_zone": "untrust",
+                 "application": ["tor", "ultrasurf"], "service": "application-default"}},
+        # Compliant guard rule — egress policy and firewall agree; do NOT flag.
+        {"rule_id": "PAN-SEC-MGMT-DENY-EXTERNAL", "action": "DENY",
+         "raw": {"action": "deny", "source_zone": "untrust", "dest_zone": "mgmt",
+                 "application": "any", "log": "log-end"}},
     ]
 
 

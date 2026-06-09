@@ -111,6 +111,10 @@
     "ParameterValue": "us.amazon.nova-2-lite-v1:0"
   },
   {
+    "ParameterKey": "PaloaltoModelId",
+    "ParameterValue": "us.amazon.nova-2-lite-v1:0"
+  },
+  {
     "ParameterKey": "JiraModelId",
     "ParameterValue": "us.amazon.nova-2-lite-v1:0"
   },
