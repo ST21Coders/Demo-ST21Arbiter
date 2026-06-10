@@ -55,6 +55,17 @@ logger.setLevel(logging.INFO)
 
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 MASTER_AGENT_RUNTIME_ARN = os.environ.get("MASTER_AGENT_RUNTIME_ARN", "").strip()
+# Specialist runtime ARNs for direct (per-agent) chat routing from the MCP page.
+# Patched onto this Lambda by scripts/deploy_agents.py alongside the master ARN.
+# A "target" of master (or absent) keeps the orchestrator fan-out behaviour.
+SPECIALIST_RUNTIME_ARNS = {
+    "master":     MASTER_AGENT_RUNTIME_ARN,
+    "sharepoint": os.environ.get("SHAREPOINT_RUNTIME_ARN", "").strip(),
+    "awsconfig":  os.environ.get("AWSCONFIG_RUNTIME_ARN", "").strip(),
+    "zscaler":    os.environ.get("ZSCALER_RUNTIME_ARN", "").strip(),
+    "paloalto":   os.environ.get("PALOALTO_RUNTIME_ARN", "").strip(),
+    "jira":       os.environ.get("JIRA_RUNTIME_ARN", "").strip(),
+}
 SESSIONS_TABLE = os.environ.get("SESSIONS_TABLE", "")
 CONFLICTS_TABLE = os.environ.get("CONFLICTS_TABLE", "")
 CONFLICTS_TABLE_V2 = os.environ.get("CONFLICTS_TABLE_V2", "")
@@ -82,6 +93,8 @@ MAX_LIST_KEYS = 200                 # cap list responses; bucket-listing isn't p
 _emit_cors_headers = True
 
 agentcore = boto3.client("bedrock-agentcore", region_name=REGION)
+# Control-plane client for runtime lifecycle/status (list_agent_runtimes).
+agentcore_control = boto3.client("bedrock-agentcore-control", region_name=REGION)
 lambda_client = boto3.client("lambda", region_name=REGION)
 ddb = boto3.resource("dynamodb", region_name=REGION)
 sessions_table = ddb.Table(SESSIONS_TABLE) if SESSIONS_TABLE else None
@@ -179,6 +192,9 @@ def handler(event, context):
     if path == "/mcp-health" and method == "GET":
         return _handle_mcp_health(event)
 
+    if path == "/agent-status" and method == "GET":
+        return _handle_agent_status(event)
+
     if path == "/jira/tickets" and method == "POST":
         return _handle_jira_create(event)
 
@@ -226,8 +242,13 @@ def _handle_chat(event):
     if not prompt:
         return _err(400, "Missing 'prompt' in request body")
 
-    if not MASTER_AGENT_RUNTIME_ARN:
-        return _err(503, "Master runtime ARN not configured (run scripts/deploy_agents.py)")
+    # Direct per-agent routing: the MCP page sends a "target" naming the
+    # specialist to invoke; the Analyst page sends none → master orchestrator.
+    # An unknown target falls back to master for backward compatibility.
+    target = (body.get("target") or "master").strip().lower()
+    runtime_arn = SPECIALIST_RUNTIME_ARNS.get(target) or MASTER_AGENT_RUNTIME_ARN
+    if not runtime_arn:
+        return _err(503, f"Runtime ARN for '{target}' not configured (run scripts/deploy_agents.py)")
 
     actor_id = _caller_user_id(event) or "anonymous"
     # Frontend generates session_id when starting a new chat; "adhoc" means
@@ -248,7 +269,7 @@ def _handle_chat(event):
 
     try:
         resp = agentcore.invoke_agent_runtime(
-            agentRuntimeArn=MASTER_AGENT_RUNTIME_ARN,
+            agentRuntimeArn=runtime_arn,
             payload=json.dumps({
                 "prompt": prompt,
                 "session_id": session_id,
@@ -387,6 +408,36 @@ def _handle_uploads_list(event):
 
 
 # ──────────────────────────── /findings ─────────────────────────
+def _latest_completed_scan_run_id():
+    """scan_run_id of the most recent COMPLETED scan-run, or None.
+
+    Used to reconcile the findings/dashboard views: the scanner upserts conflicts-v2
+    by conflict_id and never deletes, so scoping to the latest completed run is what
+    makes a resolved conflict disappear.
+
+    MUST be reliable regardless of table size. A plain scan(Limit=50) samples an
+    arbitrary 50 rows in no order — once scan-runs grows past a page (one row per
+    invocation) it misses the true latest and returns a STALE id, which scopes the
+    UI to an all-resolved run and shows zero conflicts. Query the by-status GSI
+    (status=COMPLETED, started_at DESC, Limit=1) instead — O(1), always correct.
+    Returns None (callers fall back to the full set) on empty/error.
+    """
+    if not scan_runs_table:
+        return None
+    try:
+        resp = scan_runs_table.query(
+            IndexName="by-status",
+            KeyConditionExpression=Key("status").eq("COMPLETED"),
+            ScanIndexForward=False,   # newest started_at first
+            Limit=1,
+        )
+        items = resp.get("Items", [])
+    except Exception:
+        logger.exception("latest scan-run lookup failed")
+        return None
+    return items[0].get("scan_run_id") if items else None
+
+
 def _handle_list_findings(event):
     """Return all conflicts. UI shape: {findings: [...]}.
 
@@ -404,6 +455,20 @@ def _handle_list_findings(event):
     except Exception as e:
         logger.exception("findings scan failed")
         return _err(502, f"{type(e).__name__}: {e}")
+    # Reconcile resolved conflicts. The scanner never deletes rows, so a
+    # conflict that is no longer detected lingers with its OLD scan_run_id.
+    # Scope to the latest COMPLETED run so resolved conflicts disappear. Done
+    # over the full item set (incl the compliant rows every scan also writes)
+    # so an all-resolved scan correctly shows zero conflicts. Safety: only
+    # apply when that run actually wrote rows here, so a scan_run_id mismatch
+    # or a fresh pre-scan seed never blanks the UI. Opt out with ?latest_only=false.
+    latest_only = (qs.get("latest_only") or "true").lower() in ("1", "true", "yes")
+    if latest_only:
+        latest_run = _latest_completed_scan_run_id()
+        if latest_run:
+            scoped = [i for i in items if i.get("scan_run_id") == latest_run]
+            if scoped:
+                items = scoped
     sev = (qs.get("severity") or "").strip().upper()
     status = (qs.get("status") or "").strip().upper()
     domain = (qs.get("domain") or "").strip().upper()
@@ -458,7 +523,7 @@ def _handle_list_audit(event):
 # and the route, but this is the security boundary — the page is callable
 # with any valid IdToken; we must 403 here for non-CISO callers.
 _VALID_PERSONAS_FOR_QUERY = ("ciso", "soc", "grc", "employee")
-_VALID_AGENTS_FOR_QUERY = ("master", "sharepoint", "awsconfig", "zscaler")
+_VALID_AGENTS_FOR_QUERY = ("master", "sharepoint", "awsconfig", "zscaler", "paloalto")
 
 
 def _require_ciso(event):
@@ -880,6 +945,17 @@ def _handle_dashboard(event):
             logger.exception("dashboard findings scan failed")
 
     conflicts = [f for f in findings if not f.get("compliant")]
+    # Scope active conflicts to the latest COMPLETED scan + OPEN status so the KPIs,
+    # heatmap, and trend match the Findings view. The scanner upserts + never deletes,
+    # so resolved/stale rows (older scan_run_ids) must NOT count as active — otherwise
+    # the dashboard inflates (e.g. 14) vs Findings (10). Safety guard mirrors
+    # _handle_list_findings: only narrow when that run actually wrote rows here.
+    latest_run = _latest_completed_scan_run_id()
+    if latest_run:
+        scoped = [c for c in conflicts if c.get("scan_run_id") == latest_run]
+        if scoped:
+            conflicts = scoped
+    conflicts = [c for c in conflicts if (c.get("status") or "OPEN").upper() == "OPEN"]
     crs = []
     if crs_table:
         try:
@@ -1120,48 +1196,175 @@ def _handle_mcp_health(event):
     return _ok({"summary": summary, "servers": servers})
 
 
-# ──────────────────────────── /jira/tickets ─────────────────────
-def _handle_jira_create(event):
-    """Mock JIRA ticket creation from the ActionCenter UI.
+# ──────────────────────────── /agent-status ─────────────────────
+_AGENT_DISPLAY_NAMES = {
+    "sharepoint": "SharePoint Specialist",
+    "awsconfig":  "AWS Config Specialist",
+    "zscaler":    "Zscaler ZIA Specialist",
+    "paloalto":   "Palo Alto NGFW Specialist",
+    "jira":       "JIRA Specialist",
+}
 
-    Real ticket creation happens through the Atlassian MCP plugin in the
-    user's Claude session — see Master agent's jira_create_ticket tool.
-    Lambda path returns a deterministic-looking mock key and writes an
-    audit row so the UI flow is end-to-end testable in production.
+
+def _handle_agent_status(event):
+    """Live status of the ARBITER specialist runtimes for the MCP page.
+
+    Calls bedrock-agentcore-control list_agent_runtimes and matches each
+    specialist by its configured ARN (patched onto this Lambda by
+    deploy_agents.py) → {id, name, status}. Agents not yet deployed (no ARN, or
+    the ARN isn't in the live list) report PLACEHOLDER. ServiceNow is a static
+    placeholder (no agent). Matching by ARN avoids hardcoding the project name.
+    """
+    arn_to_status: dict[str, str] = {}
+    try:
+        paginator = agentcore_control.get_paginator("list_agent_runtimes")
+        for page in paginator.paginate():
+            for r in page.get("agentRuntimes", []):
+                arn_to_status[r.get("agentRuntimeArn", "")] = r.get("status", "UNKNOWN")
+    except Exception as e:
+        logger.warning("list_agent_runtimes failed: %s", e)
+
+    servers = []
+    for agent_id, name in _AGENT_DISPLAY_NAMES.items():
+        arn = SPECIALIST_RUNTIME_ARNS.get(agent_id, "")
+        status = arn_to_status.get(arn, "PLACEHOLDER") if arn else "PLACEHOLDER"
+        servers.append({"id": agent_id, "name": name, "status": status})
+    # ServiceNow has no runtime yet — static placeholder card.
+    servers.append({"id": "servicenow", "name": "ServiceNow", "status": "PLACEHOLDER"})
+    return _ok({"servers": servers})
+
+
+# ──────────────────────────── team ownership / routing ──────────
+# Maps an owning team → its JIRA destination. For the demo every team routes to
+# the one real project (DEVARBITER) so a ticket never fails on a non-existent
+# project; the owning team is surfaced in the issue body and on the CR. Swap to
+# per-team projects/components once Meridian's JIRA structure is confirmed.
+TEAM_ROUTING = {
+    "platform-security": {"project_key": "DEVARBITER", "component": "Security Platform"},
+    "network-eng":       {"project_key": "DEVARBITER", "component": "Network Engineering"},
+    "cloud-infra":       {"project_key": "DEVARBITER", "component": "Cloud Infrastructure"},
+    "data-governance":   {"project_key": "DEVARBITER", "component": "Data Governance"},
+    "app-dev":           {"project_key": "DEVARBITER", "component": "Application Development"},
+    "vendor-mgmt":       {"project_key": "DEVARBITER", "component": "Vendor Management"},
+}
+_DEFAULT_ROUTING = {"project_key": "DEVARBITER", "component": None}
+
+
+def _route_for_team(owner_team: str) -> dict:
+    return TEAM_ROUTING.get((owner_team or "").strip(), _DEFAULT_ROUTING)
+
+
+def _finding_ownership(conflict_id: str) -> dict:
+    """Server-side lookup of a finding's team ownership.
+
+    Never trust the client for this — owner_team drives ticket routing (and,
+    post-demo, RBAC scoping). Returns blanks when the finding or its ownership
+    can't be resolved, so callers degrade gracefully to the DEVARBITER default.
+    """
+    out = {"owner_team": "", "consumer_team": "", "platform_team": "", "tags": []}
+    tbl = _findings_table()
+    if not tbl or not conflict_id:
+        return out
+    try:
+        resp = tbl.query(KeyConditionExpression=Key("conflict_id").eq(conflict_id),
+                         Limit=1, ScanIndexForward=False)
+        items = resp.get("Items", [])
+    except Exception:
+        logger.exception("finding ownership lookup failed")
+        return out
+    if items:
+        f = items[0]
+        out["owner_team"] = f.get("owner_team") or ""
+        out["consumer_team"] = f.get("consumer_team") or ""
+        out["platform_team"] = f.get("platform_team") or ""
+        out["tags"] = list(f.get("tags") or [])
+    return out
+
+
+# ──────────────────────────── /jira/tickets ─────────────────────
+def _audit_jira(event, *, key, summary, severity, conflict_id, status, mock):
+    """Best-effort audit row for a JIRA link/create."""
+    if not audit_table:
+        return
+    try:
+        audit_table.put_item(Item={
+            "event_id": f"jira-{key}",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "action_type": "JIRA_LINKED",
+            "resource": conflict_id or summary,
+            "user": (_caller_user_id(event) or "anonymous"),
+            "status": status,
+            "details": json.dumps({"jira_ticket_key": key, "summary": summary,
+                                   "severity": severity, "mock": mock}),
+        })
+    except Exception:
+        logger.exception("JIRA audit write failed")
+
+
+def _handle_jira_create(event):
+    """Create a real JIRA issue via the jira_specialist AgentCore runtime.
+
+    The ActionCenter UI sends an editable summary + description and a project
+    key (DEVARBITER). We invoke the JIRA runtime's deterministic create path
+    ({"action": "create_issue", ...}) which calls mcp-atlassian directly and
+    returns {key, url}. If the runtime isn't deployed, fall back to a mock key
+    so the demo flow still renders.
     """
     try:
         body = json.loads(event.get("body") or "{}")
     except json.JSONDecodeError:
         return _err(400, "Invalid JSON body")
     conflict_id = (body.get("conflict_id") or "").strip()
-    summary = (body.get("summary") or "").strip() or f"ARBITER finding {conflict_id or 'unspecified'}"
-    project_key = (body.get("project_key") or "MIG").strip()
+    summary = (body.get("summary") or body.get("title") or "").strip() or f"ARBITER finding {conflict_id or 'unspecified'}"
+    description = (body.get("description") or "").strip()
+    project_key = (body.get("project_key") or "DEVARBITER").strip()
     severity = (body.get("severity") or "MEDIUM").strip()
 
-    # Sub-second hashing keeps the mock key visually distinct between calls.
-    import hashlib
-    suffix = int(hashlib.sha256(summary.encode("utf-8")).hexdigest()[:6], 16) % 100000
-    mock_key = f"{project_key}-MOCK-{suffix:05d}"
+    # Route by the finding's OWNING team (server-derived, never client-supplied).
+    # Component routing requires the component to pre-exist in JIRA, so we
+    # annotate the issue body with the team rather than risk a create failure.
+    ownership = _finding_ownership(conflict_id)
+    routing = _route_for_team(ownership["owner_team"])
+    project_key = routing["project_key"] or project_key
+    if ownership["owner_team"]:
+        description = (description + f"\n\nRouted to team: {ownership['owner_team']}").strip()
 
-    if audit_table:
-        try:
-            audit_table.put_item(Item={
-                "event_id": f"jira-{mock_key}",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "action_type": "JIRA_LINKED",
-                "resource": conflict_id or summary,
-                "user": (_caller_user_id(event) or "anonymous"),
-                "status": "COMPLETED",
-                "details": json.dumps({"jira_ticket_key": mock_key, "summary": summary, "severity": severity}),
-            })
-        except Exception:
-            logger.exception("JIRA audit write failed")
+    jira_arn = SPECIALIST_RUNTIME_ARNS.get("jira")
+    if not jira_arn:
+        # JIRA runtime not deployed yet — mock so the UI flow still works.
+        import hashlib
+        suffix = int(hashlib.sha256(summary.encode("utf-8")).hexdigest()[:6], 16) % 100000
+        mock_key = f"{project_key}-MOCK-{suffix:05d}"
+        _audit_jira(event, key=mock_key, summary=summary, severity=severity,
+                    conflict_id=conflict_id, status="MOCK", mock=True)
+        return _ok({"status": "mock", "jira_ticket_key": mock_key,
+                    "note": "JIRA runtime not configured — run scripts/deploy_agents.py."})
 
-    return _ok({
-        "status": "not_implemented_in_lambda",
-        "mock_ticket_key": mock_key,
-        "note": "Real JIRA ticket creation runs via the Atlassian MCP plugin in the Analyst chat.",
-    })
+    try:
+        resp = agentcore.invoke_agent_runtime(
+            agentRuntimeArn=jira_arn,
+            payload=json.dumps({
+                "action": "create_issue",
+                "project_key": project_key,
+                "summary": summary,
+                "description": description,
+                "issue_type": "Task",
+            }).encode("utf-8"),
+            contentType="application/json",
+            accept="application/json",
+        )
+        parsed = json.loads(resp["response"].read().decode("utf-8"))
+    except Exception as e:
+        logger.exception("JIRA runtime invocation failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+
+    key = parsed.get("key")
+    if not key:
+        return _err(502, f"JIRA create failed: {parsed.get('error') or parsed.get('result') or 'no issue key returned'}")
+
+    _audit_jira(event, key=key, summary=summary, severity=severity,
+                conflict_id=conflict_id, status="COMPLETED", mock=False)
+    return _ok({"status": "created", "jira_ticket_key": key, "url": parsed.get("url")})
 
 
 # ──────────────────────────── POST /scan ────────────────────────
@@ -1299,6 +1502,12 @@ def _handle_create_action(event):
     auto = (target_env == "DEV") or not chain
     status = "AUTO_APPROVED" if auto else "PENDING_APPROVAL"
 
+    # Denormalize the linked finding's team ownership onto the CR so the Action
+    # Center can show where the work routes. Server-derived — owner_team is never
+    # taken from the request body.
+    ownership = _finding_ownership(conflict_id)
+    routing = _route_for_team(ownership["owner_team"])
+
     cr_id = f"CR-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{(conflict_id or 'NEW')[-6:].upper()}"
     now_iso = datetime.now(timezone.utc).isoformat()
     item = {
@@ -1313,6 +1522,12 @@ def _handle_create_action(event):
         "description": description or f"Remediate {conflict_id}",
         "requested_by": requested_by,
         "justification": justification,
+        "owner_team": ownership["owner_team"],
+        "consumer_team": ownership["consumer_team"],
+        "platform_team": ownership["platform_team"],
+        "routed_team": ownership["owner_team"],
+        "tags": ownership["tags"],
+        "jira_project_key": routing["project_key"],
         "created_at": now_iso,
         "approvers": chain,
         "total_approvers_needed": sum(1 for a in chain if a.get("type") != "NOTIFICATION"),
@@ -1321,6 +1536,8 @@ def _handle_create_action(event):
             {"ts": now_iso, "actor": user_id, "from_status": "—", "to_status": status, "comment": "Created"},
         ],
     }
+    if routing.get("component"):
+        item["jira_component"] = routing["component"]
     try:
         crs_table.put_item(Item=item)
     except Exception as e:

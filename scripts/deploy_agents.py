@@ -16,15 +16,8 @@ Prerequisites:
   - Docker (or finch / podman aliased to docker) running locally
   - AWS CLI authenticated
 
-Usage (real values — do NOT copy these placeholders, the script will reject them):
-  # Discover the live values
-  KB_ID=$(jq -r '.[] | select(.ParameterKey=="KbId") | .ParameterValue' Infra/params/dev.json)
-  GUARDRAIL_ID=$(aws bedrock list-guardrails --region us-east-1 --query 'guardrails[?starts_with(name,`dev-st21arbiter-poc`)]|[0].id' --output text)
-  MASTER_MEMORY_ID=$(aws bedrock-agentcore-control get-agent-runtime --region us-east-1 \
-      --agent-runtime-id dev_st21arbiter_poc_master_orchestrator-Jme05DD8Yi \
-      --query 'environmentVariables.MEMORY_ID' --output text)
-  KB_ID="$KB_ID" GUARDRAIL_ID="$GUARDRAIL_ID" MASTER_MEMORY_ID="$MASTER_MEMORY_ID" \
-    AWS_REGION=us-east-1 python3 scripts/deploy_agents.py
+Usage:
+  KB_ID=ABCDEFGHIJ GUARDRAIL_ID=e0axl6y90il0 python scripts/deploy_agents.py
 """
 from __future__ import annotations
 
@@ -50,15 +43,44 @@ PROJECT = os.environ.get("PROJECT", "st21arbiter-poc")
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 PREFIX = f"{ENV}-{PROJECT}"
 
+# params/dev.json is the single source of truth for per-agent foundation
+# models and the guardrail id/version (mirrored into the UI by
+# Infra/post_deploy_ui.py). Env vars below still win when set, so existing
+# command-line overrides keep working.
+PARAMS_FILE = PROJECT_ROOT / "Infra" / "params" / f"{ENV}.json"
+
+
+def _params() -> dict[str, str]:
+    """Parse params/<env>.json into a ParameterKey→ParameterValue dict."""
+    try:
+        data = json.loads(PARAMS_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+    return {p["ParameterKey"]: p.get("ParameterValue", "")
+            for p in data if "ParameterKey" in p}
+
+
+PARAMS = _params()
+DEFAULT_MODEL_ID = PARAMS.get("DefaultModelId") or "us.amazon.nova-2-lite-v1:0"
+
 KB_ID = os.environ.get("KB_ID", "")
-GUARDRAIL_ID = os.environ.get("GUARDRAIL_ID", "")
-GUARDRAIL_VERSION = os.environ.get("GUARDRAIL_VERSION", "DRAFT")
+# Guardrail: env var wins; otherwise fall back to params/dev.json.
+GUARDRAIL_ID = os.environ.get("GUARDRAIL_ID", "") or PARAMS.get("GuardrailId", "")
+GUARDRAIL_VERSION = (os.environ.get("GUARDRAIL_VERSION", "")
+                     or PARAMS.get("GuardrailVersion", "") or "DRAFT")
 # Only the master orchestrator uses memory in the current design.
 # Set via env var when invoking the script; leave empty to disable memory.
 MASTER_MEMORY_ID = os.environ.get("MASTER_MEMORY_ID", "")
-# Override the master orchestrator's foundation model. When empty, the runtime
-# falls back to the default baked into agents/master_orchestrator/agent.py.
-MASTER_MODEL_ID = os.environ.get("MASTER_MODEL_ID", "")
+
+
+def resolve_model_id(agent: dict[str, Any]) -> str:
+    """Per-agent foundation model, by precedence:
+    env override (e.g. MASTER_MODEL_ID) → params/dev.json model key →
+    params/dev.json DefaultModelId → hardcoded Nova 2 Lite default.
+    """
+    return (os.environ.get(agent["env_model_var"], "")
+            or PARAMS.get(agent["model_param"], "")
+            or DEFAULT_MODEL_ID)
 
 # Order matters: specialists must exist before the master can be wired to them.
 AGENTS = [
@@ -66,27 +88,82 @@ AGENTS = [
         "name": "sharepoint-specialist",
         "src": "agents/sharepoint_specialist",
         "repo_export": f"{PREFIX}-SharepointSpecialistRepoUri",
+        "model_param": "SharepointModelId",
+        "env_model_var": "SHAREPOINT_MODEL_ID",
         "env_overrides": {},
     },
     {
         "name": "awsconfig-specialist",
         "src": "agents/awsconfig_specialist",
         "repo_export": f"{PREFIX}-AwsConfigSpecialistRepoUri",
+        "model_param": "AwsConfigModelId",
+        "env_model_var": "AWSCONFIG_MODEL_ID",
         "env_overrides": {},
     },
     {
         "name": "zscaler-specialist",
         "src": "agents/zscaler_specialist",
         "repo_export": f"{PREFIX}-ZscalerSpecialistRepoUri",  # from 05-compute
+        "model_param": "ZscalerModelId",
+        "env_model_var": "ZSCALER_MODEL_ID",
         # ZSCALER_API_BASE + ZSCALER_SECRET_ID intentionally unset for the
         # demo — specialist falls back to KB-only mode. Set via env vars when
         # real Zscaler API creds are provisioned.
         "env_overrides": {},
     },
     {
+        "name": "paloalto-specialist",
+        "src": "agents/paloalto_specialist",
+        "repo_export": f"{PREFIX}-PaloaltoSpecialistRepoUri",  # from 09-agentcore
+        "model_param": "PaloaltoModelId",
+        "env_model_var": "PALOALTO_MODEL_ID",
+        # PALOALTO_API_BASE + PALOALTO_SECRET_ID intentionally unset for the
+        # demo — specialist falls back to KB-only mode. Set via env vars when
+        # real PAN-OS / Panorama API creds are provisioned.
+        "env_overrides": {},
+    },
+    {
+        "name": "structured-specialist",
+        "src": "agents/structured_specialist",
+        "repo_export": f"{PREFIX}-StructuredSpecialistRepoUri",  # from 09-agentcore
+        "model_param": "StructuredModelId",
+        "env_model_var": "STRUCTURED_MODEL_ID",
+        # Deterministic names (match 04-storage): Glue db underscores the dashed
+        # prefix; workgroup keeps dashes; Athena results go under the processed bucket.
+        "env_overrides": {
+            "GLUE_DATABASE": f"{ENV}_{PROJECT}_structured".replace("-", "_"),
+            "ATHENA_WORKGROUP": f"{PREFIX}-wg",
+            "ATHENA_OUTPUT": f"s3://{PREFIX}-processed/athena-results/",
+        },
+    },
+    {
+        "name": "jira-specialist",
+        "src": "agents/jira_specialist",
+        "repo_export": f"{PREFIX}-JiraSpecialistRepoUri",  # from 09-agentcore
+        "model_param": "JiraModelId",
+        "env_model_var": "JIRA_MODEL_ID",
+        # Tier-0: the JIRA agent calls an EXTERNAL SaaS, so it runs under its own
+        # least-privilege role (not the shared AgentCoreRuntimeRole). Falls back
+        # to the shared role if this export is missing.
+        "role_export": f"{PREFIX}-JiraAgentRuntimeRoleArn",  # from 09-agentcore
+        # Jira URL/email/API token live in this Secrets Manager secret (JSON
+        # {url,email,api_token}). Create it before deploy — see DEPLOYMENT.md.
+        # Empty secret = agent runs in "(JIRA not configured)" mode.
+        # Tier-0 scoping: minimal tool allowlist (read + create only; no
+        # Confluence/delete). JIRA_PROJECTS_FILTER intentionally NOT set — it
+        # silently scoped reads out; least-privilege here comes from the
+        # service account's project permissions + the tool allowlist instead.
+        "env_overrides": {
+            "JIRA_SECRET_ID": f"{ENV}/{PROJECT}/jira",
+            "ENABLED_TOOLS": "jira_search,jira_get_issue,jira_get_all_projects,jira_create_issue",
+        },
+    },
+    {
         "name": "master-orchestrator",
         "src": "agents/master_orchestrator",
         "repo_export": f"{PREFIX}-MasterOrchestratorRepoUri",  # from 05-compute
+        "model_param": "MasterModelId",
+        "env_model_var": "MASTER_MODEL_ID",
         "env_overrides": {},  # filled in after specialists are deployed
     },
 ]
@@ -139,14 +216,15 @@ phases:
 
 
 def ensure_codebuild_role(repo_arns: list[str], source_bucket_arn: str) -> str:
-    """Idempotently create the IAM role CodeBuild will assume."""
-    try:
-        existing = iam.get_role(RoleName=CODEBUILD_ROLE_NAME)
-        return existing["Role"]["Arn"]
-    except ClientError as e:
-        if e.response["Error"]["Code"] != "NoSuchEntity":
-            raise
+    """Idempotently create the IAM role CodeBuild assumes, and ALWAYS refresh
+    its inline policy.
 
+    The ECR push statement is scoped to `repo_arns`. When a new agent (and its
+    ECR repo) is added, an already-existing role would otherwise keep the stale
+    repo list and CodeBuild's `docker push` fails with `ecr:InitiateLayerUpload
+    ... no identity-based policy allows`. So we re-put the policy on every run,
+    not just at creation.
+    """
     trust = {
         "Version": "2012-10-17",
         "Statement": [{
@@ -155,11 +233,21 @@ def ensure_codebuild_role(repo_arns: list[str], source_bucket_arn: str) -> str:
             "Action": "sts:AssumeRole",
         }],
     }
-    role = iam.create_role(
-        RoleName=CODEBUILD_ROLE_NAME,
-        AssumeRolePolicyDocument=json.dumps(trust),
-        Description="ARBITER agent image builder",
-    )
+    created = False
+    try:
+        existing = iam.get_role(RoleName=CODEBUILD_ROLE_NAME)
+        role_arn = existing["Role"]["Arn"]
+    except ClientError as e:
+        if e.response["Error"]["Code"] != "NoSuchEntity":
+            raise
+        role = iam.create_role(
+            RoleName=CODEBUILD_ROLE_NAME,
+            AssumeRolePolicyDocument=json.dumps(trust),
+            Description="ARBITER agent image builder",
+        )
+        role_arn = role["Role"]["Arn"]
+        created = True
+
     policy = {
         "Version": "2012-10-17",
         "Statement": [
@@ -193,14 +281,16 @@ def ensure_codebuild_role(repo_arns: list[str], source_bucket_arn: str) -> str:
             },
         ],
     }
+    # Always (re)apply — picks up newly-added ECR repos on existing roles.
     iam.put_role_policy(
         RoleName=CODEBUILD_ROLE_NAME,
         PolicyName="AgentBuilderPolicy",
         PolicyDocument=json.dumps(policy),
     )
-    log.info("Created CodeBuild role %s", CODEBUILD_ROLE_NAME)
-    time.sleep(8)  # IAM eventual consistency
-    return role["Role"]["Arn"]
+    log.info("%s CodeBuild role %s (repos: %d)",
+             "Created" if created else "Refreshed policy on", CODEBUILD_ROLE_NAME, len(repo_arns))
+    time.sleep(8)  # IAM eventual consistency before CodeBuild assumes/uses it
+    return role_arn
 
 
 def ensure_codebuild_project(role_arn: str) -> None:
@@ -360,11 +450,20 @@ def deploy_runtime(
 
 
 # ──────────────────────────── api_handler env-var patch ─────────
-def _patch_api_handler_lambda(master_runtime_arn: str) -> None:
-    """Set MASTER_AGENT_RUNTIME_ARN (and MEMORY_ID if available) on the api_handler.
+def _patch_api_handler_lambda(runtime_arns: dict[str, str]) -> None:
+    """Set the master + specialist runtime ARNs (and MEMORY_ID) on the api_handler.
+
+    The MCP page chats directly to a specialist by sending a "target" to
+    POST /chat; the Lambda resolves the target → one of these ARNs. The Analyst
+    page sends no target and routes to the master. Also drives GET /agent-status.
 
     Preserves any other env vars already set. Triggers a cold start on the
-    next invocation so the new values are picked up.
+    next invocation so the new values are picked up. ARNs for agents not built
+    in this run are backfilled from the live runtimes (via find_runtime) so a
+    partial run (e.g. --agents paloalto-specialist master-orchestrator) still
+    sets the COMPLETE set — important because the 06-api SAM template resets
+    every *_RUNTIME_ARN env var to "" on deploy, and the standard workflow runs
+    this patch last to repair it.
     """
     lambda_client = session.client("lambda")
     func_name = f"{PREFIX}-api-handler"
@@ -375,7 +474,27 @@ def _patch_api_handler_lambda(master_runtime_arn: str) -> None:
         return
 
     env = (cur.get("Environment") or {}).get("Variables") or {}
-    desired = {"MASTER_AGENT_RUNTIME_ARN": master_runtime_arn}
+    # name (in AGENTS) → api_handler env var.
+    arn_env_map = {
+        "master-orchestrator":   "MASTER_AGENT_RUNTIME_ARN",
+        "sharepoint-specialist": "SHAREPOINT_RUNTIME_ARN",
+        "awsconfig-specialist":  "AWSCONFIG_RUNTIME_ARN",
+        "zscaler-specialist":    "ZSCALER_RUNTIME_ARN",
+        "paloalto-specialist":   "PALOALTO_RUNTIME_ARN",
+        "jira-specialist":       "JIRA_RUNTIME_ARN",
+    }
+    desired = {}
+    for name, env_key in arn_env_map.items():
+        arn = runtime_arns.get(name)
+        if not arn:
+            # Backfill from the live runtime so a --agents-scoped run (or a
+            # fresh SAM deploy that blanked the env) doesn't drop the others.
+            runtime_name = f"{PREFIX}-{name}".replace("-", "_")[:63]
+            existing = find_runtime(runtime_name)
+            if existing:
+                arn = existing.get("agentRuntimeArn", "")
+        if arn:
+            desired[env_key] = arn
     if MASTER_MEMORY_ID:
         desired["MEMORY_ID"] = MASTER_MEMORY_ID
     if all(env.get(k) == v for k, v in desired.items()):
@@ -474,7 +593,7 @@ def main() -> None:
     log.info("  build src bucket: %s", template_bucket)
 
     # Provision the shared CodeBuild project + service role (idempotent).
-    # Scope ECR permissions to the four agent repos by ARN.
+    # Scope ECR permissions to every agent repo (one per AGENTS entry) by ARN.
     global _TEMPLATE_BUCKET
     _TEMPLATE_BUCKET = template_bucket
     if not args.skip_build:
@@ -505,6 +624,8 @@ def main() -> None:
             # via _shared/token_usage.py. Empty value disables the write path
             # cleanly (the helper short-circuits when the table name is unset).
             "TOKEN_USAGE_TABLE": f"{PREFIX}-token-usage",
+            # Per-agent foundation model from params/dev.json (env override wins).
+            "MODEL_ID": resolve_model_id(agent),
         }
         if GUARDRAIL_ID:
             env_vars["GUARDRAIL_ID"] = GUARDRAIL_ID
@@ -521,6 +642,9 @@ def main() -> None:
                 ("sharepoint-specialist", "SHAREPOINT_RUNTIME_ARN"),
                 ("awsconfig-specialist", "AWSCONFIG_RUNTIME_ARN"),
                 ("zscaler-specialist", "ZSCALER_RUNTIME_ARN"),
+                ("paloalto-specialist", "PALOALTO_RUNTIME_ARN"),
+                ("structured-specialist", "STRUCTURED_RUNTIME_ARN"),
+                ("jira-specialist", "JIRA_RUNTIME_ARN"),
             ]:
                 arn = runtime_arns.get(spec_name)
                 if not arn:
@@ -536,20 +660,34 @@ def main() -> None:
             # The master writes a new row on the first turn of a session, then
             # bumps last_message_at + message_count after each turn.
             env_vars["SESSIONS_TABLE"] = f"{PREFIX}-sessions"
-            # Optional model override (e.g. switch to Haiku if Sonnet's account
-            # subscription isn't approved). Falls back to agent.py's default
-            # when MASTER_MODEL_ID env var is unset.
-            if MASTER_MODEL_ID:
-                env_vars["MODEL_ID"] = MASTER_MODEL_ID
 
-        runtime_arn = deploy_runtime(agent, image_uri, role_arn, subnet_ids, sg_id, env_vars)
+        # Per-agent execution role: agents with a "role_export" get their own
+        # least-privilege role (Tier-0 isolation for the external-SaaS JIRA
+        # agent); everyone else uses the shared AgentCoreRuntimeRole. Fall back
+        # to the shared role if the dedicated export isn't published yet.
+        agent_role_arn = role_arn
+        if agent.get("role_export"):
+            # cf_export raises SystemExit when the export is missing (e.g. the
+            # updated 09-agentcore stack hasn't been deployed yet). Catch it so a
+            # missing dedicated role degrades to the shared role with a warning
+            # rather than aborting the whole agent deploy.
+            try:
+                agent_role_arn = cf_export(agent["role_export"])
+            except (SystemExit, Exception):
+                log.warning("Role export %s not found — falling back to shared role for %s "
+                            "(deploy 09-agentcore to get the least-privilege JIRA role).",
+                            agent["role_export"], agent["name"])
+        log.info("  %s role: %s", agent["name"], agent_role_arn)
+
+        runtime_arn = deploy_runtime(agent, image_uri, agent_role_arn, subnet_ids, sg_id, env_vars)
         runtime_arns[agent["name"]] = runtime_arn
         log.info("✓ %s → %s", agent["name"], runtime_arn)
 
-    # Wire the api_handler Lambda to the master runtime by patching its
-    # MASTER_AGENT_RUNTIME_ARN env var. This is what bridges API Gateway → AgentCore.
-    if "master-orchestrator" in runtime_arns:
-        _patch_api_handler_lambda(runtime_arns["master-orchestrator"])
+    # Wire the api_handler Lambda to the runtimes by patching the master +
+    # specialist ARN env vars. This bridges API Gateway / Function URL →
+    # AgentCore, and powers per-agent routing on the MCP page + /agent-status.
+    if runtime_arns:
+        _patch_api_handler_lambda(runtime_arns)
 
     print()
     print("════════════════════════════════════════════════════════")

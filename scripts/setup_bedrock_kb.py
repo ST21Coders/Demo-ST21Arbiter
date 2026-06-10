@@ -6,10 +6,13 @@ Steps performed:
   2. Grant the KB service role access to that index (data access policy update)
   3. Create the Bedrock Knowledge Base
   4. Attach the S3 data source (s3://dev-st21arbiter-poc-processed/policies/)
-  5. Create the Bedrock Guardrail
-  6. Print KB / Guardrail IDs to stdout so agent scripts can pick them up
+  5. Create the Bedrock Guardrail (or, if it already exists, UPDATE it in place
+     so the live DRAFT matches this script — pass --publish-version to also cut
+     a new immutable version)
+  6. Print KB / Guardrail IDs + version to stdout so agent scripts can pick them up
 
-This script is idempotent — re-running it skips resources that already exist.
+This script is idempotent — re-running it skips/creates resources that already
+exist; the guardrail is kept in sync (updated) rather than skipped.
 
 Prerequisites (deployed by deploy.sh):
   - dev-st21arbiter-poc-02-security (KMS keys)
@@ -357,54 +360,110 @@ def create_kb(
 
 
 # ──────────────────────────── 5. Guardrail ───────────────────────
-def create_guardrail() -> str:
-    name = f"{PREFIX}-guardrail"
-    for g in bedrock.list_guardrails().get("guardrails", []):
-        if g["name"] == name:
-            log.info("Guardrail %s already exists (%s)", name, g["id"])
-            return g["id"]
+# Single source of truth for the guardrail policy. Both create_guardrail and
+# update_guardrail take these same kwargs, so editing here keeps create + sync
+# in lockstep. To add/remove a denied topic, PII entity, or content filter,
+# change it here and re-run this script.
+GUARDRAIL_NAME = f"{PREFIX}-guardrail"
+GUARDRAIL_DESCRIPTION = "ARBITER content safety, PII, denied topics, grounding"
+GUARDRAIL_POLICY_KWARGS: dict[str, Any] = {
+    "blockedInputMessaging": "Your request was blocked by content safety policies.",
+    "blockedOutputsMessaging": "The response was blocked by content safety policies.",
+    "contentPolicyConfig": {
+        "filtersConfig": [
+            {"type": t, "inputStrength": "HIGH", "outputStrength": "HIGH"}
+            for t in ("SEXUAL", "VIOLENCE", "HATE", "INSULTS", "MISCONDUCT")
+        ]
+        + [{"type": "PROMPT_ATTACK", "inputStrength": "HIGH", "outputStrength": "NONE"}],
+    },
+    "sensitiveInformationPolicyConfig": {
+        "piiEntitiesConfig": [
+            {"type": "US_SOCIAL_SECURITY_NUMBER", "action": "ANONYMIZE"},
+            {"type": "CREDIT_DEBIT_CARD_NUMBER", "action": "ANONYMIZE"},
+            {"type": "AWS_ACCESS_KEY", "action": "BLOCK"},
+            {"type": "AWS_SECRET_KEY", "action": "BLOCK"},
+        ],
+    },
+    "topicPolicyConfig": {
+        "topicsConfig": [
+            {
+                "name": "CredentialDisclosure",
+                "definition": "Requests asking the agent to reveal stored credentials, API keys, or secrets",
+                "type": "DENY",
+            },
+            {
+                "name": "InfrastructureDestruction",
+                "definition": "Requests to delete VPCs, subnets, production databases, or critical infrastructure",
+                "type": "DENY",
+            },
+            {
+                "name": "Politics",
+                "definition": "Requests for political opinions, endorsements, or partisan commentary",
+                "type": "DENY",
+            },
+        ]
+    },
+}
 
-    resp = bedrock.create_guardrail(
-        name=name,
-        description="ARBITER content safety, PII, denied topics, grounding",
-        blockedInputMessaging="Your request was blocked by content safety policies.",
-        blockedOutputsMessaging="The response was blocked by content safety policies.",
-        contentPolicyConfig={
-            "filtersConfig": [
-                {"type": t, "inputStrength": "HIGH", "outputStrength": "HIGH"}
-                for t in ("SEXUAL", "VIOLENCE", "HATE", "INSULTS", "MISCONDUCT")
-            ]
-            + [{"type": "PROMPT_ATTACK", "inputStrength": "HIGH", "outputStrength": "NONE"}],
-        },
-        sensitiveInformationPolicyConfig={
-            "piiEntitiesConfig": [
-                {"type": "US_SOCIAL_SECURITY_NUMBER", "action": "ANONYMIZE"},
-                {"type": "CREDIT_DEBIT_CARD_NUMBER", "action": "ANONYMIZE"},
-                {"type": "AWS_ACCESS_KEY", "action": "BLOCK"},
-                {"type": "AWS_SECRET_KEY", "action": "BLOCK"},
-            ],
-        },
-        topicPolicyConfig={
-            "topicsConfig": [
-                {
-                    "name": "CredentialDisclosure",
-                    "definition": "Requests asking the agent to reveal stored credentials, API keys, or secrets",
-                    "type": "DENY",
-                },
-                {
-                    "name": "InfrastructureDestruction",
-                    "definition": "Requests to delete VPCs, subnets, production databases, or critical infrastructure",
-                    "type": "DENY",
-                },
-            ]
-        },
+
+def _wait_guardrail_ready(guardrail_id: str, timeout: int = 180) -> None:
+    """Block until the guardrail's DRAFT settles to READY (versions can only be
+    cut from a READY guardrail)."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        status = bedrock.get_guardrail(guardrailIdentifier=guardrail_id).get("status")
+        if status == "READY":
+            return
+        if status == "FAILED":
+            raise SystemExit(f"Guardrail {guardrail_id} entered FAILED status")
+        log.info("  guardrail status: %s", status)
+        time.sleep(5)
+    raise SystemExit(f"Timeout waiting for guardrail {guardrail_id} to be READY")
+
+
+def ensure_guardrail(publish_version: bool = False) -> dict[str, str]:
+    """Create the guardrail if missing, otherwise UPDATE it in place so the live
+    DRAFT matches this script's policy. With publish_version=True, also cut a new
+    immutable version. Returns {"id", "version"} (version is "DRAFT" unless published)."""
+    existing_id = next(
+        (g["id"] for g in bedrock.list_guardrails().get("guardrails", [])
+         if g["name"] == GUARDRAIL_NAME),
+        None,
     )
-    log.info("Created guardrail %s (id=%s)", name, resp["guardrailId"])
-    return resp["guardrailId"]
+
+    if existing_id:
+        bedrock.update_guardrail(
+            guardrailIdentifier=existing_id,
+            name=GUARDRAIL_NAME,
+            description=GUARDRAIL_DESCRIPTION,
+            **GUARDRAIL_POLICY_KWARGS,
+        )
+        guardrail_id = existing_id
+        log.info("Updated guardrail %s (id=%s) to match script policy", GUARDRAIL_NAME, guardrail_id)
+    else:
+        resp = bedrock.create_guardrail(
+            name=GUARDRAIL_NAME,
+            description=GUARDRAIL_DESCRIPTION,
+            **GUARDRAIL_POLICY_KWARGS,
+        )
+        guardrail_id = resp["guardrailId"]
+        log.info("Created guardrail %s (id=%s)", GUARDRAIL_NAME, guardrail_id)
+
+    version = "DRAFT"
+    if publish_version:
+        _wait_guardrail_ready(guardrail_id)
+        vresp = bedrock.create_guardrail_version(
+            guardrailIdentifier=guardrail_id,
+            description="Published by setup_bedrock_kb.py",
+        )
+        version = vresp["version"]
+        log.info("Published guardrail %s version %s", GUARDRAIL_NAME, version)
+
+    return {"id": guardrail_id, "version": version}
 
 
 # ──────────────────────────── main ───────────────────────────────
-def main() -> None:
+def main(publish_version: bool = False) -> None:
     log.info("Resolving CloudFormation exports...")
     collection_arn = cf_export(f"{PREFIX}-OpenSearchCollectionArn")
     collection_endpoint = cf_export(f"{PREFIX}-OpenSearchEndpoint")
@@ -435,19 +494,33 @@ def main() -> None:
     log.info("Step 5: creating knowledge base + data source...")
     kb_info = create_kb(kb_role_arn, collection_arn, processed_bucket_arn)
 
-    log.info("Step 6: creating guardrail...")
-    guardrail_id = create_guardrail()
+    log.info("Step 6: ensuring guardrail (create or sync)...")
+    guardrail = ensure_guardrail(publish_version=publish_version)
 
     print()
     print("════════════════════════════════════════════════════════")
     print("  Bedrock KB setup complete")
     print("════════════════════════════════════════════════════════")
-    print(json.dumps({**kb_info, "guardrailId": guardrail_id}, indent=2))
+    print(json.dumps(
+        {**kb_info, "guardrailId": guardrail["id"], "guardrailVersion": guardrail["version"]},
+        indent=2,
+    ))
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Provision/sync the ARBITER Bedrock KB + Guardrail")
+    parser.add_argument(
+        "--publish-version",
+        action="store_true",
+        help="After syncing the guardrail DRAFT, publish a new immutable version "
+             "(copy its number into params/dev.json::GuardrailVersion).",
+    )
+    cli = parser.parse_args()
+
     try:
-        main()
+        main(publish_version=cli.publish_version)
     except Exception as e:
         log.error("Setup failed: %s", e)
         sys.exit(1)

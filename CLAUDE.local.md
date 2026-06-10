@@ -26,7 +26,7 @@ Keep this file under ~200 lines. Move detailed material into [`.claude/rules/`](
 - Mock mode auto-engages when `VITE_API_URL` is empty (`USE_MOCK = !API_URL` in [`ui/src/config.js`](ui/src/config.js)). If the UI shows mock-looking data unexpectedly, check this first.
 - React `StrictMode` is enabled in [`ui/src/main.jsx`](ui/src/main.jsx) and **double-fires effects in dev**. Any single-use API call invoked from a `useEffect` (token exchange, idempotent POST) **must** be guarded with a module-level in-flight promise — see [`ui/src/hooks/useAuth.js`](ui/src/hooks/useAuth.js) `handleCallback` for the canonical pattern.
 - Cognito client has **no secret** (public SPA client). Don't add one.
-- The MCP server list in [`ui/src/pages/MCPChat.jsx`](ui/src/pages/MCPChat.jsx) is hardcoded demo data; the chat send always goes to the master AgentCore Runtime via `sendChat()`. Don't wire sidebar selection to backend routing — it's cosmetic.
+- The MCP server list in [`ui/src/pages/MCPChat.jsx`](ui/src/pages/MCPChat.jsx) routes per-agent: each card's `id` is sent as `target` to `sendChat()`, and `_handle_chat` in [`api_handler.py`](Infra/functions/api_handler/api_handler.py) resolves it to that specialist runtime's ARN (absent/unknown target → master orchestrator, which the Analyst page uses). Specialist ARNs are patched onto the api_handler Lambda by `deploy_agents.py` (`SHAREPOINT_/AWSCONFIG_/ZSCALER_/JIRA_RUNTIME_ARN`). `servicenow` is a static placeholder until its agent ships. Live status: `GET /agent-status` → `useAgentStatus()`.
 
 ## Backend — `Infra/functions/api_handler/` + `agents/`
 
@@ -64,7 +64,7 @@ After any redeploy, verify:
 aws cloudformation list-stacks --region us-east-1 --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE \
   --query 'StackSummaries[?contains(StackName, `st21arbiter-poc`)].StackName' --output text  # 8 stacks
 aws bedrock-agentcore-control list-agent-runtimes --region us-east-1 \
-  --query 'agentRuntimes[?contains(agentRuntimeName, `st21arbiter_poc`)].[agentRuntimeName,status]' --output table  # 4× READY
+  --query 'agentRuntimes[?contains(agentRuntimeName, `st21arbiter_poc`)].[agentRuntimeName,status]' --output table  # 5× READY (sharepoint/awsconfig/zscaler/jira/master)
 ```
 
 ## Known gotchas (one-liners)

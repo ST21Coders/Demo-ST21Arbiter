@@ -65,6 +65,14 @@ Resources:
             BucketKeyEnabled: true
       VersioningConfiguration:
         Status: Enabled
+      # Athena writes query results under athena-results/ — expire them after 7
+      # days so the structured-query workgroup doesn't accumulate cost.
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireAthenaResults
+            Status: Enabled
+            Prefix: athena-results/
+            ExpirationInDays: 7
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -386,6 +394,35 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-token-usage"
 
+  # ──────────────────────────── ownership-rules ────────────────
+  # Deterministic team/tag ownership rules engine. The scanner Lambda reads
+  # this table once per run and enriches each finding with owner_team /
+  # consumer_team / platform_team / tags via first-match-by-priority (see
+  # Infra/functions/scanner/enrichment.py). conflicts-v2 needs NO schema change
+  # — the enriched fields are non-key attributes (DynamoDB is schemaless for
+  # non-key data) and the read path Scans+filters, so no GSI is required.
+  OwnershipRulesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Environment}-${ProjectName}-ownership-rules"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+      AttributeDefinitions:
+        - AttributeName: rule_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: rule_id
+          KeyType: HASH
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-ownership-rules"
+
   # ──────────────────────────── OpenSearch Serverless ──────────
   OpenSearchCollection:
     Type: AWS::OpenSearchServerless::Collection
@@ -467,6 +504,96 @@ Resources:
       SecurityGroupIds:
         - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-OpenSearchSGId"
 
+  # ──────────────────────────── Structured ingestion (Glue + Athena) ────────────
+  # The STRUCTURED plane: technical-control exports (e.g. zscaler_rules.csv) land
+  # in s3://<processed>/structured/<dataset>/, the crawler catalogues them, and the
+  # structured_specialist queries them via Athena. Unstructured policy docs use the
+  # KB path and never touch Glue. See Documents/policy_scan_flow.md.
+
+  # Glue Catalog database. Name must be Athena-safe (no dashes) — convert the
+  # dashed ProjectName to underscores with the same Split/Join trick used for the
+  # AgentCore log groups in 09-agentcore.
+  StructuredGlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}-structured"]]
+        Description: ARBITER structured control exports catalogued for Athena.
+
+  # Service role the crawler assumes — read the encrypted CSVs + write catalog.
+  GlueCrawlerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-glue-crawler-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+      Policies:
+        - PolicyName: StructuredReadAndKms
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ReadStructuredObjects
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt ProcessedBucket.Arn
+                  - !Sub "${ProcessedBucket.Arn}/structured/*"
+              - Sid: DecryptS3Cmk
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                  - kms:DescribeKey
+                Resource:
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+
+  StructuredCrawler:
+    Type: AWS::Glue::Crawler
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-structured-crawler"
+      Role: !GetAtt GlueCrawlerRole.Arn
+      DatabaseName: !Ref StructuredGlueDatabase
+      Targets:
+        S3Targets:
+          - Path: !Sub "s3://${ProcessedBucket}/structured/"
+      # Create ONE table per dataset subfolder (structured/<dataset>/ → table
+      # <dataset>) instead of a single grouped "structured" table. Level 3 =
+      # bucket(1)/structured(2)/<dataset>(3).
+      Configuration: '{"Version":1.0,"Grouping":{"TableLevelConfiguration":3}}'
+      # Re-read everything each run so an edited CSV refreshes the table schema/data.
+      RecrawlPolicy:
+        RecrawlBehavior: CRAWL_EVERYTHING
+      SchemaChangePolicy:
+        UpdateBehavior: UPDATE_IN_DATABASE
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+
+  # Governed query surface: SSE-KMS results, a hard byte cap, enforced config.
+  StructuredAthenaWorkGroup:
+    Type: AWS::Athena::WorkGroup
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-wg"
+      State: ENABLED
+      WorkGroupConfiguration:
+        EnforceWorkGroupConfiguration: true
+        PublishCloudWatchMetricsEnabled: true
+        BytesScannedCutoffPerQuery: 104857600  # 100 MB hard cap
+        ResultConfiguration:
+          OutputLocation: !Sub "s3://${ProcessedBucket}/athena-results/"
+          EncryptionConfiguration:
+            EncryptionOption: SSE_KMS
+            KmsKey:
+              Fn::ImportValue: !Sub "${Environment}-${ProjectName}-S3KeyArn"
+
 Outputs:
   RawBucketArn:
     Value: !GetAtt RawBucket.Arn
@@ -484,6 +611,22 @@ Outputs:
     Value: !Ref ProcessedBucket
     Export:
       Name: !Sub "${Environment}-${ProjectName}-ProcessedBucketName"
+  StructuredGlueDatabaseName:
+    Value: !Ref StructuredGlueDatabase
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-StructuredGlueDatabaseName"
+  StructuredCrawlerName:
+    Value: !Ref StructuredCrawler
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-StructuredCrawlerName"
+  StructuredAthenaWorkGroupName:
+    Value: !Ref StructuredAthenaWorkGroup
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-StructuredAthenaWorkGroupName"
+  StructuredAthenaOutputLocation:
+    Value: !Sub "s3://${ProcessedBucket}/athena-results/"
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-StructuredAthenaOutputLocation"
   OpenSearchCollectionArn:
     Value: !GetAtt OpenSearchCollection.Arn
     Export:
@@ -520,3 +663,7 @@ Outputs:
     Value: !Ref TokenUsageTable
     Export:
       Name: !Sub "${Environment}-${ProjectName}-TokenUsageTableName"
+  OwnershipRulesTableName:
+    Value: !Ref OwnershipRulesTable
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-OwnershipRulesTableName"

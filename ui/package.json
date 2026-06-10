@@ -4,6 +4,8 @@
   "description": "ARBITER Smart AI Governance Engine — Meridian Insurance Group POC",
   "private": true,
   "scripts": {
+    "gen:llm-env": "node scripts/gen-llm-env.mjs",
+    "predev": "node scripts/gen-llm-env.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

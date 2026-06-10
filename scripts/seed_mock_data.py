@@ -2,10 +2,11 @@
 Seed mock data into ARBITER DDB tables for the demo.
 
 Inserts:
-  - 12 conflicts  (ARBITER-UC01..UC12) with the new schema fields
-                  (conflict_type, domain, policy_citations, enforcement_evidence,
-                  scan_run_id="seed-bootstrap", rule_key, fp_score, compliant=false)
-  - 14 compliant rows (COMPLIANT-UC*-*) — same shape, compliant=true
+  - 14 conflicts (ARBITER-UC01..UC14, incl. 2 Palo Alto) with the new schema
+                  fields (conflict_type, domain, policy_citations,
+                  enforcement_evidence, scan_run_id="seed-bootstrap", rule_key,
+                  fp_score, compliant=false)
+  - 16 compliant rows (COMPLIANT-UC*-*) — same shape, compliant=true
   - 2 change-requests (UC07 + UC08) with full approver chain
   - 8 audit-log entries spanning the last 24h
   - 1 scan-runs row (seed-bootstrap)
@@ -38,6 +39,7 @@ T_CONFLICTS_V2 = f"{PREFIX}-conflicts-v2"
 T_CHANGE_REQS  = f"{PREFIX}-change-requests"
 T_AUDIT        = f"{PREFIX}-audit-log"
 T_SCAN_RUNS    = f"{PREFIX}-scan-runs"
+T_OWNERSHIP_RULES = f"{PREFIX}-ownership-rules"
 
 ddb = boto3.resource("dynamodb", region_name=REGION)
 ddb_client = boto3.client("dynamodb", region_name=REGION)
@@ -60,7 +62,7 @@ def table_exists(name: str) -> bool:
         raise
 
 
-# ── Conflicts (12 UCs) ─────────────────────────────────────────────────────────
+# ── Conflicts (14 UCs, incl. 2 Palo Alto) ──────────────────────────────────────
 
 UC_DATA = [
     # (rule_key, severity, domain, source_pair, title, source_policy, source_tech,
@@ -191,13 +193,76 @@ UC_DATA = [
      [{"source": "Zscaler", "rule_id": "ZIA-URLCAT-SOCIAL-BLOCK-ALL", "action": "BLOCK",
        "raw": {"department_exceptions": []}}],
      [], Decimal("0.12"), "GAP", ["SharePoint", "Zscaler"], -28800),
+
+    ("UC13", "HIGH", "NETWORK_SECURITY", "SharePoint+Palo Alto",
+     "Palo Alto permits any/any outbound — policy mandates default-deny egress",
+     "MIG-POL-002-NS06", "PAN-SEC-EGRESS-ANYANY-ALLOW-001",
+     [{"doc": "MIG-POL-002", "version": "v5.1", "section": "6",
+       "quote": "Perimeter egress must be default-deny. Outbound access to high-risk or uncategorised destinations is prohibited without an explicit, documented allow-list entry.",
+       "confidence": Decimal("0.96")}],
+     [{"source": "PaloAlto", "rule_id": "PAN-SEC-EGRESS-ANYANY-ALLOW-001", "action": "ALLOW",
+       "raw": {"source": "any", "destination": "any", "application": "any"}}],
+     ["PCI DSS 1.3", "ISO 27001 A.8.20"], Decimal("0.05"), "GAP", ["SharePoint", "PaloAlto"], -32400),
+
+    ("UC14", "CRITICAL", "NETWORK_SECURITY", "Zscaler+Palo Alto",
+     "Anonymizer traffic blocked by Zscaler but allowed by Palo Alto — enforcement bypass",
+     "ZIA-URLCAT-ANONYMIZER-BLOCK", "PAN-SEC-APP-TOR-ALLOW-022",
+     [],
+     [{"source": "Zscaler", "rule_id": "ZIA-URLCAT-ANONYMIZER-BLOCK", "action": "BLOCK",
+       "raw": {"category": "Anonymizer"}},
+      {"source": "PaloAlto", "rule_id": "PAN-SEC-APP-TOR-ALLOW-022", "action": "ALLOW",
+       "raw": {"application": ["tor", "ultrasurf"]}}],
+     ["PCI DSS 1.3", "NAIC MDL-668"], Decimal("0.04"), "CONTRADICTION", ["Zscaler", "PaloAlto"], -3600),
 ]
+
+
+# ── Team / tag ownership (placeholder taxonomy — swap for Meridian's real org) ──
+# owner_team    = team that owns/authors the policy intent
+# consumer_team = team affected/blocked by the conflict
+# platform_team = team that manages the enforcing control (Zscaler / AWS / etc.)
+# Keyed by rule_key so it drives BOTH the seeded findings (live-mode demo before a
+# real scan) AND the ownership-rules table (which the scanner's enrichment.py reads).
+OWNERSHIP = {
+    "UC01": {"owner_team": "data-governance",  "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["application", "network"]},
+    "UC02": {"owner_team": "vendor-mgmt",       "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["vendor", "network"]},
+    "UC03": {"owner_team": "data-governance",   "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["application", "network"]},
+    "UC04": {"owner_team": "platform-security", "consumer_team": "cloud-infra", "platform_team": "network-eng",       "tags": ["network", "data-residency"]},
+    "UC05": {"owner_team": "platform-security", "consumer_team": "app-dev",     "platform_team": "platform-security", "tags": ["identity"]},
+    "UC06": {"owner_team": "network-eng",       "consumer_team": "cloud-infra", "platform_team": "network-eng",       "tags": ["network", "infrastructure"]},
+    "UC07": {"owner_team": "cloud-infra",       "consumer_team": "app-dev",     "platform_team": "cloud-infra",       "tags": ["infrastructure", "network"]},
+    "UC08": {"owner_team": "cloud-infra",       "consumer_team": "app-dev",     "platform_team": "cloud-infra",       "tags": ["infrastructure", "network"]},
+    "UC09": {"owner_team": "data-governance",   "consumer_team": "cloud-infra", "platform_team": "cloud-infra",       "tags": ["data-residency", "infrastructure"]},
+    "UC10": {"owner_team": "data-governance",   "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["data-residency", "application"]},
+    "UC11": {"owner_team": "vendor-mgmt",       "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["vendor", "network"]},
+    "UC12": {"owner_team": "data-governance",   "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["application", "network"]},
+    "UC13": {"owner_team": "network-eng",       "consumer_team": "app-dev",     "platform_team": "platform-security", "tags": ["network", "infrastructure"]},
+    "UC14": {"owner_team": "network-eng",       "consumer_team": "app-dev",     "platform_team": "platform-security", "tags": ["network", "application"]},
+}
+_OWNERSHIP_DEFAULT = {"owner_team": "unassigned", "consumer_team": "", "platform_team": "", "tags": ["untriaged"]}
+
+
+def _ownership_for(rule_key):
+    return OWNERSHIP.get(rule_key, _OWNERSHIP_DEFAULT)
+
+
+def ownership_rule_rows():
+    """Rows for the ownership-rules table — one per UC (match on rule_key) plus a
+    wildcard default. Mirrors enrichment.py's expected shape so live scans
+    produce the same team data the seeded findings show."""
+    rows, prio = [], 10
+    for rk in sorted(OWNERSHIP):
+        rows.append({"rule_id": f"rule-{rk.lower()}", "priority": prio,
+                     "match": {"rule_key": rk}, **OWNERSHIP[rk]})
+        prio += 10
+    rows.append({"rule_id": "rule-default", "priority": 999, "match": {}, **_OWNERSHIP_DEFAULT})
+    return rows
 
 
 def conflict_item(uc):
     (rule_key, severity, domain, source_pair, title, src_pol, src_tech,
      pol_cites, enf_evid, regulatory, fp_score, c_type, domains_list, age) = uc
     return {
+        **_ownership_for(rule_key),
         "conflict_id":          f"ARBITER-{rule_key}",
         "detected_at":          iso(age),
         "status":               "OPEN",
@@ -225,7 +290,7 @@ def conflict_item(uc):
     }
 
 
-# ── 14 compliant alignments (false-positive guard rows) ───────────────────────
+# ── 16 compliant alignments (false-positive guard rows) ───────────────────────
 
 COMPLIANT_ROWS = [
     ("COMPLIANT-UC01-BOX",         "UC01", "ACCESS_MGMT",      "SharePoint+Zscaler",     ["SharePoint","Zscaler"],   "Box.com approved and accessible — policy ↔ enforcement aligned"),
@@ -242,12 +307,15 @@ COMPLIANT_ROWS = [
     ("COMPLIANT-UC10-INTERNAL",    "UC10", "DATA_GOVERNANCE",  "SharePoint+Zscaler",     ["SharePoint","Zscaler"],   "Internal-only data flows correctly unblocked by DLP"),
     ("COMPLIANT-UC11-US",          "UC11", "VENDOR_MGMT",      "SharePoint+Zscaler",     ["SharePoint","Zscaler"],   "US-based vendor access permitted by ZTNA — country list compliant"),
     ("COMPLIANT-UC12-GENERAL",     "UC12", "ACCESS_MGMT",      "SharePoint+Zscaler",     ["SharePoint","Zscaler"],   "General employee social-media block applied as intended"),
+    ("COMPLIANT-UC13-MGMTDENY",    "UC13", "NETWORK_SECURITY", "SharePoint+Palo Alto",   ["SharePoint","PaloAlto"],  "PAN-SEC-MGMT-DENY-EXTERNAL denies management-plane access from the internet — egress policy aligned"),
+    ("COMPLIANT-UC14-MALWARE",     "UC14", "NETWORK_SECURITY", "Zscaler+Palo Alto",      ["Zscaler","PaloAlto"],     "Zscaler and Palo Alto both block the Malware/Botnet category — enforcement consistent"),
 ]
 
 
 def compliant_item(row, age_seconds):
     cid, rule_key, domain, source_pair, domains_list, title = row
     return {
+        **_ownership_for(rule_key),
         "conflict_id":  cid,
         "detected_at":  iso(age_seconds),
         "status":       "COMPLIANT",
@@ -390,6 +458,9 @@ def main() -> int:
 
     n = put_into(T_SCAN_RUNS, [SCAN_RUN_ROW])
     print(f"  ✓ scan-runs           : wrote {n} rows (post-Step-2)")
+
+    n = put_into(T_OWNERSHIP_RULES, ownership_rule_rows())
+    print(f"  ✓ ownership-rules     : wrote {n} rows (14 UC + wildcard default)")
 
     print()
     print("Done.")

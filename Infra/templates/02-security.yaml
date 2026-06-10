@@ -123,6 +123,9 @@ Resources:
                   - bedrock-agentcore:InvokeAgentRuntime
                   - bedrock-agentcore:ListEvents
                   - bedrock-agentcore:GetEvent
+                  # Read-only runtime status for GET /agent-status (MCP page).
+                  - bedrock-agentcore:ListAgentRuntimes
+                  - bedrock-agentcore:GetAgentRuntime
                   - bedrock:InvokeModel
                   - bedrock:Retrieve
                   - bedrock:ApplyGuardrail
@@ -236,6 +239,15 @@ Resources:
                   - lambda:InvokeFunction
                 Resource:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Environment}-${ProjectName}-scanner"
+              # Structured (.csv) uploads trigger the Glue crawler that catalogues
+              # them for Athena. Scoped to the one structured crawler.
+              - Sid: StructuredCrawlerStart
+                Effect: Allow
+                Action:
+                  - glue:StartCrawler
+                  - glue:GetCrawler
+                Resource:
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:crawler/${Environment}-${ProjectName}-structured-crawler"
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-processing-pipeline-role"

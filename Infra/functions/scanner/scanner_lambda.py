@@ -31,6 +31,8 @@ from typing import Any
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
 
+from enrichment import load_ownership_rules, enrich_findings
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -39,6 +41,7 @@ MASTER_AGENT_RUNTIME_ARN = os.environ.get("MASTER_AGENT_RUNTIME_ARN", "").strip(
 CONFLICTS_TABLE_V2 = os.environ.get("CONFLICTS_TABLE_V2", "").strip()
 SCAN_RUNS_TABLE = os.environ.get("SCAN_RUNS_TABLE", "").strip()
 AUDIT_TABLE = os.environ.get("AUDIT_TABLE", "").strip()
+OWNERSHIP_RULES_TABLE = os.environ.get("OWNERSHIP_RULES_TABLE", "").strip()
 RULE_PACK_VERSION = os.environ.get("RULE_PACK_VERSION", "v1")
 
 agentcore = boto3.client("bedrock-agentcore", region_name=REGION)
@@ -75,6 +78,46 @@ def _aggregate_totals(findings: list[dict]) -> dict:
         elif sev == "LOW":
             totals["low"] += 1
     return totals
+
+
+def _reconcile_stale(conflicts_table, current_conflict_ids: set, scan_run_id: str, ts: str) -> int:
+    """Mark non-compliant OPEN conflicts the latest scan didn't re-emit as RESOLVED.
+
+    The rule pack returns the complete current conflict set each run, so a conflict
+    in conflicts-v2 (status OPEN, compliant=false) whose conflict_id is absent from
+    `current_conflict_ids` has cleared. We mark it RESOLVED (audit-preserving) rather
+    than delete. Non-fatal: any error is logged and the scan still completes.
+    """
+    resolved = 0
+    scan_kwargs = {
+        "FilterExpression": "compliant = :f AND #st = :open",
+        "ExpressionAttributeNames": {"#st": "status"},
+        "ExpressionAttributeValues": {":f": False, ":open": "OPEN"},
+        "ProjectionExpression": "conflict_id",
+    }
+    try:
+        while True:
+            resp = conflicts_table.scan(**scan_kwargs)
+            for it in resp.get("Items", []):
+                cid = it.get("conflict_id")
+                if not cid or cid in current_conflict_ids:
+                    continue
+                conflicts_table.update_item(
+                    Key={"conflict_id": cid},
+                    UpdateExpression="SET #st = :r, resolved_at = :ts, resolved_by_scan = :sid",
+                    ExpressionAttributeNames={"#st": "status"},
+                    ExpressionAttributeValues={":r": "RESOLVED", ":ts": ts, ":sid": scan_run_id},
+                )
+                resolved += 1
+            lek = resp.get("LastEvaluatedKey")
+            if not lek:
+                break
+            scan_kwargs["ExclusiveStartKey"] = lek
+    except Exception:
+        logger.exception("stale-conflict reconcile failed (non-fatal)")
+    if resolved:
+        logger.info("Reconcile: marked %d stale conflict(s) RESOLVED (not in scan %s)", resolved, scan_run_id)
+    return resolved
 
 
 def handler(event, context):
@@ -165,6 +208,38 @@ def handler(event, context):
                 logger.exception("audit SCAN_FAILED write failed")
         return {"status": "FAILED", "error": str(e), "scan_run_id": scan_run_id}
 
+    # 2b. Enrich findings with team/tag ownership (deterministic rules table).
+    # The scanner role has NO project wildcard, so a missing IAM grant on the
+    # ownership-rules table surfaces here as an AccessDenied — caught + logged
+    # loudly rather than silently writing zero-ownership rows.
+    rules = []
+    if OWNERSHIP_RULES_TABLE:
+        try:
+            rules = load_ownership_rules(ddb.Table(OWNERSHIP_RULES_TABLE))
+        except Exception:
+            logger.exception(
+                "ownership-rules load FAILED — findings will lack team ownership. "
+                "Verify the scanner role has dynamodb:Scan/GetItem on %s",
+                OWNERSHIP_RULES_TABLE,
+            )
+    else:
+        logger.warning("OWNERSHIP_RULES_TABLE unset — skipping ownership enrichment")
+    enrich_findings(findings, rules)
+
+    # Sanity guard: a "green" scan that wrote nothing — or findings that loaded
+    # rules but matched none — is almost always a silent failure (empty
+    # observations, shape drift, or IAM denial). Log at ERROR so it is never
+    # masked by a COMPLETED scan-run.
+    enriched = sum(1 for f in findings if f.get("owner_team"))
+    if not findings:
+        logger.error("SANITY: scan produced ZERO findings — check observation shapes")
+    elif rules and enriched == 0:
+        logger.error(
+            "SANITY: %d findings but NONE matched an ownership rule — check rule predicates",
+            len(findings),
+        )
+    logger.info("Ownership enrichment: %d/%d findings tagged with owner_team", enriched, len(findings))
+
     # 3. BatchWrite findings to conflicts-v2.
     detected_at = _now_iso()
     written = 0
@@ -181,7 +256,16 @@ def handler(event, context):
     except Exception:
         logger.exception("conflicts BatchWrite partial failure (continuing)")
 
+    # 3b. Reconcile stale conflicts. The rule pack emits the COMPLETE set of active
+    # conflicts every run, so any non-compliant OPEN row whose conflict_id the latest
+    # scan did NOT re-emit is resolved. Mark it RESOLVED (don't delete — keep history)
+    # so conflicts-v2's OPEN set equals the latest scan. Without this, an upsert-only
+    # table accumulates stale OPEN rows (e.g. UI shows 13 but the table holds 14).
+    current_conflict_ids = {f.get("conflict_id") for f in findings if not f.get("compliant")}
+    resolved = _reconcile_stale(conflicts, current_conflict_ids, scan_run_id, detected_at)
+
     totals = _aggregate_totals(findings)
+    totals["resolved"] = resolved
     finished_at = _now_iso()
 
     # 4. Mark scan-runs COMPLETED.

@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Loader2, ChevronDown, ChevronRight, CheckCircle, XCircle,
-  Play, AlertOctagon, Clock, Shield, Zap, Plus
+  Play, AlertOctagon, Clock, Shield, Zap, Plus, ExternalLink, Ticket, X
 } from 'lucide-react'
 import { useChangeRequests, createJiraTicket } from '../hooks/useApi'
 import { SeverityBadge, StatusBadge } from '../components/SeverityBadge'
 import ActionRequestModal from '../components/ActionRequestModal'
 import { formatDistanceToNow } from 'date-fns'
 import { getEmail } from '../hooks/useAuth'
+import { TEAM_LABELS } from '../mockData'
 
 const STAT_COLORS = {
   pending:   { border: '#f59e0b', glow: 'rgba(245,158,11,0.08)', icon: 'rgba(245,158,11,0.10)', text: '#b45309' },
@@ -52,19 +53,35 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
   const [acting, setActing] = useState(false)
   const [comment, setComment] = useState('')
   const [jiraKey, setJiraKey] = useState(cr.jira_ticket_key || null)
+  const [jiraUrl, setJiraUrl] = useState(cr.jira_ticket_url || null)
   const [jiraBusy, setJiraBusy] = useState(false)
+  const [jiraFormOpen, setJiraFormOpen] = useState(false)
+  // Editable JIRA fields. Title seeds from the conflict/finding; description
+  // from the business justification — both editable before creating.
+  const [jiraTitle, setJiraTitle] = useState(
+    `${cr.severity || 'HIGH'}: ${cr.description || cr.request || cr.target_resource || cr.conflict_id || cr.cr_id}`
+  )
+  const [jiraDesc, setJiraDesc] = useState(cr.justification || cr.description || '')
+  const [jiraErr, setJiraErr] = useState(null)
 
-  async function openJira() {
+  async function createJira() {
     setJiraBusy(true)
+    setJiraErr(null)
     try {
       const res = await createJiraTicket({
         conflict_id: cr.conflict_id || cr.linked_conflict_id,
-        summary: `${cr.severity || 'HIGH'}: ${cr.description || cr.cr_id}`,
+        summary: jiraTitle,
+        description: jiraDesc,
+        project_key: 'DEVARBITER',
         severity: cr.severity,
       })
-      setJiraKey(res?.mock_ticket_key || res?.jira_ticket_key)
+      const key = res?.jira_ticket_key || res?.mock_ticket_key
+      if (!key) throw new Error('No ticket key returned')
+      setJiraKey(key)
+      setJiraUrl(res?.url || null)
+      setJiraFormOpen(false)
     } catch (err) {
-      alert(`JIRA error: ${err.message}`)
+      setJiraErr(err.message || String(err))
     } finally { setJiraBusy(false) }
   }
 
@@ -108,6 +125,11 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
           <p className="text-xs text-slate-500 mt-0.5">
             by {cr.requested_by} · {formatDistanceToNow(new Date(cr.created_at), { addSuffix: true })}
           </p>
+          {cr.routed_team && (
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              routed to <span className="text-slate-700 font-medium">{TEAM_LABELS[cr.routed_team] || cr.routed_team}</span>
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className="text-xs px-2 py-0.5 rounded font-mono font-medium"
@@ -120,6 +142,33 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
 
       {expanded && (
         <div className="px-4 pb-4 space-y-4 border-t border-slate-100">
+
+          {/* Team ownership & routing (denormalized from the linked finding) */}
+          {(cr.owner_team || cr.consumer_team || cr.platform_team || cr.tags?.length) && (
+            <div className="mt-4">
+              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-2">Ownership & Routing</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[['Owner', cr.owner_team], ['Consumer', cr.consumer_team], ['Platform', cr.platform_team]].map(([lbl, team]) => team ? (
+                  <div key={lbl}>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">{lbl} Team</p>
+                    <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                      {TEAM_LABELS[team] || team}
+                    </span>
+                  </div>
+                ) : null)}
+              </div>
+              {cr.tags?.length > 0 && (
+                <div className="flex gap-1.5 flex-wrap mt-2">
+                  {cr.tags.map(t => (
+                    <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">{t}</span>
+                  ))}
+                </div>
+              )}
+              {cr.jira_project_key && (
+                <p className="text-[11px] text-slate-500 mt-2">JIRA project: <span className="font-mono text-slate-700">{cr.jira_project_key}</span>{cr.jira_component ? ` · ${cr.jira_component}` : ''}</p>
+              )}
+            </div>
+          )}
 
           {/* Approval progress */}
           <div className="mt-4">
@@ -210,21 +259,80 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
               </button>
             )}
             {jiraKey ? (
-              <span className="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md" title="Mock JIRA ticket — real ticket creation via Atlassian MCP in Analyst chat">
-                JIRA: <span className="font-mono">{jiraKey}</span>
-              </span>
+              jiraUrl ? (
+                <a
+                  href={jiraUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md hover:bg-indigo-100 transition-colors"
+                  title="Open the JIRA ticket in a new tab"
+                >
+                  JIRA: <span className="font-mono">{jiraKey}</span>
+                  <ExternalLink size={11} />
+                </a>
+              ) : (
+                <span className="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md">
+                  JIRA: <span className="font-mono">{jiraKey}</span>
+                </span>
+              )
             ) : (
               <button
-                onClick={openJira}
+                onClick={() => { setJiraFormOpen(o => !o); setJiraErr(null) }}
                 disabled={jiraBusy}
                 className="btn-ghost flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700"
-                title="Opens a JIRA ticket. Lambda returns a mock key; real ticket creation runs through the Atlassian MCP plugin in the Analyst chat."
+                title="Create a JIRA Task in the DEVARBITER project via the JIRA specialist agent."
               >
-                {jiraBusy ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
-                Open JIRA ticket
+                <Ticket size={12} /> Open JIRA ticket
               </button>
             )}
           </div>
+
+          {/* Editable JIRA create form — Task in project DEVARBITER. */}
+          {jiraFormOpen && !jiraKey && (
+            <div className="mt-3 rounded-lg border border-indigo-200 bg-indigo-50/40 p-3 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-700">
+                  New JIRA Task · project <span className="font-mono">DEVARBITER</span>
+                </p>
+                <button onClick={() => setJiraFormOpen(false)} className="text-slate-400 hover:text-slate-600" title="Cancel">
+                  <X size={13} />
+                </button>
+              </div>
+              <div>
+                <label className="block text-[10px] text-slate-500 font-medium mb-1">Title</label>
+                <input
+                  value={jiraTitle}
+                  onChange={e => setJiraTitle(e.target.value)}
+                  className="input w-full text-xs"
+                  placeholder="Ticket summary"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-slate-500 font-medium mb-1">Description</label>
+                <textarea
+                  value={jiraDesc}
+                  onChange={e => setJiraDesc(e.target.value)}
+                  rows={4}
+                  className="input w-full text-xs"
+                  placeholder="Business justification / details"
+                />
+              </div>
+              {jiraErr && <p className="text-[11px] text-red-600">JIRA error: {jiraErr}</p>}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={createJira}
+                  disabled={jiraBusy || !jiraTitle.trim()}
+                  className="btn-primary flex items-center gap-1.5 text-xs px-3 py-1.5"
+                >
+                  {jiraBusy ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
+                  {jiraBusy ? 'Creating…' : 'Create ticket'}
+                </button>
+                <button onClick={() => setJiraFormOpen(false)} disabled={jiraBusy} className="btn-ghost text-xs">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

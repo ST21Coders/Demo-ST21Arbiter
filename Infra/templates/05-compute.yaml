@@ -133,6 +133,9 @@ Resources:
           # Deterministic scanner name from CFN params — no cross-stack import
           # needed; 02-security has already granted lambda:InvokeFunction on it.
           SCANNER_LAMBDA_NAME: !Sub "${Environment}-${ProjectName}-scanner"
+          # Structured (.csv) uploads route to processed/structured/ and trigger
+          # this Glue crawler (created in 04-storage). Deterministic name.
+          GLUE_CRAWLER_NAME: !Sub "${Environment}-${ProjectName}-structured-crawler"
       # Function URL for manual UI-driven triggers. AuthType=NONE; the Lambda
       # decodes the Cognito IdToken from the Authorization header and verifies
       # the caller's group membership against ALLOWED_GROUPS. Mirrors the
