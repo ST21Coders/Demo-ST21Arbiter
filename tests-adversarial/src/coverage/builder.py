@@ -492,6 +492,7 @@ _LAYERS = (
     "dos",
     "logic",
     "logging_audit",
+    "fault",
 )
 
 

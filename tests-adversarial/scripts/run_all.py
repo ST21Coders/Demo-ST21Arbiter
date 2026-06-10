@@ -56,6 +56,7 @@ _LAYERS_ALL: tuple[str, ...] = (
     "dos",
     "logic",
     "logging_audit",
+    "fault",
 )
 
 # Per-layer wall-clock cap overrides. Most layers share the global
@@ -72,6 +73,7 @@ _LAYER_HARD_CAPS_SECONDS: dict[str, float] = {
     "dos": 300.0,
     "logic": 300.0,
     "logging_audit": 600.0,
+    "fault": 300.0,
 }
 
 # Default to a CloudFront URL matching CLAUDE.local.md. Operators override via
@@ -334,6 +336,18 @@ def _build_layer_budgets(layers: list[str]) -> dict[str, Any]:
         # Bedrock invocation per run, bounded and informational only.
         budgets["logic"] = LayerBudget(
             name="logic",
+            max_input_tokens=0,
+            max_output_tokens=0,
+        )
+    if "fault" in layers:
+        # Fault-injection layer makes bounded Bedrock calls via 3 short
+        # /chat probes (XSS-payload echo, link-suggestion, jira-error,
+        # specialist-latency). We keep the budget at zero so the layer
+        # can't accidentally blow the cost cap; the actual Bedrock cost
+        # is attributed to the LLM layer's pricing path if any operator
+        # wires that up.
+        budgets["fault"] = LayerBudget(
+            name="fault",
             max_input_tokens=0,
             max_output_tokens=0,
         )
