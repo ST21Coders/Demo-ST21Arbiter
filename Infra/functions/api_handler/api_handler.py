@@ -198,6 +198,15 @@ def handler(event, context):
     if path == "/jira/tickets" and method == "POST":
         return _handle_jira_create(event)
 
+    if path == "/jira/transition" and method == "POST":
+        return _handle_jira_transition(event)
+
+    if path == "/jira/comment" and method == "POST":
+        return _handle_jira_comment(event)
+
+    if path == "/scan/dry-run" and method == "POST":
+        return _handle_scan_dry_run(event)
+
     if path == "/scan" and method == "POST":
         return _handle_scan_trigger(event)
 
@@ -1315,6 +1324,7 @@ def _handle_jira_create(event):
     except json.JSONDecodeError:
         return _err(400, "Invalid JSON body")
     conflict_id = (body.get("conflict_id") or "").strip()
+    cr_id = (body.get("cr_id") or "").strip()
     summary = (body.get("summary") or body.get("title") or "").strip() or f"ARBITER finding {conflict_id or 'unspecified'}"
     description = (body.get("description") or "").strip()
     project_key = (body.get("project_key") or "DEVARBITER").strip()
@@ -1364,7 +1374,110 @@ def _handle_jira_create(event):
 
     _audit_jira(event, key=key, summary=summary, severity=severity,
                 conflict_id=conflict_id, status="COMPLETED", mock=False)
+    _link_jira_to_cr(cr_id, key, parsed.get("url"))
     return _ok({"status": "created", "jira_ticket_key": key, "url": parsed.get("url")})
+
+
+def _link_jira_to_cr(cr_id: str, key: str, url: str | None) -> None:
+    """Persist a created/linked JIRA ticket onto its change-request row so the
+    Action Center renders the ticket (and its L1 controls) across reloads."""
+    if not cr_id or not crs_table:
+        return
+    try:
+        crs_table.update_item(
+            Key={"cr_id": cr_id},
+            UpdateExpression="SET jira_ticket_key = :k, jira_ticket_url = :u",
+            ExpressionAttributeValues={":k": key, ":u": url or ""},
+        )
+    except Exception:
+        logger.exception("CR %s JIRA-link update failed", cr_id)
+
+
+def _invoke_jira_action(action: str, args: dict) -> dict:
+    """Invoke the jira_specialist runtime for a deterministic action path.
+
+    Returns the parsed runtime response, or {"error": ...} when the runtime is
+    unconfigured / the invocation fails. Callers decide how to surface it.
+    """
+    jira_arn = SPECIALIST_RUNTIME_ARNS.get("jira")
+    if not jira_arn:
+        return {"error": "JIRA runtime not configured (run scripts/deploy_agents.py)"}
+    try:
+        resp = agentcore.invoke_agent_runtime(
+            agentRuntimeArn=jira_arn,
+            payload=json.dumps({"action": action, **args}).encode("utf-8"),
+            contentType="application/json",
+            accept="application/json",
+        )
+        return json.loads(resp["response"].read().decode("utf-8"))
+    except Exception as e:
+        logger.exception("JIRA %s invocation failed", action)
+        return {"error": f"{type(e).__name__}: {e}"}
+
+
+def _handle_jira_transition(event):
+    """Transition a JIRA issue (L1 resolution), optionally with a comment.
+
+    Body: {jira_key, transition?, comment?, cr_id?}. transition defaults to
+    "Done"; the agent resolves it by name → workflow id defensively.
+    """
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+    jira_key = (body.get("jira_key") or body.get("jira_ticket_key") or "").strip()
+    transition = (body.get("transition") or "Done").strip()
+    comment = (body.get("comment") or "").strip()
+    cr_id = (body.get("cr_id") or "").strip()
+    if not jira_key:
+        return _err(400, "Missing jira_key")
+
+    parsed = _invoke_jira_action("transition_issue", {
+        "issue_key": jira_key, "transition": transition, "comment": comment})
+    if parsed.get("error"):
+        avail = parsed.get("available_transitions")
+        detail = parsed["error"] + (f" (available: {', '.join(avail)})" if avail else "")
+        return _err(502, f"JIRA transition failed: {detail}")
+
+    user_id = _caller_user_id(event) or "anonymous"
+    applied = parsed.get("transitioned_to") or transition
+    _audit("JIRA_TRANSITIONED", cr_id or jira_key, user_id, "COMPLETED",
+           {"jira_ticket_key": jira_key, "transition": applied, "comment": comment, "cr_id": cr_id})
+    if cr_id and crs_table:
+        try:
+            crs_table.update_item(
+                Key={"cr_id": cr_id},
+                UpdateExpression="SET jira_ticket_key = :k, jira_status = :s",
+                ExpressionAttributeValues={":k": jira_key, ":s": applied},
+            )
+        except Exception:
+            logger.exception("CR %s jira_status update failed", cr_id)
+    return _ok({"status": "transitioned", "jira_ticket_key": jira_key,
+                "transitioned_to": applied, "url": parsed.get("url")})
+
+
+def _handle_jira_comment(event):
+    """Add a comment to a JIRA issue. Body: {jira_key, comment, cr_id?}."""
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+    jira_key = (body.get("jira_key") or body.get("jira_ticket_key") or "").strip()
+    comment = (body.get("comment") or "").strip()
+    cr_id = (body.get("cr_id") or "").strip()
+    if not jira_key:
+        return _err(400, "Missing jira_key")
+    if not comment:
+        return _err(400, "Missing comment")
+
+    parsed = _invoke_jira_action("add_comment", {"issue_key": jira_key, "comment": comment})
+    if parsed.get("error"):
+        return _err(502, f"JIRA comment failed: {parsed['error']}")
+
+    user_id = _caller_user_id(event) or "anonymous"
+    _audit("JIRA_COMMENTED", cr_id or jira_key, user_id, "COMPLETED",
+           {"jira_ticket_key": jira_key, "comment": comment, "cr_id": cr_id})
+    return _ok({"status": "commented", "jira_ticket_key": jira_key, "url": parsed.get("url")})
 
 
 # ──────────────────────────── POST /scan ────────────────────────
@@ -1432,6 +1545,61 @@ def _handle_scan_trigger(event):
         logger.exception("scanner Lambda invoke failed")
         return _err(502, f"{type(e).__name__}: {e}")
     return _ok({"scan_run_id": scan_run_id, "status": "RUNNING"})
+
+
+# ──────────────────────────── POST /scan/dry-run (What-If) ───────
+def _handle_scan_dry_run(event):
+    """What-If: run the rule pack against hypothetical observations and return the
+    resulting findings WITHOUT persisting anything.
+
+    The master is invoked DIRECTLY (not the scanner Lambda) so neither
+    conflicts-v2 nor scan-runs is ever written — a What-If touches no finding
+    state. Body: {observations: {<source>: [obs...]}}. Sources omitted from
+    `observations` seed normally inside the master.
+    """
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+    observations = body.get("observations") or {}
+    if not isinstance(observations, dict):
+        return _err(400, "'observations' must be an object keyed by source")
+    if not MASTER_AGENT_RUNTIME_ARN:
+        return _err(503, "Master runtime ARN not configured (run scripts/deploy_agents.py)")
+
+    actor_id = _caller_user_id(event) or "anonymous"
+    run_id = f"whatif-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{actor_id[:8]}"
+    try:
+        resp = agentcore.invoke_agent_runtime(
+            agentRuntimeArn=MASTER_AGENT_RUNTIME_ARN,
+            payload=json.dumps({
+                "scan": True,
+                "dry_run": True,
+                "scan_run_id": run_id,
+                "rule_pack": "v1",
+                "observations": observations,
+            }).encode("utf-8"),
+            contentType="application/json",
+            accept="application/json",
+        )
+        raw = resp["response"].read().decode("utf-8")
+        b = json.loads(raw)
+        inner = b.get("result", b) if isinstance(b, dict) else b
+        if isinstance(inner, str):
+            inner = json.loads(inner)
+        findings = (inner or {}).get("findings") or []
+    except Exception as e:
+        logger.exception("dry-run scan invocation failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+
+    conflicts = [f for f in findings if not f.get("compliant")]
+    totals = {"conflicts": len(conflicts), "compliant": len(findings) - len(conflicts)}
+    for sev in ("CRITICAL", "HIGH", "MEDIUM", "LOW"):
+        totals[sev.lower()] = sum(1 for c in conflicts if (c.get("severity") or "").upper() == sev)
+
+    _audit("WHATIF_RUN", run_id, actor_id, "COMPLETED",
+           {"sources_overridden": sorted(observations.keys()), "conflicts": len(conflicts)})
+    return _ok({"dry_run": True, "scan_run_id": run_id, "findings": findings, "totals": totals})
 
 
 # ──────────────────────────── CR workflow (Step 4) ──────────────

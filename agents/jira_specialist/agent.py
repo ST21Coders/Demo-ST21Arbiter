@@ -52,7 +52,11 @@ GUARDRAIL_VERSION = os.environ.get("GUARDRAIL_VERSION", "DRAFT")
 # Env-var names match mcp-atlassian >= 0.11.x.
 JIRA_ENABLED_TOOLS = os.environ.get(
     "ENABLED_TOOLS",
-    "jira_search,jira_get_issue,jira_get_all_projects,jira_create_issue",
+    # Tier-0 read + create, plus L1-resolution write tools (transition/comment).
+    # get_transitions is needed so a transition can be resolved by name → id
+    # defensively (workflow transition ids differ per project).
+    "jira_search,jira_get_issue,jira_get_all_projects,jira_create_issue,"
+    "jira_get_transitions,jira_transition_issue,jira_add_comment",
 )
 JIRA_PROJECTS_FILTER = os.environ.get("JIRA_PROJECTS_FILTER", "")
 
@@ -183,6 +187,135 @@ def _create_issue(payload: dict[str, Any], creds: dict[str, str]) -> dict[str, A
     return {"key": key, "url": url, "summary": summary, "project_key": project_key}
 
 
+def _resolve_tool(tools, *needles, default=None):
+    """Pick the first MCP tool whose name contains ALL needles (case-insensitive).
+
+    Defensive against mcp-atlassian renaming tools across versions.
+    """
+    low = [n.lower() for n in needles]
+    return next(
+        (t.tool_name for t in tools
+         if all(n in t.tool_name.lower() for n in low)),
+        default,
+    )
+
+
+def _get_transitions(jira_mcp, tools, issue_key: str) -> list[dict[str, str]]:
+    """Return [{id, name}] of available workflow transitions for an issue."""
+    get_tool = _resolve_tool(tools, "transition", "get") or _resolve_tool(tools, "transition", "list")
+    if not get_tool:
+        return []
+    try:
+        result = jira_mcp.call_tool_sync(
+            tool_use_id="arbiter-get-transitions", name=get_tool,
+            arguments={"issue_key": issue_key},
+        )
+    except Exception:
+        log.exception("get_transitions call failed for %s", issue_key)
+        return []
+    try:
+        data = json.loads(_tool_result_text(result))
+    except Exception:
+        return []
+    items = data.get("transitions") if isinstance(data, dict) else data
+    out: list[dict[str, str]] = []
+    for it in (items or []):
+        if isinstance(it, dict):
+            tid = str(it.get("id") or it.get("transition_id") or "")
+            tname = str(it.get("name") or "")
+            if tid:
+                out.append({"id": tid, "name": tname})
+    return out
+
+
+def _post_comment(jira_mcp, tools, issue_key: str, body: str) -> tuple[bool, str]:
+    """Add a comment via the MCP comment tool. Returns (ok, raw_text).
+
+    mcp-atlassian's jira_add_comment takes the comment text as `body` (not
+    `comment`), so we pass it under that key.
+    """
+    comment_tool = _resolve_tool(tools, "comment", "add", default="jira_add_comment")
+    result = jira_mcp.call_tool_sync(
+        tool_use_id="arbiter-comment", name=comment_tool,
+        arguments={"issue_key": issue_key, "body": body})
+    if result.get("status") == "error":
+        return False, _tool_result_text(result) or "JIRA comment tool returned an error"
+    return True, _tool_result_text(result)
+
+
+def _transition_issue(payload: dict[str, Any], creds: dict[str, str]) -> dict[str, Any]:
+    """Deterministically transition a Jira issue (L1 resolution).
+
+    Resolves the requested transition by id or name (exact then fuzzy-contains)
+    against the issue's live transition list, so callers can ask for "Done"
+    without knowing the project's transition ids. Optionally adds a comment in
+    the same call. No LLM in this path.
+    """
+    issue_key = (payload.get("issue_key") or payload.get("jira_key") or "").strip()
+    want = (payload.get("transition") or payload.get("transition_name") or "Done").strip()
+    comment = (payload.get("comment") or "").strip()
+    if not issue_key:
+        return {"error": "Missing issue_key"}
+    try:
+        jira_mcp = _build_mcp_client(creds)
+        with jira_mcp:
+            tools = jira_mcp.list_tools_sync()
+            transitions = _get_transitions(jira_mcp, tools, issue_key)
+            chosen = None
+            for tr in transitions:                      # exact id or name
+                if tr["id"] == want or tr["name"].lower() == want.lower():
+                    chosen = tr
+                    break
+            if chosen is None:                          # fuzzy contains
+                for tr in transitions:
+                    if want.lower() in tr["name"].lower():
+                        chosen = tr
+                        break
+            if chosen is None:
+                return {"error": f"No transition matching '{want}' on {issue_key}",
+                        "available_transitions": [t["name"] for t in transitions]}
+            trans_tool = _resolve_tool(tools, "transition", "issue", default="jira_transition_issue")
+            result = jira_mcp.call_tool_sync(
+                tool_use_id="arbiter-transition", name=trans_tool,
+                arguments={"issue_key": issue_key, "transition_id": chosen["id"]})
+            if result.get("status") == "error":
+                return {"error": _tool_result_text(result) or "JIRA transition tool returned an error"}
+            # Comment is posted as a SEPARATE call (the transition and comment
+            # tools take different arg shapes) so a comment-arg quirk can never
+            # fail the transition itself.
+            comment_ok = True
+            if comment:
+                comment_ok, _ = _post_comment(jira_mcp, tools, issue_key, comment)
+    except Exception as e:
+        log.exception("JIRA transition failed")
+        return {"error": f"{type(e).__name__}: {e}"}
+    url = f"{creds.get('url', '').rstrip('/')}/browse/{issue_key}"
+    log.info("Transitioned JIRA issue %s → %s (commented=%s)", issue_key, chosen["name"], bool(comment) and comment_ok)
+    return {"key": issue_key, "url": url, "transitioned_to": chosen["name"],
+            "transition_id": chosen["id"], "commented": bool(comment) and comment_ok}
+
+
+def _add_comment(payload: dict[str, Any], creds: dict[str, str]) -> dict[str, Any]:
+    """Deterministically add a comment to a Jira issue. No LLM in this path."""
+    issue_key = (payload.get("issue_key") or payload.get("jira_key") or "").strip()
+    comment = (payload.get("comment") or "").strip()
+    if not issue_key or not comment:
+        return {"error": "Missing issue_key or comment"}
+    try:
+        jira_mcp = _build_mcp_client(creds)
+        with jira_mcp:
+            tools = jira_mcp.list_tools_sync()
+            ok, raw = _post_comment(jira_mcp, tools, issue_key, comment)
+    except Exception as e:
+        log.exception("JIRA add_comment failed")
+        return {"error": f"{type(e).__name__}: {e}"}
+    if not ok:
+        return {"error": raw}
+    url = f"{creds.get('url', '').rstrip('/')}/browse/{issue_key}"
+    log.info("Commented on JIRA issue %s", issue_key)
+    return {"key": issue_key, "url": url, "commented": True}
+
+
 @app.entrypoint
 def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     creds = _load_jira_credentials()
@@ -191,10 +324,14 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
                           "Manager secret holding url/email/api_token)",
                 "error": "not_configured"}
 
-    # Structured create path (api_handler → /jira/tickets). Deterministic,
-    # no LLM — returns {key, url}.
-    if (payload.get("action") or "").strip() == "create_issue":
+    # Structured action paths (api_handler → /jira/*). Deterministic, no LLM.
+    action = (payload.get("action") or "").strip()
+    if action == "create_issue":
         return _create_issue(payload, creds)
+    if action == "transition_issue":
+        return _transition_issue(payload, creds)
+    if action == "add_comment":
+        return _add_comment(payload, creds)
 
     prompt = payload.get("prompt") or payload.get("input") or ""
     if not prompt:

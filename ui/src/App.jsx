@@ -14,6 +14,7 @@ import Governance from './pages/Governance'
 import DataPipeline from './pages/DataPipeline'
 import AuditLogs from './pages/AuditLogs'
 import AnalystView from './pages/AnalystView'
+import WhatIf from './pages/WhatIf'
 import LLMControl from './pages/LLMControl'
 import MCPChat from './pages/MCPChat'
 import Integrations from './pages/Integrations'
@@ -161,6 +162,7 @@ function Shell() {
             <Route path="/pipeline"    element={<Guarded path="/pipeline"><DataPipeline /></Guarded>} />
             <Route path="/audit"       element={<Guarded path="/audit"><AuditLogs /></Guarded>} />
             <Route path="/analyst"     element={<Guarded path="/analyst"><AnalystView /></Guarded>} />
+            <Route path="/whatif"      element={<Guarded path="/whatif"><WhatIf /></Guarded>} />
             <Route path="/llm-control" element={<Guarded path="/llm-control"><LLMControl /></Guarded>} />
             <Route path="/mcp-chat"    element={<Guarded path="/mcp-chat"><MCPChat /></Guarded>} />
             <Route path="/integrations" element={<Guarded path="/integrations"><Integrations /></Guarded>} />

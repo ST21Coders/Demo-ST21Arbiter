@@ -412,22 +412,32 @@ def _run_scan(payload: dict[str, Any]) -> dict[str, Any]:
     from scan_rule_pack import run_rule_pack
     rule_pack_version = (payload.get("rule_pack") or "v1")
     scan_run_id = payload.get("scan_run_id") or "adhoc-scan"
+    # What-If dry-run: the api_handler may pass hypothetical observations to test
+    # a policy change before it is pushed. Any source key present in
+    # `observations` overrides the seeded/live set for that source; absent
+    # sources seed normally. `dry_run` is informational here — this function
+    # never persists; the scanner Lambda owns DB writes and is not invoked on
+    # the dry-run path, so a What-If run touches no DynamoDB table.
+    overrides = payload.get("observations") or {}
+    if not isinstance(overrides, dict):
+        overrides = {}
+    dry_run = bool(payload.get("dry_run"))
 
     # Specialist observations. For Step 3 we don't yet have a structured
     # produce_findings() tool on each specialist — we synthesise minimal
     # observation shapes covering the 14 UCs so the rule-pack runs. When the
     # specialists ship structured tools (Step 6 polish), replace these with
     # invoke_agent_runtime calls.
-    sharepoint = _seed_sharepoint_observations()
-    zscaler    = _zscaler_observations()
-    awsconfig  = _seed_awsconfig_observations()
-    paloalto   = _seed_paloalto_observations()
+    sharepoint = overrides["sharepoint"] if "sharepoint" in overrides else _seed_sharepoint_observations()
+    zscaler    = overrides["zscaler"]    if "zscaler" in overrides else _zscaler_observations()
+    awsconfig  = overrides["awsconfig"]  if "awsconfig" in overrides else _seed_awsconfig_observations()
+    paloalto   = overrides["paloalto"]   if "paloalto" in overrides else _seed_paloalto_observations()
 
     findings = run_rule_pack(sharepoint, zscaler, awsconfig, paloalto)
     for f in findings:
         f["scan_run_id"] = scan_run_id
-    log.info("Scan complete: %d findings (rule_pack=%s, scan_run_id=%s)",
-             len(findings), rule_pack_version, scan_run_id)
+    log.info("Scan complete: %d findings (rule_pack=%s, scan_run_id=%s, dry_run=%s, overrides=%s)",
+             len(findings), rule_pack_version, scan_run_id, dry_run, sorted(overrides.keys()))
     # AgentCore stringifies entrypoint dicts with str(), which produces Python
     # repr (single-quoted, Decimal('0.05')) — not JSON. Explicitly serialize the
     # payload here and return it via the same {"result": ...} envelope chat uses.
