@@ -831,3 +831,449 @@ def test_default_creds_unexpected_error_code_is_fail_medium() -> None:
     status, severity = classify_default_creds_response("InvalidParameterException")
     assert status == "fail"
     assert severity == "medium"
+
+
+# ───────────────── Block C: auth.idor infrastructure ────────────────
+#
+# Like test_default_creds, the Block C modules that gate on env vars at
+# module-import time need the env var set BEFORE the import. The dummy
+# DEMO_PASSWORD set above is sufficient for the idor module (it has no
+# import-time env-var check — it gates inside fixtures). The Cognito-based
+# modules (brute_force, password_reset, pool_config) gate on
+# COGNITO_CLIENT_ID / COGNITO_USER_POOL_ID at import-time, so we
+# pre-populate those with placeholders too.
+
+_os.environ.setdefault("COGNITO_CLIENT_ID", "unit-test-client-id")
+_os.environ.setdefault("COGNITO_USER_POOL_ID", "us-east-1_unitTestPool")
+
+from auth.test_idor import (  # noqa: E402
+    IDOR_DELETE_TEST_IDS,
+    IDOR_READ_TEST_IDS,
+    SEVERITY_IDOR_DELETE_CRITICAL,
+    SEVERITY_IDOR_READ_HIGH,
+    classify_idor_delete_response,
+    classify_idor_read_response,
+)
+
+
+def test_idor_read_test_ids_are_canonical() -> None:
+    """The three read ids cover SOC/GRC/EMPLOYEE as readers, CISO as owner."""
+    assert IDOR_READ_TEST_IDS == [
+        "auth.idor.conversation-read.ciso-as-soc",
+        "auth.idor.conversation-read.ciso-as-grc",
+        "auth.idor.conversation-read.ciso-as-employee",
+    ]
+
+
+def test_idor_delete_test_ids_are_canonical() -> None:
+    """The three delete ids cover SOC/GRC/EMPLOYEE as deleters."""
+    assert IDOR_DELETE_TEST_IDS == [
+        "auth.idor.conversation-delete.ciso-as-soc",
+        "auth.idor.conversation-delete.ciso-as-grc",
+        "auth.idor.conversation-delete.ciso-as-employee",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("status_code", "expected_status", "expected_severity"),
+    [
+        (200, "fail", SEVERITY_IDOR_READ_HIGH),  # leak
+        (201, "fail", SEVERITY_IDOR_READ_HIGH),
+        (403, "pass", None),
+        (404, "pass", None),
+        (500, "fail", "medium"),
+        (400, "fail", "medium"),
+    ],
+)
+def test_classify_idor_read_response(
+    status_code: int, expected_status: str, expected_severity: str | None
+) -> None:
+    status, severity = classify_idor_read_response(status_code)
+    assert status == expected_status
+    assert severity == expected_severity
+
+
+@pytest.mark.parametrize(
+    ("status_code", "expected_status", "expected_severity"),
+    [
+        (200, "fail", SEVERITY_IDOR_DELETE_CRITICAL),  # cross-user delete
+        (204, "fail", SEVERITY_IDOR_DELETE_CRITICAL),
+        (403, "pass", None),
+        (404, "pass", None),
+        (500, "fail", "medium"),
+    ],
+)
+def test_classify_idor_delete_response(
+    status_code: int, expected_status: str, expected_severity: str | None
+) -> None:
+    status, severity = classify_idor_delete_response(status_code)
+    assert status == expected_status
+    assert severity == expected_severity
+
+
+def test_idor_faked_200_read_is_fail_high() -> None:
+    """Explicit Block C bullet — non-owner 200 is HIGH (data disclosure)."""
+    status, severity = classify_idor_read_response(200)
+    assert status == "fail"
+    assert severity == "high"
+
+
+def test_idor_faked_200_delete_is_fail_critical() -> None:
+    """Explicit Block C bullet — non-owner DELETE 200 is CRITICAL."""
+    status, severity = classify_idor_delete_response(200)
+    assert status == "fail"
+    assert severity == "critical"
+
+
+def test_idor_faked_404_is_pass() -> None:
+    """Explicit Block C bullet — 404 (owner-mismatch) is PASS."""
+    assert classify_idor_read_response(404) == ("pass", None)
+    assert classify_idor_delete_response(404) == ("pass", None)
+
+
+# ───────────────── Block C: auth.forced-browsing infrastructure ────────────
+
+from auth.test_forced_browsing import (  # noqa: E402
+    FORCED_BROWSING_TEST_IDS,
+    SEVERITY_FORCED_BROWSING_HIGH,
+    SEVERITY_FORCED_BROWSING_LOW,
+    SEVERITY_FORCED_BROWSING_MEDIUM,
+    classify_forced_browsing_response,
+)
+
+
+def test_forced_browsing_wordlist_covers_canonical_paths() -> None:
+    """The Block C spec names these paths; they MUST be in the wordlist."""
+    canonical = {
+        "auth.forced-browsing.admin",
+        "auth.forced-browsing.swagger",
+        "auth.forced-browsing.env",
+        "auth.forced-browsing.git-config",
+        "auth.forced-browsing.metrics",
+        "auth.forced-browsing.security-txt",
+    }
+    missing = canonical - set(FORCED_BROWSING_TEST_IDS)
+    assert not missing, f"forced-browsing wordlist missing canonical ids: {missing}"
+
+
+def test_forced_browsing_test_ids_are_unique() -> None:
+    assert len(FORCED_BROWSING_TEST_IDS) == len(set(FORCED_BROWSING_TEST_IDS))
+
+
+@pytest.mark.parametrize(
+    ("path", "status_code", "body_len", "expected_status", "expected_severity"),
+    [
+        # Empty body 200 — informational LOW.
+        ("/admin", 200, 0, "fail", SEVERITY_FORCED_BROWSING_LOW),
+        # Non-trivial body 200 — HIGH (data leak).
+        ("/admin", 200, 5000, "fail", SEVERITY_FORCED_BROWSING_HIGH),
+        # 401/403/404 — PASS.
+        ("/admin", 401, 0, "pass", None),
+        ("/admin", 403, 0, "pass", None),
+        ("/admin", 404, 0, "pass", None),
+        # 5xx — MEDIUM.
+        ("/admin", 500, 0, "fail", SEVERITY_FORCED_BROWSING_MEDIUM),
+        # /.well-known/security.txt 200 — PASS (special case).
+        ("/.well-known/security.txt", 200, 5000, "pass", None),
+        # Same path 404 — also PASS.
+        ("/.well-known/security.txt", 404, 0, "pass", None),
+        # Unexpected status — LOW.
+        ("/admin", 418, 0, "fail", SEVERITY_FORCED_BROWSING_LOW),
+    ],
+)
+def test_classify_forced_browsing_response(
+    path: str,
+    status_code: int,
+    body_len: int,
+    expected_status: str,
+    expected_severity: str | None,
+) -> None:
+    status, severity = classify_forced_browsing_response(path, status_code, body_len)
+    assert status == expected_status
+    assert severity == expected_severity
+
+
+def test_forced_browsing_200_with_html_body_is_fail_high() -> None:
+    """Explicit Block C bullet."""
+    status, severity = classify_forced_browsing_response("/admin", 200, 4096)
+    assert status == "fail"
+    assert severity == "high"
+
+
+def test_forced_browsing_security_txt_200_is_pass() -> None:
+    """Explicit Block C special case."""
+    status, severity = classify_forced_browsing_response(
+        "/.well-known/security.txt", 200, 2048
+    )
+    assert status == "pass"
+    assert severity is None
+
+
+# ───────────────── Block C: auth.brute-force infrastructure ────────────
+
+from auth.test_brute_force import (  # noqa: E402
+    SEVERITY_BRUTE_FORCE_HIGH,
+    classify_brute_force_attempts,
+)
+
+
+def test_brute_force_throttle_within_window_is_pass() -> None:
+    """5 NotAuthorized then 1 LimitExceeded → PASS with K=6."""
+    codes = ["NotAuthorizedException"] * 5 + ["LimitExceededException"]
+    status, severity, k = classify_brute_force_attempts(codes)
+    assert status == "pass"
+    assert severity is None
+    assert k == 6
+
+
+def test_brute_force_no_throttle_is_fail_high() -> None:
+    """10 NotAuthorized with no throttle → FAIL HIGH."""
+    codes = ["NotAuthorizedException"] * 10
+    status, severity, k = classify_brute_force_attempts(codes)
+    assert status == "fail"
+    assert severity == SEVERITY_BRUTE_FORCE_HIGH
+    assert k is None
+
+
+def test_brute_force_unexpected_auth_success_is_fail_high() -> None:
+    """A None in the list means auth succeeded — HIGH."""
+    codes = ["NotAuthorizedException", None]
+    status, severity, k = classify_brute_force_attempts(codes)
+    assert status == "fail"
+    assert severity == SEVERITY_BRUTE_FORCE_HIGH
+
+
+def test_brute_force_other_errors_are_fail_medium() -> None:
+    """Non-throttle, non-rejected codes are MEDIUM (operator should look)."""
+    codes = ["InvalidParameterException", "InvalidParameterException"]
+    status, severity, k = classify_brute_force_attempts(codes)
+    assert status == "fail"
+    assert severity == "medium"
+
+
+def test_brute_force_throttling_exception_also_counts_as_throttle() -> None:
+    """`ThrottlingException` is a Cognito throttle variant."""
+    codes = ["NotAuthorizedException", "ThrottlingException"]
+    status, severity, k = classify_brute_force_attempts(codes)
+    assert status == "pass"
+    assert k == 2
+
+
+# ───────────────── Block C: auth.session-swap infrastructure ────────────
+
+from auth.test_session_swap import (  # noqa: E402
+    FIXATION_TEST_ID,
+    SEVERITY_SESSION_FIXATION_HIGH,
+    STALE_TOKEN_TEST_ID,
+    classify_session_fixation_response,
+    classify_stale_token_response,
+)
+
+
+def test_session_swap_test_ids_are_canonical() -> None:
+    assert FIXATION_TEST_ID == "auth.session-swap.cross-persona-fixation"
+    assert STALE_TOKEN_TEST_ID == "auth.session-swap.stale-token-still-works"
+
+
+@pytest.mark.parametrize(
+    ("status_code", "echoed", "requested", "expected_status", "expected_severity"),
+    [
+        # SOC rejected — PASS.
+        (403, None, "abc", "pass", None),
+        (401, None, "abc", "pass", None),
+        # SOC got a NEW session — PASS.
+        (200, "different-id", "abc", "pass", None),
+        # SOC's message landed in CISO's session — FAIL HIGH.
+        (200, "abc", "abc", "fail", SEVERITY_SESSION_FIXATION_HIGH),
+        (201, "abc", "abc", "fail", SEVERITY_SESSION_FIXATION_HIGH),
+        # API crashed — MEDIUM.
+        (500, None, "abc", "fail", "medium"),
+    ],
+)
+def test_classify_session_fixation_response(
+    status_code: int,
+    echoed: str | None,
+    requested: str,
+    expected_status: str,
+    expected_severity: str | None,
+) -> None:
+    status, severity = classify_session_fixation_response(
+        status_code, echoed, requested
+    )
+    assert status == expected_status
+    assert severity == expected_severity
+
+
+@pytest.mark.parametrize(
+    ("status_code", "expected_status", "expected_severity"),
+    [
+        # 200 with stale token — documented_unsafe per AC11.
+        (200, "documented_unsafe", "info"),
+        (201, "documented_unsafe", "info"),
+        # 401/403 with stale token — regression direction, FAIL MEDIUM.
+        (401, "fail", "medium"),
+        (403, "fail", "medium"),
+        # 5xx — FAIL MEDIUM.
+        (500, "fail", "medium"),
+    ],
+)
+def test_classify_stale_token_response(
+    status_code: int, expected_status: str, expected_severity: str | None
+) -> None:
+    status, severity = classify_stale_token_response(status_code)
+    assert status == expected_status
+    assert severity == expected_severity
+
+
+# ───────────────── Block C: auth.password-reset infrastructure ────────────
+
+from auth.test_password_reset import (  # noqa: E402
+    ENUMERATION_TEST_ID,
+    RATE_LIMIT_TEST_ID,
+    SEVERITY_PASSWORD_RESET_MEDIUM,
+    classify_enumeration_responses,
+    classify_rate_limit_attempts,
+)
+
+
+def test_password_reset_test_ids_are_canonical() -> None:
+    assert ENUMERATION_TEST_ID == "auth.password-reset.enumeration"
+    assert RATE_LIMIT_TEST_ID == "auth.password-reset.rate-limit"
+
+
+def test_password_reset_enumeration_same_outcome_is_pass() -> None:
+    """Same error for known + unknown → no enumeration possible."""
+    assert classify_enumeration_responses(None, None) == ("pass", None)
+    assert classify_enumeration_responses(
+        "LimitExceededException", "LimitExceededException"
+    ) == ("pass", None)
+
+
+def test_password_reset_enumeration_different_outcomes_is_fail_medium() -> None:
+    """Different error codes for known + unknown → MEDIUM."""
+    status, severity = classify_enumeration_responses(None, "UserNotFoundException")
+    assert status == "fail"
+    assert severity == SEVERITY_PASSWORD_RESET_MEDIUM
+
+
+def test_password_reset_rate_limit_hit_within_window_is_pass() -> None:
+    """K within window → PASS with K recorded."""
+    codes = [None, None, "LimitExceededException"]
+    status, severity, k = classify_rate_limit_attempts(codes)
+    assert status == "pass"
+    assert k == 3
+
+
+def test_password_reset_rate_limit_no_throttle_is_fail_medium() -> None:
+    """No throttle → FAIL MEDIUM."""
+    codes = [None] * 5
+    status, severity, k = classify_rate_limit_attempts(codes)
+    assert status == "fail"
+    assert severity == SEVERITY_PASSWORD_RESET_MEDIUM
+    assert k is None
+
+
+# ───────────────── Block C: auth.pool-config infrastructure ────────────
+
+from auth.test_pool_config import (  # noqa: E402
+    ADMIN_CREATE_TEST_ID,
+    ALL_POOL_CONFIG_TEST_IDS,
+    MIN_LENGTH_TEST_ID,
+    RECOVERY_TEST_ID,
+    REQ_LOWER_TEST_ID,
+    REQ_NUMBERS_TEST_ID,
+    REQ_SYMBOLS_TEST_ID,
+    REQ_UPPER_TEST_ID,
+    SEVERITY_POOL_CONFIG_LOW,
+    SEVERITY_POOL_CONFIG_MEDIUM,
+    TEMP_PASSWORD_TEST_ID,
+    classify_account_recovery,
+    classify_admin_create_only,
+    classify_minimum_length,
+    classify_require_flag,
+    classify_temp_password_validity,
+)
+
+
+def test_pool_config_all_test_ids_present() -> None:
+    """The 8 canonical pool-config test ids must all be enumerated."""
+    expected = {
+        MIN_LENGTH_TEST_ID,
+        REQ_UPPER_TEST_ID,
+        REQ_LOWER_TEST_ID,
+        REQ_NUMBERS_TEST_ID,
+        REQ_SYMBOLS_TEST_ID,
+        TEMP_PASSWORD_TEST_ID,
+        RECOVERY_TEST_ID,
+        ADMIN_CREATE_TEST_ID,
+    }
+    assert set(ALL_POOL_CONFIG_TEST_IDS) == expected
+
+
+def test_pool_minimum_length_at_12_is_pass() -> None:
+    """Explicit Block C bullet — 12 is the NIST floor."""
+    assert classify_minimum_length(12) == ("pass", None)
+    assert classify_minimum_length(20) == ("pass", None)
+
+
+def test_pool_minimum_length_below_12_is_fail_medium() -> None:
+    """Explicit Block C bullet — 8 is below the NIST floor."""
+    status, severity = classify_minimum_length(8)
+    assert status == "fail"
+    assert severity == SEVERITY_POOL_CONFIG_MEDIUM
+
+
+def test_pool_minimum_length_missing_is_fail_medium() -> None:
+    """A missing MinimumLength is treated as if it's below threshold."""
+    status, severity = classify_minimum_length(None)
+    assert status == "fail"
+    assert severity == SEVERITY_POOL_CONFIG_MEDIUM
+
+
+def test_pool_require_flag_true_is_pass() -> None:
+    assert classify_require_flag(True) == ("pass", None)
+
+
+@pytest.mark.parametrize("value", [False, None])
+def test_pool_require_flag_falsey_is_fail_low(value: bool | None) -> None:
+    status, severity = classify_require_flag(value)
+    assert status == "fail"
+    assert severity == SEVERITY_POOL_CONFIG_LOW
+
+
+def test_pool_temp_password_at_7_is_pass() -> None:
+    assert classify_temp_password_validity(7) == ("pass", None)
+    assert classify_temp_password_validity(1) == ("pass", None)
+
+
+def test_pool_temp_password_above_7_is_fail_low() -> None:
+    status, severity = classify_temp_password_validity(30)
+    assert status == "fail"
+    assert severity == SEVERITY_POOL_CONFIG_LOW
+
+
+def test_pool_account_recovery_set_is_pass() -> None:
+    """A non-empty dict means recovery is configured."""
+    status, severity = classify_account_recovery(
+        {"RecoveryMechanisms": [{"Name": "verified_email", "Priority": 1}]}
+    )
+    assert status == "pass"
+    assert severity is None
+
+
+@pytest.mark.parametrize("value", [None, {}, "not-a-dict"])
+def test_pool_account_recovery_missing_is_fail_medium(value: object) -> None:
+    status, severity = classify_account_recovery(value)
+    assert status == "fail"
+    assert severity == SEVERITY_POOL_CONFIG_MEDIUM
+
+
+def test_pool_admin_create_only_true_is_pass() -> None:
+    assert classify_admin_create_only(True) == ("pass", None)
+
+
+@pytest.mark.parametrize("value", [False, None])
+def test_pool_admin_create_only_falsey_is_fail_low(value: bool | None) -> None:
+    status, severity = classify_admin_create_only(value)
+    assert status == "fail"
+    assert severity == SEVERITY_POOL_CONFIG_LOW

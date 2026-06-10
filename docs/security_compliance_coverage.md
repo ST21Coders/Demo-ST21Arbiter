@@ -1,7 +1,7 @@
 # ARBITER Adversarial Harness — Security Compliance Coverage Matrix
 
 **Date:** 2026-06-10
-**Harness version:** post-Block-B (2026-06-10)
+**Harness version:** post-Block-C (2026-06-10)
 **Reference standard:** internal compliance checklist (OWASP Top 10 + API Top 10 + LLM Top 10 + CWE common weaknesses)
 
 This document maps every item on the requested compliance checklist to the current state of the adversarial test harness at `tests-adversarial/`. For each item it states:
@@ -38,20 +38,20 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 
 | # | Item | Status | Where / Gap | Effort to close |
 |---|---|---|---|---|
-| 11 | Insecure Direct Object Reference (IDOR) | 🟡 Partial | Auth layer's cross-persona probes are an IDOR-style test for class-level access. Individual record IDOR (one user reading another user's conversation by guessing session_id) is not probed. | Medium (~half day) — add `auth/test_idor.py` that fetches one persona's session_ids, attempts to read them as another persona |
+| 11 | Insecure Direct Object Reference (IDOR) | ✅ Covered | Block C: `auth/test_idor.py` — CISO creates a session via `POST /chat`; SOC/GRC/Employee each attempt `GET /conversations/{id}` and `DELETE /conversations/{id}`. PASS on 403/404; FAIL HIGH (read) or CRITICAL (delete) on 2xx. 6 probes total. | – |
 | 12 | Privilege escalation | ✅ Covered | `auth/test_forged_groups.py` + `auth/test_cross_persona.py`. Found CRITICAL today (CISO claim forgery is accepted). | – |
-| 13 | Forced browsing | 🟡 Partial | E2E negative-gating covers UI-level forced browsing. Backend-level (unauthenticated GET on `/admin`, `/internal`, etc.) is not covered. | Small (~1 hr) — add `auth/test_forced_browsing.py` with a dictionary of common admin paths |
+| 13 | Forced browsing | ✅ Covered | Block C: `auth/test_forced_browsing.py` — 20-path dictionary of common admin / debug / framework leak paths probed unauthenticated. PASS on 401/403/404; FAIL HIGH on non-trivial 200; `/.well-known/security.txt` special-cased as PASS on 200. | – |
 | 14 | Missing authorization on APIs | ✅ Covered | Auth layer's negative tests confirmed today that 9 CISO-only routes accept SOC/GRC/Employee tokens (HIGH finding). | – |
 | 15 | Server-Side Request Forgery (SSRF) | ✅ Covered | Block A: `fuzz/corpus/ssrf.json` (7 entries: IMDS, loopback, IPv6 loopback, RFC1918, gopher://, file://). Probes every URL-shaped field across all routes. | – |
 | 16 | Path traversal | ✅ Covered | `fuzz/corpus/path_traversal.json` (6 entries with `..`, `%2e%2e`, etc.) on every route including those with path params. | – |
-| 17 | Credential stuffing / brute force | ❌ Missing | No timed sign-in attempt loop against Cognito. Cognito has built-in throttling but we don't verify the threshold. | Small (~1 hr) — add `auth/test_brute_force.py` that fires N rapid bad-password attempts and asserts throttling after K |
-| 18 | Weak password storage | ⚪ Out of scope | Cognito handles password storage server-side with SRP. Not directly testable from a black-box harness. Can verify pool config via `aws cognito-idp describe-user-pool` and assert `PasswordPolicy.MinimumLength >= 12`. | Small (~30 min) — add as a config-check probe in `auth/test_pool_config.py` |
-| 19 | Session fixation / hijacking | ❌ Missing | No probe that swaps a session_id across personas mid-conversation, or that reuses a stale session_id after logout. | Medium (~half day) |
+| 17 | Credential stuffing / brute force | ✅ Covered | Block C: `auth/test_brute_force.py` — 10 rapid InitiateAuth calls against a UUID-suffixed (non-existent) username. PASS if Cognito returns a throttle code (`LimitExceededException` / `TooManyRequestsException` / `ThrottlingException`) within the window; FAIL HIGH on no throttle. Two rows: `throttle-kicks-in` + `lockout-after-K`. | – |
+| 18 | Weak password storage | 🟡 Partial | Block C: `auth/test_pool_config.py` — 8 black-box config assertions via `cognito-idp:describe_user_pool` (MinimumLength ≥ 12, RequireUppercase/Lowercase/Numbers/Symbols, TemporaryPasswordValidityDays ≤ 7, AccountRecoverySetting present, AllowAdminCreateUserOnly). Storage itself (SRP, hashing) stays out of scope — Cognito's server-side responsibility. | – |
+| 19 | Session fixation / hijacking | ✅ Covered | Block C: `auth/test_session_swap.py` — (a) CISO creates session X; SOC POSTs to `/chat` with the same `session_id`. FAIL HIGH if SOC's message lands in CISO's history. (b) Stale-token probe — reuse pre-logout IdToken after simulated logout. 2xx recorded as `documented_unsafe` per AC11. | – |
 | 20 | JWT vulnerabilities | ✅ Covered | `auth/test_chat_no_signature.py` (alg-none-equivalent), `auth/test_forged_groups.py` (signature manipulation), `auth/test_expired_token.py` (exp validation), `auth/test_token_replay.py` (access-token-instead-of-id). Found CRITICAL + HIGH today. | – |
-| 21 | Insecure password reset | ❌ Missing | No probe of the Cognito forgot-password flow. Race condition where the reset code is guessable, or email enumeration via `ForgotPassword` returning different errors for unknown vs. known users. | Medium (~half day) — `auth/test_password_reset.py` with rate-limit + enumeration checks |
+| 21 | Insecure password reset | ✅ Covered | Block C: `auth/test_password_reset.py` — (a) enumeration: ForgotPassword for known + unknown username; FAIL MEDIUM if outcomes differ. (b) rate-limit: 5 rapid calls against a synthetic username; FAIL MEDIUM if no throttle. | – |
 | 22 | Missing or bypassable MFA | ⚪ Out of scope | Per CLAUDE.md: "MFA off" in this demo. Documented intentional gap. If MFA is enabled later, add a probe that attempts to skip the SMS_MFA challenge. | – |
 
-**Section totals:** 5 covered · 3 partial · 2 missing · 2 out-of-scope  *(post-Block-A)*
+**Section totals:** 9 covered · 1 partial · 0 missing · 2 out-of-scope  *(post-Block-C)*
 
 ---
 
@@ -78,14 +78,14 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 | 30 | Verbose errors / stack trace leakage | ✅ Covered | Fuzz layer's stack-trace marker check catches `Traceback`, `boto3`, `ClientError`, `aws_request_id` in any response body. **Note:** earlier review flagged that `"boto3"` is too broad — fixed already. | – |
 | 31 | Missing security headers | ✅ Covered | Block B: `headers/test_security_headers.py` (parameterized across SPA root + 3 API routes). Per-header rows: `headers.csp.*` (FAIL MEDIUM if missing, LOW if `unsafe-eval` / `unsafe-inline` / `data:` in script-src), `headers.xfo.*` (clickjacking — FAIL MEDIUM if neither XFO nor CSP `frame-ancestors` restricts framing), `headers.xcto.*` (FAIL LOW if missing / wrong value), `headers.referrer.*` (FAIL LOW if missing or `unsafe-url`). HSTS covered separately by `test_https_only.py`. | – |
 | 32 | Open cloud storage / over-permissive IAM | 🟡 Partial | Manifest-driven static check covers IAM in templates indirectly. No probe attempts unauthenticated GET on S3 bucket URLs or non-CISO access to KMS keys. | Medium (~half day) |
-| 33 | Exposed admin consoles or sensitive directories | ❌ Missing | No probe of common admin paths (`/admin`, `/console`, `/.git`, `/.env`, `/swagger`, `/api-docs`). | Small (~30 min) — add to forced-browsing dictionary above |
+| 33 | Exposed admin consoles or sensitive directories | ✅ Covered | Block C: `auth/test_forced_browsing.py` — the 20-path dictionary includes `/admin`, `/console`, `/.git/config`, `/.env`, `/.env.local`, `/swagger`, `/swagger.json`, `/api-docs`, `/openapi.json`, `/wp-admin/`, `/phpmyadmin/`, `/actuator`, `/debug/pprof`, `/metrics`. Same classifier as #13. | – |
 | 34 | Directory listing / debug mode in production | ❌ Missing | No probe of CloudFront for directory indices, or of API for debug endpoints (`/debug`, `?debug=1`). | Small (~30 min) |
 | 35 | Misconfigured CORS | ✅ Covered | Block B: `headers/test_cors.py` (route × attacker_origin parametrize). Sends OPTIONS preflights with `Origin: https://evil.com`, `Origin: null`, and `Origin: file://` against 5 representative API routes (15 cells). FAIL HIGH if `Access-Control-Allow-Origin: *` + `Allow-Credentials: true`, or if ACAO echoes the attacker origin back. PASS on no ACAO / fixed-allowed-origin / wildcard-without-credentials. | – |
 | 36 | Vulnerable / outdated dependencies | ⚪ Out of scope | GitHub Dependabot is on (we saw the warning on push: 1 critical, 5 moderate). Pin SCA there. The harness doesn't replicate this. | Note in report |
 | 37 | Dependency confusion | ⚪ Out of scope | Best handled in build pipeline + private registry config, not runtime probe. | – |
 | 38 | Typosquatting | ⚪ Out of scope | Static analysis of `package.json` / `requirements.txt`. Tools like Socket.dev. | – |
 
-**Section totals:** 4 covered · 1 partial · 2 missing · 3 out-of-scope  *(post-Block-B)*
+**Section totals:** 5 covered · 1 partial · 1 missing · 3 out-of-scope  *(post-Block-C)*
 
 ---
 
@@ -120,7 +120,7 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 
 | # | Item | Status | Where / Gap | Effort to close |
 |---|---|---|---|---|
-| 48 | Broken Object-Level Authorization (BOLA) | 🟡 Partial | Same as IDOR (#11). Cross-persona tests cover class-level; per-object IDOR not covered. | See #11 |
+| 48 | Broken Object-Level Authorization (BOLA) | ✅ Covered | Block C: same surface as IDOR (#11). `auth/test_idor.py` covers per-object cross-persona reads and deletes on `/conversations/{session_id}`. | – |
 | 49 | Mass assignment | 🟡 Partial | Block A: `fuzz/corpus/mass_assignment.json` (6 entries: is_admin, persona, cognito:groups, role, user_id, approved) injected as the primary writable field's value on every route. Multi-key body extension (extra top-level keys in the same JSON body) is documented future enhancement — see notes/mass-assignment-extra-keys.md. | Small (~1 hr) — extend test_api_routes.py to inject the corpus as top-level keys instead of values |
 | 50 | Excessive data exposure | 🟡 Partial | Stack-trace check catches obvious leaks. No probe that walks each endpoint and asserts the response shape doesn't include `password_hash`, `secret`, `email` to non-owner. | Small-medium (~2 hr) — `fuzz/test_field_exposure.py` |
 | 51 | Lack of rate limiting / resource consumption | ❌ Missing | No probe that fires N requests/sec at any endpoint and asserts a 429 response after K. AgentCore runtime + APIGW have implicit limits we never verify. | Small (~1 hr) — `dos/test_rate_limit.py` |
@@ -129,7 +129,7 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 | 54 | GraphQL-specific abuse | ⚪ Out of scope | ARBITER doesn't expose GraphQL. | – |
 | 55 | Cross-Site Request Forgery (CSRF) | ✅ Covered | Block B: `headers/test_csrf.py`. For every POST / PUT / PATCH / DELETE route in the manifest, fire the request with NO `Authorization:` header but WITH a fake `Cookie: arbiter.tokens=...`. Expected: 401 / 403. FAIL HIGH if the API returns 2xx — that would mean a cookie-based auth fallback exists, exposing the surface to classic CSRF. | – |
 
-**Section totals:** 2 covered · 3 partial · 2 missing · 1 out-of-scope  *(post-Block-B)*
+**Section totals:** 3 covered · 2 partial · 2 missing · 1 out-of-scope  *(post-Block-C)*
 
 ---
 
@@ -206,23 +206,24 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 | Category | Covered | Partial | Missing | Out of scope | Total |
 |---|---:|---:|---:|---:|---:|
 | 1. Injection | 10 | 0 | 0 | 0 | 10 |
-| 2. AuthN / AuthZ | 5 | 3 | 2 | 2 | 12 |
+| 2. AuthN / AuthZ | 9 | 1 | 0 | 2 | 12 |
 | 3. Crypto & data | 2 | 0 | 3 | 1 | 6 |
-| 4. Config / infra | 4 | 1 | 2 | 3 | 10 |
+| 4. Config / infra | 5 | 1 | 1 | 3 | 10 |
 | 5. Build / supply chain | 0 | 1 | 1 | 2 | 4 |
 | 6. Errors & state | 0 | 1 | 4 | 0 | 5 |
-| 7. API Top-10 | 2 | 3 | 2 | 1 | 8 |
+| 7. API Top-10 | 3 | 2 | 2 | 1 | 8 |
 | 8. Client-side | 3 | 0 | 2 | 0 | 5 |
 | 9. Logic / workflow | 0 | 0 | 1 | 2 | 3 |
 | 10. DoS | 0 | 2 | 0 | 1 | 3 |
 | 11. Logging / monitoring | 0 | 1 | 2 | 3 | 6 |
 | 12. LLM Top-10 | 4 | 0 | 1 | 2 | 7 |
-| **Totals** | **30** | **12** | **20** | **17** | **79** |
+| **Totals** | **36** | **9** | **17** | **17** | **79** |
 
-**Coverage post-Block-B: 30/79 fully (38%), 42/79 at least partial (53%), 17/79 out of scope (22%).**
+**Coverage post-Block-C: 36/79 fully (46%), 45/79 at least partial (57%), 17/79 out of scope (22%).**
 
 Block A delta: +10 fully covered, +1 partial (mass assignment + log injection re-classified), −11 missing.
 Block B delta: +6 fully covered (items 23, 24, 31, 35, 55, 56), −3 partial (items 23, 55 → covered; item 41 stays partial — bundle/SRI scan still scheduled for Block D), −3 missing (items 24, 31, 35 + 56).
+Block C delta: +6 fully covered (items 11, 13, 17, 19, 21, 33, 48), +1 partial (item 18 — config-audit only), −2 partial (items 11, 13, 48 → covered), −3 missing (items 17, 19, 21).
 
 The 17 out-of-scope items are real items on the checklist — they just need different tools (SCA, AWS config audit, IR runbook review, CI hardening), not this runtime harness. They should be addressed and recorded as "covered by other controls" rather than ignored.
 
@@ -278,18 +279,23 @@ guards against an accidental allow-list. Manifest also gained the
 `master.paloalto_lookup` + `master.jira_lookup` tools (drift checker is
 green: 16 pages / 26 routes / 14 tools).
 
-## Block C — Auth gaps (~1 day)
+## Block C — Auth gaps ✅ Done (2026-06-10)
 
-Targeted additions to the existing auth layer.
+Targeted additions to the existing auth layer. Landed 2026-06-10.
+Coverage moved 38% → 46% (or 53% → 57% counting partials).
 
-| Item | Test |
-|---|---|
-| IDOR / BOLA | `auth/test_idor.py` (per-object cross-persona reads) |
-| Forced browsing | `auth/test_forced_browsing.py` (admin path dictionary) |
-| Credential stuffing | `auth/test_brute_force.py` |
-| Session fixation | `auth/test_session_swap.py` |
-| Insecure password reset | `auth/test_password_reset.py` |
-| Pool config | `auth/test_pool_config.py` (verifies MinimumLength, RequireUppercase, etc.) |
+| Item | Test | Status |
+|---|---|---|
+| IDOR / BOLA | `auth/test_idor.py` (CISO creates a session via POST /chat; SOC/GRC/Employee each attempt GET + DELETE on the same `session_id`. 6 probes.) | ✅ |
+| Forced browsing | `auth/test_forced_browsing.py` (20-path dictionary, unauthenticated; `/.well-known/security.txt` special-cased) | ✅ |
+| Credential stuffing | `auth/test_brute_force.py` (10 rapid InitiateAuth calls against a synthetic non-existent username; PASS on throttle within window) | ✅ |
+| Session fixation | `auth/test_session_swap.py` (cross-persona session_id reuse + stale-token-after-logout — the latter recorded as documented_unsafe per AC11) | ✅ |
+| Insecure password reset | `auth/test_password_reset.py` (enumeration: known vs unknown username; rate-limit: 5 rapid ForgotPassword calls) | ✅ |
+| Pool config | `auth/test_pool_config.py` (8 assertions via `describe_user_pool`: MinimumLength ≥ 12, RequireUppercase/Lowercase/Numbers/Symbols, TempPasswordValidityDays ≤ 7, AccountRecoverySetting, AdminCreateOnly) | ✅ |
+
+Wiring: new unit tests in `tests/test_auth_abuse_infrastructure.py` enforce the
+classifier rules, test-id canonical strings, wordlist shape, and pool-config
+assertion ladder.
 
 ## Block D — Bundle / client-side scan (~half day)
 
@@ -381,4 +387,4 @@ If we run the same daily harness cadence and each "Block" above is one focused b
 
 After every block, the compliance matrix in this document gets updated and the daily PDF report shows the new percentages.
 
-*Last updated: 2026-06-10 (post-Block-B). Refresh this doc after every block lands.*
+*Last updated: 2026-06-10 (post-Block-C). Refresh this doc after every block lands.*
