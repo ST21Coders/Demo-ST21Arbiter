@@ -93,9 +93,30 @@ def _families_for_route(route: dict) -> list[str]:
     auth_required = bool(route.get("auth_required"))
     chosen: list[str] = []
     # XSS / SQLi / command-injection / null-bytes go on any route that
-    # accepts user-supplied input in body or query string.
+    # accepts user-supplied input in body or query string. Block A added
+    # NoSQL operators, LDAP/XPath filter injection, XML/XXE, SSTI,
+    # log-injection, SSRF, mass-assignment, prototype-pollution, and
+    # open-redirect families — all land in the same primary-field slot as
+    # the existing injection families, so they share the same enumeration.
     if method in ("POST", "PUT", "PATCH") or method == "GET":
-        chosen.extend(["xss", "sqli", "command_injection", "null_bytes_and_control"])
+        chosen.extend(
+            [
+                "xss",
+                "sqli",
+                "command_injection",
+                "null_bytes_and_control",
+                "nosql_operators",
+                "ldap",
+                "xpath",
+                "xml_xxe",
+                "ssti",
+                "log_injection",
+                "ssrf",
+                "mass_assignment",
+                "prototype_pollution",
+                "open_redirects",
+            ]
+        )
     # Path-traversal only makes sense if the route has a path parameter.
     if route_has_path_param(path):
         chosen.append("path_traversal")

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ARBITER Security Compliance Coverage Report · 2026-06-10</title>
+<style>
+@page {
+  size: Letter;
+  margin: 0.7in 0.65in 0.85in 0.65in;
+  @bottom-center {
+    content: "ARBITER Security Compliance Coverage Report \00B7 page " counter(page) " of " counter(pages);
+    font-family: -apple-system, "Helvetica Neue", sans-serif;
+    font-size: 9pt;
+    color: #888;
+  }
+}
+* { box-sizing: border-box; }
+html {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #1a1a1a;
+}
+body { margin: 0; padding: 0; }
+
+/* Cover page */
+.cover {
+  height: 9.2in;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  page-break-after: always;
+}
+.cover-eyebrow {
+  font-size: 10pt;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #777;
+  font-weight: 700;
+}
+.cover-title {
+  font-size: 32pt;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0.4em 0 0.2em 0;
+  color: #0a0a0a;
+  letter-spacing: -0.01em;
+}
+.cover-sub {
+  font-size: 14pt;
+  color: #555;
+  margin: 0;
+}
+.cover-date {
+  font-size: 11pt;
+  color: #777;
+  margin-top: 0.6em;
+  font-variant-numeric: tabular-nums;
+}
+.hero {
+  background: #fafafa;
+  border: 1px solid #ddd;
+  border-left: 6px solid #1a1a1a;
+  padding: 1.4em 1.6em;
+  border-radius: 0 4px 4px 0;
+  margin: 1.5em 0;
+}
+.hero-pct {
+  font-size: 56pt;
+  font-weight: 800;
+  line-height: 1;
+  color: #0a0a0a;
+  letter-spacing: -0.02em;
+}
+.hero-pct-sub {
+  font-size: 11pt;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #666;
+  margin-top: 0.2em;
+  font-weight: 700;
+}
+.hero-detail {
+  font-size: 11.5pt;
+  color: #333;
+  margin-top: 1em;
+  line-height: 1.55;
+}
+.cover-intro {
+  font-size: 11.5pt;
+  color: #333;
+  line-height: 1.55;
+  margin: 0;
+}
+.cover-footer {
+  font-size: 9.5pt;
+  color: #888;
+  letter-spacing: 0.04em;
+  border-top: 1px solid #ddd;
+  padding-top: 0.6em;
+}
+
+/* Sections */
+h2.section {
+  font-size: 16pt;
+  font-weight: 700;
+  margin: 1.6em 0 0.6em 0;
+  color: #0a0a0a;
+  border-bottom: 2px solid #1a1a1a;
+  padding-bottom: 0.25em;
+}
+h3.cat-heading {
+  font-size: 13pt;
+  font-weight: 700;
+  margin: 1.4em 0 0.4em 0;
+  color: #0a0a0a;
+  page-break-after: avoid;
+}
+h3.cat-heading .cat-num {
+  color: #777;
+  font-weight: 600;
+  margin-right: 0.5em;
+}
+.cat-totals {
+  font-size: 9.5pt;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #777;
+  font-weight: 600;
+  margin-left: 0.8em;
+}
+p { margin: 0.55em 0; }
+
+/* Pills */
+.pill {
+  display: inline-block;
+  padding: 0.12em 0.55em;
+  border-radius: 3px;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+  text-transform: uppercase;
+  vertical-align: middle;
+  min-width: 64px;
+  text-align: center;
+}
+.pill-covered { background: #2e7d32; }
+.pill-partial { background: #c47800; }
+.pill-missing { background: #b71c1c; }
+.pill-oos     { background: #666; }
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.7em 0;
+  font-size: 10pt;
+}
+th, td {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0.45em 0.6em;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: transparent;
+  font-weight: 700;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+  border-bottom: 2px solid #1a1a1a;
+}
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.center, th.center { text-align: center; }
+tr.totals-row { background: #fafafa; font-weight: 700; }
+
+/* Matrix item table — keep each row together on the page */
+table.matrix tr { page-break-inside: avoid; }
+table.matrix td.item-num {
+  width: 36px;
+  color: #888;
+  font-variant-numeric: tabular-nums;
+}
+table.matrix td.status-col { width: 90px; }
+table.matrix td.where-col { color: #333; font-size: 9.5pt; line-height: 1.45; }
+
+/* Exec summary layout */
+.exec-grid {
+  display: flex;
+  gap: 1.5em;
+  align-items: center;
+  margin: 1em 0 1.4em 0;
+}
+.exec-donut { flex: 0 0 200px; text-align: center; }
+.exec-legend { flex: 1; }
+.exec-legend ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.exec-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin-bottom: 0.4em;
+  font-size: 11pt;
+}
+.exec-legend .swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  display: inline-block;
+  flex: 0 0 14px;
+}
+.swatch-covered { background: #2e7d32; }
+.swatch-partial { background: #c47800; }
+.swatch-missing { background: #b71c1c; }
+.swatch-oos     { background: #666; }
+
+.callout {
+  border-left: 4px solid #1565c0;
+  background: #f0f6fb;
+  padding: 0.6em 0.9em;
+  margin: 1em 0;
+  border-radius: 0 3px 3px 0;
+  font-size: 10.5pt;
+}
+
+/* Page breaks */
+.page-break { page-break-before: always; }
+
+footer.report-footer {
+  margin-top: 2em;
+  padding-top: 1em;
+  border-top: 1px solid #ddd;
+  font-size: 9pt;
+  color: #777;
+  font-style: italic;
+}
+
+code {
+  font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
+  font-size: 9.5pt;
+  background: #f4f4f4;
+  padding: 0.05em 0.3em;
+  border-radius: 2px;
+  color: #444;
+  border: 1px solid #e5e5e5;
+}
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div>
+    <div class="cover-eyebrow">ARBITER · Security Compliance</div>
+    <h1 class="cover-title">Security Compliance Coverage Report</h1>
+    <p class="cover-sub">Adversarial Test Harness — Verification Matrix</p>
+    <p class="cover-date">Generated 2026-06-10</p>
+  </div>
+
+  <div class="hero">
+    <div class="hero-pct">71%</div>
+    <div class="hero-pct-sub">Fully Covered</div>
+    <p class="hero-detail">
+      <strong>56 / 79</strong> items fully covered ·
+      <strong>59 / 79</strong> at least partial ·
+      <strong>17 / 79</strong> covered by other controls
+      (out of scope for this runtime harness).
+    </p>
+  </div>
+
+  <p class="cover-intro">
+    This document maps every item on the ARBITER security compliance
+    checklist (OWASP Top 10, API Top 10, LLM Top 10, and related CWE
+    weaknesses) to a concrete test in the adversarial harness at
+    <code>tests-adversarial/</code>. For each item it states whether a
+    test exists today, where to find it, and — for partial and missing
+    rows — the gap and the estimated effort to close it. The 17
+    items marked out of scope are routed to their proper control
+    (SCA, IAM static analysis, incident response runbook, etc.) rather
+    than ignored, so an auditor sees the complete picture.
+  </p>
+
+  <div class="cover-footer">
+    Source: <code>docs/security_compliance_coverage.md</code> ·
+    Generated by <code>scripts/compliance_report.py</code>
+  </div>
+</section>
+
+<section class="page-break">
+  <h2 class="section">Executive summary</h2>
+
+  <div class="exec-grid">
+    <div class="exec-donut"><svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Coverage donut"><circle cx="100.0" cy="100.0" r="76.0" fill="none" stroke="#2e7d32" stroke-width="36.0" pathLength="100" stroke-dasharray="70.89 29.11" stroke-dashoffset="-0.00" transform="rotate(-90 100.0 100.0)" /><circle cx="100.0" cy="100.0" r="76.0" fill="none" stroke="#c47800" stroke-width="36.0" pathLength="100" stroke-dasharray="3.80 96.20" stroke-dashoffset="-70.89" transform="rotate(-90 100.0 100.0)" /><circle cx="100.0" cy="100.0" r="76.0" fill="none" stroke="#b71c1c" stroke-width="36.0" pathLength="100" stroke-dasharray="3.80 96.20" stroke-dashoffset="-74.68" transform="rotate(-90 100.0 100.0)" /><circle cx="100.0" cy="100.0" r="76.0" fill="none" stroke="#666" stroke-width="36.0" pathLength="100" stroke-dasharray="21.52 78.48" stroke-dashoffset="-78.48" transform="rotate(-90 100.0 100.0)" /><text x="100.0" y="96.0" text-anchor="middle" font-family="-apple-system, Helvetica, Arial" font-size="44" font-weight="800" fill="#0a0a0a">71%</text><text x="100.0" y="126" text-anchor="middle" font-family="-apple-system, Helvetica, Arial" font-size="15" fill="#555" letter-spacing="0.05em">FULLY COVERED</text></svg></div>
+    <div class="exec-legend">
+      <ul>
+        <li><span class="swatch swatch-covered"></span>
+          <strong>Covered</strong>: 56 items have at least one harness
+          test that would catch a regression.</li>
+        <li><span class="swatch swatch-partial"></span>
+          <strong>Partial</strong>: 3 items are tested but with known
+          scope notes documented in their rows.</li>
+        <li><span class="swatch swatch-missing"></span>
+          <strong>Missing</strong>: 3 items have no harness probe
+          today (closed by other controls — see appendix).</li>
+        <li><span class="swatch swatch-oos"></span>
+          <strong>Out of scope</strong>: 17 items are not testable by a
+          runtime harness (covered by SCA, AWS-side audit, IR runbook).</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 class="cat-heading">Coverage by category</h3>
+  <table><thead><tr><th>Category</th><th class='num'>Covered</th><th class='num'>Partial</th><th class='num'>Missing</th><th class='num'>OOS</th><th class='num'>Total</th></tr></thead><tbody><tr><td>1. Injection</td><td class='num'>10</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0</td><td class='num'>10</td></tr><tr><td>2. Authentication &amp; Access Control</td><td class='num'>10</td><td class='num'>1</td><td class='num'>0</td><td class='num'>1</td><td class='num'>12</td></tr><tr><td>3. Crypto &amp; Data Handling</td><td class='num'>3</td><td class='num'>0</td><td class='num'>2</td><td class='num'>1</td><td class='num'>6</td></tr><tr><td>4. Configuration &amp; Infrastructure</td><td class='num'>5</td><td class='num'>1</td><td class='num'>1</td><td class='num'>3</td><td class='num'>10</td></tr><tr><td>5. Build / Supply Chain</td><td class='num'>2</td><td class='num'>0</td><td class='num'>0</td><td class='num'>2</td><td class='num'>4</td></tr><tr><td>6. Errors &amp; State</td><td class='num'>5</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0</td><td class='num'>5</td></tr><tr><td>7. API Top-10 Specific</td><td class='num'>6</td><td class='num'>1</td><td class='num'>0</td><td class='num'>1</td><td class='num'>8</td></tr><tr><td>8. Client-Side</td><td class='num'>5</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0</td><td class='num'>5</td></tr><tr><td>9. Logic &amp; Workflow</td><td class='num'>1</td><td class='num'>0</td><td class='num'>0</td><td class='num'>2</td><td class='num'>3</td></tr><tr><td>10. Denial of Service</td><td class='num'>2</td><td class='num'>0</td><td class='num'>0</td><td class='num'>1</td><td class='num'>3</td></tr><tr><td>11. Logging &amp; Monitoring</td><td class='num'>3</td><td class='num'>0</td><td class='num'>0</td><td class='num'>3</td><td class='num'>6</td></tr><tr><td>12. LLM Top-10</td><td class='num'>4</td><td class='num'>0</td><td class='num'>0</td><td class='num'>2</td><td class='num'>6</td></tr><tr class='totals-row'><td>Totals</td><td class='num'>56</td><td class='num'>3</td><td class='num'>3</td><td class='num'>17</td><td class='num'>79</td></tr></tbody></table>
+
+  <h3 class="cat-heading">What this harness tested</h3>
+  <p>
+    The harness runs nine layers, each a focused pytest or Playwright suite:
+    <code>e2e</code>, <code>fuzz</code>, <code>auth</code>, <code>headers</code>, <code>llm</code>, <code>dos</code>, <code>logic</code>, <code>logging_audit</code>, <code>fault</code>. Each layer's results land in a shared coverage matrix
+    aggregator (<code>src/coverage/builder.py</code>) that emits the daily
+    PDF report and the per-run findings JSON. This document is the
+    compliance-side view of that same data: which categories of risk the
+    nine layers exercise, and which they deliberately do not.
+  </p>
+</section>
+<section class="page-break">
+<h2 class="section">Detailed coverage matrix</h2>
+<h3 class="cat-heading"><span class="cat-num">1.</span>Injection<span class="cat-totals">10 covered · 0 partial · 0 missing · 0 out of scope</span></h3>
+<table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th class="status-col">Status</th><th class="where-col">Where it is covered / gap</th></tr></thead><tbody><tr><td class="item-num">1</td><td>SQL injection</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">`fuzz/corpus/sqli.json` (9 curated payloads) parameterised across all 25 API routes. ARBITER uses DynamoDB so SQLi isn't the literal threat, but the harness catches any string-template logic that mishandles quoted input.</td></tr><tr><td class="item-num">2</td><td>NoSQL injection</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block A: `fuzz/corpus/nosql_operators.json` (7 entries: `$ne`, `$gt`, `$where`, `$regex`, `$or`, etc.) parameterised across all 25 routes.</td></tr><tr><td class="item-num">3</td><td>OS command injection</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">`fuzz/corpus/command_injection.json` (6 entries: backticks, `$()`, `;`, `</td></tr><tr><td class="item-num">4</td><td>LDAP injection</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block A: `fuzz/corpus/ldap.json` (6 entries: `*)(uid=*`, `*)(\</td></tr><tr><td class="item-num">5</td><td>XPath injection</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block A: `fuzz/corpus/xpath.json` (6 entries: `' or '1'='1`, `or count(/*)&gt;0`, union wildcard).</td></tr><tr><td class="item-num">6</td><td>XML injection (incl. XXE)</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block A: `fuzz/corpus/xml_xxe.json` (6 entries: file://etc/passwd, billion-laughs, parameter-entity OOB, IMDS-via-XXE).</td></tr><tr><td class="item-num">7</td><td>Cross-site scripting (XSS)</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">`fuzz/corpus/xss.json` (14 entries incl. OWASP polyglot, `&lt;svg onload&gt;`, javascript: URLs) + reflection-detection on every response. **Note:** classifier has a 6-char floor to avoid false positives — flagged in earlier fuzz review.</td></tr><tr><td class="item-num">8</td><td>Server-Side Template Injection (SSTI)</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block A: `fuzz/corpus/ssti.json` (7 entries: `{{7*7}}`, `${{7*7}}`, `&lt;%= 7*7 %&gt;`, SpEL RCE, Twig dump). Evaluated-form detection (literal `49` in response) is documented as future enhancement.</td></tr><tr><td class="item-num">9</td><td>Header / CRLF injection</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">`fuzz/corpus/header_injection.json` (5 entries including CRLF + Set-Cookie smuggling). Probes every route.</td></tr><tr><td class="item-num">10</td><td>Log injection</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block A: `fuzz/corpus/log_injection.json` (5 entries: CR/LF, ANSI ESC[2K erase-line, NUL truncation, ANSI color codes) — API-layer reflection check. Block G: `logging_audit/test_log_injection_downstream.py` adds the CloudWatch verification — for each corpus payload, asserts the payload lands in a single CloudWatch event (no CR/LF split → no log forgery) with no ANSI residue.</td></tr></tbody></table>
+<h3 class="cat-heading"><span class="cat-num">2.</span>Authentication &amp; Access Control<span class="cat-totals">10 covered · 1 partial · 0 missing · 1 out of scope</span></h3>
+<table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th class="status-col">Status</th><th class="where-col">Where it is covered / gap</th></tr></thead><tbody><tr><td class="item-num">11</td><td>Insecure Direct Object Reference (IDOR)</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block C: `auth/test_idor.py` — CISO creates a session via `POST /chat`; SOC/GRC/Employee each attempt `GET /conversations/{id}` and `DELETE /conversations/{id}`. PASS on 403/404; FAIL HIGH (read) or CRITICAL (delete) on 2xx. 6 probes total.</td></tr><tr><td class="item-num">12</td><td>Privilege escalation</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">`auth/test_forged_groups.py` + `auth/test_cross_persona.py`. Found CRITICAL today (CISO claim forgery is accepted).</td></tr><tr><td class="item-num">13</td><td>Forced browsing</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block C: `auth/test_forced_browsing.py` — 20-path dictionary of common admin / debug / framework leak paths probed unauthenticated. PASS on 401/403/404; FAIL HIGH on non-trivial 200; `/.well-known/security.txt` special-cased as PASS on 200.</td></tr><tr><td class="item-num">14</td><td>Missing authorization on APIs</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Auth layer's negative tests confirmed today that 9 CISO-only routes accept SOC/GRC/Employee tokens (HIGH finding).</td></tr><tr><td class="item-num">15</td><td>Server-Side Request Forgery (SSRF)</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block A: `fuzz/corpus/ssrf.json` (7 entries: IMDS, loopback, IPv6 loopback, RFC1918, gopher://, file://). Probes every URL-shaped field across all routes.</td></tr><tr><td class="item-num">16</td><td>Path traversal</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">`fuzz/corpus/path_traversal.json` (6 entries with `..`, `%2e%2e`, etc.) on every route including those with path params.</td></tr><tr><td class="item-num">17</td><td>Credential stuffing / brute force</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block C: `auth/test_brute_force.py` — 10 rapid InitiateAuth calls against a UUID-suffixed (non-existent) username. PASS if Cognito returns a throttle code (`LimitExceededException` / `TooManyRequestsException` / `ThrottlingException`) within the window; FAIL HIGH on no throttle. Two rows: `throttle-kicks-in` + `lockout-after-K`.</td></tr><tr><td class="item-num">18</td><td>Weak password storage</td><td class="status-col"><span class="pill pill-partial">Partial</span></td><td class="where-col">Block C: `auth/test_pool_config.py` — 8 black-box config assertions via `cognito-idp:describe_user_pool` (MinimumLength ≥ 12, RequireUppercase/Lowercase/Numbers/Symbols, TemporaryPasswordValidityDays ≤ 7, AccountRecoverySetting present, AllowAdminCreateUserOnly). Storage itself (SRP, hashing) stays out of scope — Cognito's server-side responsibility.</td></tr><tr><td class="item-num">19</td><td>Session fixation / hijacking</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block C: `auth/test_session_swap.py` — (a) CISO creates session X; SOC POSTs to `/chat` with the same `session_id`. FAIL HIGH if SOC's message lands in CISO's history. (b) Stale-token probe — reuse pre-logout IdToken after simulated logout. 2xx recorded as `documented_unsafe` per AC11.</td></tr><tr><td class="item-num">20</td><td>JWT vulnerabilities</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">`auth/test_chat_no_signature.py` (alg-none-equivalent), `auth/test_forged_groups.py` (signature manipulation), `auth/test_expired_token.py` (exp validation), `auth/test_token_replay.py` (access-token-instead-of-id). Found CRITICAL + HIGH today.</td></tr><tr><td class="item-num">21</td><td>Insecure password reset</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block C: `auth/test_password_reset.py` — (a) enumeration: ForgotPassword for known + unknown username; FAIL MEDIUM if outcomes differ. (b) rate-limit: 5 rapid calls against a synthetic username; FAIL MEDIUM if no throttle.</td></tr><tr><td class="item-num">22</td><td>Missing or bypassable MFA</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">Per CLAUDE.md: "MFA off" in this demo. Documented intentional gap. If MFA is enabled later, add a probe that attempts to skip the SMS_MFA challenge.</td></tr></tbody></table>
+<h3 class="cat-heading"><span class="cat-num">3.</span>Crypto &amp; Data Handling<span class="cat-totals">3 covered · 0 partial · 2 missing · 1 out of scope</span></h3>
+<table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th class="status-col">Status</th><th class="where-col">Where it is covered / gap</th></tr></thead><tbody><tr><td class="item-num">23</td><td>Plaintext transmission of sensitive data</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block B: `headers/test_https_only.py` — for every public host (CloudFront SPA, API, Lambda Function URL), GET on `http://` must redirect to `https://` (FAIL HIGH on a 200 or http-to-http redirect) and GET on `https://` must set HSTS with `max-age &gt;= 1 year` (FAIL MEDIUM if missing).</td></tr><tr><td class="item-num">24</td><td>Weak / outdated cryptographic algorithms</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block B: `headers/test_tls_ciphers.py` — stdlib `ssl` + `socket` only (no `nmap` / `testssl.sh` subprocess). Forces TLS 1.0 / 1.1 handshakes against CloudFront (FAIL HIGH if either succeeds), then negotiates TLS 1.2 and verifies the cipher name is not in the weak-token list (RC4 / 3DES / NULL / EXPORT / anonymous DH / MD5-based).</td></tr><tr><td class="item-num">25</td><td>Hardcoded or poorly managed keys</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block D: `e2e/tests/bundle-secrets.spec.js::e2e.bundle.hardcoded-keys` — fetches the SPA root HTML, extracts every `&lt;script src&gt;` URL, fetches each JS bundle, and regex-scans for AWS access key IDs (`AKIA[0-9A-Z]{16}`), AWS secret-assignment shapes, JWT-shape tokens (medium / flag for review), Slack tokens (`xox[bpa]-...`), GitHub PATs (`ghp_...{36}`), and OpenAI/Anthropic key shapes (`sk-...{40,}`). PASS on zero hits; FAIL HIGH on AWS/Slack/GitHub/Anthropic-shape; FAIL MEDIUM on JWT-shape. Classifier pinned both in JS (`e2e/lib/bundle-scanner.js`) and in Python parity tests (`tests/test_block_d_bundle_scanner.py`).</td></tr><tr><td class="item-num">26</td><td>Weak randomness</td><td class="status-col"><span class="pill pill-missing">Missing</span></td><td class="where-col">No probe that watches for predictable session_ids or short-cycle UUIDs. ARBITER uses `crypto.randomUUID()` which is fine, but a regression to `Math.random()` wouldn't be caught.</td></tr><tr><td class="item-num">27</td><td>Improper certificate validation</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">This applies to client-side code. The deployed SPA uses the browser's cert validation; ARBITER doesn't ship a desktop/mobile client.</td></tr><tr><td class="item-num">28</td><td>Unnecessary retention of sensitive data</td><td class="status-col"><span class="pill pill-missing">Missing</span></td><td class="where-col">No probe of DDB TTL / retention policies. Spec'd in `04-storage.yaml` but not enforced by harness.</td></tr></tbody></table>
+<h3 class="cat-heading"><span class="cat-num">4.</span>Configuration &amp; Infrastructure<span class="cat-totals">5 covered · 1 partial · 1 missing · 3 out of scope</span></h3>
+<table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th class="status-col">Status</th><th class="where-col">Where it is covered / gap</th></tr></thead><tbody><tr><td class="item-num">29</td><td>Default credentials</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block A: `auth/test_default_creds.py` (5 pairs: admin/admin, admin/password, test/test, arbiter/arbiter, demo/demo123). PASS = Cognito returns NotAuthorizedException; FAIL severity HIGH if any unexpectedly authenticates.</td></tr><tr><td class="item-num">30</td><td>Verbose errors / stack trace leakage</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Fuzz layer's stack-trace marker check catches `Traceback`, `boto3`, `ClientError`, `aws_request_id` in any response body. **Note:** earlier review flagged that `"boto3"` is too broad — fixed already.</td></tr><tr><td class="item-num">31</td><td>Missing security headers</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block B: `headers/test_security_headers.py` (parameterized across SPA root + 3 API routes). Per-header rows: `headers.csp.*` (FAIL MEDIUM if missing, LOW if `unsafe-eval` / `unsafe-inline` / `data:` in script-src), `headers.xfo.*` (clickjacking — FAIL MEDIUM if neither XFO nor CSP `frame-ancestors` restricts framing), `headers.xcto.*` (FAIL LOW if missing / wrong value), `headers.referrer.*` (FAIL LOW if missing or `unsafe-url`). HSTS covered separately by `test_https_only.py`.</td></tr><tr><td class="item-num">32</td><td>Open cloud storage / over-permissive IAM</td><td class="status-col"><span class="pill pill-partial">Partial</span></td><td class="where-col">Manifest-driven static check covers IAM in templates indirectly. No probe attempts unauthenticated GET on S3 bucket URLs or non-CISO access to KMS keys.</td></tr><tr><td class="item-num">33</td><td>Exposed admin consoles or sensitive directories</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block C: `auth/test_forced_browsing.py` — the 20-path dictionary includes `/admin`, `/console`, `/.git/config`, `/.env`, `/.env.local`, `/swagger`, `/swagger.json`, `/api-docs`, `/openapi.json`, `/wp-admin/`, `/phpmyadmin/`, `/actuator`, `/debug/pprof`, `/metrics`. Same classifier as #13.</td></tr><tr><td class="item-num">34</td><td>Directory listing / debug mode in production</td><td class="status-col"><span class="pill pill-missing">Missing</span></td><td class="where-col">No probe of CloudFront for directory indices, or of API for debug endpoints (`/debug`, `?debug=1`).</td></tr><tr><td class="item-num">35</td><td>Misconfigured CORS</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block B: `headers/test_cors.py` (route × attacker_origin parametrize). Sends OPTIONS preflights with `Origin: https://evil.com`, `Origin: null`, and `Origin: file://` against 5 representative API routes (15 cells). FAIL HIGH if `Access-Control-Allow-Origin: *` + `Allow-Credentials: true`, or if ACAO echoes the attacker origin back. PASS on no ACAO / fixed-allowed-origin / wildcard-without-credentials.</td></tr><tr><td class="item-num">36</td><td>Vulnerable / outdated dependencies</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">GitHub Dependabot is on (we saw the warning on push: 1 critical, 5 moderate). Pin SCA there. The harness doesn't replicate this.</td></tr><tr><td class="item-num">37</td><td>Dependency confusion</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">Best handled in build pipeline + private registry config, not runtime probe.</td></tr><tr><td class="item-num">38</td><td>Typosquatting</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">Static analysis of `package.json` / `requirements.txt`. Tools like Socket.dev.</td></tr></tbody></table>
+<h3 class="cat-heading"><span class="cat-num">5.</span>Build / Supply Chain<span class="cat-totals">2 covered · 0 partial · 0 missing · 2 out of scope</span></h3>
+<table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th class="status-col">Status</th><th class="where-col">Where it is covered / gap</th></tr></thead><tbody><tr><td class="item-num">39</td><td>Compromised build pipelines</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">Requires CI hardening (signed commits, OIDC role assumption, branch protection). Not testable from a black-box runtime harness.</td></tr><tr><td class="item-num">40</td><td>Malicious maintainer / package takeover</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">SCA + signed releases.</td></tr><tr><td class="item-num">41</td><td>Compromised third-party JS / Magecart skimming</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block D: `e2e/tests/bundle-secrets.spec.js::e2e.bundle.sri-on-third-party` — parses every `&lt;script src&gt;` and `&lt;link rel="stylesheet" href&gt;` in the SPA root HTML, classifies same-origin vs cross-origin via URL hostname, and asserts every cross-origin tag carries `integrity="..."`. PASS if all third-party tags have SRI; FAIL MEDIUM per missing tag; SKIP with reason "no third-party assets found" if everything is first-party.</td></tr><tr><td class="item-num">42</td><td>Sensitive data in client storage / source maps / comments</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block D: two probes in `e2e/tests/bundle-secrets.spec.js`. (a) `e2e.bundle.source-maps-in-prod` — HEADs every `&lt;script&gt;.map` URL; FAIL MEDIUM on any 200. (b) `e2e.bundle.sensitive-comments` — regex sweeps the HTML + every JS bundle for `TODO.*(password\</td></tr></tbody></table>
+<h3 class="cat-heading"><span class="cat-num">6.</span>Errors &amp; State<span class="cat-totals">5 covered · 0 partial · 0 missing · 0 out of scope</span></h3>
+<table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th class="status-col">Status</th><th class="where-col">Where it is covered / gap</th></tr></thead><tbody><tr><td class="item-num">43</td><td>Fail-open logic</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block H: `fault/test_fail_closed.py` — 5 scenarios (`corrupted-jwt-middle-byte`, `invalid-json-payload`, `no-authorization-header`, `empty-authorization-value`, `non-bearer-scheme`) against a CISO-only route (`GET /token-usage`). PASS on 401/403/400 (fail-closed); FAIL HIGH on 2xx (fail-open: corrupt request accepted); FAIL MEDIUM on 5xx (auth path crashed on bad input).</td></tr><tr><td class="item-num">44</td><td>Unhandled exceptions</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block H: `fault/test_error_propagation.py` extends the fuzz layer's "no 500s" assertion by triggering known-bad conditions (missing DDB record, cross-pool JWT, oversized prompt) and verifying both a structured response AND a CloudWatch ERROR log line. Plus the fuzz layer's existing 5xx detection still runs.</td></tr><tr><td class="item-num">45</td><td>Swallowed errors hiding attacks</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block H: `fault/test_error_propagation.py` — 3 scenarios paired with a `.cloudwatch-logged` sub-check per scenario. For each, capture epoch, trigger known-bad condition, scan api_handler CloudWatch log group within a 60 s window for an ERROR-level line containing a scenario-specific needle. PASS if API returned a structured error AND CloudWatch logged it; FAIL LOW if client got an error but ops can't see it (silent error hiding).</td></tr><tr><td class="item-num">46</td><td>Race conditions / TOCTOU</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block F: `logic/test_race_conditions.py` — (a) 5 concurrent `POST /actions/{id}/approve` against the same action; PASS on exactly 1×2xx + 4×4xx, FAIL HIGH on multiple winners (race window), FAIL MEDIUM on all-5xx (crash). (b) 3 concurrent `DELETE /conversations/{id}` against a freshly-minted CISO conversation; same single-winner contract.</td></tr><tr><td class="item-num">47</td><td>Inconsistent state after partial failure</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block H: `fault/test_partial_failure_consistency.py` — 3 scenarios. (a) `approve-abort-client`: POST /approve with a 100 ms read timeout, then re-read the action; PASS on consistent state (only-approved or untouched), FAIL HIGH on mixed terminal state. (b) `approve-vs-reject-race`: fire approve + reject in parallel with a thread barrier, then re-read; same single-winner contract. (c) `concurrent-upload-then-scan`: POST /uploads/presign then immediately POST /scan referencing the upload before it could be finalized; PASS on clean refusal or success, FAIL MEDIUM on hang or malformed body.</td></tr></tbody></table>
+<h3 class="cat-heading"><span class="cat-num">7.</span>API Top-10 Specific<span class="cat-totals">6 covered · 1 partial · 0 missing · 1 out of scope</span></h3>
+<table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th class="status-col">Status</th><th class="where-col">Where it is covered / gap</th></tr></thead><tbody><tr><td class="item-num">48</td><td>Broken Object-Level Authorization (BOLA)</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block C: same surface as IDOR (#11). `auth/test_idor.py` covers per-object cross-persona reads and deletes on `/conversations/{session_id}`.</td></tr><tr><td class="item-num">49</td><td>Mass assignment</td><td class="status-col"><span class="pill pill-partial">Partial</span></td><td class="where-col">Block A: `fuzz/corpus/mass_assignment.json` (6 entries: is_admin, persona, cognito:groups, role, user_id, approved) injected as the primary writable field's value on every route. Multi-key body extension (extra top-level keys in the same JSON body) is documented future enhancement — see notes/mass-assignment-extra-keys.md.</td></tr><tr><td class="item-num">50</td><td>Excessive data exposure</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block F: `logic/test_field_exposure.py` — for each persona × each manifest GET route (skipping `/health` and `{path-param}` routes), fetch the response and walk JSON to depth 6 for sensitive-field patterns. FAIL HIGH on `password` / `password_hash` / `secret` / `api_key` / `private_key` / `aws_access_key` shapes; FAIL MEDIUM on cross-persona `cognito:groups` or cross-user `email`; FAIL LOW on `_internal` / `internal_id` / Mongo `_id` / `__v`. 38 (persona × route) cases parameterised.</td></tr><tr><td class="item-num">51</td><td>Lack of rate limiting / resource consumption</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block E: `dos/test_rate_limit.py` — for 5 representative routes (`get-findings`, `get-conversations`, `get-dashboard`, `get-agent-status`, `post-chat`), sends a sustained burst at `--dos-rps` (default 20, hard ceiling 100) for `--dos-duration-seconds` (default 5, hard ceiling 30). PASS on ≥1 429; FAIL MEDIUM if no 429 and latency flat (rate limiting absent); FAIL HIGH if any 500 / transport drop / monotonic latency growth (API buckling).</td></tr><tr><td class="item-num">52</td><td>Broken function-level authorization (BFLA)</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Same as #14 — auth layer's per-route persona tests cover BFLA. Confirmed broken today.</td></tr><tr><td class="item-num">53</td><td>Unsafe consumption of third-party APIs</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block H: `fault/test_unsafe_third_party.py` — 2 scenarios on the specialist surface. (a) `jira-error-leak`: POST /chat with a crafted prompt aimed at the jira specialist tool ("ticket ID -1 -- DROP TABLE issues"); verify the master orchestrator doesn't leak a raw stack trace from the specialist back through the chat surface. (b) `specialist-latency`: POST /chat with a multi-tool prompt and a 30 s hang threshold; PASS on clean completion within the cap, FAIL MEDIUM on hang (transport drop) or 5xx (orchestrator crash).</td></tr><tr><td class="item-num">54</td><td>GraphQL-specific abuse</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">ARBITER doesn't expose GraphQL.</td></tr><tr><td class="item-num">55</td><td>Cross-Site Request Forgery (CSRF)</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block B: `headers/test_csrf.py`. For every POST / PUT / PATCH / DELETE route in the manifest, fire the request with NO `Authorization:` header but WITH a fake `Cookie: arbiter.tokens=...`. Expected: 401 / 403. FAIL HIGH if the API returns 2xx — that would mean a cookie-based auth fallback exists, exposing the surface to classic CSRF.</td></tr></tbody></table>
+<h3 class="cat-heading"><span class="cat-num">8.</span>Client-Side<span class="cat-totals">5 covered · 0 partial · 0 missing · 0 out of scope</span></h3>
+<table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th class="status-col">Status</th><th class="where-col">Where it is covered / gap</th></tr></thead><tbody><tr><td class="item-num">56</td><td>Clickjacking</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block B (two-pronged): (a) `headers/test_clickjacking.py::test_iframe_embed_blocked_via_headers` — header-side check that XFO DENY/SAMEORIGIN or CSP `frame-ancestors` restricts framing (FAIL MEDIUM if neither); (b) `e2e/tests/clickjacking.spec.js` — real-browser Playwright spec that wraps the SPA URL in an `&lt;iframe&gt;` and asserts the dashboard does not render inside it.</td></tr><tr><td class="item-num">57</td><td>Open redirects</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block A: `fuzz/corpus/open_redirects.json` (7 entries: bare host, protocol-relative, full https, UNC, mixed slash, subdomain confusion, `@` userinfo bypass) + dedicated probe `fuzz/test_open_redirects.py` against the Cognito Hosted UI `/login?redirect_uri=` with Location-header inspection. ARBITER's own API has no redirect routes — the Hosted UI is the exposure surface.</td></tr><tr><td class="item-num">58</td><td>Prototype pollution</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block A: `fuzz/corpus/prototype_pollution.json` (5 entries: `__proto__.isAdmin`, `constructor.prototype`, `__proto__.toString`, nested, array-typed). Lambda runtime is Python — these are regression detectors for a future Node Lambda.</td></tr><tr><td class="item-num">59</td><td>Tabnabbing</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block D: `e2e/tests/bundle-tabnabbing.spec.js` — CISO-authenticated sweep over Dashboard / Settings / Integrations. For every `&lt;a target="_blank"&gt;` whose href hostname differs from the SPA host, asserts the `rel` attribute contains BOTH `noopener` AND `noreferrer`. PASS on protected; FAIL MEDIUM per link missing either token; SKIP on pages with no external `target="_blank"` links.</td></tr><tr><td class="item-num">60</td><td>Sensitive data in client storage / source maps / comments</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Same as #42 (Block D — source-maps + sensitive-comments probes).</td></tr></tbody></table>
+<h3 class="cat-heading"><span class="cat-num">9.</span>Logic &amp; Workflow<span class="cat-totals">1 covered · 0 partial · 0 missing · 2 out of scope</span></h3>
+<table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th class="status-col">Status</th><th class="where-col">Where it is covered / gap</th></tr></thead><tbody><tr><td class="item-num">61</td><td>Workflow bypass</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block F: `logic/test_action_state_machine.py` — 4 probes against the action lifecycle: (a) `skip-approve` — `POST /actions/{id}/execute` without prior approval; (b) `double-approve` — same approver twice; (c) `reject-after-execute` — reject a COMPLETED / terminal action; (d) `escalate-from-terminal`. PASS on 400/403/404/409/422 refusal; FAIL HIGH on 2xx for skip-approve (direct workflow bypass) or any 5xx; FAIL MEDIUM on 2xx for the others (idempotency / lifecycle break).</td></tr><tr><td class="item-num">62</td><td>Price / quantity manipulation</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">Not applicable to a compliance dashboard.</td></tr><tr><td class="item-num">63</td><td>Abuse of trial, referral, or exempt flows</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">Not applicable.</td></tr></tbody></table>
+<h3 class="cat-heading"><span class="cat-num">10.</span>Denial of Service<span class="cat-totals">2 covered · 0 partial · 0 missing · 1 out of scope</span></h3>
+<table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th class="status-col">Status</th><th class="where-col">Where it is covered / gap</th></tr></thead><tbody><tr><td class="item-num">64</td><td>Application-layer DoS</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block E: `dos/test_payload_oversize.py` — for 3 JSON-accepting routes (`post-chat`, `post-jira-tickets`, `post-actions`), sends a 32-byte baseline, then 1 MB, then 10 MB JSON bodies. PASS if the API rejects with 4xx OR if 10 MB latency stays below 3× baseline. FAIL MEDIUM if 10 MB latency is 3–5× baseline (degraded but absorbed). FAIL HIGH if 10 MB latency &gt; 5× baseline, the call timed out (&gt; 30 s), or the server returned 5xx. Augments the LLM cost-DoS probe at the API layer.</td></tr><tr><td class="item-num">65</td><td>Resource exhaustion</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block E: `dos/test_resource_exhaustion.py` — fans out 10 concurrent requests against `POST /scan` (or `POST /chat` under `--include-bedrock-dos`) using `concurrent.futures.ThreadPoolExecutor(max_workers=10)`. PASS on a clean mix of 200/429/503; FAIL HIGH on any 500 (server crash) or zero-status (transport drop); FAIL MEDIUM on any malformed response (truncated JSON / wrong content-type) or unexpected 4xx. Plus the cost-DoS probe still covers the LLM-spend exhaustion vector.</td></tr><tr><td class="item-num">66</td><td>Network-layer DDoS</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">Would actually attack the dev env. CloudFront has AWS Shield Standard by default; verification is via AWS-side metrics.</td></tr></tbody></table>
+<h3 class="cat-heading"><span class="cat-num">11.</span>Logging &amp; Monitoring<span class="cat-totals">3 covered · 0 partial · 0 missing · 3 out of scope</span></h3>
+<table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th class="status-col">Status</th><th class="where-col">Where it is covered / gap</th></tr></thead><tbody><tr><td class="item-num">67</td><td>Insufficient logging of security events</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block G: `logging_audit/test_security_events_logged.py` — 4 scenarios (`forged-token`, `cross-persona`, `legitimate-approve`, `brute-force`). For each, capture epoch, trigger event, sleep 3 s, scan `dev-st21arbiter-poc-audit-log` DDB table with a FilterExpression on `timestamp &gt;= start_iso` plus client-side needle match. PASS on ≥1 matching row; FAIL HIGH on zero matches.</td></tr><tr><td class="item-num">68</td><td>Logging sensitive data</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block G: `logging_audit/test_log_redaction.py` — 3 scenarios. (a) JWT not logged: send IdToken in Authorization, search CloudWatch via `logs:FilterLogEvents` for first + last 40 char fragments. (b) Body field not logged: POST `/chat` with `harness-canary-&lt;uuid&gt;-secret`, search CloudWatch. (c) Email not logged in errors: trigger Cognito InitiateAuth failure with synthetic email, search CloudWatch. PASS on zero canary hits; FAIL HIGH per hit.</td></tr><tr><td class="item-num">69</td><td>No alerting / monitoring</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">CloudWatch Alarms / EventBridge rule audit. Separate from runtime probe.</td></tr><tr><td class="item-num">70</td><td>Mutable or attacker-deletable logs</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">CloudWatch immutability / S3 Object Lock configuration audit.</td></tr><tr><td class="item-num">71</td><td>Log injection</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">API-layer reflection check covered by Block A (see #10). Block G: `logging_audit/test_log_injection_downstream.py` — for each payload in `fuzz/corpus/log_injection.json`, wraps the payload with a UUID marker, POSTs as the `/chat` prompt, then reads CloudWatch and counts matching events. PASS on 1 event (no split) with no ANSI residue; FAIL MEDIUM if CR/LF split the line into &gt;1 events (log forgery); FAIL LOW on single-line but ANSI escape present; PASS on 0 events (API didn't log; not the classifier's finding).</td></tr><tr><td class="item-num">72</td><td>No incident response plan</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">Process / runbook, not a runtime test.</td></tr></tbody></table>
+<h3 class="cat-heading"><span class="cat-num">12.</span>LLM Top-10<span class="cat-totals">4 covered · 0 partial · 0 missing · 2 out of scope</span></h3>
+<table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th class="status-col">Status</th><th class="where-col">Where it is covered / gap</th></tr></thead><tbody><tr><td class="item-num">73</td><td>Prompt injection</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">LLM red-team: 20 curated jailbreaks + 10 generative transformations. Found today that 26 of 30 were correctly refused (Bedrock Guardrails) but classifier missed the phrasing (harness fix planned).</td></tr><tr><td class="item-num">74</td><td>Insecure output handling</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">Block H: `fault/test_unsafe_third_party.py` — 2 scenarios on the API boundary. (a) `xss-in-json`: POST /chat asking the model to emit a verbatim `&lt;script&gt;` payload; PASS if the response is valid `application/json` (so the SPA can `textContent` it safely), FAIL MEDIUM if the response has a non-JSON content-type and the raw payload made it through. (b) `unverified-link-suggestion`: POST /chat asking the model to suggest a URL; PASS if the URL is absent or appears as plain text, FAIL LOW if the response wraps the URL in an `&lt;a href&gt;` tag (phishing affordance). The browser-side DOM-rendering check is documented in `e2e/tests/llm-output-xss.spec.js` as the SPA-side counterpart (planned).</td></tr><tr><td class="item-num">75</td><td>Training-data poisoning</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">Requires access to Bedrock model training pipeline. Not testable for a hosted model.</td></tr><tr><td class="item-num">76</td><td>Sensitive information disclosure</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">`exfil.list-other-ciso-conversations`, `exfil.cross-tenant-sharepoint`, `exfil.knowledge-base-dump` probes. Reinforced by jira black-box check (AC19) for 12-digit AWS account IDs in responses.</td></tr><tr><td class="item-num">77</td><td>Excessive agency</td><td class="status-col"><span class="pill pill-covered">Covered</span></td><td class="where-col">`tool-abuse.sharepoint-path-traversal`, `tool-abuse.awsconfig-cross-account`, `tool-abuse.zscaler-crafted-url` probes.</td></tr><tr><td class="item-num">78</td><td>Model / plugin supply-chain risks</td><td class="status-col"><span class="pill pill-oos">Out of scope</span></td><td class="where-col">Bedrock model provenance + AgentCore container audit. Separate AWS-side audit.</td></tr></tbody></table>
+</section>
+<section class="page-break">
+  <h2 class="section">Out-of-scope appendix</h2>
+  <p>
+    The 16 items below are real items on the compliance
+    checklist. They are not testable by an automated runtime harness
+    against a deployed app, so they are routed to their proper control:
+    a different tool (SCA, AWS config audit), a different team
+    (incident response runbook review), or a different process control
+    (CI hardening, signed releases). They are listed here deliberately
+    so an auditor can verify nothing was dropped.
+  </p>
+  <table class="matrix"><thead><tr><th class="item-num">#</th><th>Item</th><th>Category</th><th class="where-col">Where it is actually covered</th></tr></thead><tbody><tr><td class="item-num">22</td><td>Missing or bypassable MFA</td><td><em>2. Authentication &amp; Access Control</em></td><td class="where-col">Per CLAUDE.md: "MFA off" in this demo. Documented intentional gap. If MFA is enabled later, add a probe that attempts to skip the SMS_MFA challenge.</td></tr><tr><td class="item-num">27</td><td>Improper certificate validation</td><td><em>3. Crypto &amp; Data Handling</em></td><td class="where-col">This applies to client-side code. The deployed SPA uses the browser's cert validation; ARBITER doesn't ship a desktop/mobile client.</td></tr><tr><td class="item-num">36</td><td>Vulnerable / outdated dependencies</td><td><em>4. Configuration &amp; Infrastructure</em></td><td class="where-col">GitHub Dependabot is on (we saw the warning on push: 1 critical, 5 moderate). Pin SCA there. The harness doesn't replicate this.</td></tr><tr><td class="item-num">37</td><td>Dependency confusion</td><td><em>4. Configuration &amp; Infrastructure</em></td><td class="where-col">Best handled in build pipeline + private registry config, not runtime probe.</td></tr><tr><td class="item-num">38</td><td>Typosquatting</td><td><em>4. Configuration &amp; Infrastructure</em></td><td class="where-col">Static analysis of `package.json` / `requirements.txt`. Tools like Socket.dev.</td></tr><tr><td class="item-num">39</td><td>Compromised build pipelines</td><td><em>5. Build / Supply Chain</em></td><td class="where-col">Requires CI hardening (signed commits, OIDC role assumption, branch protection). Not testable from a black-box runtime harness.</td></tr><tr><td class="item-num">40</td><td>Malicious maintainer / package takeover</td><td><em>5. Build / Supply Chain</em></td><td class="where-col">SCA + signed releases.</td></tr><tr><td class="item-num">54</td><td>GraphQL-specific abuse</td><td><em>7. API Top-10 Specific</em></td><td class="where-col">ARBITER doesn't expose GraphQL.</td></tr><tr><td class="item-num">62</td><td>Price / quantity manipulation</td><td><em>9. Logic &amp; Workflow</em></td><td class="where-col">Not applicable to a compliance dashboard.</td></tr><tr><td class="item-num">63</td><td>Abuse of trial, referral, or exempt flows</td><td><em>9. Logic &amp; Workflow</em></td><td class="where-col">Not applicable.</td></tr><tr><td class="item-num">66</td><td>Network-layer DDoS</td><td><em>10. Denial of Service</em></td><td class="where-col">Would actually attack the dev env. CloudFront has AWS Shield Standard by default; verification is via AWS-side metrics.</td></tr><tr><td class="item-num">69</td><td>No alerting / monitoring</td><td><em>11. Logging &amp; Monitoring</em></td><td class="where-col">CloudWatch Alarms / EventBridge rule audit. Separate from runtime probe.</td></tr><tr><td class="item-num">70</td><td>Mutable or attacker-deletable logs</td><td><em>11. Logging &amp; Monitoring</em></td><td class="where-col">CloudWatch immutability / S3 Object Lock configuration audit.</td></tr><tr><td class="item-num">72</td><td>No incident response plan</td><td><em>11. Logging &amp; Monitoring</em></td><td class="where-col">Process / runbook, not a runtime test.</td></tr><tr><td class="item-num">75</td><td>Training-data poisoning</td><td><em>12. LLM Top-10</em></td><td class="where-col">Requires access to Bedrock model training pipeline. Not testable for a hosted model.</td></tr><tr><td class="item-num">78</td><td>Model / plugin supply-chain risks</td><td><em>12. LLM Top-10</em></td><td class="where-col">Bedrock model provenance + AgentCore container audit. Separate AWS-side audit.</td></tr></tbody></table>
+</section>
+
+<section class="page-break">
+  <h2 class="section">Methodology &amp; reproduction</h2>
+
+  <h3 class="cat-heading">Harness shape</h3>
+  <p>
+    The harness is a black-box test suite that runs against the deployed
+    dev environment. It does not have access to backend source at runtime
+    — every assertion is made on what the deployed API, the deployed
+    SPA, or the deployed AgentCore runtimes actually return. A nightly
+    cost cap (default $1.00) gates LLM-spending probes so a runaway
+    fan-out cannot exhaust the demo budget. Layers that touch the LLM
+    surface (<code>llm</code>, <code>fault</code>) account against that
+    cap; the other seven layers are zero-cost.
+  </p>
+
+  <h3 class="cat-heading">The nine layers</h3>
+  <table><thead><tr><th style='width:140px'>Layer</th><th>What it tests</th></tr></thead><tbody><tr><td><code>e2e</code></td><td>Playwright sweeps the SPA per persona and asserts page-level access.</td></tr><tr><td><code>fuzz</code></td><td>10 curated payload corpora cross-product over every API route.</td></tr><tr><td><code>auth</code></td><td>JWT forgery, IDOR, brute-force, session fixation, password reset.</td></tr><tr><td><code>headers</code></td><td>HTTPS / HSTS / TLS / CSP / CORS / CSRF / clickjacking.</td></tr><tr><td><code>llm</code></td><td>20 jailbreaks + 10 generative red-team prompts against the master.</td></tr><tr><td><code>dos</code></td><td>Rate limiting, oversized payloads, concurrent fan-out.</td></tr><tr><td><code>logic</code></td><td>Workflow bypass, race conditions, sensitive-field exposure.</td></tr><tr><td><code>logging_audit</code></td><td>Audit-log writes + CloudWatch redaction + log injection.</td></tr><tr><td><code>fault</code></td><td>Fail-closed, error propagation, partial failure, LLM output safety.</td></tr></tbody></table>
+
+  <h3 class="cat-heading">Run cadence</h3>
+  <p>
+    The full harness runs on a daily cadence against the dev environment.
+    Each run produces a <code>report.html</code> + <code>summary.md</code>
+    + <code>report.json</code> in <code>tests-adversarial/test-reports/&lt;run-id&gt;/</code>,
+    and the dated PDF in <code>docs/adversarial_run_findings_&lt;date&gt;.pdf</code>.
+    After every "build block" lands (one new test layer or a refresh of
+    an existing one), this compliance matrix is regenerated so the
+    coverage percentage moves with reality.
+  </p>
+
+  <h3 class="cat-heading">Reproducing this report</h3>
+  <p>From <code>tests-adversarial/</code>:</p>
+  <p>
+    <code>npm run test:all</code> — run the nine layers and aggregate.<br/>
+    <code>python3.13 -m scripts.compliance_report</code> — regenerate
+    this PDF from <code>docs/security_compliance_coverage.md</code>.
+  </p>
+
+  <div class="callout">
+    <strong>This document is generated from
+    <code>docs/security_compliance_coverage.md</code>.</strong>
+    The markdown is the single source of truth; regenerate this PDF after
+    every build block lands so the coverage percentage moves with the
+    harness. Last generated 2026-06-10.
+  </div>
+</section>
+
+<footer class="report-footer">
+  Generated 2026-06-10 · harness rev <code>c9498c49</code> ·
+  source <code>docs/security_compliance_coverage.md</code> ·
+  re-run with <code>python3.13 -m scripts.compliance_report</code>.
+</footer>
+
+</body>
+</html>

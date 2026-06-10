@@ -390,11 +390,13 @@ def test_execute_case_handles_request_exceptions() -> None:
 
 
 def test_hypothesis_layer_enumerates_exactly_25_routes() -> None:
-    """Collection over fuzz/test_hypothesis_strategies.py produces 25 tests.
+    """Collection over fuzz/test_hypothesis_strategies.py produces N tests
+    where N equals the manifest's api_routes count.
 
-    The task-13 prompt budgets 8 examples × 25 routes = 200 generative tests
+    Post-Block-B that count is 26 (Block A: 25 → Block B adds get-agent-status).
+    The task-13 prompt budgets 8 examples × N routes = ~200 generative tests
     counted at the example level. At the pytest-collection level the count
-    is 25 — one row per route per persona (CISO), since the layer does NOT
+    is N — one row per route per persona (CISO), since the layer does NOT
     fan out across all 4 personas (the per-persona fanout is task 12's job).
     """
     cmd = [
@@ -418,7 +420,7 @@ def test_hypothesis_layer_enumerates_exactly_25_routes() -> None:
         timeout=60,
     )
     out = result.stdout + result.stderr
-    assert "25 tests collected" in out, out
+    assert "26 tests collected" in out, out
 
 
 def test_hypothesis_layer_skips_without_demo_password() -> None:
@@ -451,8 +453,9 @@ def test_hypothesis_layer_skips_without_demo_password() -> None:
         timeout=60,
     )
     out = result.stdout + result.stderr
-    # Total enumerable hypothesis tests is 25; the run should skip all 25.
-    assert "25 skipped" in out, out
+    # Total enumerable hypothesis tests is 26 (post-Block-B: 25 + get-agent-status);
+    # the run should skip all of them.
+    assert "26 skipped" in out, out
     # No tests passed — would mean we silently fired requests without auth.
     assert " passed" not in out, out
 

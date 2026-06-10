@@ -1,0 +1,48 @@
+{
+  "_comment": "Server-Side Template Injection payloads. ARBITER's API returns JSON — no server-side templating engine renders responses — so a 200 with no echo is the expected outcome. The smoking gun for SSTI is the *evaluated* form appearing in the response (e.g. payload `{{7*7}}` becomes `49`). The harness's existing reflection check covers the easy case (literal `{{7*7}}` echoed back, which is harmless); the evaluated-form check is a future enhancement (see notes/ssti-evaluated-detection.md). For now, expected_blocked=true keeps the reflection detector active on any route that echoes the literal payload — useful only as the negative-case smoke test.",
+  "family": "ssti",
+  "payloads": [
+    {
+      "id": "ssti-jinja-arithmetic",
+      "payload": "{{7*7}}",
+      "expected_blocked": false,
+      "rationale": "Jinja2 / Django / Twig arithmetic — the canonical SSTI smoke test. Detection-of-evaluation: response body contains `49` near the echo. Short enough that reflection check is skipped (<6 chars); we mark expected_blocked=false so a 200 with literal `{{7*7}}` reflected is a PASS."
+    },
+    {
+      "id": "ssti-jsx-style-arithmetic",
+      "payload": "${{7*7}}",
+      "expected_blocked": false,
+      "rationale": "JSX / Velocity / Spring EL arithmetic — same shape as the Jinja form with a leading `$`."
+    },
+    {
+      "id": "ssti-ruby-erb-arithmetic",
+      "payload": "<%= 7*7 %>",
+      "expected_blocked": true,
+      "rationale": "ERB / EJS / ASP arithmetic — full opening / closing tags, long enough to trigger the reflection check. If echoed verbatim, expected_blocked=true catches it."
+    },
+    {
+      "id": "ssti-freemarker-hash",
+      "payload": "${T(java.lang.Runtime).getRuntime().exec('id')}",
+      "expected_blocked": true,
+      "rationale": "Spring SpEL / Thymeleaf RCE — invokes Runtime.exec via type lookup. Pure RCE primitive; the reflection check enforces no-echo."
+    },
+    {
+      "id": "ssti-jinja-config-dump",
+      "payload": "{{config}}",
+      "expected_blocked": false,
+      "rationale": "Jinja2 config-object dump — exfiltrates the entire Flask config (SECRET_KEY etc.) on a vulnerable backend. Short; PASS = 200 with the literal echoed harmlessly."
+    },
+    {
+      "id": "ssti-mustache-handlebars",
+      "payload": "#{7*7}",
+      "expected_blocked": false,
+      "rationale": "Ruby string-interpolation / Pug syntax. Short — no reflection check."
+    },
+    {
+      "id": "ssti-twig-dump",
+      "payload": "{{ dump(_self) }}",
+      "expected_blocked": true,
+      "rationale": "Twig dump() — exfiltrates the template context. Long enough that reflection check catches a verbatim echo when expected_blocked=true."
+    }
+  ]
+}

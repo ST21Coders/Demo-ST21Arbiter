@@ -1,0 +1,36 @@
+{
+  "_comment": "Prototype-pollution payloads. Targets Node.js / V8 backends that deep-merge user input into a shared object — would let an attacker plant properties on Object.prototype. ARBITER's API is Python (Lambda), so a 500 here is more useful than an echo: a recursive merge in Python on dict-of-dicts with these keys is unlikely to crash, but the regression detector exists for any future Node Lambda. PASS = no 500, no reflection. FAIL = 500, stack trace, or response shape suggests __proto__ was special-cased.",
+  "family": "prototype_pollution",
+  "payloads": [
+    {
+      "id": "ppoll-proto-is-admin",
+      "payload": "{\"__proto__\":{\"isAdmin\":true}}",
+      "expected_blocked": true,
+      "rationale": "Classic __proto__ pollution — plants isAdmin=true on Object.prototype in vulnerable Node code."
+    },
+    {
+      "id": "ppoll-constructor-proto",
+      "payload": "{\"constructor\":{\"prototype\":{\"isAdmin\":true}}}",
+      "expected_blocked": true,
+      "rationale": "constructor.prototype path — bypasses filters that only block the literal __proto__ key."
+    },
+    {
+      "id": "ppoll-proto-tostring",
+      "payload": "{\"__proto__\":{\"toString\":\"polluted\"}}",
+      "expected_blocked": true,
+      "rationale": "Override toString — would break every implicit string coercion downstream. Useful DoS primitive."
+    },
+    {
+      "id": "ppoll-proto-nested",
+      "payload": "{\"a\":{\"__proto__\":{\"isAdmin\":true}}}",
+      "expected_blocked": true,
+      "rationale": "Nested __proto__ — exercises recursive merge logic that doesn't sanitize at depth >0."
+    },
+    {
+      "id": "ppoll-array-proto",
+      "payload": "{\"__proto__\":[\"polluted\"]}",
+      "expected_blocked": true,
+      "rationale": "Array-typed prototype value — coverage of the value-type axis."
+    }
+  ]
+}

@@ -46,6 +46,19 @@ _EXPECTED_FAMILIES: dict[str, int] = {
     "path_traversal": 4,
     "command_injection": 4,
     "null_bytes_and_control": 4,
+    # Block A — compliance checklist additions (see
+    # docs/security_compliance_coverage.md "Block A"). Each family has its
+    # own minimum to match what the Block A prompt specifies.
+    "nosql_operators": 6,
+    "ldap": 6,
+    "xpath": 6,
+    "xml_xxe": 6,
+    "ssti": 6,
+    "log_injection": 4,
+    "ssrf": 6,
+    "mass_assignment": 6,
+    "prototype_pollution": 4,
+    "open_redirects": 6,
 }
 
 
@@ -101,6 +114,69 @@ def test_corpus_payload_ids_unique_within_family() -> None:
     for family, body in families.items():
         ids = [p["id"] for p in body["payloads"]]
         assert len(ids) == len(set(ids)), f"family {family!r} has duplicate payload ids"
+
+
+def test_corpus_file_count_includes_block_a_additions() -> None:
+    """After Block A, corpus dir has 8 original + 10 new = 18+ files.
+
+    The matrix in ``docs/security_compliance_coverage.md`` documents Block A
+    as 10 corpus additions (NoSQL operators, LDAP, XPath, XML/XXE, SSTI,
+    log injection, SSRF, mass assignment, prototype pollution, open
+    redirects). If a corpus file is deleted, this test surfaces the drift
+    loudly so the matrix doc can be re-aligned.
+    """
+    files = list(_CORPUS_DIR.glob("*.json"))
+    assert len(files) >= 18, (
+        f"expected at least 18 corpus files post-Block-A, got {len(files)}: "
+        f"{[f.name for f in files]}"
+    )
+
+
+def test_corpus_every_block_a_family_present() -> None:
+    """Each Block A family was added to the corpus dir as its own file."""
+    families = load_corpus(_CORPUS_DIR)
+    block_a_families = {
+        "nosql_operators",
+        "ldap",
+        "xpath",
+        "xml_xxe",
+        "ssti",
+        "log_injection",
+        "ssrf",
+        "mass_assignment",
+        "prototype_pollution",
+        "open_redirects",
+    }
+    missing = block_a_families - set(families.keys())
+    assert not missing, f"Block A families missing from corpus: {missing}"
+
+
+def test_block_a_families_wired_into_route_enumeration() -> None:
+    """The new families are referenced in ``_families_for_route``.
+
+    Without that wiring, the corpus files load but no fuzz test references
+    them — the parametrize matrix never grows. We don't import the function
+    (it'd require pulling in the deployed-env fixtures); instead, we
+    grep-scan the test module source for each new family name.
+    """
+    src = (_HARNESS_ROOT / "fuzz" / "test_api_routes.py").read_text()
+    block_a_families = [
+        "nosql_operators",
+        "ldap",
+        "xpath",
+        "xml_xxe",
+        "ssti",
+        "log_injection",
+        "ssrf",
+        "mass_assignment",
+        "prototype_pollution",
+        "open_redirects",
+    ]
+    for family in block_a_families:
+        assert f'"{family}"' in src, (
+            f"family {family!r} not referenced in fuzz/test_api_routes.py "
+            f"— route enumeration won't pick it up"
+        )
 
 
 def test_load_corpus_rejects_missing_directory(tmp_path: Path) -> None:

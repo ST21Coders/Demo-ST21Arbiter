@@ -341,8 +341,18 @@ def _extract_tools_from_agent_source(source: str) -> set[str]:
 
 
 def _manifest_pages(manifest: dict) -> set[str]:
-    """Return the set of `pages[].file` entries from the manifest."""
-    return {p["file"] for p in manifest.get("pages", []) if p.get("file")}
+    """Return the set of `pages[].file` entries from the manifest.
+
+    Synthetic page entries (carrying ``synthetic: true``) are harness-only
+    sentinels — e.g. ``spa-root`` for Block D bundle scans — that don't map
+    to a ``ui/src/pages/*.jsx`` file. They're skipped here so the drift
+    checker doesn't report them as "manifest entries missing in source".
+    """
+    return {
+        p["file"]
+        for p in manifest.get("pages", [])
+        if p.get("file") and p.get("synthetic") is not True
+    }
 
 
 def _manifest_routes(manifest: dict) -> set[tuple[str, str]]:
@@ -528,11 +538,14 @@ def run(
         return 1, "", drift_text
 
     # Tool count is the manifest's agent_tools length (includes jira_specialist
-    # black-box entry) — this is the count the report's coverage matrix uses.
+    # black-box entry + synthetic sentinels) — this is the count the report's
+    # coverage matrix uses. Page count is computed the same way so synthetic
+    # sentinels (e.g. `spa-root` for Block D bundle scans) are counted.
     total_tools = len(manifest.get("agent_tools", []))
+    total_pages = len(manifest.get("pages", []))
     summary = (
         f"manifest.json matches source tree "
-        f"({len(src_pages)} pages, {len(src_routes)} routes, {total_tools} tools)\n"
+        f"({total_pages} pages, {len(src_routes)} routes, {total_tools} tools)\n"
     )
     return 0, summary, ""
 

@@ -47,7 +47,34 @@ _HARNESS_ROOT = Path(__file__).resolve().parent.parent
 if str(_HARNESS_ROOT) not in sys.path:
     sys.path.insert(0, str(_HARNESS_ROOT))
 
-_LAYERS_ALL: tuple[str, ...] = ("e2e", "fuzz", "auth", "llm")
+_LAYERS_ALL: tuple[str, ...] = (
+    "e2e",
+    "fuzz",
+    "auth",
+    "llm",
+    "headers",
+    "dos",
+    "logic",
+    "logging_audit",
+    "fault",
+)
+
+# Per-layer wall-clock cap overrides. Most layers share the global
+# `--timeout-seconds` budget, but the DoS and logic layers have hard
+# 5-minute ceilings of their own as a safety guard: a misconfigured
+# `--dos-rps` / duration pair (DoS) or a runaway state-machine probe
+# (logic) shouldn't allow the run to keep hammering the dev environment
+# past 5 min. The logging_audit layer gets a 10-minute cap — its
+# CloudWatch FilterLogEvents queries can legitimately take 10+ seconds
+# each, and the corpus-parametrized log-injection downstream probe runs
+# one CloudWatch query per payload (5 payloads × ~10 s + propagation
+# sleep + 3 audit-log scans).
+_LAYER_HARD_CAPS_SECONDS: dict[str, float] = {
+    "dos": 300.0,
+    "logic": 300.0,
+    "logging_audit": 600.0,
+    "fault": 300.0,
+}
 
 # Default to a CloudFront URL matching CLAUDE.local.md. Operators override via
 # env or CLI flag.
@@ -283,6 +310,61 @@ def _build_layer_budgets(layers: list[str]) -> dict[str, Any]:
             max_input_tokens=30 * 4000,
             max_output_tokens=30 * 2000,
         )
+    if "headers" in layers:
+        # Headers / TLS layer makes zero Bedrock calls — pure HTTP + raw TLS
+        # probes. Budget is zero on both axes; we still record the layer so
+        # the orchestrator's banner shows it ran.
+        budgets["headers"] = LayerBudget(
+            name="headers",
+            max_input_tokens=0,
+            max_output_tokens=0,
+        )
+    if "dos" in layers:
+        # DoS / rate-limit layer makes zero Bedrock calls by default. The
+        # opt-in `--include-bedrock-dos` flag changes that, but the cost
+        # there is bounded by the 10 concurrent /chat ping requests and is
+        # accounted for via the LLM layer's pricing path.
+        budgets["dos"] = LayerBudget(
+            name="dos",
+            max_input_tokens=0,
+            max_output_tokens=0,
+        )
+    if "logic" in layers:
+        # Logic / state layer makes zero Bedrock calls by default. The
+        # race-condition concurrent-delete probe creates a single chat
+        # session via `/chat` to mint a conversation row; that's one short
+        # Bedrock invocation per run, bounded and informational only.
+        budgets["logic"] = LayerBudget(
+            name="logic",
+            max_input_tokens=0,
+            max_output_tokens=0,
+        )
+    if "fault" in layers:
+        # Fault-injection layer makes bounded Bedrock calls via 3 short
+        # /chat probes (XSS-payload echo, link-suggestion, jira-error,
+        # specialist-latency). We keep the budget at zero so the layer
+        # can't accidentally blow the cost cap; the actual Bedrock cost
+        # is attributed to the LLM layer's pricing path if any operator
+        # wires that up.
+        budgets["fault"] = LayerBudget(
+            name="fault",
+            max_input_tokens=0,
+            max_output_tokens=0,
+        )
+    if "logging_audit" in layers:
+        # Logging / audit layer makes zero Bedrock calls — every probe
+        # is HTTP + CloudWatch FilterLogEvents + DDB Scan. The body-field
+        # redaction probe and the log-injection downstream probes do POST
+        # to /chat, but only to plant a canary; the cost is one short
+        # Bedrock invocation per payload and is bounded by the corpus
+        # size. We keep the budget at zero so the layer can't accidentally
+        # blow the cost cap; the actual Bedrock cost ends up attributed
+        # to the LLM layer's pricing path if any operator wires that up.
+        budgets["logging_audit"] = LayerBudget(
+            name="logging_audit",
+            max_input_tokens=0,
+            max_output_tokens=0,
+        )
     return budgets
 
 
@@ -488,7 +570,14 @@ def _run_layers_parallel(
                 run_dir,
                 env,
                 llm_probes,
-                timeout_seconds,
+                # Per-layer hard cap wins over the global timeout. The DoS
+                # layer for example is pinned to 5 minutes regardless of the
+                # global budget so a misconfigured run can't keep hammering
+                # the dev env.
+                min(
+                    timeout_seconds,
+                    _LAYER_HARD_CAPS_SECONDS.get(layer, timeout_seconds),
+                ),
             ): layer
             for layer in layers
         }

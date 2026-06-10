@@ -1,0 +1,42 @@
+{
+  "_comment": "Mass-assignment payloads. Extra JSON fields the backend should silently ignore. The smoking gun is the field echoed in the response or persisted into DDB. The fuzz layer's current single-field-substitution model (one payload value lands in the route's primary writable field) doesn't directly exercise multi-field bodies — these payloads land as the *value* of the primary field, so they're detected at the reflection layer (the JSON-shaped string echoed back unencoded). Full mass-assignment detection (extra TOP-level keys, e.g. `{prompt: 'x', is_admin: true}`) is a future enhancement; see notes/mass-assignment-extra-keys.md.",
+  "family": "mass_assignment",
+  "payloads": [
+    {
+      "id": "massasg-is-admin-true",
+      "payload": "{\"is_admin\": true}",
+      "expected_blocked": true,
+      "rationale": "Boolean admin flag — if echoed by the server it suggests the field was deserialized into the record."
+    },
+    {
+      "id": "massasg-persona-ciso",
+      "payload": "{\"persona\": \"ciso\"}",
+      "expected_blocked": true,
+      "rationale": "Persona-claim injection — a SOC/GRC/employee request that gets persona=ciso accepted would bypass the manifest's `accessible_to` gates."
+    },
+    {
+      "id": "massasg-cognito-groups",
+      "payload": "{\"cognito:groups\": [\"ciso\"]}",
+      "expected_blocked": true,
+      "rationale": "Cognito-shaped groups claim — exploits a backend that trusts request-body groups over the JWT's groups."
+    },
+    {
+      "id": "massasg-role-admin",
+      "payload": "{\"role\": \"admin\"}",
+      "expected_blocked": true,
+      "rationale": "Generic role escalation — the field name a future RBAC layer might key on."
+    },
+    {
+      "id": "massasg-user-id-other",
+      "payload": "{\"user_id\": \"other_user\"}",
+      "expected_blocked": true,
+      "rationale": "user_id spoof — exploits a backend that uses the body's user_id over the JWT's sub. Classic IDOR primitive."
+    },
+    {
+      "id": "massasg-approved-true",
+      "payload": "{\"approved\": true}",
+      "expected_blocked": true,
+      "rationale": "Workflow-state bypass — would let a non-CISO mark a change request approved without going through the action-approval endpoint."
+    }
+  ]
+}

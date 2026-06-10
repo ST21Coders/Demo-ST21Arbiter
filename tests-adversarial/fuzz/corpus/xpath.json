@@ -1,0 +1,42 @@
+{
+  "_comment": "XPath injection payloads. ARBITER does not query XML, so these are coverage-formality probes — the regression detector exists if a future code path passes user input into an XPath expression (e.g. SAML / SOAP / XML config parsing). PASS = no 500, no stack trace, no reflection of the operator chars.",
+  "family": "xpath",
+  "payloads": [
+    {
+      "id": "xpath-or-one-eq-one",
+      "payload": "' or '1'='1",
+      "expected_blocked": true,
+      "rationale": "Classic XPath tautology — the textbook bypass on `//user[username/text()='{input}' and password/text()='...']`."
+    },
+    {
+      "id": "xpath-or-count-positive",
+      "payload": "' or count(/*)>0 or '",
+      "expected_blocked": true,
+      "rationale": "Count-of-root-elements predicate — always true on any non-empty XML document."
+    },
+    {
+      "id": "xpath-name-eq-users",
+      "payload": "' or name()='users' or '",
+      "expected_blocked": true,
+      "rationale": "Targeted node-name predicate — useful for blind XPath enumeration of a specific element."
+    },
+    {
+      "id": "xpath-union-wildcard",
+      "payload": "'] | //* | a['1",
+      "expected_blocked": true,
+      "rationale": "Union expression with wildcard — would dump every node in the document if reflected into an XPath."
+    },
+    {
+      "id": "xpath-contains-admin",
+      "payload": "' or contains(.,'admin') or '",
+      "expected_blocked": true,
+      "rationale": "contains() function — common blind-XPath probe."
+    },
+    {
+      "id": "xpath-closing-bracket",
+      "payload": "'])",
+      "expected_blocked": false,
+      "rationale": "Bare predicate-close — short, harmless against a non-XML backend, but a future XPath query-builder would 500 on this. Length < 6 means no reflection check."
+    }
+  ]
+}
