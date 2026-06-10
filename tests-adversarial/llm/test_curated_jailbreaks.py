@@ -38,6 +38,7 @@ Result row shape (per spec §6 + builder.py::TestResult)
   skipped_reason — set when status == "skipped"
   duration_seconds — wall time of the /chat call (or 0 on skipped)
 """
+
 from __future__ import annotations
 
 import json
@@ -69,7 +70,14 @@ def _probe_ids() -> list[str]:
 
 
 def _required_fields() -> tuple[str, ...]:
-    return ("id", "prompt", "category", "expected_behavior", "severity_on_failure", "rationale")
+    return (
+        "id",
+        "prompt",
+        "category",
+        "expected_behavior",
+        "severity_on_failure",
+        "rationale",
+    )
 
 
 # Validate the corpus shape at import time — saves every test from re-checking.
@@ -121,7 +129,9 @@ def _extract_token_counts(payload: dict | None) -> tuple[int, int]:
         usage = payload.get(key)
         if isinstance(usage, dict):
             in_t = int(usage.get("input_tokens") or usage.get("prompt_tokens") or 0)
-            out_t = int(usage.get("output_tokens") or usage.get("completion_tokens") or 0)
+            out_t = int(
+                usage.get("output_tokens") or usage.get("completion_tokens") or 0
+            )
             return (in_t, out_t)
     in_t = int(payload.get("input_tokens") or 0)
     out_t = int(payload.get("output_tokens") or 0)
@@ -235,9 +245,8 @@ def test_curated_jailbreak(
         except KeyError:
             # Unknown model id — log into transcript but don't crash the run.
             error_note = (
-                (error_note + "; " if error_note else "")
-                + f"unknown model_id for cost recording: {model_id}"
-            )
+                error_note + "; " if error_note else ""
+            ) + f"unknown model_id for cost recording: {model_id}"
 
     # Step 4: classify.
     if error_note:

@@ -66,6 +66,7 @@ DOCUMENTED_UNSAFE results are NOT included in `findings[]` (per AC11 — they
 confirm a known contract). They ARE counted in `summary.documented_unsafe`
 so the operator can see at a glance how many AC11-style probes ran.
 """
+
 from __future__ import annotations
 
 import json
@@ -102,13 +103,15 @@ class RunMetadata:
     write). The values mirror spec §6.3's `metadata` block.
     """
 
-    run_id: str                       # UTC ISO timestamp string (e.g. "2026-06-09T14-23-01Z")
-    target_base_url: str              # the CloudFront URL under test
-    chat_function_url: str | None     # Lambda Function URL for /chat (None if not configured)
-    started_at: str                   # ISO timestamp
-    finished_at: str                  # ISO timestamp
+    run_id: str  # UTC ISO timestamp string (e.g. "2026-06-09T14-23-01Z")
+    target_base_url: str  # the CloudFront URL under test
+    chat_function_url: (
+        str | None
+    )  # Lambda Function URL for /chat (None if not configured)
+    started_at: str  # ISO timestamp
+    finished_at: str  # ISO timestamp
     duration_seconds: float
-    harness_version: str              # from tests-adversarial/package.json or a constant
+    harness_version: str  # from tests-adversarial/package.json or a constant
 
 
 # ───────────────────────────── constants ───────────────────────────────────
@@ -244,9 +247,7 @@ def _build_cost_block(cost: dict, cap_usd: float) -> dict:
     }
 
 
-def _extract_findings(
-    run_dir: Path, results: Iterable[TestResult]
-) -> list[dict]:
+def _extract_findings(run_dir: Path, results: Iterable[TestResult]) -> list[dict]:
     """Walk the raw results list, pull out every FAIL, and produce one
     finding dict per FAIL. Each finding is validated for on-disk evidence
     (AC20) BEFORE the list is returned, so a missing artifact short-circuits

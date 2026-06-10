@@ -49,6 +49,7 @@ Public surface:
     CLI entrypoint. Prints stdout to sys.stdout, stderr to sys.stderr, returns
     the exit code for sys.exit().
 """
+
 from __future__ import annotations
 
 import argparse
@@ -254,7 +255,9 @@ def _extract_routes_from_source(source: str) -> set[tuple[str, str]]:
                     j += 1
                     continue
                 indent = len(inner) - len(inner.lstrip())
-                if indent <= base_indent and re.match(r"(if|elif|def|return)\b", stripped):
+                if indent <= base_indent and re.match(
+                    r"(if|elif|def|return)\b", stripped
+                ):
                     # Left the startswith block.
                     break
                 nm = _RE_NESTED_SUB_AND_METHOD.match(inner)
@@ -443,11 +446,15 @@ def _format_drift(
             added = sorted(tools_added.get(agent, set()))
             removed = sorted(tools_removed.get(agent, set()))
             if added:
-                lines.append(f"  AGENT_TOOLS added in source, missing in manifest ({agent}):")
+                lines.append(
+                    f"  AGENT_TOOLS added in source, missing in manifest ({agent}):"
+                )
                 for name in added:
                     lines.append(f"    {agent}.{name}")
             if removed:
-                lines.append(f"  AGENT_TOOLS removed from source, present in manifest ({agent}):")
+                lines.append(
+                    f"  AGENT_TOOLS removed from source, present in manifest ({agent}):"
+                )
                 for name in removed:
                     lines.append(f"    {agent}.{name}")
 
@@ -497,7 +504,9 @@ def run(
     # ── Tools ─────────────────────────────────────────────────────────────
     src_tools: dict[str, set[str]] = {}
     for agent in _IN_REPO_AGENTS:
-        src_tools[agent] = _extract_tools_from_agent_source(_read_agent(repo_root, agent))
+        src_tools[agent] = _extract_tools_from_agent_source(
+            _read_agent(repo_root, agent)
+        )
     manifest_tools = _manifest_tools(manifest)
     tools_added = {a: src_tools[a] - manifest_tools[a] for a in _IN_REPO_AGENTS}
     tools_removed = {a: manifest_tools[a] - src_tools[a] for a in _IN_REPO_AGENTS}

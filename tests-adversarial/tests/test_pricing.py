@@ -8,6 +8,7 @@ Covers:
   - Drift on missing key: mock one source to drop a model the other has,
     assert PricingDriftError names the missing model.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -63,7 +64,10 @@ def test_drift_on_input_rate_raises_named_error(monkeypatch):
         return {
             "us.amazon.nova-2-lite-v1:0": {"input": 0.99, "output": 0.24},
             "us.anthropic.claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
-            "anthropic.claude-sonnet-4-6-20251006-v1:0": {"input": 3.00, "output": 15.00},
+            "anthropic.claude-sonnet-4-6-20251006-v1:0": {
+                "input": 3.00,
+                "output": 15.00,
+            },
         }
 
     monkeypatch.setattr(pricing, "_load_python_pricing", fake_python_pricing)
@@ -90,7 +94,10 @@ def test_drift_on_output_rate_raises_named_error(monkeypatch):
         return {
             "us.amazon.nova-2-lite-v1:0": {"input": 0.06, "output": 0.24},
             "us.anthropic.claude-sonnet-4-6": {"input": 3.00, "output": 99.99},
-            "anthropic.claude-sonnet-4-6-20251006-v1:0": {"input": 3.00, "output": 15.00},
+            "anthropic.claude-sonnet-4-6-20251006-v1:0": {
+                "input": 3.00,
+                "output": 15.00,
+            },
         }
 
     monkeypatch.setattr(pricing, "_load_python_pricing", fake_python_pricing)
@@ -112,7 +119,10 @@ def test_drift_on_missing_key_names_missing_model(monkeypatch):
         base = {
             "us.amazon.nova-2-lite-v1:0": {"input": 0.06, "output": 0.24},
             "us.anthropic.claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
-            "anthropic.claude-sonnet-4-6-20251006-v1:0": {"input": 3.00, "output": 15.00},
+            "anthropic.claude-sonnet-4-6-20251006-v1:0": {
+                "input": 3.00,
+                "output": 15.00,
+            },
             "us.amazon.nova-3-pro-v1:0": {"input": 1.00, "output": 4.00},
         }
         return base

@@ -11,6 +11,7 @@ What they DON'T cover
 - The full pytest collection plus fuzz/test_api_routes.py interaction — those
   live in `test_fuzz_infrastructure.py`.
 """
+
 from __future__ import annotations
 
 import json
@@ -45,6 +46,7 @@ _HARNESS_ROOT = Path(__file__).resolve().parent.parent
 
 def test_body_strategy_produces_dict_with_bounded_size() -> None:
     """`body_strategy` always emits a dict with at most 5 keys."""
+
     @st.composite
     def _check(draw):
         return draw(body_strategy())
@@ -107,19 +109,22 @@ def test_case_strategy_has_all_four_keys(sample: dict) -> None:
 # ───────────────────────── CLI-flag resolution ───────────────────────────────
 
 
-@pytest.mark.parametrize("raw,expected", [
-    (None, HYPOTHESIS_DEFAULT_EXAMPLES),
-    (8, 8),
-    (1, 1),
-    (32, 32),
-    (33, HYPOTHESIS_MAX_EXAMPLES_CAP),
-    (1000, HYPOTHESIS_MAX_EXAMPLES_CAP),
-    (0, HYPOTHESIS_DEFAULT_EXAMPLES),  # 0 falls back to default
-    (-5, HYPOTHESIS_DEFAULT_EXAMPLES),
-    ("16", 16),
-    ("bogus", HYPOTHESIS_DEFAULT_EXAMPLES),
-    ("", HYPOTHESIS_DEFAULT_EXAMPLES),
-])
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        (None, HYPOTHESIS_DEFAULT_EXAMPLES),
+        (8, 8),
+        (1, 1),
+        (32, 32),
+        (33, HYPOTHESIS_MAX_EXAMPLES_CAP),
+        (1000, HYPOTHESIS_MAX_EXAMPLES_CAP),
+        (0, HYPOTHESIS_DEFAULT_EXAMPLES),  # 0 falls back to default
+        (-5, HYPOTHESIS_DEFAULT_EXAMPLES),
+        ("16", 16),
+        ("bogus", HYPOTHESIS_DEFAULT_EXAMPLES),
+        ("", HYPOTHESIS_DEFAULT_EXAMPLES),
+    ],
+)
 def test_resolve_examples(raw, expected) -> None:
     """The CLI-flag normalizer clamps to [1, 32] and falls back on bad input."""
     assert resolve_examples(raw) == expected
@@ -137,15 +142,18 @@ def test_resolve_examples_max_cap_is_thirty_two() -> None:
     assert resolve_examples(1000) == 32
 
 
-@pytest.mark.parametrize("raw,expected", [
-    (None, HYPOTHESIS_DEFAULT_SEED),
-    (0, 0),
-    (42, 42),
-    (HYPOTHESIS_DEFAULT_SEED, HYPOTHESIS_DEFAULT_SEED),
-    ("42", 42),
-    ("", HYPOTHESIS_DEFAULT_SEED),
-    ("bogus", HYPOTHESIS_DEFAULT_SEED),
-])
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        (None, HYPOTHESIS_DEFAULT_SEED),
+        (0, 0),
+        (42, 42),
+        (HYPOTHESIS_DEFAULT_SEED, HYPOTHESIS_DEFAULT_SEED),
+        ("42", 42),
+        ("", HYPOTHESIS_DEFAULT_SEED),
+        ("bogus", HYPOTHESIS_DEFAULT_SEED),
+    ],
+)
 def test_resolve_seed(raw, expected) -> None:
     """The seed normalizer accepts int / numeric string / falls back."""
     assert resolve_seed(raw) == expected
@@ -242,7 +250,12 @@ def test_evidence_writer_produces_valid_json(tmp_path: Path) -> None:
     assert out.exists()
     payload = json.loads(out.read_text())
     assert payload["route_id"] == "get-findings"
-    assert payload["shrunk_case"] == {"body": {"x": "y"}, "query": {}, "path_seg": "abc", "headers": {}}
+    assert payload["shrunk_case"] == {
+        "body": {"x": "y"},
+        "query": {},
+        "path_seg": "abc",
+        "headers": {},
+    }
     assert payload["response"]["status"] == 500
     assert "Traceback" in payload["response"]["body"]
 
@@ -252,7 +265,9 @@ def test_evidence_writer_overwrites_on_rerun(tmp_path: Path) -> None:
     from fuzz.test_hypothesis_strategies import _write_evidence
 
     _write_evidence(str(tmp_path), "get-x", {"v": 1}, {"status": 500, "body": "a"})
-    second = _write_evidence(str(tmp_path), "get-x", {"v": 2}, {"status": 500, "body": "b"})
+    second = _write_evidence(
+        str(tmp_path), "get-x", {"v": 2}, {"status": 500, "body": "b"}
+    )
     payload = json.loads(second.read_text())
     assert payload["shrunk_case"] == {"v": 2}
     assert payload["response"]["body"] == "b"
@@ -301,7 +316,12 @@ def test_execute_case_post_uses_json_body() -> None:
     sess = _FakeSession(_FakeResponse(400, '{"error": "bad"}'))
     status, body, blocked = execute_case(
         {"id": "post-jira-tickets", "method": "POST", "path": "/jira/tickets"},
-        {"body": {"summary": "hi"}, "query": {}, "path_seg": "abc", "headers": {"X-Trace-Id": "t1"}},
+        {
+            "body": {"summary": "hi"},
+            "query": {},
+            "path_seg": "abc",
+            "headers": {"X-Trace-Id": "t1"},
+        },
         api_base_url="https://example.test",
         chat_function_url=None,
         auth_header={"Authorization": "Bearer tok"},
@@ -484,16 +504,18 @@ def test_hypothesis_results_round_trip_through_builder(tmp_path: Path) -> None:
     from src.coverage.builder import build_matrix, load_results
 
     writer = FuzzResultsWriter()
-    writer.record({
-        "test_id": "fuzz.get-findings.hypothesis",
-        "status": "fail",
-        "layer": "fuzz",
-        "target_kind": "api_route",
-        "target_id": "get-findings",
-        "severity": "high",
-        "evidence_path": "fuzz/hypothesis-evidence/get-findings.json",
-        "duration_seconds": 1.42,
-    })
+    writer.record(
+        {
+            "test_id": "fuzz.get-findings.hypothesis",
+            "status": "fail",
+            "layer": "fuzz",
+            "target_kind": "api_route",
+            "target_id": "get-findings",
+            "severity": "high",
+            "evidence_path": "fuzz/hypothesis-evidence/get-findings.json",
+            "duration_seconds": 1.42,
+        }
+    )
     (tmp_path / "fuzz").mkdir(parents=True)
     writer.write(tmp_path / "fuzz" / "results.json")
 

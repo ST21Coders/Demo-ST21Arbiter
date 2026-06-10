@@ -40,6 +40,7 @@ is unset the test records a ``skipped`` row and bails. The test never falls
 back to API Gateway (which would not be exercising the documented-unsafe
 surface AC11 names).
 """
+
 from __future__ import annotations
 
 import time
@@ -83,9 +84,7 @@ def strip_jwt_signature(token: str) -> str:
     """
     parts = token.split(".")
     if len(parts) != 3:
-        raise ValueError(
-            f"expected a 3-segment JWT, got {len(parts)} segments"
-        )
+        raise ValueError(f"expected a 3-segment JWT, got {len(parts)} segments")
     # Replace segment 2 (the signature) with the empty string. We rejoin with
     # "." so the result is "header.payload." — the same 3-segment shape the
     # lambda's decode pipeline expects.

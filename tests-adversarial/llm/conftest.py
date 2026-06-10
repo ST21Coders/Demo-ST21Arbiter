@@ -52,6 +52,7 @@ results_writer     — accumulates LLM `TestResult`-shaped rows; drained to
 corpus_loader      — callable returning the parsed YAML corpus from
                      `tests-adversarial/llm/corpus/*.yaml`.
 """
+
 from __future__ import annotations
 
 import json
@@ -124,7 +125,9 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 @pytest.fixture(scope="session")
 def target_base_url() -> str:
     """Public CloudFront URL of the deployed app. Strips trailing slash."""
-    url = os.environ.get("TARGET_BASE_URL", "https://d5u0vv1zl3eqd.cloudfront.net").strip()
+    url = os.environ.get(
+        "TARGET_BASE_URL", "https://d5u0vv1zl3eqd.cloudfront.net"
+    ).strip()
     return url.rstrip("/")
 
 
@@ -456,9 +459,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     )
     cost_path = out_path.parent / "cost.json"
     try:
-        cost_path.write_text(
-            json.dumps(cost_dict, indent=2) + "\n", encoding="utf-8"
-        )
+        cost_path.write_text(json.dumps(cost_dict, indent=2) + "\n", encoding="utf-8")
     except OSError as exc:
         print(f"warning: llm cost stash failed: {exc}", file=sys.stderr)
 

@@ -24,6 +24,7 @@ user-facing entrypoint declared by spec §5.5:
 Exit codes are intentional so a wrapper script can distinguish "the harness
 broke" from "the harness ran fine but found a regression."
 """
+
 from __future__ import annotations
 
 import argparse
@@ -80,7 +81,9 @@ def _read_harness_version() -> str:
     one should not block a run.
     """
     try:
-        return json.loads(_PACKAGE_JSON.read_text(encoding="utf-8")).get("version", "0.0.0")
+        return json.loads(_PACKAGE_JSON.read_text(encoding="utf-8")).get(
+            "version", "0.0.0"
+        )
     except (OSError, json.JSONDecodeError):
         return "0.0.0"
 
@@ -96,10 +99,10 @@ class LayerOutcome:
     """One layer's subprocess run summary. Populated by `_run_layer`."""
 
     name: str
-    exit_code: int | None        # None on global timeout (subprocess killed)
+    exit_code: int | None  # None on global timeout (subprocess killed)
     duration_seconds: float
     timed_out: bool = False
-    error: str | None = None     # set when the subprocess failed to start
+    error: str | None = None  # set when the subprocess failed to start
 
 
 @dataclass
@@ -218,9 +221,7 @@ def _preflight_manifest_drift() -> None:
         if summary:
             _print_check(summary)
         return
-    raise PreflightError(
-        f"manifest drift detected:\n{(stderr or '').strip()}"
-    )
+    raise PreflightError(f"manifest drift detected:\n{(stderr or '').strip()}")
 
 
 def _preflight_pricing() -> dict[str, dict[str, float]]:
@@ -285,7 +286,9 @@ def _build_layer_budgets(layers: list[str]) -> dict[str, Any]:
     return budgets
 
 
-def _preflight_cost(layers: list[str], cap_usd: float) -> tuple[float, dict[str, float]]:
+def _preflight_cost(
+    layers: list[str], cap_usd: float
+) -> tuple[float, dict[str, float]]:
     """Enforce the Bedrock cost cap (AC4).
 
     Returns `(estimated_total_usd, per_layer_usd)` so the caller can echo
@@ -297,7 +300,9 @@ def _preflight_cost(layers: list[str], cap_usd: float) -> tuple[float, dict[str,
     if not budgets:
         # No layers selected = zero cost; still echo a check so the operator
         # sees the gate ran.
-        _print_check(f"Cost preflight: 0 layers selected, estimated $0.0000 ≤ cap ${cap_usd:.4f}")
+        _print_check(
+            f"Cost preflight: 0 layers selected, estimated $0.0000 ≤ cap ${cap_usd:.4f}"
+        )
         return 0.0, {}
     try:
         estimate = estimate_cost(budgets)
@@ -468,7 +473,9 @@ def _run_layers_parallel(
     for the entire phase 2; per-layer timeout is the same (a single layer
     that hangs the whole budget should still be killed).
     """
-    _print_banner(f"Phase 2: Running layers in parallel (timeout {timeout_seconds:.0f}s)")
+    _print_banner(
+        f"Phase 2: Running layers in parallel (timeout {timeout_seconds:.0f}s)"
+    )
     for layer in layers:
         _print_arrow(f"{layer} → {_layer_command(layer, llm_probes)[0]} ...")
 
@@ -796,7 +803,7 @@ def run(
         elif outcome.error:
             _print_check(f"{outcome.name}: {outcome.error}", ok=False)
         else:
-            ok = (outcome.exit_code == 0)
+            ok = outcome.exit_code == 0
             _print_check(
                 f"{outcome.name}: exit {outcome.exit_code} in {outcome.duration_seconds:.1f}s",
                 ok=ok,
@@ -929,7 +936,9 @@ def main(argv: list[str] | None = None) -> int:
         cap_usd = args.cap_usd
     else:
         try:
-            cap_usd = float(os.environ.get("BEDROCK_COST_CAP_USD", _DEFAULT_COST_CAP_USD))
+            cap_usd = float(
+                os.environ.get("BEDROCK_COST_CAP_USD", _DEFAULT_COST_CAP_USD)
+            )
         except ValueError:
             cap_usd = _DEFAULT_COST_CAP_USD
 

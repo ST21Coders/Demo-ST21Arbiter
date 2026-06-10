@@ -9,6 +9,7 @@ The drift-checker (`scripts/check_manifest_drift.py`, task 6) layers on
 top of this — it catches added/removed surfaces in the source tree. These
 tests catch self-consistency bugs in the manifest itself.
 """
+
 from __future__ import annotations
 
 import json
@@ -107,13 +108,15 @@ def test_personas_have_required_fields(manifest):
 
 
 def test_persona_usernames_match_known_demo_users(manifest):
-    """CLAUDE.local.md pins these usernames. Drift here means the demo Cognito
-    accounts were renamed and the auth helper will fail at run-time."""
+    """The deployed Cognito pool uses email as UsernameAttribute. Drift here
+    means the demo accounts were renamed and the auth helper will fail at
+    run-time. Note: CLAUDE.local.md says `ciso_daiana@` but deployed reality
+    is `ciso_diana@` (verified 2026-06-09)."""
     expected_usernames = {
-        "ciso": "ciso_daiana",
-        "soc": "soc_marcus",
-        "grc": "grc_priya",
-        "employee": "emp_sarah",
+        "ciso": "ciso_diana@meridianinsurance.com",
+        "soc": "soc_marcus@meridianinsurance.com",
+        "grc": "grc_priya@meridianinsurance.com",
+        "employee": "emp_sarah@meridianinsurance.com",
     }
     for p in manifest["personas"]:
         assert p["username"] == expected_usernames[p["id"]], (

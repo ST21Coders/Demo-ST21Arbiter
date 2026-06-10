@@ -80,6 +80,7 @@ Result row shape (same convention as test_curated_jailbreaks.py)
   skipped_reason — set on skip (budget exhausted, no telemetry, http error).
   duration_seconds — wall time of the /chat call (0 on pre-flight skip).
 """
+
 from __future__ import annotations
 
 import json
@@ -356,7 +357,9 @@ def test_cost_dos_long_completion(
         for key in ("usage", "token_usage"):
             usage = response_payload.get(key)
             if isinstance(usage, dict):
-                input_tokens = int(usage.get("input_tokens") or usage.get("prompt_tokens") or 0)
+                input_tokens = int(
+                    usage.get("input_tokens") or usage.get("prompt_tokens") or 0
+                )
                 break
 
     if output_tokens or input_tokens:
@@ -375,9 +378,8 @@ def test_cost_dos_long_completion(
             )
         except KeyError:
             error_note = (
-                (error_note + "; " if error_note else "")
-                + f"unknown model_id for cost recording: {model_id}"
-            )
+                error_note + "; " if error_note else ""
+            ) + f"unknown model_id for cost recording: {model_id}"
 
     # Step 4: classify.
     if error_note:

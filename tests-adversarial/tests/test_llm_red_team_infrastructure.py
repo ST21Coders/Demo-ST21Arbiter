@@ -16,6 +16,7 @@ Covers:
 These tests do NOT hit the network. The fixtures that need Cognito identities
 or `/chat` are exercised only by `pytest llm/` in a live-env run.
 """
+
 from __future__ import annotations
 
 import json
@@ -62,7 +63,14 @@ def test_corpus_has_twenty_probes():
 
 def test_every_probe_has_required_fields():
     """Required fields: id, prompt, category, expected_behavior, severity_on_failure, rationale."""
-    required = {"id", "prompt", "category", "expected_behavior", "severity_on_failure", "rationale"}
+    required = {
+        "id",
+        "prompt",
+        "category",
+        "expected_behavior",
+        "severity_on_failure",
+        "rationale",
+    }
     probes = load_corpus(_CORPUS_DIR)
     for probe in probes:
         missing = required - set(probe.keys())
@@ -85,8 +93,7 @@ def test_probe_ids_match_naming_convention():
     for probe in probes:
         pid = probe["id"]
         assert _PROBE_ID_PATTERN.match(pid), (
-            f"probe id {pid!r} violates the dotted-lowercase convention "
-            "(see spec §7.3)"
+            f"probe id {pid!r} violates the dotted-lowercase convention (see spec §7.3)"
         )
 
 
@@ -95,7 +102,9 @@ def test_probe_test_ids_use_llm_prefix():
     probes = load_corpus(_CORPUS_DIR)
     for probe in probes:
         test_id = f"llm.{probe['id']}"
-        assert test_id.startswith("llm."), f"test_id must start with 'llm.', got {test_id}"
+        assert test_id.startswith("llm."), (
+            f"test_id must start with 'llm.', got {test_id}"
+        )
         assert " " not in test_id, f"test_id must not contain whitespace: {test_id}"
 
 
@@ -417,7 +426,9 @@ def test_combined_corpus_does_not_exceed_thirty_test_ids():
         "(20 curated + 10 generative per AC16)"
     )
     # Also: no id collisions between the two sets.
-    assert len(set(combined)) == len(combined), "test_id collision between curated and generative corpora"
+    assert len(set(combined)) == len(combined), (
+        "test_id collision between curated and generative corpora"
+    )
 
 
 def test_generative_severity_applied_on_fake_compliance_response():
@@ -616,7 +627,9 @@ def test_jira_blackbox_target_id_matches_manifest_entry():
     import json
     from pathlib import Path
 
-    manifest_path = Path(__file__).resolve().parents[1] / "src" / "coverage" / "manifest.json"
+    manifest_path = (
+        Path(__file__).resolve().parents[1] / "src" / "coverage" / "manifest.json"
+    )
     with manifest_path.open("r", encoding="utf-8") as fh:
         manifest = json.load(fh)
     tool_ids = [t["id"] for t in manifest["agent_tools"]]
@@ -641,7 +654,9 @@ def _manifest_tool_ids() -> set[str]:
     import json
     from pathlib import Path
 
-    manifest_path = Path(__file__).resolve().parents[1] / "src" / "coverage" / "manifest.json"
+    manifest_path = (
+        Path(__file__).resolve().parents[1] / "src" / "coverage" / "manifest.json"
+    )
     with manifest_path.open("r", encoding="utf-8") as fh:
         manifest = json.load(fh)
     return {t["id"] for t in manifest["agent_tools"]}
@@ -711,7 +726,7 @@ def test_classify_traceback_in_body_is_fail_high():
     body = json.dumps(
         {
             "reply": "There was an error.",
-            "error": "Traceback (most recent call last):\n  File \"/var/task/agent.py\"...",
+            "error": 'Traceback (most recent call last):\n  File "/var/task/agent.py"...',
         }
     )
     status, severity, reason = classify_jira_blackbox_response(200, body)

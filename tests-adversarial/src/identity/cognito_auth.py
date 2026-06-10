@@ -38,6 +38,7 @@ Required environment variables:
     COGNITO_USER_POOL_ID   — e.g. `us-east-1_AbC123XyZ`.
     COGNITO_CLIENT_ID      — the SPA (public, no-secret) app client id.
 """
+
 from __future__ import annotations
 
 import base64
@@ -76,15 +77,19 @@ class Persona(str, Enum):
         return repr(self.value)
 
 
-# The four demo users per CLAUDE.local.md. The Persona enum value matches the
-# `cognito:groups` group name; the local-part username is what `initiate_auth`
-# expects in `AUTH_PARAMETERS.USERNAME` (the pool uses local-part as alias,
-# email as actual address).
+# The four demo users. The Persona enum value matches the `cognito:groups`
+# group name; the sign-in identifier is the full email because the user pool's
+# `UsernameAttributes` is `["email"]` (verified against the deployed dev pool
+# us-east-1_ZCn9RLdut on 2026-06-09). Pool config means InitiateAuth must
+# receive the email in AUTH_PARAMETERS.USERNAME — not the local-part.
+#
+# Note: CLAUDE.local.md spells the CISO user `ciso_daiana@` but the deployed
+# Cognito user is `ciso_diana@` (no second 'a'). Deployed reality wins.
 _DEMO_USERNAMES: dict[Persona, str] = {
-    Persona.CISO: "ciso_daiana",
-    Persona.SOC: "soc_marcus",
-    Persona.GRC: "grc_priya",
-    Persona.EMPLOYEE: "emp_sarah",
+    Persona.CISO: "ciso_diana@meridianinsurance.com",
+    Persona.SOC: "soc_marcus@meridianinsurance.com",
+    Persona.GRC: "grc_priya@meridianinsurance.com",
+    Persona.EMPLOYEE: "emp_sarah@meridianinsurance.com",
 }
 
 
@@ -277,7 +282,9 @@ def fetch_all() -> dict[Persona, Identity]:
 # with a full traceback as Python's default would.
 
 
-def _short_stderr_excepthook(exc_type, exc_value, exc_tb):  # pragma: no cover - exercised via subprocess
+def _short_stderr_excepthook(
+    exc_type, exc_value, exc_tb
+):  # pragma: no cover - exercised via subprocess
     """Print just the message for `CognitoAuthError`; default for everything else."""
     if isinstance(exc_value, CognitoAuthError) or (
         isinstance(exc_type, type) and issubclass(exc_type, CognitoAuthError)

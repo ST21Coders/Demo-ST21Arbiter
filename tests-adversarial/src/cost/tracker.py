@@ -14,6 +14,7 @@ network call, `CostTracker` is the live tally consulted during a run:
 Thread-unsafe is fine — the orchestrator runs layers in series, not in
 parallel (see plan §3, risk 4: Bedrock concurrency throttle).
 """
+
 from __future__ import annotations
 
 from typing import Mapping
@@ -68,10 +69,9 @@ class CostTracker:
                 f"to both MODEL_PRICING source files or use a known model_id."
             )
         rates = self._pricing[model_id]
-        cost = (
-            (max(0, int(input_tokens)) / 1_000_000.0) * rates["input"]
-            + (max(0, int(output_tokens)) / 1_000_000.0) * rates["output"]
-        )
+        cost = (max(0, int(input_tokens)) / 1_000_000.0) * rates["input"] + (
+            max(0, int(output_tokens)) / 1_000_000.0
+        ) * rates["output"]
         self._per_layer_usd[layer] = self._per_layer_usd.get(layer, 0.0) + cost
 
     def increment_probe(self, layer: str = "llm") -> int:

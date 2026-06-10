@@ -30,6 +30,7 @@ hit the network. The third actually sends a request.
 
 Enumeration covers every route with `auth_required: true` in the manifest.
 """
+
 from __future__ import annotations
 
 import time
@@ -72,8 +73,7 @@ def test_token_from_another_route(route: dict, results_writer) -> None:
     `documented_unsafe` so the matrix still tracks the surface.
     """
     test_id = (
-        f"{_TEST_ID_PREFIX}.{_strip_route_prefix(route['id'])}."
-        f"token-from-another-route"
+        f"{_TEST_ID_PREFIX}.{_strip_route_prefix(route['id'])}.token-from-another-route"
     )
     results_writer.record(
         {
@@ -89,9 +89,7 @@ def test_token_from_another_route(route: dict, results_writer) -> None:
             ),
         }
     )
-    pytest.skip(
-        "Cognito issues single-scope tokens; replay-by-scope-mismatch is N/A"
-    )
+    pytest.skip("Cognito issues single-scope tokens; replay-by-scope-mismatch is N/A")
 
 
 # ────────── Family 2: post-logout replay (documented unsafe per AC11) ────────

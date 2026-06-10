@@ -68,6 +68,7 @@ Baseline shape (read from .baseline/last-green.json)
 Writing this shape is the job of `scripts/promote_baseline.py`; this
 module is read-only against it.
 """
+
 from __future__ import annotations
 
 import json
@@ -179,15 +180,9 @@ def _classify(baseline_status: str, current_status: str) -> str:
     ):
         return "flapping"
     # Regressions / resolutions on existing tests.
-    if (
-        baseline_status not in _FAILURE_STATUSES
-        and current_status in _FAILURE_STATUSES
-    ):
+    if baseline_status not in _FAILURE_STATUSES and current_status in _FAILURE_STATUSES:
         return "new_failure"
-    if (
-        baseline_status in _FAILURE_STATUSES
-        and current_status in _PASS_STATUSES
-    ):
+    if baseline_status in _FAILURE_STATUSES and current_status in _PASS_STATUSES:
         return "resolved"
     return "unchanged"
 
@@ -372,8 +367,7 @@ def build_diff(current_results: Iterable, baseline: dict | None) -> dict:
         # Severity / target_id sourced from whichever side carries them;
         # current run wins because it's the more recent observation.
         severity = (
-            (current_row or {}).get("severity")
-            or (baseline_row or {}).get("severity")
+            (current_row or {}).get("severity") or (baseline_row or {}).get("severity")
             if isinstance(baseline_row, dict)
             else (current_row or {}).get("severity")
         )

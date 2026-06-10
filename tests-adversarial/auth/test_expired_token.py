@@ -20,6 +20,7 @@ The expired JWT is built with stdlib base64 + json — same approach as
 text `fake-signature` base64-encoded — sufficient because the API doesn't
 verify it.
 """
+
 from __future__ import annotations
 
 import time

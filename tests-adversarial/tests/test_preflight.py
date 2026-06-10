@@ -11,6 +11,7 @@ Covers:
   - BudgetExceededError message contains the literal phrase 'budget exceeded'
     so a strict case-sensitive grep finds it.
 """
+
 from __future__ import annotations
 
 import pytest

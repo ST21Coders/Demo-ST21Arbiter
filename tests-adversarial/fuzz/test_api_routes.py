@@ -43,6 +43,7 @@ check; an explicit acceptance of a payload (status 200, body sanitized) is
 still a PASS. We never assert a specific status code beyond "not 500" — the
 backend may legitimately accept some of these payloads as literal strings.
 """
+
 from __future__ import annotations
 
 import json
@@ -166,7 +167,9 @@ def _primary_field(route_id: str) -> str:
     return _PRIMARY_BODY_FIELD.get(route_id, "payload")
 
 
-def _route_url(api_base_url: str, chat_function_url: str | None, route: dict) -> str | None:
+def _route_url(
+    api_base_url: str, chat_function_url: str | None, route: dict
+) -> str | None:
     """Resolve the route to an absolute URL. Returns None to indicate skip.
 
     Returns None for /chat when chat_function_url is unset (documented:
@@ -175,7 +178,11 @@ def _route_url(api_base_url: str, chat_function_url: str | None, route: dict) ->
     if route["id"] == "post-chat":
         if not chat_function_url:
             return None
-        return f"{chat_function_url}{route['path']}" if not chat_function_url.endswith(route["path"]) else chat_function_url
+        return (
+            f"{chat_function_url}{route['path']}"
+            if not chat_function_url.endswith(route["path"])
+            else chat_function_url
+        )
     return f"{api_base_url}{route['path']}"
 
 
@@ -201,7 +208,9 @@ def _materialize_path_with_id_placeholder(route_path: str) -> str:
 # ────────────────────────────── the test ─────────────────────────────────────
 
 
-@pytest.mark.parametrize("route,family,payload", _TEST_PARAMS, ids=[_param_id(p) for p in _TEST_PARAMS])
+@pytest.mark.parametrize(
+    "route,family,payload", _TEST_PARAMS, ids=[_param_id(p) for p in _TEST_PARAMS]
+)
 def test_route_fuzz(
     route: dict,
     family: str,
@@ -230,29 +239,39 @@ def test_route_fuzz(
     # Skip /chat when the Function URL isn't configured.
     url = _route_url(api_base_url, chat_function_url, route)
     if url is None:
-        results_writer.record({
-            "test_id": request.node.name.split("[")[-1].rstrip("]"),
-            "status": "skipped",
-            "layer": "fuzz",
-            "target_kind": "api_route",
-            "target_id": route_id,
-            "skipped_reason": "CHAT_FUNCTION_URL unset; /chat fuzz disabled.",
-        })
+        results_writer.record(
+            {
+                "test_id": request.node.name.split("[")[-1].rstrip("]"),
+                "status": "skipped",
+                "layer": "fuzz",
+                "target_kind": "api_route",
+                "target_id": route_id,
+                "skipped_reason": "CHAT_FUNCTION_URL unset; /chat fuzz disabled.",
+            }
+        )
         pytest.skip("CHAT_FUNCTION_URL unset; /chat fuzz disabled.")
 
     # Resolve URL with path-param materialization. For path_traversal family,
     # the payload IS the path-param value; otherwise we use a placeholder.
     if family == "path_traversal" and route_has_path_param(route["path"]):
         path_value = str(payload.get("payload") or "")
-        url_with_path = _route_url(
-            api_base_url, chat_function_url,
-            {**route, "path": _materialize_path(route["path"], path_value)},
-        ) or url
+        url_with_path = (
+            _route_url(
+                api_base_url,
+                chat_function_url,
+                {**route, "path": _materialize_path(route["path"], path_value)},
+            )
+            or url
+        )
     else:
-        url_with_path = _route_url(
-            api_base_url, chat_function_url,
-            {**route, "path": _materialize_path_with_id_placeholder(route["path"])},
-        ) or url
+        url_with_path = (
+            _route_url(
+                api_base_url,
+                chat_function_url,
+                {**route, "path": _materialize_path_with_id_placeholder(route["path"])},
+            )
+            or url
+        )
 
     # Build kwargs for http_session.request().
     headers = dict(auth_header)
@@ -289,10 +308,14 @@ def test_route_fuzz(
                 payload_for_reflection = None
             elif kind == "path":
                 if route_has_path_param(route["path"]):
-                    url_with_path = _route_url(
-                        api_base_url, chat_function_url,
-                        {**route, "path": _materialize_path(route["path"], blob)},
-                    ) or url_with_path
+                    url_with_path = (
+                        _route_url(
+                            api_base_url,
+                            chat_function_url,
+                            {**route, "path": _materialize_path(route["path"], blob)},
+                        )
+                        or url_with_path
+                    )
                 else:
                     # Oversized-path doesn't apply to this route; treat as
                     # an oversized body field instead.
@@ -350,7 +373,11 @@ def test_route_fuzz(
     )
 
     test_id = make_test_id(route_id, family, payload["id"])
-    persona = request.node.callspec.params.get("auth_header", "unknown") if hasattr(request.node, "callspec") else None
+    persona = (
+        request.node.callspec.params.get("auth_header", "unknown")
+        if hasattr(request.node, "callspec")
+        else None
+    )
     row = {
         "test_id": test_id,
         "status": classified.verdict,

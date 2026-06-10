@@ -13,6 +13,7 @@ Coverage:
   10. Tools-covered label reflects the 12-entry manifest.
   11. JSON serialization is deterministic (same inputs -> same bytes).
 """
+
 from __future__ import annotations
 
 import json
@@ -133,7 +134,9 @@ def test_empty_results_produces_valid_report(
     diff = report["diff_from_last_green"]
     assert isinstance(diff, dict)
     assert diff["summary"]["has_baseline"] is False
-    assert diff["summary"]["promotable_note"] == "no baseline; this run will be promotable"
+    assert (
+        diff["summary"]["promotable_note"] == "no baseline; this run will be promotable"
+    )
     assert diff["new_failures"] == []
     assert diff["resolved"] == []
 

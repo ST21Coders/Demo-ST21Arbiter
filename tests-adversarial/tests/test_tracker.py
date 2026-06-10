@@ -7,6 +7,7 @@ Covers:
   - as_dict() shape matches what the reporter consumes.
   - the same probe across two layers does not bleed into the wrong count.
 """
+
 from __future__ import annotations
 
 import pytest

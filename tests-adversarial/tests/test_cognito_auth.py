@@ -14,6 +14,7 @@ These tests do NOT hit the deployed Cognito pool. `boto3.client` is monkey-
 patched to a stub before any module-under-test code path that constructs a
 client.
 """
+
 from __future__ import annotations
 
 import base64
@@ -36,6 +37,7 @@ from src.identity.cognito_auth import (
 
 
 # ──────────────────────────── fixtures / helpers ────────────────────────────
+
 
 def _make_fake_jwt(groups: list[str] | str) -> str:
     """Build a 3-segment JWT-shaped token whose payload has cognito:groups.
@@ -97,6 +99,7 @@ def _full_env(monkeypatch):
 
 # ──────────────────────────── tests ────────────────────────────
 
+
 def test_fetch_identity_without_demo_password_raises_missing_password(monkeypatch):
     """AC5: refuse to start when DEMO_PASSWORD is unset.
 
@@ -145,7 +148,9 @@ def test_excepthook_writes_message_to_stderr(capsys):
     human-readable message to stderr WITHOUT a traceback header. The phrase
     `DEMO_PASSWORD required` lands within the first 80 chars.
     """
-    err = MissingPasswordError("DEMO_PASSWORD required: environment variable is not set.")
+    err = MissingPasswordError(
+        "DEMO_PASSWORD required: environment variable is not set."
+    )
     cognito_auth._short_stderr_excepthook(MissingPasswordError, err, None)
 
     captured = capsys.readouterr()
@@ -181,7 +186,9 @@ def test_excepthook_delegates_for_unrelated_exception(monkeypatch, capsys):
         "non-CognitoAuthError exceptions must go through sys.__excepthook__"
     )
     captured = capsys.readouterr()
-    assert captured.err == "", "hook must not write anything itself for unrelated exceptions"
+    assert captured.err == "", (
+        "hook must not write anything itself for unrelated exceptions"
+    )
 
 
 def test_fetch_identity_without_user_pool_id_raises_cognito_auth_error(monkeypatch):
@@ -223,7 +230,7 @@ def test_fetch_identity_happy_path_returns_expected_identity(monkeypatch, _full_
 
     assert isinstance(identity, Identity)
     assert identity.persona == Persona.CISO
-    assert identity.username == "ciso_daiana"
+    assert identity.username == "ciso_diana@meridianinsurance.com"
     assert identity.id_token == fake_id_token
     assert identity.access_token == "access-token-xyz"
     assert identity.cognito_groups == ("ciso",)
@@ -233,7 +240,7 @@ def test_fetch_identity_happy_path_returns_expected_identity(monkeypatch, _full_
     call = stub.calls[0]
     assert call["AuthFlow"] == "USER_PASSWORD_AUTH"
     assert call["ClientId"] == "1example2client3id4"
-    assert call["AuthParameters"]["USERNAME"] == "ciso_daiana"
+    assert call["AuthParameters"]["USERNAME"] == "ciso_diana@meridianinsurance.com"
     assert call["AuthParameters"]["PASSWORD"] == "Sup3rSecret!"
 
 
@@ -276,10 +283,10 @@ def test_fetch_all_returns_all_four_personas(monkeypatch, _full_env):
     identities = fetch_all()
 
     assert set(identities.keys()) == set(Persona)
-    assert identities[Persona.CISO].username == "ciso_daiana"
-    assert identities[Persona.SOC].username == "soc_marcus"
-    assert identities[Persona.GRC].username == "grc_priya"
-    assert identities[Persona.EMPLOYEE].username == "emp_sarah"
+    assert identities[Persona.CISO].username == "ciso_diana@meridianinsurance.com"
+    assert identities[Persona.SOC].username == "soc_marcus@meridianinsurance.com"
+    assert identities[Persona.GRC].username == "grc_priya@meridianinsurance.com"
+    assert identities[Persona.EMPLOYEE].username == "emp_sarah@meridianinsurance.com"
     # Each persona invokes initiate_auth exactly once.
     assert len(stub.calls) == 4
 
@@ -351,7 +358,12 @@ def test_initiate_auth_client_error_wraps_to_cognito_auth_error(monkeypatch, _fu
     class _BadClient:
         def initiate_auth(self, **kwargs):
             raise ClientError(
-                {"Error": {"Code": "NotAuthorizedException", "Message": "Incorrect username or password."}},
+                {
+                    "Error": {
+                        "Code": "NotAuthorizedException",
+                        "Message": "Incorrect username or password.",
+                    }
+                },
                 "InitiateAuth",
             )
 
@@ -374,7 +386,9 @@ def test_initiate_auth_challenge_response_raises(monkeypatch, _full_env):
             return {"ChallengeName": "NEW_PASSWORD_REQUIRED", "Session": "sess-xyz"}
 
     monkeypatch.setattr(
-        cognito_auth, "boto3", type("M", (), {"client": lambda *a, **kw: _ChallengeClient()})
+        cognito_auth,
+        "boto3",
+        type("M", (), {"client": lambda *a, **kw: _ChallengeClient()}),
     )
 
     with pytest.raises(CognitoAuthError) as exc_info:

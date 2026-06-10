@@ -56,6 +56,7 @@ real leak might slip past. The current list was chosen by reading
 
 Each marker is matched case-insensitive on the response body.
 """
+
 from __future__ import annotations
 
 import json
@@ -249,6 +250,7 @@ def make_test_id(route_id: str, family: str, payload_id: str) -> str:
     inputs that normalize to the same id is an error the caller can detect by
     comparing call counts.
     """
+
     def _norm(s: str) -> str:
         out = []
         for ch in s.lower():
@@ -325,14 +327,10 @@ def load_corpus(corpus_dir: Path | str) -> dict[str, dict]:
         seen_ids: set[str] = set()
         for idx, entry in enumerate(payloads):
             if not isinstance(entry, dict):
-                raise ValueError(
-                    f"{path}: payloads[{idx}] is not an object"
-                )
+                raise ValueError(f"{path}: payloads[{idx}] is not an object")
             pid = entry.get("id")
             if not isinstance(pid, str) or not pid.strip():
-                raise ValueError(
-                    f"{path}: payloads[{idx}] missing 'id'"
-                )
+                raise ValueError(f"{path}: payloads[{idx}] missing 'id'")
             if pid in seen_ids:
                 raise ValueError(
                     f"{path}: duplicate payload id {pid!r} within family {family!r}"
