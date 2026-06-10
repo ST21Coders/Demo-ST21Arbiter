@@ -155,7 +155,12 @@ AGENTS = [
         # service account's project permissions + the tool allowlist instead.
         "env_overrides": {
             "JIRA_SECRET_ID": f"{ENV}/{PROJECT}/jira",
-            "ENABLED_TOOLS": "jira_search,jira_get_issue,jira_get_all_projects,jira_create_issue",
+            # Read + create + L1-resolution writes (transition/comment). get_transitions
+            # lets a transition be resolved by name → id defensively.
+            "ENABLED_TOOLS": (
+                "jira_search,jira_get_issue,jira_get_all_projects,jira_create_issue,"
+                "jira_get_transitions,jira_transition_issue,jira_add_comment"
+            ),
         },
     },
     {

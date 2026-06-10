@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, ShieldAlert, Activity, Wrench, Scale,
   GitBranch, ScrollText, MessageSquare, Cpu, Terminal,
-  Settings, Wifi, WifiOff, Shield, Users, Coins, Plug,
+  Settings, Wifi, WifiOff, Shield, Users, Coins, Plug, FlaskConical,
 } from 'lucide-react'
 import { CHAT_URL, USE_MOCK, APP_VERSION } from '../config'
 import { usePersona } from '../contexts/PersonaContext'
@@ -32,6 +32,7 @@ const NAV_GROUPS = [
     label: 'INTELLIGENCE',
     items: [
       { to: '/analyst',     icon: MessageSquare, label: 'Analyst Chat' },
+      { to: '/whatif',      icon: FlaskConical,  label: 'What-If Scan' },
       { to: '/llm-control', icon: Cpu,           label: 'LLM Control', adminOnly: true },
     ],
   },
@@ -53,6 +54,7 @@ const PAGE_TITLES = {
   '/governance': 'Compliance',
   '/audit':      'Audit Logs',
   '/analyst':    'Analyst Chat',
+  '/whatif':     'What-If Scan',
   '/llm-control':'LLM Control',
   '/pipeline':   'Data Pipeline',
   '/mcp-chat':   'MCP Admin',

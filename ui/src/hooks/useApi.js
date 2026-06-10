@@ -578,6 +578,48 @@ export async function createJiraTicket({ conflict_id, summary, description, proj
   return res.json()
 }
 
+// Shared POST-to-Function-URL helper for the JIRA L1 + What-If routes. Goes via
+// CHAT_URL (not API GW) because the MCP subprocess / runtime call can exceed the
+// 29s API Gateway integration timeout. Surfaces the Lambda's {"error"} body.
+async function _postChat(pathSuffix, payload, mockResult) {
+  if (USE_MOCK || !CHAT_URL) { await sleep(700); return mockResult }
+  const res = await fetch(`${CHAT_URL}${pathSuffix}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    let detail = ''
+    try { detail = (await res.json())?.error || '' } catch { /* non-JSON */ }
+    throw new Error(detail ? `${res.status}: ${detail}` : `${res.status} ${res.statusText}`)
+  }
+  return res.json()
+}
+
+// JIRA L1 resolution: transition an issue (defaults to "Done") + optional comment.
+// Returns { status, jira_ticket_key, transitioned_to, url }.
+export async function transitionJira({ jira_key, transition, comment, cr_id }) {
+  return _postChat('jira/transition',
+    { jira_key, transition: transition || 'Done', comment, cr_id },
+    { status: 'transitioned', jira_ticket_key: jira_key, transitioned_to: transition || 'Done' })
+}
+
+// Add a comment to a JIRA issue. Returns { status, jira_ticket_key, url }.
+export async function commentJira({ jira_key, comment, cr_id }) {
+  return _postChat('jira/comment',
+    { jira_key, comment, cr_id },
+    { status: 'commented', jira_ticket_key: jira_key })
+}
+
+// What-If dry-run: run the rule pack against hypothetical observations WITHOUT
+// persisting. `observations` is { <source>: [obs...] }; omitted sources seed
+// normally server-side. Returns { dry_run, findings, totals }.
+export async function dryRunScan(observations) {
+  return _postChat('scan/dry-run',
+    { observations },
+    { dry_run: true, findings: [], totals: { conflicts: 0, compliant: 0 } })
+}
+
 // Live nav badge counts. Polls every 60s; cancels on unmount.
 // findingsOpen = conflicts with status === 'OPEN'; actionsPending = CRs with
 // status === 'PENDING_APPROVAL'. Mock mode reads from MOCK_*.

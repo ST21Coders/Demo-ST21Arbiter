@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Loader2, ChevronDown, ChevronRight, CheckCircle, XCircle,
-  Play, AlertOctagon, Clock, Shield, Zap, Plus, ExternalLink, Ticket, X
+  Play, AlertOctagon, Clock, Shield, Zap, Plus, ExternalLink, Ticket, X, MessageSquarePlus, ArrowRightCircle, Wrench
 } from 'lucide-react'
-import { useChangeRequests, createJiraTicket } from '../hooks/useApi'
+import { useChangeRequests, createJiraTicket, transitionJira, commentJira } from '../hooks/useApi'
 import { SeverityBadge, StatusBadge } from '../components/SeverityBadge'
 import ActionRequestModal from '../components/ActionRequestModal'
 import { formatDistanceToNow } from 'date-fns'
@@ -56,6 +56,14 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
   const [jiraUrl, setJiraUrl] = useState(cr.jira_ticket_url || null)
   const [jiraBusy, setJiraBusy] = useState(false)
   const [jiraFormOpen, setJiraFormOpen] = useState(false)
+  // L1 resolution (transition + comment) on an existing ticket.
+  const [jiraStatus, setJiraStatus] = useState(cr.jira_status || null)
+  const [l1Open, setL1Open] = useState(false)
+  const [transitionName, setTransitionName] = useState('Done')
+  const [l1Comment, setL1Comment] = useState('')
+  const [l1Busy, setL1Busy] = useState(false)
+  const [l1Msg, setL1Msg] = useState(null)
+  const [l1Err, setL1Err] = useState(null)
   // Editable JIRA fields. Title seeds from the conflict/finding; description
   // from the business justification — both editable before creating.
   const [jiraTitle, setJiraTitle] = useState(
@@ -70,6 +78,7 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
     try {
       const res = await createJiraTicket({
         conflict_id: cr.conflict_id || cr.linked_conflict_id,
+        cr_id: cr.cr_id,
         summary: jiraTitle,
         description: jiraDesc,
         project_key: 'DEVARBITER',
@@ -83,6 +92,32 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
     } catch (err) {
       setJiraErr(err.message || String(err))
     } finally { setJiraBusy(false) }
+  }
+
+  async function doTransition() {
+    setL1Busy(true); setL1Err(null); setL1Msg(null)
+    try {
+      const res = await transitionJira({
+        jira_key: jiraKey, transition: transitionName, comment: l1Comment, cr_id: cr.cr_id,
+      })
+      setJiraStatus(res?.transitioned_to || transitionName)
+      setL1Msg(`Transitioned ${jiraKey} → ${res?.transitioned_to || transitionName}`)
+      setL1Comment('')
+    } catch (err) {
+      setL1Err(err.message || String(err))
+    } finally { setL1Busy(false) }
+  }
+
+  async function doComment() {
+    if (!l1Comment.trim()) { setL1Err('Enter a comment first'); return }
+    setL1Busy(true); setL1Err(null); setL1Msg(null)
+    try {
+      await commentJira({ jira_key: jiraKey, comment: l1Comment, cr_id: cr.cr_id })
+      setL1Msg(`Comment added to ${jiraKey}`)
+      setL1Comment('')
+    } catch (err) {
+      setL1Err(err.message || String(err))
+    } finally { setL1Busy(false) }
   }
 
   const pendingApprovers = cr.approvers?.filter(a => a.type !== 'NOTIFICATION' && a.status === 'PENDING') || []
@@ -259,22 +294,36 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
               </button>
             )}
             {jiraKey ? (
-              jiraUrl ? (
-                <a
-                  href={jiraUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md hover:bg-indigo-100 transition-colors"
-                  title="Open the JIRA ticket in a new tab"
+              <>
+                {jiraUrl ? (
+                  <a
+                    href={jiraUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md hover:bg-indigo-100 transition-colors"
+                    title="Open the JIRA ticket in a new tab"
+                  >
+                    JIRA: <span className="font-mono">{jiraKey}</span>
+                    <ExternalLink size={11} />
+                  </a>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md">
+                    JIRA: <span className="font-mono">{jiraKey}</span>
+                  </span>
+                )}
+                {jiraStatus && (
+                  <span className="flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-md">
+                    <CheckCircle size={11} /> {jiraStatus}
+                  </span>
+                )}
+                <button
+                  onClick={() => { setL1Open(o => !o); setL1Err(null); setL1Msg(null) }}
+                  className="btn-ghost flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700"
+                  title="Resolve at L1 — transition the issue and/or add a comment via the JIRA specialist agent."
                 >
-                  JIRA: <span className="font-mono">{jiraKey}</span>
-                  <ExternalLink size={11} />
-                </a>
-              ) : (
-                <span className="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-1 rounded-md">
-                  JIRA: <span className="font-mono">{jiraKey}</span>
-                </span>
-              )
+                  <Wrench size={12} /> L1 actions
+                </button>
+              </>
             ) : (
               <button
                 onClick={() => { setJiraFormOpen(o => !o); setJiraErr(null) }}
@@ -286,6 +335,60 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
               </button>
             )}
           </div>
+
+          {/* L1 resolution — transition + comment on the linked JIRA ticket. */}
+          {l1Open && jiraKey && (
+            <div className="mt-3 rounded-lg border border-indigo-200 bg-indigo-50/40 p-3 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-700">
+                  L1 resolution · <span className="font-mono">{jiraKey}</span>
+                </p>
+                <button onClick={() => setL1Open(false)} className="text-slate-400 hover:text-slate-600" title="Close">
+                  <X size={13} />
+                </button>
+              </div>
+              <div className="flex gap-2 items-end flex-wrap">
+                <div className="flex-shrink-0">
+                  <label className="block text-[10px] text-slate-500 font-medium mb-1">Transition to</label>
+                  <input
+                    value={transitionName}
+                    onChange={e => setTransitionName(e.target.value)}
+                    className="input text-xs w-40"
+                    placeholder="Done"
+                    title="Resolved by name → workflow id on the server (e.g. Done, Resolve Issue)."
+                  />
+                </div>
+                <div className="flex-1 min-w-[180px]">
+                  <label className="block text-[10px] text-slate-500 font-medium mb-1">Comment (optional for transition)</label>
+                  <input
+                    value={l1Comment}
+                    onChange={e => setL1Comment(e.target.value)}
+                    className="input w-full text-xs"
+                    placeholder="L1 resolution note…"
+                  />
+                </div>
+              </div>
+              {l1Err && <p className="text-[11px] text-red-600">JIRA error: {l1Err}</p>}
+              {l1Msg && <p className="text-[11px] text-emerald-700">{l1Msg}</p>}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={doTransition}
+                  disabled={l1Busy || !transitionName.trim()}
+                  className="btn-primary flex items-center gap-1.5 text-xs px-3 py-1.5"
+                >
+                  {l1Busy ? <Loader2 size={12} className="animate-spin" /> : <ArrowRightCircle size={12} />}
+                  Transition
+                </button>
+                <button
+                  onClick={doComment}
+                  disabled={l1Busy || !l1Comment.trim()}
+                  className="btn-ghost flex items-center gap-1.5 text-xs px-3 py-1.5 text-indigo-600 hover:text-indigo-700"
+                >
+                  <MessageSquarePlus size={12} /> Comment only
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Editable JIRA create form — Task in project DEVARBITER. */}
           {jiraFormOpen && !jiraKey && (
