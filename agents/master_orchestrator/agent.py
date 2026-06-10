@@ -53,6 +53,10 @@ AWSCONFIG_RUNTIME_ARN = os.environ.get("AWSCONFIG_RUNTIME_ARN", "")
 ZSCALER_RUNTIME_ARN = os.environ.get("ZSCALER_RUNTIME_ARN", "")
 PALOALTO_RUNTIME_ARN = os.environ.get("PALOALTO_RUNTIME_ARN", "")
 JIRA_RUNTIME_ARN = os.environ.get("JIRA_RUNTIME_ARN", "")
+# Optional: when set, the scan pulls Zscaler enforcement observations live from
+# the structured_specialist (Athena over the Glue-catalogued zscaler_rules table)
+# instead of the bundled fixtures. Falls back to fixtures on any error.
+STRUCTURED_RUNTIME_ARN = os.environ.get("STRUCTURED_RUNTIME_ARN", "")
 
 _missing = [
     name for name, val in [
@@ -415,7 +419,7 @@ def _run_scan(payload: dict[str, Any]) -> dict[str, Any]:
     # specialists ship structured tools (Step 6 polish), replace these with
     # invoke_agent_runtime calls.
     sharepoint = _seed_sharepoint_observations()
-    zscaler    = _seed_zscaler_observations()
+    zscaler    = _zscaler_observations()
     awsconfig  = _seed_awsconfig_observations()
     paloalto   = _seed_paloalto_observations()
 
@@ -478,6 +482,37 @@ def _seed_sharepoint_observations() -> list[dict]:
         {"policy_doc": "MIG-POL-005", "version": "v2.8", "section": "6",
          "text": "All vendor remote-support sessions must be logged to SIEM."},
     ]
+
+
+def _zscaler_observations() -> list[dict]:
+    """Zscaler enforcement observations for the scan.
+
+    When STRUCTURED_RUNTIME_ARN is set, pull them LIVE from the structured
+    specialist (Athena over the Glue-catalogued zscaler_rules CSV). Any error —
+    runtime down, query failure, empty/zero rows — falls back to the bundled
+    fixtures so a structured-ingestion hiccup never blanks the scan.
+    """
+    if not STRUCTURED_RUNTIME_ARN:
+        return _seed_zscaler_observations()
+    try:
+        resp = runtime_client.invoke_agent_runtime(
+            agentRuntimeArn=STRUCTURED_RUNTIME_ARN,
+            payload=json.dumps({"mode": "produce_observations", "source": "zscaler"}).encode("utf-8"),
+            contentType="application/json",
+            accept="application/json",
+        )
+        body = json.loads(resp["response"].read().decode("utf-8"))
+        inner = body.get("result", body) if isinstance(body, dict) else body
+        if isinstance(inner, str):
+            inner = json.loads(inner)
+        obs = (inner or {}).get("observations") or []
+        if obs:
+            log.info("Zscaler observations: %d rows from structured specialist (Athena)", len(obs))
+            return obs
+        log.warning("structured specialist returned 0 zscaler observations — using fixtures")
+    except Exception:
+        log.exception("structured specialist invoke failed — using zscaler fixtures")
+    return _seed_zscaler_observations()
 
 
 def _seed_zscaler_observations() -> list[dict]:

@@ -339,12 +339,8 @@ export default function Dashboard() {
         <div className="rounded-xl p-4 flex items-center gap-3 bg-indigo-50 border border-indigo-200">
           <Loader2 size={15} className="animate-spin text-indigo-600 flex-shrink-0" />
           <div>
-            <p className="text-sm text-indigo-800 font-medium">AI scan in progress</p>
-            <p className="text-xs text-indigo-600 mt-0.5">
-              {activeRun && !scanning
-                ? `Autonomous scan running (${activeRun.triggered_by || 'background'}) — tiles refresh on completion…`
-                : 'Dispatching specialist agents across MIG-POL-001–005 · Zscaler · AWS Config…'}
-            </p>
+            <p className="text-sm text-indigo-800 font-medium">Scan in progress</p>
+            <p className="text-xs text-indigo-600 mt-0.5">Analyzing policies — tiles refresh on completion…</p>
           </div>
         </div>
       )}
