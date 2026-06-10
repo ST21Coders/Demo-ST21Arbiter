@@ -8,6 +8,7 @@
     "test:fuzz": "python3.13 -m pytest fuzz/",
     "test:auth": "python3.13 -m pytest auth/",
     "test:llm": "python3.13 -m pytest llm/",
+    "test:headers": "python3.13 -m pytest headers/",
     "test:all": "python3.13 -m scripts.run_all",
     "test:promote-baseline": "python3.13 -m scripts.promote_baseline",
     "test:check-drift": "python3.13 -m scripts.check_manifest_drift"

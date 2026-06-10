@@ -1,7 +1,7 @@
 # ARBITER Adversarial Harness — Security Compliance Coverage Matrix
 
 **Date:** 2026-06-10
-**Harness version:** post-2026-06-10 (commit `cb2ff4e9`)
+**Harness version:** post-Block-B (2026-06-10)
 **Reference standard:** internal compliance checklist (OWASP Top 10 + API Top 10 + LLM Top 10 + CWE common weaknesses)
 
 This document maps every item on the requested compliance checklist to the current state of the adversarial test harness at `tests-adversarial/`. For each item it states:
@@ -59,14 +59,14 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 
 | # | Item | Status | Where / Gap | Effort to close |
 |---|---|---|---|---|
-| 23 | Plaintext transmission of sensitive data | 🟡 Partial | The harness uses HTTPS for every probe (TLS enforced by CloudFront). No active check that `http://` redirects to `https://` or that there's no plain-HTTP backend. | Small (~30 min) — add `tls/test_https_only.py` |
-| 24 | Weak / outdated cryptographic algorithms | ❌ Missing | No TLS cipher inventory or algorithm-strength check. CloudFront's default policy is modern but should be verified. | Small (~30 min) — `nmap --script ssl-enum-ciphers` or `testssl.sh` subprocess wrapper |
+| 23 | Plaintext transmission of sensitive data | ✅ Covered | Block B: `headers/test_https_only.py` — for every public host (CloudFront SPA, API, Lambda Function URL), GET on `http://` must redirect to `https://` (FAIL HIGH on a 200 or http-to-http redirect) and GET on `https://` must set HSTS with `max-age >= 1 year` (FAIL MEDIUM if missing). | – |
+| 24 | Weak / outdated cryptographic algorithms | ✅ Covered | Block B: `headers/test_tls_ciphers.py` — stdlib `ssl` + `socket` only (no `nmap` / `testssl.sh` subprocess). Forces TLS 1.0 / 1.1 handshakes against CloudFront (FAIL HIGH if either succeeds), then negotiates TLS 1.2 and verifies the cipher name is not in the weak-token list (RC4 / 3DES / NULL / EXPORT / anonymous DH / MD5-based). | – |
 | 25 | Hardcoded or poorly managed keys | 🟡 Partial | The harness itself has a `_test_safety_invariants` that grep-scans for AWS account IDs / forbidden boto3 clients. Doesn't scan the deployed bundle for inlined keys. | Small (~1 hr) — add `e2e/test_bundle_secrets_scan.spec.js` that fetches `/assets/*.js` and regex-scans for `AKIA`, `eyJ`, `xoxb-`, etc. |
 | 26 | Weak randomness | ❌ Missing | No probe that watches for predictable session_ids or short-cycle UUIDs. ARBITER uses `crypto.randomUUID()` which is fine, but a regression to `Math.random()` wouldn't be caught. | Small (~1 hr) — collect 100 session_ids and check Shannon entropy |
 | 27 | Improper certificate validation | ⚪ Out of scope | This applies to client-side code. The deployed SPA uses the browser's cert validation; ARBITER doesn't ship a desktop/mobile client. | – |
 | 28 | Unnecessary retention of sensitive data | ❌ Missing | No probe of DDB TTL / retention policies. Spec'd in `04-storage.yaml` but not enforced by harness. | Small-medium (~2 hr) — `tls/test_data_retention.py` querying DDB for items past TTL or session table for old rows |
 
-**Section totals:** 0 covered · 2 partial · 3 missing · 1 out-of-scope
+**Section totals:** 2 covered · 0 partial · 3 missing · 1 out-of-scope  *(post-Block-B)*
 
 ---
 
@@ -76,16 +76,16 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 |---|---|---|---|---|
 | 29 | Default credentials | ✅ Covered | Block A: `auth/test_default_creds.py` (5 pairs: admin/admin, admin/password, test/test, arbiter/arbiter, demo/demo123). PASS = Cognito returns NotAuthorizedException; FAIL severity HIGH if any unexpectedly authenticates. | – |
 | 30 | Verbose errors / stack trace leakage | ✅ Covered | Fuzz layer's stack-trace marker check catches `Traceback`, `boto3`, `ClientError`, `aws_request_id` in any response body. **Note:** earlier review flagged that `"boto3"` is too broad — fixed already. | – |
-| 31 | Missing security headers | ❌ Missing | No probe that asserts `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` are present and sane. | Small (~1 hr) — new `headers/test_security_headers.py` |
+| 31 | Missing security headers | ✅ Covered | Block B: `headers/test_security_headers.py` (parameterized across SPA root + 3 API routes). Per-header rows: `headers.csp.*` (FAIL MEDIUM if missing, LOW if `unsafe-eval` / `unsafe-inline` / `data:` in script-src), `headers.xfo.*` (clickjacking — FAIL MEDIUM if neither XFO nor CSP `frame-ancestors` restricts framing), `headers.xcto.*` (FAIL LOW if missing / wrong value), `headers.referrer.*` (FAIL LOW if missing or `unsafe-url`). HSTS covered separately by `test_https_only.py`. | – |
 | 32 | Open cloud storage / over-permissive IAM | 🟡 Partial | Manifest-driven static check covers IAM in templates indirectly. No probe attempts unauthenticated GET on S3 bucket URLs or non-CISO access to KMS keys. | Medium (~half day) |
 | 33 | Exposed admin consoles or sensitive directories | ❌ Missing | No probe of common admin paths (`/admin`, `/console`, `/.git`, `/.env`, `/swagger`, `/api-docs`). | Small (~30 min) — add to forced-browsing dictionary above |
 | 34 | Directory listing / debug mode in production | ❌ Missing | No probe of CloudFront for directory indices, or of API for debug endpoints (`/debug`, `?debug=1`). | Small (~30 min) |
-| 35 | Misconfigured CORS | ❌ Missing | No probe that sets unusual `Origin` headers and inspects `Access-Control-Allow-Origin` response. Today's run confirmed CORS exists; correctness is unverified. | Small (~1 hr) — new `headers/test_cors.py` with origins `evil.com`, `null`, `file://` |
+| 35 | Misconfigured CORS | ✅ Covered | Block B: `headers/test_cors.py` (route × attacker_origin parametrize). Sends OPTIONS preflights with `Origin: https://evil.com`, `Origin: null`, and `Origin: file://` against 5 representative API routes (15 cells). FAIL HIGH if `Access-Control-Allow-Origin: *` + `Allow-Credentials: true`, or if ACAO echoes the attacker origin back. PASS on no ACAO / fixed-allowed-origin / wildcard-without-credentials. | – |
 | 36 | Vulnerable / outdated dependencies | ⚪ Out of scope | GitHub Dependabot is on (we saw the warning on push: 1 critical, 5 moderate). Pin SCA there. The harness doesn't replicate this. | Note in report |
 | 37 | Dependency confusion | ⚪ Out of scope | Best handled in build pipeline + private registry config, not runtime probe. | – |
 | 38 | Typosquatting | ⚪ Out of scope | Static analysis of `package.json` / `requirements.txt`. Tools like Socket.dev. | – |
 
-**Section totals:** 2 covered · 1 partial · 4 missing · 3 out-of-scope  *(post-Block-A)*
+**Section totals:** 4 covered · 1 partial · 2 missing · 3 out-of-scope  *(post-Block-B)*
 
 ---
 
@@ -127,9 +127,9 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 | 52 | Broken function-level authorization (BFLA) | ✅ Covered | Same as #14 — auth layer's per-route persona tests cover BFLA. Confirmed broken today. | – |
 | 53 | Unsafe consumption of third-party APIs | ❌ Missing | The jira_specialist and zscaler integrations consume external APIs. No probe that verifies the responses are validated before being passed to the model. | Medium (~half day) — requires fault injection on the upstream |
 | 54 | GraphQL-specific abuse | ⚪ Out of scope | ARBITER doesn't expose GraphQL. | – |
-| 55 | Cross-Site Request Forgery (CSRF) | 🟡 Partial | The API requires Authorization-header tokens (not cookies), so classic CSRF doesn't apply. No probe that confirms there's no cookie-based fallback. | Small (~30 min) — `headers/test_csrf_resistant.py` that POSTs without Authorization, with cookie set, and asserts 401 |
+| 55 | Cross-Site Request Forgery (CSRF) | ✅ Covered | Block B: `headers/test_csrf.py`. For every POST / PUT / PATCH / DELETE route in the manifest, fire the request with NO `Authorization:` header but WITH a fake `Cookie: arbiter.tokens=...`. Expected: 401 / 403. FAIL HIGH if the API returns 2xx — that would mean a cookie-based auth fallback exists, exposing the surface to classic CSRF. | – |
 
-**Section totals:** 1 covered · 4 partial · 2 missing · 1 out-of-scope  *(post-Block-A)*
+**Section totals:** 2 covered · 3 partial · 2 missing · 1 out-of-scope  *(post-Block-B)*
 
 ---
 
@@ -137,13 +137,13 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 
 | # | Item | Status | Where / Gap | Effort to close |
 |---|---|---|---|---|
-| 56 | Clickjacking | ❌ Missing | No probe that loads ARBITER in an `<iframe>` and asserts `X-Frame-Options: DENY` (or CSP `frame-ancestors`) blocks it. | Small (~30 min) — Playwright spec |
+| 56 | Clickjacking | ✅ Covered | Block B (two-pronged): (a) `headers/test_clickjacking.py::test_iframe_embed_blocked_via_headers` — header-side check that XFO DENY/SAMEORIGIN or CSP `frame-ancestors` restricts framing (FAIL MEDIUM if neither); (b) `e2e/tests/clickjacking.spec.js` — real-browser Playwright spec that wraps the SPA URL in an `<iframe>` and asserts the dashboard does not render inside it. | – |
 | 57 | Open redirects | ✅ Covered | Block A: `fuzz/corpus/open_redirects.json` (7 entries: bare host, protocol-relative, full https, UNC, mixed slash, subdomain confusion, `@` userinfo bypass) + dedicated probe `fuzz/test_open_redirects.py` against the Cognito Hosted UI `/login?redirect_uri=` with Location-header inspection. ARBITER's own API has no redirect routes — the Hosted UI is the exposure surface. | – |
 | 58 | Prototype pollution | ✅ Covered | Block A: `fuzz/corpus/prototype_pollution.json` (5 entries: `__proto__.isAdmin`, `constructor.prototype`, `__proto__.toString`, nested, array-typed). Lambda runtime is Python — these are regression detectors for a future Node Lambda. | – |
 | 59 | Tabnabbing | ❌ Missing | No probe that confirms outbound links have `rel="noopener noreferrer"`. | Small (~30 min) — Playwright spec |
 | 60 | Sensitive data in client storage / source maps / comments | ❌ Missing | See #42. | – |
 
-**Section totals:** 2 covered · 0 partial · 3 missing  *(post-Block-A)*
+**Section totals:** 3 covered · 0 partial · 2 missing  *(post-Block-B)*
 
 ---
 
@@ -207,21 +207,22 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 |---|---:|---:|---:|---:|---:|
 | 1. Injection | 10 | 0 | 0 | 0 | 10 |
 | 2. AuthN / AuthZ | 5 | 3 | 2 | 2 | 12 |
-| 3. Crypto & data | 0 | 2 | 3 | 1 | 6 |
-| 4. Config / infra | 2 | 1 | 4 | 3 | 10 |
+| 3. Crypto & data | 2 | 0 | 3 | 1 | 6 |
+| 4. Config / infra | 4 | 1 | 2 | 3 | 10 |
 | 5. Build / supply chain | 0 | 1 | 1 | 2 | 4 |
 | 6. Errors & state | 0 | 1 | 4 | 0 | 5 |
-| 7. API Top-10 | 1 | 4 | 2 | 1 | 8 |
-| 8. Client-side | 2 | 0 | 3 | 0 | 5 |
+| 7. API Top-10 | 2 | 3 | 2 | 1 | 8 |
+| 8. Client-side | 3 | 0 | 2 | 0 | 5 |
 | 9. Logic / workflow | 0 | 0 | 1 | 2 | 3 |
 | 10. DoS | 0 | 2 | 0 | 1 | 3 |
 | 11. Logging / monitoring | 0 | 1 | 2 | 3 | 6 |
 | 12. LLM Top-10 | 4 | 0 | 1 | 2 | 7 |
-| **Totals** | **24** | **15** | **23** | **17** | **79** |
+| **Totals** | **30** | **12** | **20** | **17** | **79** |
 
-**Coverage post-Block-A: 24/79 fully (30%), 39/79 at least partial (49%), 17/79 out of scope (22%).**
+**Coverage post-Block-B: 30/79 fully (38%), 42/79 at least partial (53%), 17/79 out of scope (22%).**
 
 Block A delta: +10 fully covered, +1 partial (mass assignment + log injection re-classified), −11 missing.
+Block B delta: +6 fully covered (items 23, 24, 31, 35, 55, 56), −3 partial (items 23, 55 → covered; item 41 stays partial — bundle/SRI scan still scheduled for Block D), −3 missing (items 24, 31, 35 + 56).
 
 The 17 out-of-scope items are real items on the checklist — they just need different tools (SCA, AWS config audit, IR runbook review, CI hardening), not this runtime harness. They should be addressed and recorded as "covered by other controls" rather than ignored.
 
@@ -251,18 +252,31 @@ This groups the 34 missing + 14 partial items by effort and dependency. Each blo
 
 Wiring changes: `fuzz/test_api_routes.py::_families_for_route` now references all 10 new families, so the cross-product (route × family × payload × persona) grew from 5728 to 11680 parametrize cases (+5952). New unit tests in `tests/test_fuzz_infrastructure.py` and `tests/test_auth_abuse_infrastructure.py` enforce the corpus shape, entry counts, route-enumeration wiring, and default-credential classification rules.
 
-## Block B — New "headers / TLS" mini-layer (~half day)
+## Block B — New "headers / TLS" mini-layer ✅ Done (2026-06-10)
 
-New top-level `tests-adversarial/headers/` directory. Covers items 23, 24, 31, 35, 55, 56.
+New top-level `tests-adversarial/headers/` directory + Playwright spec under
+`e2e/tests/`. Covers items 23, 24, 31, 35, 55, 56. Landed 2026-06-10.
+Coverage moved 30% → 38% (or 49% → 53% counting partials).
 
-| Item | Test |
-|---|---|
-| HTTPS-only | `test_https_only.py` |
-| TLS cipher strength | `test_tls_ciphers.py` (wraps `testssl.sh` or `nmap` subprocess) |
-| Security headers | `test_security_headers.py` (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) |
-| CORS | `test_cors.py` |
-| CSRF resistance | `test_csrf.py` |
-| Clickjacking | `test_clickjacking.spec.js` under e2e |
+| Item | Test | Status |
+|---|---|---|
+| HTTPS-only + HSTS | `headers/test_https_only.py` | ✅ |
+| TLS cipher strength + min version | `headers/test_tls_ciphers.py` (stdlib `ssl` + `socket`, no subprocess) | ✅ |
+| Security headers (CSP, XFO, X-Content-Type-Options, Referrer-Policy) | `headers/test_security_headers.py` | ✅ |
+| CORS misconfiguration | `headers/test_cors.py` (5 routes × 3 attacker origins) | ✅ |
+| CSRF resistance | `headers/test_csrf.py` (cookie-only + no Authorization header against every destructive route) | ✅ |
+| Clickjacking — header side | `headers/test_clickjacking.py::test_iframe_embed_blocked_via_headers` | ✅ |
+| Clickjacking — browser side | `e2e/tests/clickjacking.spec.js` (Playwright, no-auth project) | ✅ |
+
+Wiring: `tests-adversarial/package.json::scripts.test:headers` plus a new
+`"headers"` entry in `scripts/run_all.py::_LAYERS_ALL` and a zero-budget
+`LayerBudget` (the layer makes no Bedrock calls). `src/coverage/builder.py`
+already accepts arbitrary `layer` strings — a regression-pinning unit test
+in `tests/test_headers_infrastructure.py::test_builder_accepts_headers_layer`
+guards against an accidental allow-list. Manifest also gained the
+`Integrations` page, the `/agent-status` API route, and the
+`master.paloalto_lookup` + `master.jira_lookup` tools (drift checker is
+green: 16 pages / 26 routes / 14 tools).
 
 ## Block C — Auth gaps (~1 day)
 
@@ -367,4 +381,4 @@ If we run the same daily harness cadence and each "Block" above is one focused b
 
 After every block, the compliance matrix in this document gets updated and the daily PDF report shows the new percentages.
 
-*Last updated: 2026-06-10 against harness commit `cb2ff4e9`. Refresh this doc after every block lands.*
+*Last updated: 2026-06-10 (post-Block-B). Refresh this doc after every block lands.*

@@ -173,6 +173,15 @@
       "note": "No <Guarded> wrapper in App.jsx — universally reachable. Sections inside self-gate by route access."
     },
     {
+      "id": "integrations",
+      "file": "ui/src/pages/Integrations.jsx",
+      "route": "/integrations",
+      "label": "Integrations",
+      "accessible_to": ["ciso"],
+      "blocked_for": ["soc", "grc", "employee"],
+      "note": "CISO-only per ui/src/contexts/PersonaContext.jsx::PERSONAS.ciso.access + ROUTE_ACCESS['/integrations'] = 'integrations'."
+    },
+    {
       "id": "signin",
       "file": "ui/src/pages/SignIn.jsx",
       "route": "/signin",
@@ -389,6 +398,16 @@
       "accessible_to": ["ciso", "soc", "grc", "employee"]
     },
     {
+      "id": "get-agent-status",
+      "method": "GET",
+      "path": "/agent-status",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 195,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "note": "Live status of the 5 specialist AgentCore runtimes for the /mcp-chat + /integrations pages. The handler performs no in-Lambda persona gate — accessibility is enforced by the UI routes (CISO-only pages) and by Cognito IdToken validation at the function URL boundary."
+    },
+    {
       "id": "post-uploads-presign",
       "method": "POST",
       "path": "/uploads/presign",
@@ -441,9 +460,29 @@
       "agent": "master_orchestrator",
       "tool_name": "zscaler_lookup",
       "file": "agents/master_orchestrator/agent.py",
-      "line": 191,
+      "line": 203,
       "callable_via": "chat",
       "probe": "Is github.com allowed by our Zscaler policy?"
+    },
+    {
+      "id": "master.paloalto_lookup",
+      "agent": "master_orchestrator",
+      "tool_name": "paloalto_lookup",
+      "file": "agents/master_orchestrator/agent.py",
+      "line": 213,
+      "callable_via": "chat",
+      "probe": "Is outbound tor traffic allowed at the perimeter?",
+      "note": "Forwards to PALOALTO_RUNTIME_ARN — Palo Alto NGFW specialist runtime. The specialist's source-of-truth for tool inventory is its own agent.py at agents/paloalto_specialist/agent.py (not yet enumerated here)."
+    },
+    {
+      "id": "master.jira_lookup",
+      "agent": "master_orchestrator",
+      "tool_name": "jira_lookup",
+      "file": "agents/master_orchestrator/agent.py",
+      "line": 223,
+      "callable_via": "chat",
+      "probe": "Open a Jira ticket for this finding.",
+      "note": "Wrapper IS in this repo (master_orchestrator forwards to JIRA_RUNTIME_ARN). The downstream jira_specialist runtime's source is NOT in this repo (CLAUDE.md off-limits list) — see runtimes[].jira_specialist + agent_tools.jira.black_box for the black-box coverage row."
     },
     {
       "id": "sharepoint.retrieve_policies",

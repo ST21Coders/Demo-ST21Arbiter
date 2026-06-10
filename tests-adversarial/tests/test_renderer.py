@@ -292,21 +292,20 @@ def test_page_matrix_has_60_cells_for_real_manifest(
     metadata: RunMetadata,
     run_dir: Path,
 ) -> None:
-    """Acceptance 5: 15 pages × 4 personas = 60 cells in the pages matrix.
+    """Acceptance 5: N pages × 4 personas = (N*4) cells in the pages matrix.
 
+    Post-Block-B N is 16 (Block A: 15 + integrations page from Block B).
     We count <td> cells (not <th>) — the persona column headers are <th>,
     only the data cells are <td>.
     """
     report = _build_empty_report(manifest, empty_matrix, empty_cost, metadata, run_dir)
     body = render_html(report, run_dir, manifest).read_text(encoding="utf-8")
     rows, cells = _count_tbody_cells(body, "pages-h")
-    assert rows == 15
-    # Each row has 1 page-id <td> + 4 persona <td> cells = 5 cells/row,
-    # total 75. The 4-per-row persona cells are the 60 we care about — but
-    # asserting on the total is the cleaner invariant.
-    assert cells == 15 * 5
-    # And the 60-cells claim itself: subtract the leading page-id column.
-    assert (cells - rows) == 60
+    assert rows == 16
+    # Each row has 1 page-id <td> + 4 persona <td> cells = 5 cells/row.
+    assert cells == 16 * 5
+    # And the persona cells claim: subtract the leading page-id column.
+    assert (cells - rows) == 16 * 4
 
 
 def test_routes_table_has_25_rows_for_real_manifest(
@@ -316,10 +315,13 @@ def test_routes_table_has_25_rows_for_real_manifest(
     metadata: RunMetadata,
     run_dir: Path,
 ) -> None:
-    """Acceptance 6: every API route in the manifest gets one row."""
+    """Acceptance 6: every API route in the manifest gets one row.
+
+    Post-Block-B that's 26 (Block A: 25 + get-agent-status from Block B).
+    """
     report = _build_empty_report(manifest, empty_matrix, empty_cost, metadata, run_dir)
     body = render_html(report, run_dir, manifest).read_text(encoding="utf-8")
-    assert _count_tbody_rows(body, "routes-h") == 25
+    assert _count_tbody_rows(body, "routes-h") == 26
 
 
 def test_tools_table_has_12_rows_including_sentinel(
@@ -329,10 +331,12 @@ def test_tools_table_has_12_rows_including_sentinel(
     metadata: RunMetadata,
     run_dir: Path,
 ) -> None:
-    """Acceptance 7: 12 tool rows, and the synthetic sentinel is labeled."""
+    """Acceptance 7: every tool row appears, and the synthetic sentinel is
+    labeled. Post-Block-B that's 14 rows (Block A: 12 + paloalto_lookup +
+    jira_lookup master wrappers from Block B)."""
     report = _build_empty_report(manifest, empty_matrix, empty_cost, metadata, run_dir)
     body = render_html(report, run_dir, manifest).read_text(encoding="utf-8")
-    assert _count_tbody_rows(body, "tools-h") == 12
+    assert _count_tbody_rows(body, "tools-h") == 14
     # The sentinel entry (master.chat_surface) gets a "(sentinel)" pill.
     assert "master.chat_surface" in body
     assert "(sentinel)" in body

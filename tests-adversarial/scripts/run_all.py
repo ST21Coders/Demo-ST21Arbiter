@@ -47,7 +47,7 @@ _HARNESS_ROOT = Path(__file__).resolve().parent.parent
 if str(_HARNESS_ROOT) not in sys.path:
     sys.path.insert(0, str(_HARNESS_ROOT))
 
-_LAYERS_ALL: tuple[str, ...] = ("e2e", "fuzz", "auth", "llm")
+_LAYERS_ALL: tuple[str, ...] = ("e2e", "fuzz", "auth", "llm", "headers")
 
 # Default to a CloudFront URL matching CLAUDE.local.md. Operators override via
 # env or CLI flag.
@@ -282,6 +282,15 @@ def _build_layer_budgets(layers: list[str]) -> dict[str, Any]:
             name="llm",
             max_input_tokens=30 * 4000,
             max_output_tokens=30 * 2000,
+        )
+    if "headers" in layers:
+        # Headers / TLS layer makes zero Bedrock calls — pure HTTP + raw TLS
+        # probes. Budget is zero on both axes; we still record the layer so
+        # the orchestrator's banner shows it ran.
+        budgets["headers"] = LayerBudget(
+            name="headers",
+            max_input_tokens=0,
+            max_output_tokens=0,
         )
     return budgets
 
