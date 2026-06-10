@@ -51,6 +51,13 @@ ALLOWED_GROUPS = {g.strip() for g in os.environ.get("ALLOWED_GROUPS", "").split(
 KB_ID = os.environ.get("KB_ID", "").strip()
 KB_DATA_SOURCE_ID = os.environ.get("KB_DATA_SOURCE_ID", "").strip()
 SCANNER_LAMBDA_NAME = os.environ.get("SCANNER_LAMBDA_NAME", "").strip()
+# Structured ingestion: .csv exports route to processed/<STRUCTURED_PREFIX><dataset>/
+# and trigger a Glue crawler (Athena-queryable) instead of KB ingestion. Empty
+# crawler name = catalog refresh skipped (file still moved). The re-scan is NOT
+# inline — Glue crawls take minutes; it runs via "Run AI Scan" or the future
+# crawler-completed Step Functions rule (see Documents/policy_scan_flow.md).
+STRUCTURED_PREFIX = os.environ.get("STRUCTURED_PREFIX", "structured/")
+GLUE_CRAWLER_NAME = os.environ.get("GLUE_CRAWLER_NAME", "").strip()
 # Polling budget for the ingestion job. Default 180s (Bedrock typically
 # finishes a 5-doc KB in ~30-60s; 3min is a comfortable ceiling).
 INGEST_POLL_TIMEOUT_S = int(os.environ.get("INGEST_POLL_TIMEOUT_S", "180"))
@@ -59,6 +66,7 @@ INGEST_POLL_INTERVAL_S = int(os.environ.get("INGEST_POLL_INTERVAL_S", "5"))
 s3 = boto3.client("s3", region_name=REGION)
 bedrock_agent = boto3.client("bedrock-agent", region_name=REGION)
 lambda_client = boto3.client("lambda", region_name=REGION)
+glue = boto3.client("glue", region_name=REGION)
 
 # Toggled per-invocation in handler(). The Function URL's CORS layer adds
 # Access-Control-Allow-Origin itself; emitting it again from the Lambda
@@ -232,6 +240,10 @@ def _handle_single_object_event(event: dict) -> dict:
     if not key or key.startswith(REPORTS_PREFIX) or key.endswith("/"):
         return _resp(200, {"skipped": True, "reason": "filtered key", "key": key})
 
+    # Structured (.csv) exports take the Glue/Athena path, not the KB path.
+    if _is_structured(key):
+        return _handle_structured_object(bucket, key)
+
     logger.info("F1 auto-detect: bucket=%s key=%s", bucket, key)
     obj = {"Key": key, "Size": (detail.get("object") or {}).get("size", 0),
            "ETag": (detail.get("object") or {}).get("etag", "")}
@@ -317,6 +329,73 @@ def _invoke_scanner(triggered_by: str) -> bool:
     except ClientError as e:
         logger.exception("Scanner invoke failed")
         return False
+
+
+# ──────────────────────────── structured (.csv) path ────────────
+def _is_structured(key: str) -> bool:
+    return key.lower().endswith(".csv")
+
+
+def _structured_dataset(key: str) -> str:
+    """Classify a structured export by FILENAME (uploads aren't source-prefixed)."""
+    name = key.rsplit("/", 1)[-1].lower()
+    if "zscaler" in name:
+        return "zscaler_rules"
+    if "paloalto" in name or "pan-os" in name or "panos" in name:
+        return "paloalto_rules"
+    return "misc"
+
+
+def _start_crawler() -> bool:
+    if not GLUE_CRAWLER_NAME:
+        logger.info("GLUE_CRAWLER_NAME unset — skipping crawler trigger")
+        return False
+    try:
+        glue.start_crawler(Name=GLUE_CRAWLER_NAME)
+        logger.info("Glue crawler started: %s", GLUE_CRAWLER_NAME)
+        return True
+    except glue.exceptions.CrawlerRunningException:
+        logger.info("Glue crawler %s already running — refresh will pick up the new file", GLUE_CRAWLER_NAME)
+        return True
+    except ClientError:
+        logger.exception("StartCrawler failed")
+        return False
+
+
+def _handle_structured_object(bucket: str, key: str) -> dict:
+    """Copy a .csv export to processed/structured/<dataset>/ and kick the crawler.
+
+    Re-scan is intentionally NOT inline: Glue crawls take minutes, and a Lambda
+    poll would be the wait-billing anti-pattern. The scan runs via "Run AI Scan"
+    or the future crawler-completed orchestration (Documents/policy_scan_flow.md).
+    """
+    dataset = _structured_dataset(key)
+    # STABLE per-dataset filename (not the timestamped upload name) so a re-upload
+    # REPLACES the dataset's single file. Otherwise files accumulate under the
+    # prefix and Athena reads them all together (stale + new rows → wrong results).
+    dest_key = f"{STRUCTURED_PREFIX}{dataset}/{dataset}.csv"
+    try:
+        s3.copy_object(
+            Bucket=PROCESSED_BUCKET, Key=dest_key,
+            CopySource={"Bucket": bucket, "Key": key},
+            ServerSideEncryption="aws:kms", MetadataDirective="COPY",
+        )
+        s3.delete_object(Bucket=bucket, Key=key)
+    except ClientError as e:
+        logger.exception("structured copy failed")
+        return _resp(502, {"key": key, "structured": True, "error": f"copy:{e}"})
+
+    started = _start_crawler()
+    logger.info("Structured export catalogued: %s → s3://%s/%s (crawler_started=%s)",
+                key, PROCESSED_BUCKET, dest_key, started)
+    return _resp(200, {
+        "key": key,
+        "structured": True,
+        "dataset": dataset,
+        "dest_key": dest_key,
+        "crawler_started": started,
+        "note": "Run a scan after the crawler completes to pick up the new data.",
+    })
 
 
 # ──────────────────────────── per-object processing ─────────────

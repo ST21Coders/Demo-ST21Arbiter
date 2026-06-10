@@ -77,6 +77,21 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-paloalto-specialist"
 
+  StructuredSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/structured-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-structured-specialist"
+
   JiraSpecialistRepo:
     Type: AWS::ECR::Repository
     Properties:
@@ -239,6 +254,52 @@ Resources:
                   - ec2:AssignPrivateIpAddresses
                   - ec2:UnassignPrivateIpAddresses
                 Resource: "*"
+              # ── Structured ingestion: the structured_specialist queries
+              # Glue-catalogued CSV exports via Athena (SELECT-only). Scoped to the
+              # one workgroup + the structured Glue database. A dedicated
+              # least-privilege role for this specialist is a hardening follow-up.
+              - Sid: StructuredAthenaQuery
+                Effect: Allow
+                Action:
+                  - athena:StartQueryExecution
+                  - athena:GetQueryExecution
+                  - athena:GetQueryResults
+                  - athena:StopQueryExecution
+                  - athena:GetWorkGroup
+                Resource:
+                  - !Sub "arn:aws:athena:${AWS::Region}:${AWS::AccountId}:workgroup/${Environment}-${ProjectName}-wg"
+              - Sid: StructuredGlueCatalogRead
+                Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:GetDatabases
+                  - glue:GetTable
+                  - glue:GetTables
+                  - glue:GetPartition
+                  - glue:GetPartitions
+                Resource:
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog"
+                  - !Sub
+                    - "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/${Db}"
+                    - Db: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}-structured"]]
+                  - !Sub
+                    - "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/${Db}/*"
+                    - Db: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}-structured"]]
+              - Sid: StructuredAthenaS3
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                  # Athena verifies the results bucket (GetBucketLocation) and
+                  # streams large results via multipart uploads.
+                  - s3:GetBucketLocation
+                  - s3:AbortMultipartUpload
+                  - s3:ListMultipartUploadParts
+                Resource:
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/structured/*"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/athena-results/*"
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-agentcore-runtime-role"
@@ -390,6 +451,10 @@ Outputs:
     Value: !GetAtt PaloaltoSpecialistRepo.RepositoryUri
     Export:
       Name: !Sub "${Environment}-${ProjectName}-PaloaltoSpecialistRepoUri"
+  StructuredSpecialistRepoUri:
+    Value: !GetAtt StructuredSpecialistRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-StructuredSpecialistRepoUri"
   JiraSpecialistRepoUri:
     Value: !GetAtt JiraSpecialistRepo.RepositoryUri
     Export:

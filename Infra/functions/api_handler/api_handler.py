@@ -411,24 +411,31 @@ def _handle_uploads_list(event):
 def _latest_completed_scan_run_id():
     """scan_run_id of the most recent COMPLETED scan-run, or None.
 
-    Used to reconcile the findings view: the scanner upserts conflicts-v2 by
-    conflict_id and never deletes, so scoping to the latest completed run is
-    what makes a resolved conflict actually disappear. Returns None (callers
-    fall back to the full set) when no completed run exists yet or on error.
+    Used to reconcile the findings/dashboard views: the scanner upserts conflicts-v2
+    by conflict_id and never deletes, so scoping to the latest completed run is what
+    makes a resolved conflict disappear.
+
+    MUST be reliable regardless of table size. A plain scan(Limit=50) samples an
+    arbitrary 50 rows in no order — once scan-runs grows past a page (one row per
+    invocation) it misses the true latest and returns a STALE id, which scopes the
+    UI to an all-resolved run and shows zero conflicts. Query the by-status GSI
+    (status=COMPLETED, started_at DESC, Limit=1) instead — O(1), always correct.
+    Returns None (callers fall back to the full set) on empty/error.
     """
     if not scan_runs_table:
         return None
     try:
-        resp = scan_runs_table.scan(Limit=50)
-        runs = [r for r in resp.get("Items", [])
-                if (r.get("status") or "").upper() == "COMPLETED"]
+        resp = scan_runs_table.query(
+            IndexName="by-status",
+            KeyConditionExpression=Key("status").eq("COMPLETED"),
+            ScanIndexForward=False,   # newest started_at first
+            Limit=1,
+        )
+        items = resp.get("Items", [])
     except Exception:
         logger.exception("latest scan-run lookup failed")
         return None
-    if not runs:
-        return None
-    runs.sort(key=lambda r: r.get("started_at") or "", reverse=True)
-    return runs[0].get("scan_run_id")
+    return items[0].get("scan_run_id") if items else None
 
 
 def _handle_list_findings(event):
@@ -938,6 +945,17 @@ def _handle_dashboard(event):
             logger.exception("dashboard findings scan failed")
 
     conflicts = [f for f in findings if not f.get("compliant")]
+    # Scope active conflicts to the latest COMPLETED scan + OPEN status so the KPIs,
+    # heatmap, and trend match the Findings view. The scanner upserts + never deletes,
+    # so resolved/stale rows (older scan_run_ids) must NOT count as active — otherwise
+    # the dashboard inflates (e.g. 14) vs Findings (10). Safety guard mirrors
+    # _handle_list_findings: only narrow when that run actually wrote rows here.
+    latest_run = _latest_completed_scan_run_id()
+    if latest_run:
+        scoped = [c for c in conflicts if c.get("scan_run_id") == latest_run]
+        if scoped:
+            conflicts = scoped
+    conflicts = [c for c in conflicts if (c.get("status") or "OPEN").upper() == "OPEN"]
     crs = []
     if crs_table:
         try:

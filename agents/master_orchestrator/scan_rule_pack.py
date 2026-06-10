@@ -32,24 +32,32 @@ def _has_policy_quote(sharepoint: list[dict], doc: str, section: str, needle: st
     return False
 
 
+def _registered(r: dict) -> bool:
+    """A rule/resource flagged raw.registered_exception=true is a documented,
+    risk-accepted exception → not an active finding for ANY matcher. This is the
+    universal exception affordance: set the flag in the structured source (CSV) to
+    clear the corresponding conflict, regardless of which UC it maps to."""
+    return bool((r.get("raw") or {}).get("registered_exception"))
+
+
 def _has_zscaler_rule(zscaler: list[dict], rule_id: str) -> dict | None:
     for r in zscaler or []:
         if r.get("rule_id") == rule_id:
-            return r
+            return None if _registered(r) else r
     return None
 
 
 def _has_aws_resource(awsconfig: list[dict], resource_id: str) -> dict | None:
     for r in awsconfig or []:
         if r.get("resource_id") == resource_id:
-            return r
+            return None if _registered(r) else r
     return None
 
 
 def _has_paloalto_rule(paloalto: list[dict], rule_id: str) -> dict | None:
     for r in paloalto or []:
         if r.get("rule_id") == rule_id:
-            return r
+            return None if _registered(r) else r
     return None
 
 
@@ -200,10 +208,9 @@ def uc04_ssl_bypass(sp, zs, aws, pa=None):
     has_policy = _has_policy_quote(sp, "MIG-POL-002", "2.2", "SSL/TLS inspection")
     if not rule or not has_policy:
         return None
-    # Only emit if the bypass is unregistered.
+    # registered_exception is now handled generically in _has_zscaler_rule (a
+    # registered/approved bypass clears this finding, same as every other matcher).
     raw = rule.get("raw", {})
-    if raw.get("registered_exception", False):
-        return None
     return _finding(
         rule_key="UC04", severity="CRITICAL", conflict_type="GAP", domain="COMPLIANCE",
         source_pair="SharePoint+Zscaler", source_policy="MIG-POL-002 §2.2",

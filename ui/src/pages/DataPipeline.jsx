@@ -24,12 +24,30 @@ const SOURCES = [
 // presence + status. If the scan-runs row exists, we collapse everything up to
 // scanning into "complete". If still missing, we show steps 1-3 as in-progress.
 
+// Unstructured docs (pdf/docx/txt/md/json) flow raw → processed → KB → scan.
 const STEP_DEFS = [
   { key: 'raw',       label: 'Raw',       desc: 'File landed in raw S3 bucket'                       },
   { key: 'processed', label: 'Processed', desc: 'processing_pipeline moved Raw → Processed'           },
   { key: 'kb',        label: 'KB ingest', desc: 'Bedrock KB ingestion job complete'                  },
   { key: 'scan',      label: 'Scan',      desc: 'scanner_lambda finished; conflicts re-evaluated'    },
 ]
+
+// Structured exports (.csv) take the Glue/Athena path — NOT the KB. They land in
+// processed/structured/<dataset>/ and trigger a Glue crawler; the re-scan is run
+// separately ("Run AI Scan"), so there's no KB or scan step here.
+const STEP_DEFS_STRUCTURED = [
+  { key: 'raw',       label: 'Raw',       desc: 'File landed in raw S3 bucket'                       },
+  { key: 'processed', label: 'Processed', desc: 'Moved Raw → processed/structured/'                  },
+  { key: 'catalog',   label: 'Catalog',   desc: 'Glue crawler refresh started — Athena-queryable'    },
+]
+
+function isStructuredUpload(u) {
+  return (u.filename || '').toLowerCase().endsWith('.csv')
+}
+
+function stepDefsFor(u) {
+  return isStructuredUpload(u) ? STEP_DEFS_STRUCTURED : STEP_DEFS
+}
 
 const STATUS_STYLE = {
   pending:  { bg: '#f1f5f9', border: '#e2e8f0', text: '#64748b' },
@@ -52,6 +70,18 @@ function StepChip({ status, label }) {
 
 // Map an upload's progress to the 4 step statuses based on what we know.
 function stepStatesFor(upload) {
+  // Structured (.csv): raw → processed → catalog. The processing_pipeline copies
+  // to processed/structured/ and starts the Glue crawler on the S3 ObjectCreated
+  // event (seconds), so once the PUT succeeds the structured chain is underway.
+  // There's no KB or auto-scan, so this terminates at "catalog" (no infinite KB wait).
+  if (isStructuredUpload(upload)) {
+    const s = { raw: 'pending', processed: 'pending', catalog: 'pending' }
+    if (upload.state === 'uploading')     { s.raw = 'running'; return s }
+    if (upload.state === 'upload_failed') { s.raw = 'failed';  return s }
+    s.raw = 'done'; s.processed = 'done'; s.catalog = 'done'
+    return s
+  }
+
   // raw: done as soon as the browser PUT succeeded (state="uploaded" onward)
   // processed/kb/scan: we infer from scan-runs:
   //   - no scan-run yet → both raw + processed running (processing_pipeline cold start)
@@ -119,12 +149,12 @@ function UploadDropzone({ onFile, disabled }) {
         <Upload size={20} className="text-indigo-600" />
       </div>
       <p className="text-sm font-semibold text-slate-900">Drop policy documents here, or click to browse</p>
-      <p className="text-xs text-slate-500">Supports .md, .pdf, .docx, .json — files are processed in ~30-60 seconds</p>
+      <p className="text-xs text-slate-500">Policy docs (.md, .pdf, .docx, .json, .txt) → Knowledge Base · structured exports (.csv) → Glue/Athena</p>
       <input
         ref={inputRef}
         type="file"
         multiple
-        accept=".md,.pdf,.docx,.json,.txt"
+        accept=".md,.pdf,.docx,.json,.txt,.csv"
         className="hidden"
         onChange={e => handleFiles(e.target.files)}
       />
@@ -135,8 +165,10 @@ function UploadDropzone({ onFile, disabled }) {
 // ── One row per upload ──────────────────────────────────────────────────────
 
 function UploadRow({ upload }) {
+  const stepDefs = stepDefsFor(upload)
   const states = stepStatesFor(upload)
-  const finished = states.scan === 'done' || states.scan === 'failed'
+  const structured = isStructuredUpload(upload)
+  const finished = stepDefs.every(d => states[d.key] === 'done') || stepDefs.some(d => states[d.key] === 'failed')
   const ts = upload.startedAt ? new Date(upload.startedAt) : null
 
   return (
@@ -153,7 +185,10 @@ function UploadRow({ upload }) {
             </p>
           </div>
         </div>
-        {finished && upload.scanRun?.totals && (
+        {finished && structured && (
+          <p className="text-xs text-emerald-700 flex-shrink-0">Catalogued · run a scan to apply</p>
+        )}
+        {finished && !structured && upload.scanRun?.totals && (
           <p className="text-xs text-emerald-700 flex-shrink-0">
             {upload.scanRun.totals.conflicts ?? 0} conflicts · {upload.scanRun.totals.compliant ?? 0} compliant
           </p>
@@ -166,10 +201,10 @@ function UploadRow({ upload }) {
       </div>
       {/* Steps */}
       <div className="flex items-center gap-2 flex-wrap">
-        {STEP_DEFS.map((step, i) => (
+        {stepDefs.map((step, i) => (
           <div key={step.key} className="flex items-center gap-2">
             <StepChip status={states[step.key]} label={step.label} />
-            {i < STEP_DEFS.length - 1 && (
+            {i < stepDefs.length - 1 && (
               <span className="text-slate-300 text-xs select-none">→</span>
             )}
           </div>
@@ -277,8 +312,13 @@ export default function DataPipeline() {
   // every upload has either finished or failed, then resume when a new upload
   // appears.
   useEffect(() => {
-    const active = uploads.some(u => u.state !== 'upload_failed'
-      && (!u.scanRun || (u.scanRun.status !== 'COMPLETED' && u.scanRun.status !== 'FAILED')))
+    const active = uploads.some(u => {
+      if (u.state === 'upload_failed') return false
+      // Structured (.csv) uploads don't produce a scan-run; they're terminal once
+      // the PUT succeeds (catalog refresh runs server-side). Don't poll for them.
+      if (isStructuredUpload(u)) return u.state !== 'uploaded'
+      return !u.scanRun || (u.scanRun.status !== 'COMPLETED' && u.scanRun.status !== 'FAILED')
+    })
     if (!active) return
     let cancelled = false
     const tick = async () => {
@@ -310,7 +350,7 @@ export default function DataPipeline() {
       <div>
         <h1 className="text-lg font-bold text-slate-900 tracking-tight">Data Pipeline</h1>
         <p className="text-xs text-slate-500 mt-0.5">
-          Upload a policy document → auto-detect → KB ingestion → scan. Each file is processed in ~30-60 seconds.
+          Policy docs (.pdf/.docx/.txt/.md/.json) → KB ingestion → scan. Structured exports (.csv) → Glue catalog (then Run AI Scan). Processed in ~30-60s.
         </p>
       </div>
 

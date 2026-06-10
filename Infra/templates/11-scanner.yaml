@@ -63,6 +63,10 @@ Resources:
                   - dynamodb:UpdateItem
                   - dynamodb:GetItem
                   - dynamodb:Query
+                  # Scan conflicts-v2 to reconcile stale conflicts each run (mark
+                  # non-compliant OPEN rows the latest scan didn't re-emit RESOLVED),
+                  # so the table's OPEN set equals the latest scan — no upsert residue.
+                  - dynamodb:Scan
                 Resource:
                   - !Sub
                     - "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}"

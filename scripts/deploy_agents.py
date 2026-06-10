@@ -123,6 +123,20 @@ AGENTS = [
         "env_overrides": {},
     },
     {
+        "name": "structured-specialist",
+        "src": "agents/structured_specialist",
+        "repo_export": f"{PREFIX}-StructuredSpecialistRepoUri",  # from 09-agentcore
+        "model_param": "StructuredModelId",
+        "env_model_var": "STRUCTURED_MODEL_ID",
+        # Deterministic names (match 04-storage): Glue db underscores the dashed
+        # prefix; workgroup keeps dashes; Athena results go under the processed bucket.
+        "env_overrides": {
+            "GLUE_DATABASE": f"{ENV}_{PROJECT}_structured".replace("-", "_"),
+            "ATHENA_WORKGROUP": f"{PREFIX}-wg",
+            "ATHENA_OUTPUT": f"s3://{PREFIX}-processed/athena-results/",
+        },
+    },
+    {
         "name": "jira-specialist",
         "src": "agents/jira_specialist",
         "repo_export": f"{PREFIX}-JiraSpecialistRepoUri",  # from 09-agentcore
@@ -629,6 +643,7 @@ def main() -> None:
                 ("awsconfig-specialist", "AWSCONFIG_RUNTIME_ARN"),
                 ("zscaler-specialist", "ZSCALER_RUNTIME_ARN"),
                 ("paloalto-specialist", "PALOALTO_RUNTIME_ARN"),
+                ("structured-specialist", "STRUCTURED_RUNTIME_ARN"),
                 ("jira-specialist", "JIRA_RUNTIME_ARN"),
             ]:
                 arn = runtime_arns.get(spec_name)
