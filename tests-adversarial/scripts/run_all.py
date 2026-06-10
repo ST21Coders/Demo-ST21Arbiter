@@ -47,14 +47,25 @@ _HARNESS_ROOT = Path(__file__).resolve().parent.parent
 if str(_HARNESS_ROOT) not in sys.path:
     sys.path.insert(0, str(_HARNESS_ROOT))
 
-_LAYERS_ALL: tuple[str, ...] = ("e2e", "fuzz", "auth", "llm", "headers", "dos")
+_LAYERS_ALL: tuple[str, ...] = (
+    "e2e",
+    "fuzz",
+    "auth",
+    "llm",
+    "headers",
+    "dos",
+    "logic",
+)
 
 # Per-layer wall-clock cap overrides. Most layers share the global
-# `--timeout-seconds` budget, but the DoS layer has a hard 5-minute ceiling
-# of its own as a safety guard: a misconfigured `--dos-rps` / duration pair
-# shouldn't allow the run to keep hammering the dev environment past 5 min.
+# `--timeout-seconds` budget, but the DoS and logic layers have hard
+# 5-minute ceilings of their own as a safety guard: a misconfigured
+# `--dos-rps` / duration pair (DoS) or a runaway state-machine probe
+# (logic) shouldn't allow the run to keep hammering the dev environment
+# past 5 min.
 _LAYER_HARD_CAPS_SECONDS: dict[str, float] = {
     "dos": 300.0,
+    "logic": 300.0,
 }
 
 # Default to a CloudFront URL matching CLAUDE.local.md. Operators override via
@@ -307,6 +318,16 @@ def _build_layer_budgets(layers: list[str]) -> dict[str, Any]:
         # accounted for via the LLM layer's pricing path.
         budgets["dos"] = LayerBudget(
             name="dos",
+            max_input_tokens=0,
+            max_output_tokens=0,
+        )
+    if "logic" in layers:
+        # Logic / state layer makes zero Bedrock calls by default. The
+        # race-condition concurrent-delete probe creates a single chat
+        # session via `/chat` to mint a conversation row; that's one short
+        # Bedrock invocation per run, bounded and informational only.
+        budgets["logic"] = LayerBudget(
+            name="logic",
             max_input_tokens=0,
             max_output_tokens=0,
         )

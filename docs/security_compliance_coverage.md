@@ -1,7 +1,7 @@
 # ARBITER Adversarial Harness — Security Compliance Coverage Matrix
 
 **Date:** 2026-06-10
-**Harness version:** post-Block-E (2026-06-10)
+**Harness version:** post-Block-F (2026-06-10)
 **Reference standard:** internal compliance checklist (OWASP Top 10 + API Top 10 + LLM Top 10 + CWE common weaknesses)
 
 This document maps every item on the requested compliance checklist to the current state of the adversarial test harness at `tests-adversarial/`. For each item it states:
@@ -109,10 +109,10 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 | 43 | Fail-open logic | ❌ Missing | No probe that breaks an auth check mid-flow and asserts the request fails closed (e.g. AgentCore runtime returns error → should the chat still complete?). | Medium (~half day) — would need fault-injection capability |
 | 44 | Unhandled exceptions | 🟡 Partial | Fuzz layer's "no 500s" assertion catches some unhandled exceptions. Doesn't catch swallowed ones. | – |
 | 45 | Swallowed errors hiding attacks | ❌ Missing | No probe that triggers a known error and verifies a CloudWatch log line + audit-trail entry. | Medium (~half day) |
-| 46 | Race conditions / TOCTOU | ❌ Missing | No probe that fires concurrent requests on the same resource (e.g. two simultaneous approvals of the same change request). | Medium (~1 day) — needs concurrent-request infrastructure in the harness |
+| 46 | Race conditions / TOCTOU | ✅ Covered | Block F: `logic/test_race_conditions.py` — (a) 5 concurrent `POST /actions/{id}/approve` against the same action; PASS on exactly 1×2xx + 4×4xx, FAIL HIGH on multiple winners (race window), FAIL MEDIUM on all-5xx (crash). (b) 3 concurrent `DELETE /conversations/{id}` against a freshly-minted CISO conversation; same single-winner contract. | – |
 | 47 | Inconsistent state after partial failure | ❌ Missing | No probe that, e.g., uploads a file but kills the connection mid-stream and asserts the DDB row is rolled back. | Medium-large |
 
-**Section totals:** 0 covered · 1 partial · 4 missing
+**Section totals:** 1 covered · 1 partial · 3 missing  *(post-Block-F)*
 
 ---
 
@@ -122,14 +122,14 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 |---|---|---|---|---|
 | 48 | Broken Object-Level Authorization (BOLA) | ✅ Covered | Block C: same surface as IDOR (#11). `auth/test_idor.py` covers per-object cross-persona reads and deletes on `/conversations/{session_id}`. | – |
 | 49 | Mass assignment | 🟡 Partial | Block A: `fuzz/corpus/mass_assignment.json` (6 entries: is_admin, persona, cognito:groups, role, user_id, approved) injected as the primary writable field's value on every route. Multi-key body extension (extra top-level keys in the same JSON body) is documented future enhancement — see notes/mass-assignment-extra-keys.md. | Small (~1 hr) — extend test_api_routes.py to inject the corpus as top-level keys instead of values |
-| 50 | Excessive data exposure | 🟡 Partial | Stack-trace check catches obvious leaks. No probe that walks each endpoint and asserts the response shape doesn't include `password_hash`, `secret`, `email` to non-owner. | Small-medium (~2 hr) — `fuzz/test_field_exposure.py` |
+| 50 | Excessive data exposure | ✅ Covered | Block F: `logic/test_field_exposure.py` — for each persona × each manifest GET route (skipping `/health` and `{path-param}` routes), fetch the response and walk JSON to depth 6 for sensitive-field patterns. FAIL HIGH on `password` / `password_hash` / `secret` / `api_key` / `private_key` / `aws_access_key` shapes; FAIL MEDIUM on cross-persona `cognito:groups` or cross-user `email`; FAIL LOW on `_internal` / `internal_id` / Mongo `_id` / `__v`. 38 (persona × route) cases parameterised. | – |
 | 51 | Lack of rate limiting / resource consumption | ✅ Covered | Block E: `dos/test_rate_limit.py` — for 5 representative routes (`get-findings`, `get-conversations`, `get-dashboard`, `get-agent-status`, `post-chat`), sends a sustained burst at `--dos-rps` (default 20, hard ceiling 100) for `--dos-duration-seconds` (default 5, hard ceiling 30). PASS on ≥1 429; FAIL MEDIUM if no 429 and latency flat (rate limiting absent); FAIL HIGH if any 500 / transport drop / monotonic latency growth (API buckling). | – |
 | 52 | Broken function-level authorization (BFLA) | ✅ Covered | Same as #14 — auth layer's per-route persona tests cover BFLA. Confirmed broken today. | – |
 | 53 | Unsafe consumption of third-party APIs | ❌ Missing | The jira_specialist and zscaler integrations consume external APIs. No probe that verifies the responses are validated before being passed to the model. | Medium (~half day) — requires fault injection on the upstream |
 | 54 | GraphQL-specific abuse | ⚪ Out of scope | ARBITER doesn't expose GraphQL. | – |
 | 55 | Cross-Site Request Forgery (CSRF) | ✅ Covered | Block B: `headers/test_csrf.py`. For every POST / PUT / PATCH / DELETE route in the manifest, fire the request with NO `Authorization:` header but WITH a fake `Cookie: arbiter.tokens=...`. Expected: 401 / 403. FAIL HIGH if the API returns 2xx — that would mean a cookie-based auth fallback exists, exposing the surface to classic CSRF. | – |
 
-**Section totals:** 4 covered · 2 partial · 1 missing · 1 out-of-scope  *(post-Block-E)*
+**Section totals:** 5 covered · 1 partial · 1 missing · 1 out-of-scope  *(post-Block-F)*
 
 ---
 
@@ -151,11 +151,11 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 
 | # | Item | Status | Where / Gap | Effort to close |
 |---|---|---|---|---|
-| 61 | Workflow bypass | ❌ Missing | No probe that, e.g., approves a change request without first executing it, or jumps stages in the action lifecycle. ARBITER's `/actions/{id}/approve`, `/execute`, `/reject`, `/escalate` have a state machine; the harness doesn't probe state-skip. | Medium (~half day) |
+| 61 | Workflow bypass | ✅ Covered | Block F: `logic/test_action_state_machine.py` — 4 probes against the action lifecycle: (a) `skip-approve` — `POST /actions/{id}/execute` without prior approval; (b) `double-approve` — same approver twice; (c) `reject-after-execute` — reject a COMPLETED / terminal action; (d) `escalate-from-terminal`. PASS on 400/403/404/409/422 refusal; FAIL HIGH on 2xx for skip-approve (direct workflow bypass) or any 5xx; FAIL MEDIUM on 2xx for the others (idempotency / lifecycle break). | – |
 | 62 | Price / quantity manipulation | ⚪ Out of scope | Not applicable to a compliance dashboard. | – |
 | 63 | Abuse of trial, referral, or exempt flows | ⚪ Out of scope | Not applicable. | – |
 
-**Section totals:** 0 covered · 0 partial · 1 missing · 2 out-of-scope
+**Section totals:** 1 covered · 0 partial · 0 missing · 2 out-of-scope  *(post-Block-F)*
 
 ---
 
@@ -210,22 +210,23 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 | 3. Crypto & data | 3 | 0 | 2 | 1 | 6 |
 | 4. Config / infra | 5 | 1 | 1 | 3 | 10 |
 | 5. Build / supply chain | 2 | 0 | 0 | 2 | 4 |
-| 6. Errors & state | 0 | 1 | 4 | 0 | 5 |
-| 7. API Top-10 | 4 | 2 | 1 | 1 | 8 |
+| 6. Errors & state | 1 | 1 | 3 | 0 | 5 |
+| 7. API Top-10 | 5 | 1 | 1 | 1 | 8 |
 | 8. Client-side | 5 | 0 | 0 | 0 | 5 |
-| 9. Logic / workflow | 0 | 0 | 1 | 2 | 3 |
+| 9. Logic / workflow | 1 | 0 | 0 | 2 | 3 |
 | 10. DoS | 2 | 0 | 0 | 1 | 3 |
 | 11. Logging / monitoring | 0 | 1 | 2 | 3 | 6 |
 | 12. LLM Top-10 | 4 | 0 | 1 | 2 | 7 |
-| **Totals** | **44** | **6** | **12** | **17** | **79** |
+| **Totals** | **47** | **5** | **10** | **17** | **79** |
 
-**Coverage post-Block-E: 44/79 fully (56%), 50/79 at least partial (63%), 17/79 out of scope (22%).**
+**Coverage post-Block-F: 47/79 fully (59%), 52/79 at least partial (66%), 17/79 out of scope (22%).**
 
 Block A delta: +10 fully covered, +1 partial (mass assignment + log injection re-classified), −11 missing.
 Block B delta: +6 fully covered (items 23, 24, 31, 35, 55, 56), −3 partial (items 23, 55 → covered; item 41 stays partial — bundle/SRI scan still scheduled for Block D), −3 missing (items 24, 31, 35 + 56).
 Block C delta: +6 fully covered (items 11, 13, 17, 19, 21, 33, 48), +1 partial (item 18 — config-audit only), −2 partial (items 11, 13, 48 → covered), −3 missing (items 17, 19, 21).
 Block D delta: +5 fully covered (items 25, 41, 42, 59, 60), −1 partial (item 25 → covered), −1 partial (item 41 → covered), −3 missing (items 42, 59, 60).
 Block E delta: +3 fully covered (items 51, 64, 65), −2 partial (items 64, 65 → covered), −1 missing (item 51).
+Block F delta: +3 fully covered (items 46, 50, 61), −1 partial (item 50 → covered), −2 missing (items 46, 61).
 
 The 17 out-of-scope items are real items on the checklist — they just need different tools (SCA, AWS config audit, IR runbook review, CI hardening), not this runtime harness. They should be addressed and recorded as "covered by other controls" rather than ignored.
 
@@ -352,15 +353,29 @@ tests) pin every classifier verdict, the `--dos-rps` (100) and
 `--dos-duration-seconds` (30) hard ceilings, and the builder's acceptance
 of `layer="dos"`.
 
-## Block F — Logic / state (~1–2 days)
+## Block F — Logic / state ✅ Done (2026-06-10)
 
-| Item | Test |
-|---|---|
-| Workflow bypass | `logic/test_action_state_machine.py` (try approve-without-execute, escalate-after-execute, etc.) |
-| Race conditions | `logic/test_race_conditions.py` (concurrent approve on same CR) |
-| Inconsistent state after partial failure | requires fault-injection primitives — defer to block H |
-| Fail-open logic | requires fault injection — defer to block H |
-| Excessive data exposure | `fuzz/test_field_exposure.py` walks every endpoint and validates response schema for known sensitive fields |
+New top-level `tests-adversarial/logic/` directory. Covers items 46, 50, 61.
+Landed 2026-06-10. Coverage moved 56% → 59% (or 63% → 66% counting partials).
+
+| Item | Test | Status |
+|---|---|---|
+| Workflow bypass (#61) | `logic/test_action_state_machine.py` — 4 probes (skip-approve, double-approve, reject-after-execute, escalate-from-terminal). Picks an action via `GET /actions`, fires the invalid transition, best-effort resets state via `reject`. PASS on 400/403/404/409/422; FAIL HIGH on 2xx for skip-approve or 5xx; FAIL MEDIUM on 2xx for the others. | ✅ |
+| Race conditions (#46) | `logic/test_race_conditions.py` — (a) 5 concurrent `POST /actions/{id}/approve` on the same action, (b) 3 concurrent `DELETE /conversations/{id}` on a freshly-minted CISO conversation. Each fan-out uses `ThreadPoolExecutor` with fresh `requests.Session()` per worker so the conftest's 5 RPS throttle doesn't serialize them. PASS on 1×2xx + N-1 rejections; FAIL HIGH on multiple winners. | ✅ |
+| Excessive data exposure (#50) | `logic/test_field_exposure.py` — for each persona × each manifest GET route (skipping `/health` + `{path-param}` routes), fetch the response and walk JSON to depth 6 for sensitive-field patterns. 38 (persona × route) parametrize cases. | ✅ |
+| Inconsistent state after partial failure | deferred to Block H (needs fault injection) | – |
+| Fail-open logic | deferred to Block H (needs fault injection) | – |
+
+Wiring: `tests-adversarial/package.json::scripts.test:logic` plus a new
+`"logic"` entry in `scripts/run_all.py::_LAYERS_ALL` with a zero-budget
+`LayerBudget` and a 300 s hard wall-clock cap (matches the DoS layer's
+safety guard so a runaway state-machine probe can't keep hammering the
+dev env). `src/coverage/builder.py::_LAYERS` gained `"logic"` so the
+orchestrator finds the layer's `results.json` at aggregation time. New
+unit tests in `tests/test_logic_infrastructure.py` (54 tests) pin every
+classifier verdict, the JSON walker's depth cap, the parametrize
+generator's persona enumeration, and the builder's acceptance of
+`layer="logic"`.
 
 ## Block G — Logging audit (~half day)
 
