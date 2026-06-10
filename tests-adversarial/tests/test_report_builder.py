@@ -47,7 +47,8 @@ _MANIFEST_PATH = _HARNESS_ROOT / "src" / "coverage" / "manifest.json"
 @pytest.fixture
 def manifest() -> dict:
     """The real, committed manifest. Tests depend on its current shape.
-    Post-Block-B: 16 pages × 4 personas = 64 cells, 26 api_routes,
+    Post-Block-D: 17 pages × 4 personas = 68 cells (Block B: 16 + spa-root
+    synthetic sentinel for bundle scans), 26 api_routes,
     14 agent_tools (incl. master.chat_surface sentinel)."""
     return json.loads(_MANIFEST_PATH.read_text(encoding="utf-8"))
 
@@ -616,8 +617,8 @@ def test_summary_uses_matrix_coverage_labels(
         metadata=metadata,
         results=rows,
     )
-    # Post-Block-B: 1 of 64 cells covered (16 pages × 4 personas),
+    # Post-Block-D: 1 of 68 cells covered (17 pages × 4 personas, +spa-root),
     # 0 of 26 routes, 0 of 14 tools.
-    assert report["summary"]["pages_covered_label"] == "1/64"
+    assert report["summary"]["pages_covered_label"] == "1/68"
     assert report["summary"]["routes_covered_label"] == "0/26"
     assert report["summary"]["tools_covered_label"] == "0/14"

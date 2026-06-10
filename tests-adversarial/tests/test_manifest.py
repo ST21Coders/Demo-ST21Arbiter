@@ -154,12 +154,61 @@ def test_pages_access_union_covers_all_personas(manifest):
 
 
 def test_pages_file_paths_exist_on_disk(manifest):
+    """Every non-synthetic page must reference a real file. Synthetic pages
+    (``synthetic: true``, e.g. the ``spa-root`` sentinel for Block D bundle
+    scans) carry ``file: null`` and are skipped — same pattern as the
+    ``master.chat_surface`` synthetic entry in ``agent_tools``."""
     for page in manifest["pages"]:
+        if page.get("synthetic") is True:
+            assert page.get("file") is None, (
+                f"synthetic page {page.get('id')} must have 'file': null "
+                f"(got {page.get('file')!r})"
+            )
+            assert "note" in page and page["note"], (
+                f"synthetic page {page.get('id')} must carry a 'note' "
+                f"field explaining the sentinel"
+            )
+            continue
         path = _REPO_ROOT / page["file"]
         assert path.is_file(), (
             f"page {page['id']} references {page['file']} which is not a file "
             f"under repo root {_REPO_ROOT}"
         )
+
+
+def test_synthetic_page_flag_is_bool_when_present(manifest):
+    """Like ``synthetic`` on agent_tools, the optional ``synthetic`` flag on
+    pages must be a JSON boolean when present (not the string "true"). Pinning
+    the type keeps the drift checker's short-circuit unambiguous."""
+    for page in manifest["pages"]:
+        if "synthetic" in page:
+            assert isinstance(page["synthetic"], bool), (
+                f"page {page.get('id')} 'synthetic' must be a JSON boolean, "
+                f"got {type(page['synthetic']).__name__}"
+            )
+
+
+def test_spa_root_synthetic_page_entry_present(manifest):
+    """The ``spa-root`` sentinel is required for Block D bundle-scan rows
+    (hardcoded keys, source maps, sensitive comments, SRI, tabnabbing). It
+    must exist with ``synthetic: true`` and ``file: null``, and be universally
+    accessible (all 4 personas), since the probes hit static CloudFront assets."""
+    by_id = {p["id"]: p for p in manifest["pages"]}
+    assert "spa-root" in by_id, (
+        "manifest.pages must contain a 'spa-root' synthetic sentinel for "
+        "Block D bundle scans"
+    )
+    entry = by_id["spa-root"]
+    assert entry.get("synthetic") is True, (
+        "spa-root must be flagged 'synthetic': true so the drift checker skips it"
+    )
+    assert entry.get("file") is None
+    assert entry.get("note"), "spa-root must carry a note explaining the sentinel"
+    assert set(entry["accessible_to"]) == _EXPECTED_PERSONA_IDS, (
+        "spa-root must be accessible to all 4 personas — static-asset probes "
+        "are persona-agnostic"
+    )
+    assert entry["blocked_for"] == []
 
 
 def test_pages_routes_start_with_slash(manifest):

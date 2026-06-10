@@ -64,8 +64,14 @@ fs.mkdirSync(ARTIFACTS_DIR, { recursive: true })
 // Build the (page, persona) pair list ONCE at spec-load time. Reading the
 // manifest inside the loop would be wasteful and would block deterministic
 // test enumeration in `playwright test --list`.
+//
+// Synthetic page entries (e.g. `spa-root` for Block D bundle scans) are
+// harness-only sentinels with no React route to navigate to — they're skipped
+// here so this positive-gating sweep stays focused on real pages. The
+// bundle-secrets / bundle-tabnabbing specs cover the synthetic targets.
 const PAIRS = []
 for (const page of pages()) {
+  if (page.synthetic === true) continue
   for (const persona of page.accessible_to) {
     PAIRS.push({
       pageId: page.id,

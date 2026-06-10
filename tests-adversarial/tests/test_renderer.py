@@ -294,18 +294,18 @@ def test_page_matrix_has_60_cells_for_real_manifest(
 ) -> None:
     """Acceptance 5: N pages × 4 personas = (N*4) cells in the pages matrix.
 
-    Post-Block-B N is 16 (Block A: 15 + integrations page from Block B).
-    We count <td> cells (not <th>) — the persona column headers are <th>,
-    only the data cells are <td>.
+    Post-Block-D N is 17 (Block B: 16 + spa-root synthetic sentinel for
+    bundle scans). We count <td> cells (not <th>) — the persona column
+    headers are <th>, only the data cells are <td>.
     """
     report = _build_empty_report(manifest, empty_matrix, empty_cost, metadata, run_dir)
     body = render_html(report, run_dir, manifest).read_text(encoding="utf-8")
     rows, cells = _count_tbody_cells(body, "pages-h")
-    assert rows == 16
+    assert rows == 17
     # Each row has 1 page-id <td> + 4 persona <td> cells = 5 cells/row.
-    assert cells == 16 * 5
+    assert cells == 17 * 5
     # And the persona cells claim: subtract the leading page-id column.
-    assert (cells - rows) == 16 * 4
+    assert (cells - rows) == 17 * 4
 
 
 def test_routes_table_has_25_rows_for_real_manifest(

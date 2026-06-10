@@ -1,7 +1,7 @@
 # ARBITER Adversarial Harness — Security Compliance Coverage Matrix
 
 **Date:** 2026-06-10
-**Harness version:** post-Block-C (2026-06-10)
+**Harness version:** post-Block-D (2026-06-10)
 **Reference standard:** internal compliance checklist (OWASP Top 10 + API Top 10 + LLM Top 10 + CWE common weaknesses)
 
 This document maps every item on the requested compliance checklist to the current state of the adversarial test harness at `tests-adversarial/`. For each item it states:
@@ -61,12 +61,12 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 |---|---|---|---|---|
 | 23 | Plaintext transmission of sensitive data | ✅ Covered | Block B: `headers/test_https_only.py` — for every public host (CloudFront SPA, API, Lambda Function URL), GET on `http://` must redirect to `https://` (FAIL HIGH on a 200 or http-to-http redirect) and GET on `https://` must set HSTS with `max-age >= 1 year` (FAIL MEDIUM if missing). | – |
 | 24 | Weak / outdated cryptographic algorithms | ✅ Covered | Block B: `headers/test_tls_ciphers.py` — stdlib `ssl` + `socket` only (no `nmap` / `testssl.sh` subprocess). Forces TLS 1.0 / 1.1 handshakes against CloudFront (FAIL HIGH if either succeeds), then negotiates TLS 1.2 and verifies the cipher name is not in the weak-token list (RC4 / 3DES / NULL / EXPORT / anonymous DH / MD5-based). | – |
-| 25 | Hardcoded or poorly managed keys | 🟡 Partial | The harness itself has a `_test_safety_invariants` that grep-scans for AWS account IDs / forbidden boto3 clients. Doesn't scan the deployed bundle for inlined keys. | Small (~1 hr) — add `e2e/test_bundle_secrets_scan.spec.js` that fetches `/assets/*.js` and regex-scans for `AKIA`, `eyJ`, `xoxb-`, etc. |
+| 25 | Hardcoded or poorly managed keys | ✅ Covered | Block D: `e2e/tests/bundle-secrets.spec.js::e2e.bundle.hardcoded-keys` — fetches the SPA root HTML, extracts every `<script src>` URL, fetches each JS bundle, and regex-scans for AWS access key IDs (`AKIA[0-9A-Z]{16}`), AWS secret-assignment shapes, JWT-shape tokens (medium / flag for review), Slack tokens (`xox[bpa]-...`), GitHub PATs (`ghp_...{36}`), and OpenAI/Anthropic key shapes (`sk-...{40,}`). PASS on zero hits; FAIL HIGH on AWS/Slack/GitHub/Anthropic-shape; FAIL MEDIUM on JWT-shape. Classifier pinned both in JS (`e2e/lib/bundle-scanner.js`) and in Python parity tests (`tests/test_block_d_bundle_scanner.py`). | – |
 | 26 | Weak randomness | ❌ Missing | No probe that watches for predictable session_ids or short-cycle UUIDs. ARBITER uses `crypto.randomUUID()` which is fine, but a regression to `Math.random()` wouldn't be caught. | Small (~1 hr) — collect 100 session_ids and check Shannon entropy |
 | 27 | Improper certificate validation | ⚪ Out of scope | This applies to client-side code. The deployed SPA uses the browser's cert validation; ARBITER doesn't ship a desktop/mobile client. | – |
 | 28 | Unnecessary retention of sensitive data | ❌ Missing | No probe of DDB TTL / retention policies. Spec'd in `04-storage.yaml` but not enforced by harness. | Small-medium (~2 hr) — `tls/test_data_retention.py` querying DDB for items past TTL or session table for old rows |
 
-**Section totals:** 2 covered · 0 partial · 3 missing · 1 out-of-scope  *(post-Block-B)*
+**Section totals:** 3 covered · 0 partial · 2 missing · 1 out-of-scope  *(post-Block-D)*
 
 ---
 
@@ -95,10 +95,10 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 |---|---|---|---|---|
 | 39 | Compromised build pipelines | ⚪ Out of scope | Requires CI hardening (signed commits, OIDC role assumption, branch protection). Not testable from a black-box runtime harness. | – |
 | 40 | Malicious maintainer / package takeover | ⚪ Out of scope | SCA + signed releases. | – |
-| 41 | Compromised third-party JS / Magecart skimming | 🟡 Partial | Bundle-scan probe (planned for item #25) would catch unexpected script sources. Subresource Integrity (SRI) inspection separate. | Small (~1 hr) — add SRI check to bundle scan |
-| 42 | Sensitive data in client storage / source maps / comments | ❌ Missing | No probe fetches `/assets/*.js.map` or scans comments in deployed HTML. | Small (~1 hr) |
+| 41 | Compromised third-party JS / Magecart skimming | ✅ Covered | Block D: `e2e/tests/bundle-secrets.spec.js::e2e.bundle.sri-on-third-party` — parses every `<script src>` and `<link rel="stylesheet" href>` in the SPA root HTML, classifies same-origin vs cross-origin via URL hostname, and asserts every cross-origin tag carries `integrity="..."`. PASS if all third-party tags have SRI; FAIL MEDIUM per missing tag; SKIP with reason "no third-party assets found" if everything is first-party. | – |
+| 42 | Sensitive data in client storage / source maps / comments | ✅ Covered | Block D: two probes in `e2e/tests/bundle-secrets.spec.js`. (a) `e2e.bundle.source-maps-in-prod` — HEADs every `<script>.map` URL; FAIL MEDIUM on any 200. (b) `e2e.bundle.sensitive-comments` — regex sweeps the HTML + every JS bundle for `TODO.*(password\|secret\|token\|key\|admin)`, `FIXME.*(password\|secret\|token\|key)`, HTML comments with credential keywords, and `console.log(...secret...)` debug leaks; FAIL LOW per category match. | – |
 
-**Section totals:** 0 covered · 1 partial · 1 missing · 2 out-of-scope
+**Section totals:** 2 covered · 0 partial · 0 missing · 2 out-of-scope  *(post-Block-D)*
 
 ---
 
@@ -140,10 +140,10 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 | 56 | Clickjacking | ✅ Covered | Block B (two-pronged): (a) `headers/test_clickjacking.py::test_iframe_embed_blocked_via_headers` — header-side check that XFO DENY/SAMEORIGIN or CSP `frame-ancestors` restricts framing (FAIL MEDIUM if neither); (b) `e2e/tests/clickjacking.spec.js` — real-browser Playwright spec that wraps the SPA URL in an `<iframe>` and asserts the dashboard does not render inside it. | – |
 | 57 | Open redirects | ✅ Covered | Block A: `fuzz/corpus/open_redirects.json` (7 entries: bare host, protocol-relative, full https, UNC, mixed slash, subdomain confusion, `@` userinfo bypass) + dedicated probe `fuzz/test_open_redirects.py` against the Cognito Hosted UI `/login?redirect_uri=` with Location-header inspection. ARBITER's own API has no redirect routes — the Hosted UI is the exposure surface. | – |
 | 58 | Prototype pollution | ✅ Covered | Block A: `fuzz/corpus/prototype_pollution.json` (5 entries: `__proto__.isAdmin`, `constructor.prototype`, `__proto__.toString`, nested, array-typed). Lambda runtime is Python — these are regression detectors for a future Node Lambda. | – |
-| 59 | Tabnabbing | ❌ Missing | No probe that confirms outbound links have `rel="noopener noreferrer"`. | Small (~30 min) — Playwright spec |
-| 60 | Sensitive data in client storage / source maps / comments | ❌ Missing | See #42. | – |
+| 59 | Tabnabbing | ✅ Covered | Block D: `e2e/tests/bundle-tabnabbing.spec.js` — CISO-authenticated sweep over Dashboard / Settings / Integrations. For every `<a target="_blank">` whose href hostname differs from the SPA host, asserts the `rel` attribute contains BOTH `noopener` AND `noreferrer`. PASS on protected; FAIL MEDIUM per link missing either token; SKIP on pages with no external `target="_blank"` links. | – |
+| 60 | Sensitive data in client storage / source maps / comments | ✅ Covered | Same as #42 (Block D — source-maps + sensitive-comments probes). | – |
 
-**Section totals:** 3 covered · 0 partial · 2 missing  *(post-Block-B)*
+**Section totals:** 5 covered · 0 partial · 0 missing  *(post-Block-D)*
 
 ---
 
@@ -207,23 +207,24 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 |---|---:|---:|---:|---:|---:|
 | 1. Injection | 10 | 0 | 0 | 0 | 10 |
 | 2. AuthN / AuthZ | 9 | 1 | 0 | 2 | 12 |
-| 3. Crypto & data | 2 | 0 | 3 | 1 | 6 |
+| 3. Crypto & data | 3 | 0 | 2 | 1 | 6 |
 | 4. Config / infra | 5 | 1 | 1 | 3 | 10 |
-| 5. Build / supply chain | 0 | 1 | 1 | 2 | 4 |
+| 5. Build / supply chain | 2 | 0 | 0 | 2 | 4 |
 | 6. Errors & state | 0 | 1 | 4 | 0 | 5 |
 | 7. API Top-10 | 3 | 2 | 2 | 1 | 8 |
-| 8. Client-side | 3 | 0 | 2 | 0 | 5 |
+| 8. Client-side | 5 | 0 | 0 | 0 | 5 |
 | 9. Logic / workflow | 0 | 0 | 1 | 2 | 3 |
 | 10. DoS | 0 | 2 | 0 | 1 | 3 |
 | 11. Logging / monitoring | 0 | 1 | 2 | 3 | 6 |
 | 12. LLM Top-10 | 4 | 0 | 1 | 2 | 7 |
-| **Totals** | **36** | **9** | **17** | **17** | **79** |
+| **Totals** | **41** | **8** | **13** | **17** | **79** |
 
-**Coverage post-Block-C: 36/79 fully (46%), 45/79 at least partial (57%), 17/79 out of scope (22%).**
+**Coverage post-Block-D: 41/79 fully (52%), 49/79 at least partial (62%), 17/79 out of scope (22%).**
 
 Block A delta: +10 fully covered, +1 partial (mass assignment + log injection re-classified), −11 missing.
 Block B delta: +6 fully covered (items 23, 24, 31, 35, 55, 56), −3 partial (items 23, 55 → covered; item 41 stays partial — bundle/SRI scan still scheduled for Block D), −3 missing (items 24, 31, 35 + 56).
 Block C delta: +6 fully covered (items 11, 13, 17, 19, 21, 33, 48), +1 partial (item 18 — config-audit only), −2 partial (items 11, 13, 48 → covered), −3 missing (items 17, 19, 21).
+Block D delta: +5 fully covered (items 25, 41, 42, 59, 60), −1 partial (item 25 → covered), −1 partial (item 41 → covered), −3 missing (items 42, 59, 60).
 
 The 17 out-of-scope items are real items on the checklist — they just need different tools (SCA, AWS config audit, IR runbook review, CI hardening), not this runtime harness. They should be addressed and recorded as "covered by other controls" rather than ignored.
 
@@ -297,15 +298,35 @@ Wiring: new unit tests in `tests/test_auth_abuse_infrastructure.py` enforce the
 classifier rules, test-id canonical strings, wordlist shape, and pool-config
 assertion ladder.
 
-## Block D — Bundle / client-side scan (~half day)
+## Block D — Bundle / client-side scan ✅ Done (2026-06-10)
 
-| Item | Test |
-|---|---|
-| Hardcoded keys in bundle | `e2e/test_bundle_secrets.spec.js` (regex scan `/assets/*.js`) |
-| Source maps in production | same spec, checks for `*.js.map` 200s |
-| Comments containing secrets | same spec |
-| Subresource Integrity | same spec |
-| Tabnabbing | Playwright check on external links |
+New Playwright specs under `e2e/tests/` + shared classifier library at
+`e2e/lib/bundle-scanner.js` + Python parity tests at
+`tests/test_block_d_bundle_scanner.py`. Covers items 25, 41, 42, 59, 60.
+Landed 2026-06-10. Coverage moved 46% → 52% (or 57% → 62% counting partials).
+
+Manifest gained a synthetic `spa-root` page sentinel (`synthetic: true`,
+`file: null`, universally accessible) so bundle-scan results have a stable
+coverage row to land on. The drift checker (`scripts/check_manifest_drift.py`)
+and the manifest self-consistency tests (`tests/test_manifest.py`) skip
+synthetic page entries the same way they skip `master.chat_surface`.
+
+| Item | Test | Status |
+|---|---|---|
+| Hardcoded keys in bundle | `e2e/tests/bundle-secrets.spec.js::e2e.bundle.hardcoded-keys` (AWS / Slack / GitHub / Anthropic / JWT regex sweep over every JS bundle) | ✅ |
+| Source maps in production | `e2e/tests/bundle-secrets.spec.js::e2e.bundle.source-maps-in-prod` (HEAD each `<script>.map`; FAIL MEDIUM on any 200) | ✅ |
+| Comments containing secrets | `e2e/tests/bundle-secrets.spec.js::e2e.bundle.sensitive-comments` (TODO/FIXME/HTML-comment/`console.log` leak sweep across HTML + bundles) | ✅ |
+| Subresource Integrity | `e2e/tests/bundle-secrets.spec.js::e2e.bundle.sri-on-third-party` (cross-origin `<script>` / `<link rel="stylesheet">` must carry `integrity="..."`) | ✅ |
+| Tabnabbing | `e2e/tests/bundle-tabnabbing.spec.js::e2e.bundle.tabnabbing.<page>` (CISO sweep over Dashboard / Settings / Integrations; external `<a target="_blank">` must have `rel="noopener noreferrer"`) | ✅ |
+
+Wiring: probes 1–4 run under the `no-auth` Playwright project (static-asset
+probes — no Cognito needed). Probe 5 runs under the `ciso` project
+(authenticated SPA needed to render the link-bearing pages). All five emit
+`harness-result` annotations the existing `e2e/reporters/results-reporter.js`
+consumes; rows land at `target_kind: "page"`, `target_id: "spa-root"` for
+probes 1–4 and at the real page id for probe 5. New unit tests in
+`tests/test_block_d_bundle_scanner.py` (28 tests) pin the Python parity of
+the JS classifier so regex regressions in either side fail loudly.
 
 ## Block E — DoS / rate limiting (~1 day)
 
@@ -387,4 +408,4 @@ If we run the same daily harness cadence and each "Block" above is one focused b
 
 After every block, the compliance matrix in this document gets updated and the daily PDF report shows the new percentages.
 
-*Last updated: 2026-06-10 (post-Block-C). Refresh this doc after every block lands.*
+*Last updated: 2026-06-10 (post-Block-D). Refresh this doc after every block lands.*

@@ -189,6 +189,16 @@
       "accessible_to": ["ciso", "soc", "grc", "employee"],
       "blocked_for": [],
       "note": "Public route reachable while unauthenticated (sits outside <RequireAuth> in App.jsx). The /callback route is the Cognito Hosted UI return path and is exercised together with /signin in the cognito-hosted-ui E2E spec; it is not a separate page file."
+    },
+    {
+      "id": "spa-root",
+      "file": null,
+      "route": "/",
+      "label": "SPA Bundle (sentinel)",
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "blocked_for": [],
+      "synthetic": true,
+      "note": "Sentinel target for Block D bundle scans (hardcoded keys, source maps, sensitive comments, SRI, tabnabbing). Not a real React page — the index.html + linked JS bundles served by CloudFront are the test target. Universally accessible because the probes hit static assets that any persona can fetch."
     }
   ],
   "api_routes": [
