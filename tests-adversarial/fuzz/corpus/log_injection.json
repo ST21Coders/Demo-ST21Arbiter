@@ -1,0 +1,36 @@
+{
+  "_comment": "Log-injection payloads. CR/LF + ANSI escape sequences in input that lands in CloudWatch logs would let an attacker forge log entries or break log-tail tooling that does naive ANSI rendering. Detection here is limited: the API-layer probe verifies the payload isn't reflected unencoded in the response. Full verification (did it land in CloudWatch unsanitized?) needs the Block G CloudWatch reader.",
+  "family": "log_injection",
+  "payloads": [
+    {
+      "id": "logi-crlf-fake-entry",
+      "payload": "foo\r\nFAKE LOG ENTRY: admin logged in",
+      "expected_blocked": true,
+      "rationale": "Bare CR/LF - splits the log line, lets the attacker forge a second entry that looks legitimate to a grep-based tail."
+    },
+    {
+      "id": "logi-ansi-erase-line",
+      "payload": "\u001b[2K[ATTACKER] hidden",
+      "expected_blocked": true,
+      "rationale": "ANSI erase-line escape (ESC[2K) followed by attacker text - terminals that render ANSI on `aws logs tail` would clear the line before the attacker's message."
+    },
+    {
+      "id": "logi-url-encoded-crlf",
+      "payload": "foo%0D%0Aadmin: granted",
+      "expected_blocked": true,
+      "rationale": "URL-encoded CR/LF - exploits any decode-then-log pipeline. The server must not double-decode body fields into log strings."
+    },
+    {
+      "id": "logi-ansi-color-fake-warning",
+      "payload": "\u001b[31m[WARN]\u001b[0m system compromised",
+      "expected_blocked": true,
+      "rationale": "ANSI color codes - let an attacker render red [WARN] text inside an INFO-level log line, fooling color-coded log viewers."
+    },
+    {
+      "id": "logi-nul-byte-truncate",
+      "payload": "legit\u0000 injected admin login",
+      "expected_blocked": true,
+      "rationale": "Null-byte log truncation - C-string log writers stop at NUL; everything after is hidden from naive grep but visible to a binary reader."
+    }
+  ]
+}

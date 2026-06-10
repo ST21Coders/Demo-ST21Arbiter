@@ -1,0 +1,48 @@
+{
+  "_comment": "Open-redirect payloads. URL-shaped attacker domains that exploit a redirect-allowlist bypass. Lands in the primary writable field of every route — most ARBITER routes don't issue redirects, so PASS = no reflection. The dedicated probe `fuzz/test_open_redirects.py` targets the Cognito Hosted UI `redirect_uri` parameter directly and inspects the Location header. PASS = no Location header points off-domain. FAIL = 3xx with Location set to evil.com.",
+  "family": "open_redirects",
+  "payloads": [
+    {
+      "id": "redir-bare-host",
+      "payload": "evil.com",
+      "expected_blocked": true,
+      "rationale": "Bare attacker hostname — exploits validators that string-match on the leading scheme. Short, so the reflection check doesn't fire (< 6 chars), but the dedicated probe targets the Cognito redirect_uri."
+    },
+    {
+      "id": "redir-protocol-relative",
+      "payload": "//evil.com",
+      "expected_blocked": true,
+      "rationale": "Protocol-relative URL — browsers interpret as cross-origin redirect under the current page's scheme."
+    },
+    {
+      "id": "redir-https-evil",
+      "payload": "https://evil.com",
+      "expected_blocked": true,
+      "rationale": "Fully-qualified attacker URL with matching scheme — exploits validators that allow same-scheme redirects."
+    },
+    {
+      "id": "redir-windows-unc",
+      "payload": "\\\\evil.com",
+      "expected_blocked": true,
+      "rationale": "Backslash-prefixed host — UNC path in Windows, gets normalised to `//evil.com` by some URL parsers."
+    },
+    {
+      "id": "redir-mixed-slash-bypass",
+      "payload": "/\\evil.com",
+      "expected_blocked": true,
+      "rationale": "Forward-then-back slash — exploits parsers that strip the leading `/` then treat the rest as relative."
+    },
+    {
+      "id": "redir-subdomain-confusion",
+      "payload": "https://arbiter.com.evil.com",
+      "expected_blocked": true,
+      "rationale": "Look-alike subdomain — `arbiter.com.evil.com` resolves under `evil.com`. Exploits validators that allowlist with `endswith('arbiter.com')` without a leading dot."
+    },
+    {
+      "id": "redir-at-sign-bypass",
+      "payload": "https://arbiter.com@evil.com",
+      "expected_blocked": true,
+      "rationale": "Userinfo `@` bypass — RFC 3986 says `user@host`, so the real host is evil.com. Exploits substring-match validators."
+    }
+  ]
+}

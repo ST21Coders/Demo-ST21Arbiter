@@ -1,0 +1,42 @@
+{
+  "_comment": "LDAP filter-injection payloads. ARBITER does not currently use LDAP — auth is via Cognito — but the compliance checklist requires coverage. PASS = no 500, no stack trace, no reflection. FAIL = the server treats the payload as part of an LDAP filter (very unlikely here, but the regression detector is in place if a future identity layer adds LDAP).",
+  "family": "ldap",
+  "payloads": [
+    {
+      "id": "ldap-wildcard-uid-close",
+      "payload": "*)(uid=*",
+      "expected_blocked": true,
+      "rationale": "Classic filter-break + wildcard — bypasses a poorly-escaped LDAP login filter (`(uid={input})`)."
+    },
+    {
+      "id": "ldap-or-wildcard",
+      "payload": "*)(|(uid=*))",
+      "expected_blocked": true,
+      "rationale": "Filter-break + OR wildcard — broader match than the single-wildcard form."
+    },
+    {
+      "id": "ldap-admin-and-password",
+      "payload": "admin)(&(password=*))",
+      "expected_blocked": true,
+      "rationale": "Targeted privilege escalation — closes the username clause and opens an AND wildcard on the password attribute."
+    },
+    {
+      "id": "ldap-null-byte-terminator",
+      "payload": "*))%00",
+      "expected_blocked": true,
+      "rationale": "Null-byte filter-truncation — exploits C-string LDAP libraries that stop at \\x00."
+    },
+    {
+      "id": "ldap-objectclass-wildcard",
+      "payload": "*)(objectClass=*",
+      "expected_blocked": true,
+      "rationale": "Object-class wildcard — would return every entry in the directory."
+    },
+    {
+      "id": "ldap-bare-wildcard",
+      "payload": "*",
+      "expected_blocked": false,
+      "rationale": "Bare asterisk — a literal single character that any input field accepts. Short enough that the reflection check skips it (length < 6); included for coverage completeness."
+    }
+  ]
+}

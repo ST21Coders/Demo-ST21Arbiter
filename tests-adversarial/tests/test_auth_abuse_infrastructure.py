@@ -740,3 +740,94 @@ def test_forged_groups_unknown_persona_in_pair_is_a_real_persona() -> None:
         assert original in valid, (
             f"forged-groups pair references unknown persona {original!r}"
         )
+
+
+# ───────────────── Block A: auth.default-creds infrastructure ────────────────
+#
+# The test_default_creds module short-circuits at import time with
+# ``pytest.skip(..., allow_module_level=True)`` when DEMO_PASSWORD is unset.
+# These unit tests need the symbols regardless of the env, so we set a
+# dummy DEMO_PASSWORD before importing the module. This is harmless — none
+# of the assertions below actually call Cognito; they only exercise the
+# pure-logic helpers (curated wordlist length, classification rules).
+import os as _os  # noqa: E402
+
+_os.environ.setdefault("DEMO_PASSWORD", "unit-test-placeholder")
+
+from auth.test_default_creds import (  # noqa: E402
+    DEFAULT_CRED_PAIRS,
+    classify_default_creds_response,
+)
+
+
+def test_default_creds_enumeration_count_matches_wordlist() -> None:
+    """Block A spec: exactly the five curated pairs.
+
+    If the wordlist grows or shrinks, this test will fail loudly so the
+    matrix doc can be kept in sync. The five pairs are the SANS-top-default
+    subset documented in the test module's header.
+    """
+    assert len(DEFAULT_CRED_PAIRS) == 5, (
+        f"expected 5 curated default-cred pairs, got {len(DEFAULT_CRED_PAIRS)}: "
+        f"{DEFAULT_CRED_PAIRS!r}"
+    )
+
+
+def test_default_creds_curated_set_is_the_documented_one() -> None:
+    """The exact pairs match the Block A spec.
+
+    The pairs are: admin/admin, admin/password, test/test, arbiter/arbiter,
+    demo/demo123.
+    """
+    expected = {
+        ("admin", "admin"),
+        ("admin", "password"),
+        ("test", "test"),
+        ("arbiter", "arbiter"),
+        ("demo", "demo123"),
+    }
+    actual = set(DEFAULT_CRED_PAIRS)
+    assert actual == expected, f"curated default-cred pairs drifted: {actual!r}"
+
+
+def test_default_creds_authentication_success_is_fail_high() -> None:
+    """Faked successful auth (no exception) is recorded as FAIL severity HIGH.
+
+    Block A spec: "FAIL = unexpectedly succeeds. Severity HIGH on fail."
+    Classifier returns ``(fail, high)`` when error_code is None.
+    """
+    status, severity = classify_default_creds_response(None)
+    assert status == "fail"
+    assert severity == "high"
+
+
+def test_default_creds_not_authorized_exception_is_pass() -> None:
+    """Faked NotAuthorizedException is recorded as PASS.
+
+    Block A spec: "PASS = Cognito rejects with NotAuthorizedException."
+    """
+    status, severity = classify_default_creds_response("NotAuthorizedException")
+    assert status == "pass"
+    assert severity is None
+
+
+def test_default_creds_user_not_found_is_also_pass() -> None:
+    """Some pools surface UserNotFoundException instead.
+
+    Same outcome from a security PoV: the credential didn't authenticate.
+    """
+    status, severity = classify_default_creds_response("UserNotFoundException")
+    assert status == "pass"
+    assert severity is None
+
+
+def test_default_creds_unexpected_error_code_is_fail_medium() -> None:
+    """An unexpected Cognito error is a FAIL medium (operator should look).
+
+    Anything other than the two known-rejection codes lands as MEDIUM —
+    not a finding, but worth flagging so a config drift (e.g. the pool
+    deleted, the app client revoked) doesn't silently pass.
+    """
+    status, severity = classify_default_creds_response("InvalidParameterException")
+    assert status == "fail"
+    assert severity == "medium"

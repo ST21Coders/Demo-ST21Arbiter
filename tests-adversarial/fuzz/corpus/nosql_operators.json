@@ -1,0 +1,48 @@
+{
+  "_comment": "MongoDB-style NoSQL operator payloads. ARBITER uses DynamoDB, which treats these as literal strings — but a future driver swap (or any string-template logic that builds a NoSQL query from user input) would be exploitable. PASS = no 500, no stack trace, no payload reflection that suggests the operator was parsed. Targets every JSON-body field on POST routes and every query string on GET routes via the standard cross-product enumeration.",
+  "family": "nosql_operators",
+  "payloads": [
+    {
+      "id": "nosql-ne-null",
+      "payload": "{\"$ne\": null}",
+      "expected_blocked": false,
+      "rationale": "Classic $ne operator — in MongoDB returns docs where the field is not null. Against DDB it lands as a literal string. Must not 500."
+    },
+    {
+      "id": "nosql-gt-empty",
+      "payload": "{\"$gt\": \"\"}",
+      "expected_blocked": false,
+      "rationale": "Greater-than-empty-string — would match every string field in MongoDB. Tests that the server doesn't try to parse operator syntax out of a string value."
+    },
+    {
+      "id": "nosql-where-js",
+      "payload": "{\"$where\": \"this.password == 'x' || 1 == 1\"}",
+      "expected_blocked": true,
+      "rationale": "$where with JS expression — MongoDB-only RCE primitive. Should never reach an evaluator; expected_blocked=true marks the reflection check as enforcing."
+    },
+    {
+      "id": "nosql-regex-match-all",
+      "payload": "{\"$regex\": \".*\"}",
+      "expected_blocked": false,
+      "rationale": "Regex match-all operator — tests for any code path that pattern-matches input as a query expression."
+    },
+    {
+      "id": "nosql-array-bracket-ne",
+      "payload": "[$ne]=1",
+      "expected_blocked": false,
+      "rationale": "PHP/Express-style array-bracket form (`field[$ne]=1`). Common in old NoSQL injection cheat sheets — would land in a query string parser."
+    },
+    {
+      "id": "nosql-or-empty",
+      "payload": "{\"$or\": [{}, {}]}",
+      "expected_blocked": false,
+      "rationale": "$or with all-empty subqueries — match-all logic in MongoDB. Verifies the API treats the JSON-shaped string as a literal."
+    },
+    {
+      "id": "nosql-exists-true",
+      "payload": "{\"$exists\": true}",
+      "expected_blocked": false,
+      "rationale": "$exists operator — returns docs where the field exists. Coverage formality; DDB treats as literal."
+    }
+  ]
+}

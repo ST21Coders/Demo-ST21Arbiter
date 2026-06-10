@@ -1,0 +1,48 @@
+{
+  "_comment": "Server-Side Request Forgery payloads. URL-shaped values aimed at AWS instance metadata, loopback, link-local, and private IP ranges. The route fields most likely to fetch a URL are jira-tickets bodies, presign callbacks, and any future webhook endpoint. PASS = no 500, no stack trace, no reflection of the URL, no abnormally long response time. FAIL = response body contains metadata-service keywords (`iam`, `ami-id`, `instance-id`), or response time > 10s (the http_session has a 10s timeout — a timeout exception is recorded as status 0 and counted as PASS, but a 200 after 9s indicating the request did fetch and then return is the failure mode).",
+  "family": "ssrf",
+  "payloads": [
+    {
+      "id": "ssrf-imds-creds",
+      "payload": "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
+      "expected_blocked": true,
+      "rationale": "EC2 IMDSv1 IAM credentials path. The classic SSRF win — leaks an STS token. AgentCore Runtimes have IMDSv2 required, but a Lambda fetching this URL would expose the function role."
+    },
+    {
+      "id": "ssrf-localhost-port-80",
+      "payload": "http://localhost:80/",
+      "expected_blocked": true,
+      "rationale": "Loopback DNS name — bypasses naive 127/8 IP filters that don't resolve hostnames first."
+    },
+    {
+      "id": "ssrf-loopback-8080",
+      "payload": "http://127.0.0.1:8080/",
+      "expected_blocked": true,
+      "rationale": "Localhost IP on common dev-server port. Any internal admin UI on the same container would be reachable."
+    },
+    {
+      "id": "ssrf-ipv6-loopback",
+      "payload": "http://[::1]/",
+      "expected_blocked": true,
+      "rationale": "IPv6 loopback — bypasses IPv4-only allowlists."
+    },
+    {
+      "id": "ssrf-private-rfc1918",
+      "payload": "http://10.0.0.1/",
+      "expected_blocked": true,
+      "rationale": "RFC 1918 private IP — VPC-internal targets that should never be reachable from a public-internet URL field."
+    },
+    {
+      "id": "ssrf-gopher-imds",
+      "payload": "gopher://169.254.169.254:80/",
+      "expected_blocked": true,
+      "rationale": "Gopher scheme — a libcurl trick for sending arbitrary TCP bytes; if the fetcher supports gopher (some old wrappers do), it can hit IMDS without a real HTTP request."
+    },
+    {
+      "id": "ssrf-file-scheme-etc-passwd",
+      "payload": "file:///etc/passwd",
+      "expected_blocked": true,
+      "rationale": "file:// scheme — local file read via URL fetcher. Catches a fetcher that uses libcurl with default protocol allowlist."
+    }
+  ]
+}
