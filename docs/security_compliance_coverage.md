@@ -1,7 +1,7 @@
 # ARBITER Adversarial Harness — Security Compliance Coverage Matrix
 
 **Date:** 2026-06-10
-**Harness version:** post-Block-D (2026-06-10)
+**Harness version:** post-Block-E (2026-06-10)
 **Reference standard:** internal compliance checklist (OWASP Top 10 + API Top 10 + LLM Top 10 + CWE common weaknesses)
 
 This document maps every item on the requested compliance checklist to the current state of the adversarial test harness at `tests-adversarial/`. For each item it states:
@@ -123,13 +123,13 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 | 48 | Broken Object-Level Authorization (BOLA) | ✅ Covered | Block C: same surface as IDOR (#11). `auth/test_idor.py` covers per-object cross-persona reads and deletes on `/conversations/{session_id}`. | – |
 | 49 | Mass assignment | 🟡 Partial | Block A: `fuzz/corpus/mass_assignment.json` (6 entries: is_admin, persona, cognito:groups, role, user_id, approved) injected as the primary writable field's value on every route. Multi-key body extension (extra top-level keys in the same JSON body) is documented future enhancement — see notes/mass-assignment-extra-keys.md. | Small (~1 hr) — extend test_api_routes.py to inject the corpus as top-level keys instead of values |
 | 50 | Excessive data exposure | 🟡 Partial | Stack-trace check catches obvious leaks. No probe that walks each endpoint and asserts the response shape doesn't include `password_hash`, `secret`, `email` to non-owner. | Small-medium (~2 hr) — `fuzz/test_field_exposure.py` |
-| 51 | Lack of rate limiting / resource consumption | ❌ Missing | No probe that fires N requests/sec at any endpoint and asserts a 429 response after K. AgentCore runtime + APIGW have implicit limits we never verify. | Small (~1 hr) — `dos/test_rate_limit.py` |
+| 51 | Lack of rate limiting / resource consumption | ✅ Covered | Block E: `dos/test_rate_limit.py` — for 5 representative routes (`get-findings`, `get-conversations`, `get-dashboard`, `get-agent-status`, `post-chat`), sends a sustained burst at `--dos-rps` (default 20, hard ceiling 100) for `--dos-duration-seconds` (default 5, hard ceiling 30). PASS on ≥1 429; FAIL MEDIUM if no 429 and latency flat (rate limiting absent); FAIL HIGH if any 500 / transport drop / monotonic latency growth (API buckling). | – |
 | 52 | Broken function-level authorization (BFLA) | ✅ Covered | Same as #14 — auth layer's per-route persona tests cover BFLA. Confirmed broken today. | – |
 | 53 | Unsafe consumption of third-party APIs | ❌ Missing | The jira_specialist and zscaler integrations consume external APIs. No probe that verifies the responses are validated before being passed to the model. | Medium (~half day) — requires fault injection on the upstream |
 | 54 | GraphQL-specific abuse | ⚪ Out of scope | ARBITER doesn't expose GraphQL. | – |
 | 55 | Cross-Site Request Forgery (CSRF) | ✅ Covered | Block B: `headers/test_csrf.py`. For every POST / PUT / PATCH / DELETE route in the manifest, fire the request with NO `Authorization:` header but WITH a fake `Cookie: arbiter.tokens=...`. Expected: 401 / 403. FAIL HIGH if the API returns 2xx — that would mean a cookie-based auth fallback exists, exposing the surface to classic CSRF. | – |
 
-**Section totals:** 3 covered · 2 partial · 2 missing · 1 out-of-scope  *(post-Block-C)*
+**Section totals:** 4 covered · 2 partial · 1 missing · 1 out-of-scope  *(post-Block-E)*
 
 ---
 
@@ -163,11 +163,11 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 
 | # | Item | Status | Where / Gap | Effort to close |
 |---|---|---|---|---|
-| 64 | Application-layer DoS | 🟡 Partial | LLM cost-DoS probe (`llm.cost-dos.long-completion`) is the canonical AC17 case. Doesn't probe API-layer DoS (large bodies, recursive payloads). | Small (~1 hr) — add as a separate test (oversized payload is already in fuzz corpus; verify response time degradation) |
-| 65 | Resource exhaustion | 🟡 Partial | Cost-DoS probe is one case. Memory/file-descriptor exhaustion in the Lambda runtime is not probed. | Medium |
+| 64 | Application-layer DoS | ✅ Covered | Block E: `dos/test_payload_oversize.py` — for 3 JSON-accepting routes (`post-chat`, `post-jira-tickets`, `post-actions`), sends a 32-byte baseline, then 1 MB, then 10 MB JSON bodies. PASS if the API rejects with 4xx OR if 10 MB latency stays below 3× baseline. FAIL MEDIUM if 10 MB latency is 3–5× baseline (degraded but absorbed). FAIL HIGH if 10 MB latency > 5× baseline, the call timed out (> 30 s), or the server returned 5xx. Augments the LLM cost-DoS probe at the API layer. | – |
+| 65 | Resource exhaustion | ✅ Covered | Block E: `dos/test_resource_exhaustion.py` — fans out 10 concurrent requests against `POST /scan` (or `POST /chat` under `--include-bedrock-dos`) using `concurrent.futures.ThreadPoolExecutor(max_workers=10)`. PASS on a clean mix of 200/429/503; FAIL HIGH on any 500 (server crash) or zero-status (transport drop); FAIL MEDIUM on any malformed response (truncated JSON / wrong content-type) or unexpected 4xx. Plus the cost-DoS probe still covers the LLM-spend exhaustion vector. | – |
 | 66 | Network-layer DDoS | ⚪ Out of scope | Would actually attack the dev env. CloudFront has AWS Shield Standard by default; verification is via AWS-side metrics. | – |
 
-**Section totals:** 0 covered · 2 partial · 0 missing · 1 out-of-scope
+**Section totals:** 2 covered · 0 partial · 0 missing · 1 out-of-scope  *(post-Block-E)*
 
 ---
 
@@ -211,20 +211,21 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 | 4. Config / infra | 5 | 1 | 1 | 3 | 10 |
 | 5. Build / supply chain | 2 | 0 | 0 | 2 | 4 |
 | 6. Errors & state | 0 | 1 | 4 | 0 | 5 |
-| 7. API Top-10 | 3 | 2 | 2 | 1 | 8 |
+| 7. API Top-10 | 4 | 2 | 1 | 1 | 8 |
 | 8. Client-side | 5 | 0 | 0 | 0 | 5 |
 | 9. Logic / workflow | 0 | 0 | 1 | 2 | 3 |
-| 10. DoS | 0 | 2 | 0 | 1 | 3 |
+| 10. DoS | 2 | 0 | 0 | 1 | 3 |
 | 11. Logging / monitoring | 0 | 1 | 2 | 3 | 6 |
 | 12. LLM Top-10 | 4 | 0 | 1 | 2 | 7 |
-| **Totals** | **41** | **8** | **13** | **17** | **79** |
+| **Totals** | **44** | **6** | **12** | **17** | **79** |
 
-**Coverage post-Block-D: 41/79 fully (52%), 49/79 at least partial (62%), 17/79 out of scope (22%).**
+**Coverage post-Block-E: 44/79 fully (56%), 50/79 at least partial (63%), 17/79 out of scope (22%).**
 
 Block A delta: +10 fully covered, +1 partial (mass assignment + log injection re-classified), −11 missing.
 Block B delta: +6 fully covered (items 23, 24, 31, 35, 55, 56), −3 partial (items 23, 55 → covered; item 41 stays partial — bundle/SRI scan still scheduled for Block D), −3 missing (items 24, 31, 35 + 56).
 Block C delta: +6 fully covered (items 11, 13, 17, 19, 21, 33, 48), +1 partial (item 18 — config-audit only), −2 partial (items 11, 13, 48 → covered), −3 missing (items 17, 19, 21).
 Block D delta: +5 fully covered (items 25, 41, 42, 59, 60), −1 partial (item 25 → covered), −1 partial (item 41 → covered), −3 missing (items 42, 59, 60).
+Block E delta: +3 fully covered (items 51, 64, 65), −2 partial (items 64, 65 → covered), −1 missing (item 51).
 
 The 17 out-of-scope items are real items on the checklist — they just need different tools (SCA, AWS config audit, IR runbook review, CI hardening), not this runtime harness. They should be addressed and recorded as "covered by other controls" rather than ignored.
 
@@ -328,13 +329,28 @@ probes 1–4 and at the real page id for probe 5. New unit tests in
 `tests/test_block_d_bundle_scanner.py` (28 tests) pin the Python parity of
 the JS classifier so regex regressions in either side fail loudly.
 
-## Block E — DoS / rate limiting (~1 day)
+## Block E — DoS / rate limiting ✅ Done (2026-06-10)
 
-| Item | Test |
-|---|---|
-| Rate limiting | `dos/test_rate_limit.py` (burst test, asserts 429) |
-| Application-layer DoS | `dos/test_payload_oversize.py` (extends fuzz with timing-degradation check) |
-| Resource exhaustion | already partly covered by cost-DoS; expand to memory pressure if needed |
+New top-level `tests-adversarial/dos/` directory. Covers items 51, 64, 65.
+Landed 2026-06-10. Coverage moved 52% → 56% (or 62% → 63% counting partials).
+
+| Item | Test | Status |
+|---|---|---|
+| Rate limiting (#51) | `dos/test_rate_limit.py` — 5 representative routes (`get-findings`, `get-conversations`, `get-dashboard`, `get-agent-status`, `post-chat`), sustained burst at `--dos-rps` (default 20, hard ceiling 100) for `--dos-duration-seconds` (default 5, hard ceiling 30). PASS on ≥1 429; FAIL MEDIUM if no 429 + flat latency; FAIL HIGH on any 500 / transport drop / monotonic latency growth. | ✅ |
+| Application-layer DoS (#64) | `dos/test_payload_oversize.py` — 3 JSON-accepting routes (`post-chat`, `post-jira-tickets`, `post-actions`) × 2 sizes (1 MB, 10 MB). PASS on 4xx refusal or <3× baseline latency; FAIL MEDIUM on 3–5× latency; FAIL HIGH on >5×, timeout, or 5xx. | ✅ |
+| Resource exhaustion (#65) | `dos/test_resource_exhaustion.py` — 10 concurrent requests against `POST /scan` (default) or `POST /chat` (under `--include-bedrock-dos`) via `ThreadPoolExecutor`. PASS on clean 200/429/503 mix; FAIL HIGH on any 500 / transport drop; FAIL MEDIUM on malformed responses / unexpected 4xx. | ✅ |
+
+Wiring: `tests-adversarial/package.json::scripts.test:dos` plus a new
+`"dos"` entry in `scripts/run_all.py::_LAYERS_ALL` with a zero-budget
+`LayerBudget` (the layer makes no Bedrock calls by default). A per-layer
+hard cap at 300 s (`_LAYER_HARD_CAPS_SECONDS`) bounds the DoS layer's
+wall-clock independently of the global timeout — a misconfigured run can't
+keep hammering the dev env past 5 minutes. `src/coverage/builder.py::_LAYERS`
+gained `"dos"` so the orchestrator finds the layer's `results.json` at
+aggregation time. New unit tests in `tests/test_dos_infrastructure.py` (33
+tests) pin every classifier verdict, the `--dos-rps` (100) and
+`--dos-duration-seconds` (30) hard ceilings, and the builder's acceptance
+of `layer="dos"`.
 
 ## Block F — Logic / state (~1–2 days)
 
@@ -408,4 +424,4 @@ If we run the same daily harness cadence and each "Block" above is one focused b
 
 After every block, the compliance matrix in this document gets updated and the daily PDF report shows the new percentages.
 
-*Last updated: 2026-06-10 (post-Block-D). Refresh this doc after every block lands.*
+*Last updated: 2026-06-10 (post-Block-E). Refresh this doc after every block lands.*

@@ -483,7 +483,7 @@ def matrix_to_json(matrix: CoverageMatrix) -> dict:
 # Layer names the orchestrator runs, in execution order. `load_results` walks
 # this list (not a glob) so an unexpected directory under `run_dir` doesn't
 # get loaded as a phantom layer.
-_LAYERS = ("e2e", "fuzz", "auth", "llm", "headers")
+_LAYERS = ("e2e", "fuzz", "auth", "llm", "headers", "dos")
 
 
 def _result_from_dict(raw: dict, default_layer: str) -> TestResult:

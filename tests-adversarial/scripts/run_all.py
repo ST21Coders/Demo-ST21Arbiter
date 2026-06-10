@@ -47,7 +47,15 @@ _HARNESS_ROOT = Path(__file__).resolve().parent.parent
 if str(_HARNESS_ROOT) not in sys.path:
     sys.path.insert(0, str(_HARNESS_ROOT))
 
-_LAYERS_ALL: tuple[str, ...] = ("e2e", "fuzz", "auth", "llm", "headers")
+_LAYERS_ALL: tuple[str, ...] = ("e2e", "fuzz", "auth", "llm", "headers", "dos")
+
+# Per-layer wall-clock cap overrides. Most layers share the global
+# `--timeout-seconds` budget, but the DoS layer has a hard 5-minute ceiling
+# of its own as a safety guard: a misconfigured `--dos-rps` / duration pair
+# shouldn't allow the run to keep hammering the dev environment past 5 min.
+_LAYER_HARD_CAPS_SECONDS: dict[str, float] = {
+    "dos": 300.0,
+}
 
 # Default to a CloudFront URL matching CLAUDE.local.md. Operators override via
 # env or CLI flag.
@@ -292,6 +300,16 @@ def _build_layer_budgets(layers: list[str]) -> dict[str, Any]:
             max_input_tokens=0,
             max_output_tokens=0,
         )
+    if "dos" in layers:
+        # DoS / rate-limit layer makes zero Bedrock calls by default. The
+        # opt-in `--include-bedrock-dos` flag changes that, but the cost
+        # there is bounded by the 10 concurrent /chat ping requests and is
+        # accounted for via the LLM layer's pricing path.
+        budgets["dos"] = LayerBudget(
+            name="dos",
+            max_input_tokens=0,
+            max_output_tokens=0,
+        )
     return budgets
 
 
@@ -497,7 +515,14 @@ def _run_layers_parallel(
                 run_dir,
                 env,
                 llm_probes,
-                timeout_seconds,
+                # Per-layer hard cap wins over the global timeout. The DoS
+                # layer for example is pinned to 5 minutes regardless of the
+                # global budget so a misconfigured run can't keep hammering
+                # the dev env.
+                min(
+                    timeout_seconds,
+                    _LAYER_HARD_CAPS_SECONDS.get(layer, timeout_seconds),
+                ),
             ): layer
             for layer in layers
         }
