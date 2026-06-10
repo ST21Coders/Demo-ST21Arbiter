@@ -20,6 +20,7 @@ The 0/1/2 split lets a wrapper script distinguish "harness broken" from
 "the run wasn't promotable", which matters when the orchestrator chains
 multiple actions.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -44,9 +45,7 @@ _DEFAULT_REPORTS_DIR = _HARNESS_ROOT / "test-reports"
 # UTC-ISO timestamp shape produced by `run_all.py` (e.g.
 # `2026-06-09T14-23-01Z`). We accept the colon-form too because a future
 # refactor might switch to it.
-_TIMESTAMP_RE = re.compile(
-    r"^\d{4}-\d{2}-\d{2}T\d{2}[:-]\d{2}[:-]\d{2}Z?$"
-)
+_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}[:-]\d{2}[:-]\d{2}Z?$")
 
 
 # ─────────────────────────────── helpers ───────────────────────────────────
@@ -61,7 +60,8 @@ def _find_most_recent_run(reports_dir: Path) -> Path | None:
     if not reports_dir.is_dir():
         return None
     candidates = [
-        child for child in reports_dir.iterdir()
+        child
+        for child in reports_dir.iterdir()
         if child.is_dir()
         and not child.name.startswith(".")
         and _TIMESTAMP_RE.match(child.name)
@@ -146,9 +146,7 @@ def _iter_result_rows(run_dir: Path) -> Iterable[dict]:
             yield row
 
 
-def _build_baseline_dict(
-    run_dir: Path, report: dict
-) -> tuple[dict, int]:
+def _build_baseline_dict(run_dir: Path, report: dict) -> tuple[dict, int]:
     """Build the baseline JSON dict from a run's results.
 
     Returns (baseline_dict, test_count). The dict shape is the one
@@ -165,9 +163,9 @@ def _build_baseline_dict(
         metadata.get("run_id")
         or run_dir.name  # the directory name IS the run id by convention
     )
-    finished_at = metadata.get("finished_at") or datetime.now(
-        timezone.utc
-    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    finished_at = metadata.get("finished_at") or datetime.now(timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
 
     tests: dict[str, dict] = {}
     for row in _iter_result_rows(run_dir):

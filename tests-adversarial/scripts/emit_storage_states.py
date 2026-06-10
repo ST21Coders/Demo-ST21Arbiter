@@ -39,6 +39,7 @@ CLI:
 Example:
     python3.13 -m scripts.emit_storage_states e2e/storage-states/
 """
+
 from __future__ import annotations
 
 import argparse
@@ -196,5 +197,7 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-if __name__ == "__main__":  # pragma: no cover - exercised via subprocess in global-setup
+if (
+    __name__ == "__main__"
+):  # pragma: no cover - exercised via subprocess in global-setup
     sys.exit(main())

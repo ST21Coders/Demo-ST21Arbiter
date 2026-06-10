@@ -44,6 +44,7 @@ http_session      — requests.Session() with 10s default timeout and a 5 RPS
 results_writer    — accumulates AuthResultsWriter rows; writes results.json
                     at session end via `pytest_sessionfinish`.
 """
+
 from __future__ import annotations
 
 import base64
@@ -165,7 +166,9 @@ def make_jwt(
 @pytest.fixture(scope="session")
 def target_base_url() -> str:
     """Public CloudFront URL of the deployed app. Strips trailing slash."""
-    url = os.environ.get("TARGET_BASE_URL", "https://d5u0vv1zl3eqd.cloudfront.net").strip()
+    url = os.environ.get(
+        "TARGET_BASE_URL", "https://d5u0vv1zl3eqd.cloudfront.net"
+    ).strip()
     return url.rstrip("/")
 
 
@@ -184,7 +187,9 @@ def api_base_url() -> str:
     legacy = os.environ.get("TARGET_API_URL", "").strip()
     if legacy:
         return legacy.rstrip("/")
-    base = os.environ.get("TARGET_BASE_URL", "https://d5u0vv1zl3eqd.cloudfront.net").strip()
+    base = os.environ.get(
+        "TARGET_BASE_URL", "https://d5u0vv1zl3eqd.cloudfront.net"
+    ).strip()
     return f"{base.rstrip('/')}/api"
 
 

@@ -13,6 +13,7 @@ that the next run's diff reads). Test inventory:
      when auto-resolving "most recent".
   8. After promotion, the next run's diff reads it correctly (integration).
 """
+
 from __future__ import annotations
 
 import json
@@ -54,9 +55,7 @@ def _write_report_json(run_dir: Path, *, failed: int = 0) -> Path:
     return path
 
 
-def _write_layer_results(
-    run_dir: Path, layer: str, rows: list[dict]
-) -> Path:
+def _write_layer_results(run_dir: Path, layer: str, rows: list[dict]) -> Path:
     """Drop a layer results.json file under <run_dir>/<layer>/."""
     layer_dir = run_dir / layer
     layer_dir.mkdir(parents=True, exist_ok=True)
@@ -208,7 +207,7 @@ def test_non_timestamp_sibling_dirs_are_skipped(tmp_path: Path) -> None:
     reports_dir = tmp_path / "test-reports"
     reports_dir.mkdir()
     (reports_dir / ".baseline").mkdir()  # would lexically sort first
-    (reports_dir / "scratch").mkdir()    # not a timestamp shape
+    (reports_dir / "scratch").mkdir()  # not a timestamp shape
     _green_run(reports_dir, run_id="2026-06-09T14-23-01Z")
 
     exit_code = pb.main(run_dir=None, reports_dir=reports_dir)

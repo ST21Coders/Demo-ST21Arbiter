@@ -17,6 +17,7 @@ Test inventory:
   9. load_baseline: missing file → None, corrupt JSON → CorruptBaselineError.
   10. Deterministic ordering of diff lists (alphabetic by test_id).
 """
+
 from __future__ import annotations
 
 import json
@@ -90,8 +91,7 @@ def test_no_baseline_returns_empty_shape_with_promotable_note() -> None:
     assert diff["flapping"] == []
     assert diff["summary"]["has_baseline"] is False
     assert (
-        diff["summary"]["promotable_note"]
-        == "no baseline; this run will be promotable"
+        diff["summary"]["promotable_note"] == "no baseline; this run will be promotable"
     )
     assert diff["summary"]["new_failure_count"] == 0
     assert diff["summary"]["resolved_count"] == 0
@@ -100,13 +100,15 @@ def test_no_baseline_returns_empty_shape_with_promotable_note() -> None:
 
 def test_pass_in_baseline_becomes_fail_in_current_is_new_failure() -> None:
     """Test class: regression. Baseline pass + current fail."""
-    baseline = _baseline_with({
-        "fuzz.findings.oversized-body": {
-            "status": "pass",
-            "severity": None,
-            "target_id": "findings",
+    baseline = _baseline_with(
+        {
+            "fuzz.findings.oversized-body": {
+                "status": "pass",
+                "severity": None,
+                "target_id": "findings",
+            }
         }
-    })
+    )
     results = [
         _result(
             "fuzz.findings.oversized-body",
@@ -131,13 +133,15 @@ def test_pass_in_baseline_becomes_fail_in_current_is_new_failure() -> None:
 
 def test_fail_in_baseline_becomes_pass_in_current_is_resolved() -> None:
     """Test class: improvement. Baseline fail + current pass."""
-    baseline = _baseline_with({
-        "fuzz.findings.oversized-body": {
-            "status": "fail",
-            "severity": "high",
-            "target_id": "findings",
+    baseline = _baseline_with(
+        {
+            "fuzz.findings.oversized-body": {
+                "status": "fail",
+                "severity": "high",
+                "target_id": "findings",
+            }
         }
-    })
+    )
     results = [_result("fuzz.findings.oversized-body", CellStatus.PASS)]
 
     diff = build_diff(results, baseline)
@@ -155,16 +159,18 @@ def test_fail_in_baseline_becomes_pass_in_current_is_resolved() -> None:
 def test_same_status_both_runs_emits_no_entry() -> None:
     """`unchanged` transitions are intentionally omitted from the diff —
     they'd drown the report on the typical green run."""
-    baseline = _baseline_with({
-        "e2e.page.findings.ciso": {
-            "status": "pass",
-            "target_id": "findings",
-        },
-        "fuzz.findings.oversized-body": {
-            "status": "fail",
-            "target_id": "findings",
-        },
-    })
+    baseline = _baseline_with(
+        {
+            "e2e.page.findings.ciso": {
+                "status": "pass",
+                "target_id": "findings",
+            },
+            "fuzz.findings.oversized-body": {
+                "status": "fail",
+                "target_id": "findings",
+            },
+        }
+    )
     results = [
         _result("e2e.page.findings.ciso", CellStatus.PASS),
         _result("fuzz.findings.oversized-body", CellStatus.FAIL),
@@ -187,12 +193,14 @@ def test_documented_unsafe_to_fail_lands_in_flapping() -> None:
     tightened (or broke) — the operator wants to see it but it isn't a
     'new failure' in the regression sense.
     """
-    baseline = _baseline_with({
-        "auth.chat.no-signature": {
-            "status": "documented_unsafe",
-            "target_id": "chat",
+    baseline = _baseline_with(
+        {
+            "auth.chat.no-signature": {
+                "status": "documented_unsafe",
+                "target_id": "chat",
+            }
         }
-    })
+    )
     results = [_result("auth.chat.no-signature", CellStatus.FAIL, target_id="chat")]
 
     diff = build_diff(results, baseline)
@@ -207,12 +215,14 @@ def test_documented_unsafe_to_fail_lands_in_flapping() -> None:
 
 def test_test_in_baseline_but_not_current_is_removed_test() -> None:
     """Coverage shrank: the operator deserves to see it."""
-    baseline = _baseline_with({
-        "fuzz.findings.removed-probe": {
-            "status": "pass",
-            "target_id": "findings",
+    baseline = _baseline_with(
+        {
+            "fuzz.findings.removed-probe": {
+                "status": "pass",
+                "target_id": "findings",
+            }
         }
-    })
+    )
     results: list[TestResult] = []  # the test isn't in the current run
 
     diff = build_diff(results, baseline)
@@ -259,11 +269,13 @@ def test_net_change_equals_new_failures_minus_resolved() -> None:
     """AC summary: net_change exposes the regression-vs-improvement
     balance in one int. Positive = net regression, negative = net
     improvement, zero = wash."""
-    baseline = _baseline_with({
-        "t1": {"status": "pass", "target_id": "x"},   # → fail (new_failure)
-        "t2": {"status": "pass", "target_id": "x"},   # → fail (new_failure)
-        "t3": {"status": "fail", "target_id": "x"},   # → pass (resolved)
-    })
+    baseline = _baseline_with(
+        {
+            "t1": {"status": "pass", "target_id": "x"},  # → fail (new_failure)
+            "t2": {"status": "pass", "target_id": "x"},  # → fail (new_failure)
+            "t3": {"status": "fail", "target_id": "x"},  # → pass (resolved)
+        }
+    )
     results = [
         _result("t1", CellStatus.FAIL),
         _result("t2", CellStatus.FAIL),
@@ -316,9 +328,7 @@ def test_load_baseline_round_trip(tmp_path: Path) -> None:
             }
         },
     }
-    (tmp_path / "last-green.json").write_text(
-        json.dumps(payload), encoding="utf-8"
-    )
+    (tmp_path / "last-green.json").write_text(json.dumps(payload), encoding="utf-8")
     baseline = load_baseline(tmp_path)
     assert baseline is not None
     assert baseline["run_id"] == "2026-06-08T14-23-01Z"
@@ -336,11 +346,13 @@ def test_load_baseline_round_trip(tmp_path: Path) -> None:
 def test_diff_ordering_is_deterministic() -> None:
     """The diff section is a forwardable artifact; a churning order would
     muddle PR reviews. All buckets are sorted by test_id ascending."""
-    baseline = _baseline_with({
-        "zzz.test.a": {"status": "pass", "target_id": "x"},
-        "aaa.test.a": {"status": "pass", "target_id": "x"},
-        "mmm.test.a": {"status": "pass", "target_id": "x"},
-    })
+    baseline = _baseline_with(
+        {
+            "zzz.test.a": {"status": "pass", "target_id": "x"},
+            "aaa.test.a": {"status": "pass", "target_id": "x"},
+            "mmm.test.a": {"status": "pass", "target_id": "x"},
+        }
+    )
     results = [
         _result("zzz.test.a", CellStatus.FAIL),
         _result("aaa.test.a", CellStatus.FAIL),
@@ -356,9 +368,11 @@ def test_dict_input_works_alongside_dataclass_input() -> None:
     dataclass instances, but unit tests and future callers may pass
     dicts. Both must work to keep the diff module decoupled from the
     dataclass type."""
-    baseline = _baseline_with({
-        "fuzz.findings.x": {"status": "pass", "target_id": "findings"},
-    })
+    baseline = _baseline_with(
+        {
+            "fuzz.findings.x": {"status": "pass", "target_id": "findings"},
+        }
+    )
     # Status as a plain string (not the enum). This is what a hand-built
     # results.json row looks like before coverage.builder parses it.
     diff = build_diff(

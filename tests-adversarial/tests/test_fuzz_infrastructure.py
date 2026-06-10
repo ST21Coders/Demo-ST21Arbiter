@@ -8,6 +8,7 @@ They do NOT run any of the parametrized fuzz tests in
 `fuzz/test_api_routes.py` — those need DEMO_PASSWORD + a deployed target
 and live under their own test selection.
 """
+
 from __future__ import annotations
 
 import json
@@ -99,9 +100,7 @@ def test_corpus_payload_ids_unique_within_family() -> None:
     families = load_corpus(_CORPUS_DIR)
     for family, body in families.items():
         ids = [p["id"] for p in body["payloads"]]
-        assert len(ids) == len(set(ids)), (
-            f"family {family!r} has duplicate payload ids"
-        )
+        assert len(ids) == len(set(ids)), f"family {family!r} has duplicate payload ids"
 
 
 def test_load_corpus_rejects_missing_directory(tmp_path: Path) -> None:
@@ -167,7 +166,9 @@ def test_make_test_id_segments_are_lowercase() -> None:
 
 def test_classify_pass_for_clean_200_no_reflection() -> None:
     """200 + body that doesn't reflect the payload = PASS."""
-    c = classify_response(200, '{"ok": true}', payload_value="<script>x</script>", expected_blocked=True)
+    c = classify_response(
+        200, '{"ok": true}', payload_value="<script>x</script>", expected_blocked=True
+    )
     assert c.verdict == "pass"
     assert c.severity is None
     assert c.status_code == 200
@@ -175,7 +176,9 @@ def test_classify_pass_for_clean_200_no_reflection() -> None:
 
 def test_classify_fail_for_500() -> None:
     """500 from the server ⇒ FAIL high."""
-    c = classify_response(500, "internal error", payload_value="any", expected_blocked=False)
+    c = classify_response(
+        500, "internal error", payload_value="any", expected_blocked=False
+    )
     assert c.verdict == "fail"
     assert c.severity == "high"
     assert any("500" in r for r in c.reasons)
@@ -210,13 +213,17 @@ def test_classify_pass_when_expected_blocked_false_even_with_reflection() -> Non
 
 def test_classify_pass_for_400_sane_rejection() -> None:
     """A 4xx with a clean JSON body ⇒ PASS."""
-    c = classify_response(400, '{"error": "bad request"}', payload_value="x", expected_blocked=True)
+    c = classify_response(
+        400, '{"error": "bad request"}', payload_value="x", expected_blocked=True
+    )
     assert c.verdict == "pass"
 
 
 def test_classify_pass_when_client_blocks_the_request() -> None:
     """requests-library client-side block (CRLF in header) ⇒ PASS."""
-    c = classify_response(0, "", payload_value="x\r\nY: 1", expected_blocked=True, client_blocked=True)
+    c = classify_response(
+        0, "", payload_value="x\r\nY: 1", expected_blocked=True, client_blocked=True
+    )
     assert c.verdict == "pass"
     assert c.status_code == 0
     assert any("client-blocked" in r for r in c.reasons)
@@ -243,28 +250,34 @@ def test_classify_detects_each_stack_trace_marker(marker: str) -> None:
 # ───────────────────────── destructive-route gating ──────────────────────────
 
 
-@pytest.mark.parametrize("method,expected", [
-    ("GET", False),
-    ("get", False),
-    ("HEAD", False),
-    ("OPTIONS", False),
-    ("POST", True),
-    ("post", True),
-    ("PUT", True),
-    ("PATCH", True),
-    ("DELETE", True),
-])
+@pytest.mark.parametrize(
+    "method,expected",
+    [
+        ("GET", False),
+        ("get", False),
+        ("HEAD", False),
+        ("OPTIONS", False),
+        ("POST", True),
+        ("post", True),
+        ("PUT", True),
+        ("PATCH", True),
+        ("DELETE", True),
+    ],
+)
 def test_is_destructive_matches_http_method(method: str, expected: bool) -> None:
     assert is_destructive(method) is expected
 
 
-@pytest.mark.parametrize("path,expected", [
-    ("/findings", False),
-    ("/findings/{id}", True),
-    ("/conversations/{session_id}/messages", True),
-    ("/health", False),
-    ("", False),
-])
+@pytest.mark.parametrize(
+    "path,expected",
+    [
+        ("/findings", False),
+        ("/findings/{id}", True),
+        ("/conversations/{session_id}/messages", True),
+        ("/health", False),
+        ("", False),
+    ],
+)
 def test_route_has_path_param(path: str, expected: bool) -> None:
     assert route_has_path_param(path) is expected
 
@@ -363,24 +376,28 @@ def test_results_writer_round_trips(tmp_path: Path) -> None:
     from fuzz.conftest import FuzzResultsWriter  # type: ignore
 
     writer = FuzzResultsWriter()
-    writer.record({
-        "test_id": "fuzz.get-findings.xss.xss-script-tag",
-        "status": "pass",
-        "layer": "fuzz",
-        "target_kind": "api_route",
-        "target_id": "get-findings",
-        "duration_seconds": 0.12,
-    })
-    writer.record({
-        "test_id": "fuzz.get-findings.xss.xss-img-onerror",
-        "status": "fail",
-        "layer": "fuzz",
-        "target_kind": "api_route",
-        "target_id": "get-findings",
-        "severity": "high",
-        "evidence_path": "fuzz/results.json#fuzz.get-findings.xss.xss-img-onerror",
-        "duration_seconds": 0.21,
-    })
+    writer.record(
+        {
+            "test_id": "fuzz.get-findings.xss.xss-script-tag",
+            "status": "pass",
+            "layer": "fuzz",
+            "target_kind": "api_route",
+            "target_id": "get-findings",
+            "duration_seconds": 0.12,
+        }
+    )
+    writer.record(
+        {
+            "test_id": "fuzz.get-findings.xss.xss-img-onerror",
+            "status": "fail",
+            "layer": "fuzz",
+            "target_kind": "api_route",
+            "target_id": "get-findings",
+            "severity": "high",
+            "evidence_path": "fuzz/results.json#fuzz.get-findings.xss.xss-img-onerror",
+            "duration_seconds": 0.21,
+        }
+    )
     out_path = tmp_path / "fuzz" / "results.json"
     writer.write(out_path)
     rows = json.loads(out_path.read_text())
@@ -398,13 +415,15 @@ def test_results_writer_creates_parent_dirs(tmp_path: Path) -> None:
     from fuzz.conftest import FuzzResultsWriter  # type: ignore
 
     writer = FuzzResultsWriter()
-    writer.record({
-        "test_id": "fuzz.x.y.z",
-        "status": "pass",
-        "layer": "fuzz",
-        "target_kind": "api_route",
-        "target_id": "x",
-    })
+    writer.record(
+        {
+            "test_id": "fuzz.x.y.z",
+            "status": "pass",
+            "layer": "fuzz",
+            "target_kind": "api_route",
+            "target_id": "x",
+        }
+    )
     out_path = tmp_path / "nested" / "deeper" / "fuzz" / "results.json"
     writer.write(out_path)
     assert out_path.exists()
@@ -443,16 +462,18 @@ def test_writer_output_loads_via_coverage_builder(tmp_path: Path) -> None:
     # Use a real route id from the manifest so build_matrix doesn't raise
     # UnknownTargetError.
     writer = FuzzResultsWriter()
-    writer.record({
-        "test_id": "fuzz.get-findings.xss.xss-script-tag",
-        "status": "fail",
-        "layer": "fuzz",
-        "target_kind": "api_route",
-        "target_id": "get-findings",
-        "severity": "high",
-        "evidence_path": "fuzz/results.json#fuzz.get-findings.xss.xss-script-tag",
-        "duration_seconds": 0.21,
-    })
+    writer.record(
+        {
+            "test_id": "fuzz.get-findings.xss.xss-script-tag",
+            "status": "fail",
+            "layer": "fuzz",
+            "target_kind": "api_route",
+            "target_id": "get-findings",
+            "severity": "high",
+            "evidence_path": "fuzz/results.json#fuzz.get-findings.xss.xss-script-tag",
+            "duration_seconds": 0.21,
+        }
+    )
     (tmp_path / "fuzz").mkdir(parents=True, exist_ok=True)
     writer.write(tmp_path / "fuzz" / "results.json")
 

@@ -20,6 +20,7 @@ Covers the structural verification listed in the task-8 prompt:
 These tests do NOT hit Cognito. The production `fetch_all()` path is exercised
 only by the live E2E run (which requires DEMO_PASSWORD + a real user pool).
 """
+
 from __future__ import annotations
 
 import base64
@@ -34,6 +35,7 @@ from src.identity.cognito_auth import Identity, Persona
 
 
 # ──────────────────────────── fixtures / helpers ────────────────────────────
+
 
 def _make_fake_jwt(exp_seconds: int | None = None) -> str:
     """Build a minimally-valid 3-segment JWT with the given `exp` claim.
@@ -62,11 +64,14 @@ def _make_identity(persona: Persona, exp_seconds: int | None = None) -> Identity
     )
 
 
-def _all_fake_identities(exp_seconds: int | None = None) -> list[tuple[Persona, Identity]]:
+def _all_fake_identities(
+    exp_seconds: int | None = None,
+) -> list[tuple[Persona, Identity]]:
     return [(p, _make_identity(p, exp_seconds=exp_seconds)) for p in Persona]
 
 
 # ──────────────────────────── emit() — files on disk ────────────────────────
+
 
 def test_emit_writes_four_files(tmp_path: Path) -> None:
     out = tmp_path / "storage-states"
@@ -106,6 +111,7 @@ def test_emit_returns_iteration_order_matches_persona_enum(tmp_path: Path) -> No
 
 
 # ──────────────────────────── storageState JSON shape ───────────────────────
+
 
 def _load_state(path: Path) -> dict:
     with path.open() as fh:
@@ -149,7 +155,12 @@ def test_emit_file_carries_arbiter_tokens_blob(tmp_path: Path) -> None:
 
     blob = json.loads(entry["value"])
     # All four keys useAuth.js::load() reads (lines 150-156).
-    assert set(blob.keys()) == {"id_token", "access_token", "refresh_token", "expires_at"}
+    assert set(blob.keys()) == {
+        "id_token",
+        "access_token",
+        "refresh_token",
+        "expires_at",
+    }
     assert blob["id_token"] == identity.id_token
     assert blob["access_token"] == identity.access_token
     # refresh_token intentionally empty — see emit_storage_states module docstring.
@@ -157,6 +168,7 @@ def test_emit_file_carries_arbiter_tokens_blob(tmp_path: Path) -> None:
 
 
 # ──────────────────────────── expires_at conversion ─────────────────────────
+
 
 def test_expires_at_is_milliseconds(tmp_path: Path) -> None:
     """useAuth.js::isAuthenticated compares against Date.now() (ms). Confirm the
@@ -167,7 +179,9 @@ def test_expires_at_is_milliseconds(tmp_path: Path) -> None:
     emit_storage_states.emit(
         out,
         base_url="https://example.test/",
-        identities=[(Persona.CISO, _make_identity(Persona.CISO, exp_seconds=exp_seconds))],
+        identities=[
+            (Persona.CISO, _make_identity(Persona.CISO, exp_seconds=exp_seconds))
+        ],
     )
     state = _load_state(out / "ciso.json")
     blob = json.loads(state["origins"][0]["sessionStorage"][0]["value"])
@@ -217,6 +231,7 @@ def test_expires_at_falls_back_when_jwt_is_malformed(tmp_path: Path) -> None:
 
 # ──────────────────────────── origin extraction ─────────────────────────────
 
+
 @pytest.mark.parametrize(
     "url, expected_origin",
     [
@@ -238,6 +253,7 @@ def test_origin_from_url_rejects_malformed(bad_url: str) -> None:
 
 
 # ──────────────────────────── main() CLI ────────────────────────────────────
+
 
 def test_main_uses_default_base_url_when_env_unset(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
@@ -299,6 +315,7 @@ def test_main_passes_through_fetch_all_errors(
 
 
 # ──────────────────────────── content sanity ────────────────────────────────
+
 
 def test_emitted_files_are_valid_json(tmp_path: Path) -> None:
     out = tmp_path / "storage-states"

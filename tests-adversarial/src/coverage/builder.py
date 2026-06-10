@@ -64,6 +64,7 @@ literals (insertion order preserved in Python 3.7+). The test suite includes a
 determinism check that re-builds the same matrix twice from identical inputs
 and asserts byte-identical JSON via `json.dumps(..., sort_keys=False)`.
 """
+
 from __future__ import annotations
 
 import json
@@ -100,13 +101,13 @@ class CellStatus(str, Enum):
     (handy for JSON round-trips and for ad-hoc comparisons in the renderer).
     """
 
-    NOT_RUN = "not_run"                    # gray — no result reported yet
-    PASS = "pass"                          # green
-    FAIL = "fail"                          # red
-    SKIPPED = "skipped"                    # yellow with reason
-    TOOL_INVOKED = "tool_invoked"          # tool actually fired via chat
-    PROMPT_ONLY = "prompt_only"            # prompt elicited, tool unconfirmed
-    NOT_REACHED = "not_reached"            # never attempted
+    NOT_RUN = "not_run"  # gray — no result reported yet
+    PASS = "pass"  # green
+    FAIL = "fail"  # red
+    SKIPPED = "skipped"  # yellow with reason
+    TOOL_INVOKED = "tool_invoked"  # tool actually fired via chat
+    PROMPT_ONLY = "prompt_only"  # prompt elicited, tool unconfirmed
+    NOT_REACHED = "not_reached"  # never attempted
     DOCUMENTED_UNSAFE = "documented_unsafe"  # AC11 — present but expected
 
 
@@ -324,8 +325,7 @@ def _place_result(
         matrix.agent_tools[result.target_id] = result.status
     else:
         raise UnknownTargetError(
-            f"result '{result.test_id}' has unknown target_kind "
-            f"'{result.target_kind}'."
+            f"result '{result.test_id}' has unknown target_kind '{result.target_kind}'."
         )
 
 
@@ -373,9 +373,7 @@ def _build_summary(
     # NOT_REACHED.
     tools_total = len(matrix.agent_tools)
     tools_covered = sum(
-        1
-        for status in matrix.agent_tools.values()
-        if status in _COVERED_STATUSES
+        1 for status in matrix.agent_tools.values() if status in _COVERED_STATUSES
     )
 
     # Failure / documented-unsafe / skipped counts span every result the
@@ -466,18 +464,14 @@ def matrix_to_json(matrix: CoverageMatrix) -> dict:
     """
     return {
         "pages": {
-            page_id: {
-                persona_id: status.value for persona_id, status in cells.items()
-            }
+            page_id: {persona_id: status.value for persona_id, status in cells.items()}
             for page_id, cells in matrix.pages.items()
         },
         "api_routes": {
-            route_id: list(cells)
-            for route_id, cells in matrix.api_routes.items()
+            route_id: list(cells) for route_id, cells in matrix.api_routes.items()
         },
         "agent_tools": {
-            tool_id: status.value
-            for tool_id, status in matrix.agent_tools.items()
+            tool_id: status.value for tool_id, status in matrix.agent_tools.items()
         },
         "summary": dict(matrix.summary),
     }
@@ -543,9 +537,7 @@ def load_results(run_dir: Path) -> list[TestResult]:
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
-            raise ValueError(
-                f"{path} is not valid JSON: {exc}"
-            ) from exc
+            raise ValueError(f"{path} is not valid JSON: {exc}") from exc
         if not isinstance(raw, list):
             raise ValueError(
                 f"{path} must contain a JSON list of result dicts, "
@@ -554,8 +546,7 @@ def load_results(run_dir: Path) -> list[TestResult]:
         for idx, row in enumerate(raw):
             if not isinstance(row, dict):
                 raise ValueError(
-                    f"{path}[{idx}] is not a JSON object (got "
-                    f"{type(row).__name__})."
+                    f"{path}[{idx}] is not a JSON object (got {type(row).__name__})."
                 )
             try:
                 out.append(_result_from_dict(row, default_layer=layer))

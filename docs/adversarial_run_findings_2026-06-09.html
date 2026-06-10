@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ARBITER Adversarial Test — Daily Report · June 9, 2026</title>
+<style>
+@page {
+  size: Letter;
+  margin: 0.7in 0.65in 0.85in 0.65in;
+  @bottom-center {
+    content: "ARBITER Adversarial Test · Daily Report · 2026-06-09 · page " counter(page) " of " counter(pages);
+    font-family: -apple-system, "Helvetica Neue", sans-serif;
+    font-size: 9pt;
+    color: #888;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #1a1a1a;
+}
+
+body { margin: 0; padding: 0; }
+
+/* ---------- Header strip ---------- */
+
+.header {
+  border-bottom: 3px solid #1a1a1a;
+  padding-bottom: 0.8em;
+  margin-bottom: 1.4em;
+}
+.header-eyebrow {
+  font-size: 9.5pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #777;
+  font-weight: 600;
+  margin-bottom: 0.4em;
+}
+.header h1 {
+  font-size: 22pt;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.25em 0;
+  color: #0a0a0a;
+  line-height: 1.1;
+}
+.header-sub {
+  font-size: 11pt;
+  color: #555;
+  margin: 0;
+}
+
+/* ---------- Snapshot box ---------- */
+
+.snapshot {
+  background: #fafafa;
+  border: 1px solid #ddd;
+  border-left: 4px solid #1a1a1a;
+  padding: 0.9em 1.1em;
+  margin: 1em 0 1.4em 0;
+  border-radius: 0 3px 3px 0;
+}
+.snapshot h2 {
+  margin: 0 0 0.4em 0;
+  font-size: 11pt;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #555;
+}
+.snapshot p {
+  margin: 0.35em 0;
+  font-size: 11pt;
+}
+.snapshot .lede {
+  font-size: 12.5pt;
+  font-weight: 600;
+  color: #0a0a0a;
+  margin-bottom: 0.5em;
+  line-height: 1.4;
+}
+
+/* ---------- Severity pills ---------- */
+
+.sev-pill {
+  display: inline-block;
+  padding: 0.1em 0.55em;
+  border-radius: 3px;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #fff;
+  text-transform: uppercase;
+  vertical-align: middle;
+  min-width: 64px;
+  text-align: center;
+}
+.sev-critical { background: #b71c1c; }
+.sev-high     { background: #d84315; }
+.sev-medium   { background: #c47800; }
+.sev-low      { background: #1565c0; }
+.sev-good     { background: #2e7d32; }
+
+/* ---------- Body ---------- */
+
+h2.section {
+  font-size: 15pt;
+  font-weight: 700;
+  margin: 1.6em 0 0.5em 0;
+  color: #0a0a0a;
+  border-bottom: 1px solid #d0d0d0;
+  padding-bottom: 0.25em;
+}
+
+h3 {
+  font-size: 12pt;
+  font-weight: 700;
+  margin: 1em 0 0.3em 0;
+  color: #0a0a0a;
+  line-height: 1.3;
+}
+
+p { margin: 0.55em 0; }
+
+ul, ol { margin: 0.5em 0; padding-left: 1.5em; }
+li { margin-bottom: 0.25em; }
+
+code {
+  font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
+  font-size: 9.5pt;
+  background: #f4f4f4;
+  padding: 0.05em 0.3em;
+  border-radius: 2px;
+  color: #444;
+  border: 1px solid #e5e5e5;
+}
+
+/* ---------- Issue cards ---------- */
+
+.issue {
+  border: 1px solid #d8d8d8;
+  border-radius: 4px;
+  margin: 1em 0;
+  page-break-inside: avoid;
+  background: #fff;
+  overflow: hidden;
+}
+.issue-header {
+  padding: 0.55em 0.85em;
+  background: #fafafa;
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+}
+.issue-title {
+  font-size: 11.5pt;
+  font-weight: 700;
+  color: #0a0a0a;
+  flex: 1;
+}
+.issue-body {
+  padding: 0.6em 0.85em 0.8em 0.85em;
+}
+.issue-body p { margin: 0.4em 0; }
+.issue-body p:first-child { margin-top: 0; }
+
+.label {
+  font-size: 9pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #777;
+  display: inline-block;
+  margin-right: 0.5em;
+}
+
+/* ---------- Tables ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.7em 0;
+  font-size: 10pt;
+  page-break-inside: avoid;
+}
+th, td {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0.45em 0.6em;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: transparent;
+  font-weight: 700;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+  border-bottom: 2px solid #1a1a1a;
+}
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.center { text-align: center; }
+tr.total { background: #fafafa; font-weight: 700; }
+
+/* ---------- Callouts ---------- */
+
+.callout {
+  border-left: 4px solid #2e7d32;
+  background: #f2f8f2;
+  padding: 0.55em 0.85em;
+  margin: 0.9em 0;
+  border-radius: 0 3px 3px 0;
+  font-size: 10.5pt;
+}
+.callout strong { color: #0a0a0a; }
+.callout-info {
+  border-left-color: #1565c0;
+  background: #f0f6fb;
+}
+
+/* ---------- Action plan ---------- */
+
+.plan-day {
+  margin: 0.9em 0;
+  page-break-inside: avoid;
+}
+.plan-day h3 {
+  margin: 0 0 0.4em 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+}
+.plan-day h3 .when {
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #777;
+  font-weight: 700;
+}
+.plan-day p {
+  margin: 0.3em 0;
+}
+
+/* ---------- Page breaks ---------- */
+
+.page-break { page-break-before: always; }
+
+footer.report-footer {
+  margin-top: 2em;
+  padding-top: 1em;
+  border-top: 1px solid #ddd;
+  font-size: 9pt;
+  color: #777;
+  font-style: italic;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-eyebrow">ARBITER · Adversarial Test · Daily Report</div>
+  <h1>June 9, 2026</h1>
+  <p class="header-sub">First live run against deployed dev · 12 minutes · $0.00 spend</p>
+</div>
+
+
+<!-- ============ SNAPSHOT ============ -->
+
+<div class="snapshot">
+  <h2>Today’s snapshot</h2>
+  <p class="lede">
+    The harness found three real authorization problems in the deployed app.
+    Most of the rest of the noise was the test tool, not the app.
+  </p>
+  <p>
+    The deployed API treats whatever JWT arrives in the Authorization header as
+    authoritative without verifying the signature. As a result, any signed-in
+    user can claim to be a CISO and the backend lets them in. We saw the same
+    pattern three ways — forged group claims, valid lower-privilege tokens, and
+    access tokens used in place of ID tokens.
+  </p>
+  <p>
+    Of the 91 “failures” the harness recorded, <strong>19 are real and need a backend
+    fix.</strong> The other 72 are issues in the test harness itself that we’ll clean up
+    before the next run.
+  </p>
+</div>
+
+
+<!-- ============ HEADLINES ============ -->
+
+<h2 class="section">The headlines</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 80px;">Severity</th>
+      <th>What</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="sev-pill sev-critical">Critical</span></td>
+      <td>
+        Any signed-in user can forge a token claiming CISO group membership and
+        the API accepts it. Signature verification is off on protected routes.
+      </td>
+    </tr>
+    <tr>
+      <td><span class="sev-pill sev-high">High</span></td>
+      <td>
+        SOC, GRC, and Employee tokens reach CISO-only routes and get back 200 OK.
+        The backend doesn’t check the group.
+      </td>
+    </tr>
+    <tr>
+      <td><span class="sev-pill sev-high">High</span></td>
+      <td>
+        The API accepts Cognito access tokens where it should require ID tokens.
+        24 routes affected. Less acute, same root family.
+      </td>
+    </tr>
+    <tr>
+      <td><span class="sev-pill sev-low">Low</span></td>
+      <td>
+        One transient HTTP 502 from the chat endpoint mid-run. Single event. Watch for repeats.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>What worked.</strong> Cost stayed at $0.00 against a $1.00 cap, preflight
+  was all green, all four demo personas authenticated against real Cognito, and the
+  harness’s probe-budget controls fired exactly when expected. The findings above
+  were the harness doing its job.
+</div>
+
+
+<!-- ============ FINDINGS ============ -->
+
+<h2 class="section">What needs fixing in the app</h2>
+
+<div class="issue">
+  <div class="issue-header">
+    <span class="sev-pill sev-critical">Critical</span>
+    <span class="issue-title">Forged CISO claims grant unauthorized access</span>
+  </div>
+  <div class="issue-body">
+    <p>
+      Anyone with a legitimate sign-in (SOC, GRC, Employee) can rewrite the
+      <code>cognito:groups</code> claim inside their token to <code>["ciso"]</code> and
+      hit the three CISO-only endpoints — token usage, token usage summary, and
+      action approval. All ten of our probes returned 200 OK. The expected response
+      is 401 or 403.
+    </p>
+    <p>
+      The root cause is almost certainly missing JWT signature verification. The
+      attacker doesn’t have the Cognito signing key, so an accepted rewritten token
+      means the server isn’t checking the signature.
+    </p>
+    <p>
+      <span class="label">Impact</span>
+      An employee can today see all four personas’ token spend and approve
+      compliance changes that auto-roll updates to AWS Config and Zscaler.
+    </p>
+    <p>
+      <span class="label">Fix direction</span>
+      Verify JWT signatures wherever a CISO claim is trusted, and re-derive the
+      user’s group from Cognito rather than reading it from the token. Either ensure
+      the API Gateway Cognito authorizer is attached to every protected route, or
+      validate the JWT against the Cognito public keys inside the Lambda handler.
+    </p>
+  </div>
+</div>
+
+<div class="issue">
+  <div class="issue-header">
+    <span class="sev-pill sev-high">High</span>
+    <span class="issue-title">Cross-persona authorization isn’t enforced</span>
+  </div>
+  <div class="issue-body">
+    <p>
+      Without any forgery — just using a real SOC, GRC, or Employee token —
+      requests against the CISO-only routes still come back 200. The frontend hides
+      these pages from the wrong personas, but the backend trusts whoever has a
+      valid token.
+    </p>
+    <p>
+      <span class="label">Fix direction</span>
+      Audit every route handler in <code>api_handler.py</code> and confirm the CISO
+      gate is being called before any business logic. A small decorator pattern
+      (something like <code>@require_group("ciso")</code>) would make this hard to
+      forget when new routes are added.
+    </p>
+  </div>
+</div>
+
+<div class="issue">
+  <div class="issue-header">
+    <span class="sev-pill sev-high">High</span>
+    <span class="issue-title">API accepts access tokens where ID tokens are required</span>
+  </div>
+  <div class="issue-body">
+    <p>
+      Cognito issues two kinds of tokens at sign-in: an ID token (carries identity
+      claims like email) and an access token (carries scopes for API authorization).
+      Most of our endpoints should require the ID token. Right now they accept either.
+      24 routes are affected.
+    </p>
+    <p>
+      <span class="label">Why it matters</span>
+      Less urgent than the two above — both tokens are still signed by Cognito — but
+      access tokens lack identity claims, so any handler relying on email or username
+      will misbehave silently when the wrong token type comes in.
+    </p>
+    <p>
+      <span class="label">Fix direction</span>
+      One-line check in the token decoder: assert <code>token_use == "id"</code> and
+      reject otherwise.
+    </p>
+  </div>
+</div>
+
+
+<!-- ============ HARNESS ISSUES ============ -->
+
+<h2 class="section">What we need to clean up in the test tool</h2>
+
+<p>
+  These produced most of the noise in today’s run. None of them are bugs in the
+  deployed application — they’re fixes in the test harness so tomorrow’s report
+  is a cleaner verdict.
+</p>
+
+<div class="issue">
+  <div class="issue-header">
+    <span class="sev-pill sev-high">High</span>
+    <span class="issue-title">Browser tests never managed to sign in</span>
+  </div>
+  <div class="issue-body">
+    <p>
+      All 60 page tests landed on the sign-in screen instead of the page they
+      asked for. The harness writes the Cognito tokens into the browser the way the
+      app should expect, but the deployed React app isn’t accepting them and bounces
+      the user back to sign in.
+    </p>
+    <p>
+      This is the single largest source of red in today’s report — and it has nothing
+      to do with the deployed app being broken. We never got the browser logged in,
+      so every page test failed at the “you’re not signed in” gate.
+    </p>
+    <p>
+      <span class="label">Fix direction</span>
+      Half a day of diagnosis. Either the token shape we write doesn’t match what
+      the React code expects, or there’s a downstream validation step we’re missing.
+      Worst case, we switch the harness to log in through the real Cognito hosted
+      sign-in page — slower per run but bulletproof.
+    </p>
+  </div>
+</div>
+
+<div class="issue">
+  <div class="issue-header">
+    <span class="sev-pill sev-medium">Medium</span>
+    <span class="issue-title">LLM safety check misread clean refusals as ambiguous</span>
+  </div>
+  <div class="issue-body">
+    <p>
+      We sent 30 jailbreak prompts to the chat endpoint. The model actually refused
+      26 of them cleanly with the standard message
+      <em>“Your request was blocked by content safety policies”</em> — but our test
+      tool was looking for older refusal phrases like “I cannot” and missed it.
+      Five-minute fix.
+    </p>
+    <p>
+      <span class="label">Bottom line</span>
+      The safety filter is working. Today’s report shows zero LLM failures, but the
+      “skipped” numbers will become “passed” after the fix.
+    </p>
+  </div>
+</div>
+
+<div class="issue">
+  <div class="issue-header">
+    <span class="sev-pill sev-medium">Medium</span>
+    <span class="issue-title">API fuzz layer ran out of time</span>
+  </div>
+  <div class="issue-body">
+    <p>
+      The API fuzz layer sends thousands of malformed inputs at every route. At the
+      polite 5-requests-per-second throttle it needs about 19 minutes; we give it 10.
+      The layer simply ran out of clock and never wrote its results.
+    </p>
+    <p>
+      <span class="label">Fix direction</span>
+      Cut the fuzz layer down to a single persona — the persona-gating layer is
+      already covering that surface — and bump the per-layer time limit to half an
+      hour. About 30 minutes of work.
+    </p>
+  </div>
+</div>
+
+<div class="issue">
+  <div class="issue-header">
+    <span class="sev-pill sev-medium">Medium</span>
+    <span class="issue-title">The final report didn’t render</span>
+  </div>
+  <div class="issue-body">
+    <p>
+      All four layers ran and wrote their data. The very last step — rendering the
+      polished HTML report — refused to build because one entry pointed at an
+      evidence file that didn’t exist (a casualty of the sign-in issue above). The
+      check was too strict and killed the whole report.
+    </p>
+    <p>
+      <span class="label">Fix direction</span>
+      Change the check from a hard failure to a soft warning. The findings table
+      will mark the missing evidence with a flag instead of aborting the build.
+      Fifteen-minute fix.
+    </p>
+  </div>
+</div>
+
+<div class="issue">
+  <div class="issue-header">
+    <span class="sev-pill sev-low">Low</span>
+    <span class="issue-title">Cost-DoS check couldn’t read its measurement</span>
+  </div>
+  <div class="issue-body">
+    <p>
+      One of the LLM probes asks for an exhaustive 2,000-word response and then
+      checks that the runtime capped the actual output. The chat endpoint doesn’t
+      report the token count back in its response, so the check skipped instead of
+      running. Backend change needed to surface that number on the response payload —
+      about an hour of work and useful beyond this one test.
+    </p>
+  </div>
+</div>
+
+
+<!-- ============ ACTION PLAN ============ -->
+
+<h2 class="section">Action plan</h2>
+
+<div class="plan-day">
+  <h3><span class="when">Day 1 — urgent</span> Patch the backend authorization</h3>
+  <p>
+    Add JWT signature verification, audit the CISO gate on every route handler,
+    and assert the token type is an ID token in the decoder. Add a regression test
+    so this can’t come back. Redeploy through CodePipeline, re-run the harness,
+    and the 19 high-severity rows should flip to green.
+  </p>
+</div>
+
+<div class="plan-day">
+  <h3><span class="when">Day 1 — in parallel</span> Tidy the test harness</h3>
+  <p>
+    Soften the report builder’s evidence check, add the modern refusal phrases to
+    the LLM classifier, and cut the fuzz layer down to one persona. Roughly an
+    hour total. Most of today’s noise disappears.
+  </p>
+</div>
+
+<div class="plan-day">
+  <h3><span class="when">Day 2</span> Get the browser tests signing in</h3>
+  <p>
+    Diagnose the storage-state mismatch and pick a fix path. Once this lands the
+    65 false E2E failures collapse to whatever the real number is — which I expect
+    to be much smaller.
+  </p>
+</div>
+
+<div class="plan-day">
+  <h3><span class="when">Day 3</span> Polish and lock in a baseline</h3>
+  <p>
+    Surface token usage on the chat response so the cost-DoS check can run, then
+    promote a clean run as the green baseline. From that point on, every daily
+    report shows a diff against the previous green — regressions and improvements
+    both become obvious at a glance.
+  </p>
+</div>
+
+
+<!-- ============ APPENDIX (NEW PAGE) ============ -->
+
+<div class="page-break"></div>
+
+<h2 class="section">Appendix · The numbers</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Test layer</th>
+      <th class="num">Pass</th>
+      <th class="num">Fail</th>
+      <th class="num">Skip</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>End-to-end (browser)</td>
+      <td class="num">8</td><td class="num">65</td><td class="num">3</td>
+      <td>Almost all failures from the browser-sign-in issue above</td>
+    </tr>
+    <tr>
+      <td>API fuzz</td>
+      <td class="num">—</td><td class="num">—</td><td class="num">—</td>
+      <td>Layer ran out of time before recording results</td>
+    </tr>
+    <tr>
+      <td>Authorization abuse</td>
+      <td class="num">20</td><td class="num">26</td><td class="num">0</td>
+      <td>19 of 26 failures are the real findings on this page</td>
+    </tr>
+    <tr>
+      <td>LLM red-team</td>
+      <td class="num">2</td><td class="num">0</td><td class="num">30</td>
+      <td>26 of 30 “skips” are clean refusals the classifier missed</td>
+    </tr>
+    <tr class="total">
+      <td>Totals</td>
+      <td class="num">30</td><td class="num">91</td><td class="num">33</td>
+      <td>+ 49 documented-unsafe behaviors within expected limits</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Cost</h3>
+<p style="margin-bottom: 0.3em;">
+  Estimated <strong>$0.024</strong> · Actual <strong>$0.00</strong> · Cap
+  <strong>$1.00</strong>. Today’s spend is essentially nothing because the model in
+  use (Amazon Nova 2 Lite) is dramatically cheap. If the deployment ever switches
+  to Anthropic Claude, this would be closer to $1–$5 per run.
+</p>
+
+<h3>Run details</h3>
+<table>
+  <tbody>
+    <tr><td><strong>Run ID</strong></td><td><code>2026-06-09T21-38-35Z</code></td></tr>
+    <tr><td><strong>Target</strong></td><td><code>https://d5u0vv1zl3eqd.cloudfront.net/</code></td></tr>
+    <tr><td><strong>AWS account · region</strong></td><td><code>669810405473</code> · <code>us-east-1</code></td></tr>
+    <tr><td><strong>Wall clock</strong></td><td>~12 minutes</td></tr>
+    <tr><td><strong>Trigger</strong></td><td>Manual, post-merge of <code>feat/token-tracking-persona-fallback</code></td></tr>
+  </tbody>
+</table>
+
+<h3>How to re-run</h3>
+<p>
+  From the project root:
+  <code>cd tests-adversarial && source .venv/bin/activate && source .env && npm run test:all</code>.
+  Individual layers are available as <code>npm run test:e2e</code>,
+  <code>test:auth</code>, <code>test:llm</code>, <code>test:fuzz</code>.
+</p>
+
+<footer class="report-footer">
+  Generated from the first live harness run.
+  Forward this PDF to the team; raw artifacts live under
+  <code>test-reports/2026-06-09T21-38-35Z/</code> on the operator’s machine.
+</footer>
+
+</body>
+</html>

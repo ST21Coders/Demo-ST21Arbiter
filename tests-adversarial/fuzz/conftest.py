@@ -41,6 +41,7 @@ corpus             — dict[family_id, dict] from `load_corpus(corpus_dir)`.
 results_writer     — accumulates TestResult rows; writes results.json at
                      session end via `pytest_sessionfinish`.
 """
+
 from __future__ import annotations
 
 import json
@@ -111,7 +112,9 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 @pytest.fixture(scope="session")
 def target_base_url() -> str:
     """Public CloudFront URL of the deployed app. Strips trailing slash."""
-    url = os.environ.get("TARGET_BASE_URL", "https://d5u0vv1zl3eqd.cloudfront.net").strip()
+    url = os.environ.get(
+        "TARGET_BASE_URL", "https://d5u0vv1zl3eqd.cloudfront.net"
+    ).strip()
     return url.rstrip("/")
 
 
@@ -131,7 +134,9 @@ def api_base_url() -> str:
     legacy = os.environ.get("TARGET_API_URL", "").strip()
     if legacy:
         return legacy.rstrip("/")
-    base = os.environ.get("TARGET_BASE_URL", "https://d5u0vv1zl3eqd.cloudfront.net").strip()
+    base = os.environ.get(
+        "TARGET_BASE_URL", "https://d5u0vv1zl3eqd.cloudfront.net"
+    ).strip()
     return f"{base.rstrip('/')}/api"
 
 
@@ -282,7 +287,9 @@ class FuzzResultsWriter:
         # Sort by test_id so the file is byte-stable across runs that hit the
         # same set of tests (lets diff-from-last-green stay clean).
         rows = sorted(self._rows, key=lambda r: r.get("test_id", ""))
-        path.write_text(json.dumps(rows, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        path.write_text(
+            json.dumps(rows, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
 
 
 @pytest.fixture(scope="session")

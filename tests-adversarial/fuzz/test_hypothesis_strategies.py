@@ -51,6 +51,7 @@ smallest example that still fails. We capture that minimized input and write
 it to `fuzz/hypothesis-evidence/<route-id>.json`, then point the row's
 `evidence_path` at that file.
 """
+
 from __future__ import annotations
 
 import json
@@ -247,7 +248,11 @@ def execute_case(
     if route["id"] == "post-chat":
         if not chat_function_url:
             return (0, "CHAT_FUNCTION_URL unset", True)
-        url = f"{chat_function_url}{path}" if not chat_function_url.endswith(path) else chat_function_url
+        url = (
+            f"{chat_function_url}{path}"
+            if not chat_function_url.endswith(path)
+            else chat_function_url
+        )
     else:
         url = f"{api_base_url}{path}"
 
@@ -359,7 +364,9 @@ def _evidence_dir(run_dir: str | None) -> Path:
     return fuzz_results_path(run_dir).parent / _EVIDENCE_DIR_NAME
 
 
-def _write_evidence(run_dir: str | None, route_id: str, shrunk_case: dict, response: dict) -> Path:
+def _write_evidence(
+    run_dir: str | None, route_id: str, shrunk_case: dict, response: dict
+) -> Path:
     """Write the shrunk failing input + response snapshot to disk."""
     evidence_dir = _evidence_dir(run_dir)
     evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -369,8 +376,10 @@ def _write_evidence(run_dir: str | None, route_id: str, shrunk_case: dict, respo
         "shrunk_case": shrunk_case,
         "response": response,
     }
-    out_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False, default=str) + "\n",
-                        encoding="utf-8")
+    out_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False, default=str) + "\n",
+        encoding="utf-8",
+    )
     return out_path
 
 
@@ -390,7 +399,9 @@ def ciso_auth_header(identities: dict) -> dict:
     return {"Authorization": f"Bearer {identity.id_token}"}
 
 
-@pytest.mark.parametrize("route", _ROUTE_PARAMS, ids=[_route_param_id(r) for r in _ROUTE_PARAMS])
+@pytest.mark.parametrize(
+    "route", _ROUTE_PARAMS, ids=[_route_param_id(r) for r in _ROUTE_PARAMS]
+)
 def test_hypothesis_route_fuzz(
     route: dict,
     http_session: requests.Session,
@@ -412,14 +423,16 @@ def test_hypothesis_route_fuzz(
     """
     # Gate /chat behind CHAT_FUNCTION_URL.
     if route["id"] == "post-chat" and not chat_function_url:
-        results_writer.record({
-            "test_id": f"fuzz.{route['id']}.hypothesis",
-            "status": "skipped",
-            "layer": "fuzz",
-            "target_kind": "api_route",
-            "target_id": route["id"],
-            "skipped_reason": "CHAT_FUNCTION_URL unset; /chat hypothesis fuzz disabled.",
-        })
+        results_writer.record(
+            {
+                "test_id": f"fuzz.{route['id']}.hypothesis",
+                "status": "skipped",
+                "layer": "fuzz",
+                "target_kind": "api_route",
+                "target_id": route["id"],
+                "skipped_reason": "CHAT_FUNCTION_URL unset; /chat hypothesis fuzz disabled.",
+            }
+        )
         pytest.skip("CHAT_FUNCTION_URL unset; /chat hypothesis fuzz disabled.")
 
     # Destructive routes are gated by `pytest_collection_modifyitems` in
@@ -429,18 +442,33 @@ def test_hypothesis_route_fuzz(
     # No inline check needed here.
 
     # Resolve per-run knobs.
-    examples = resolve_examples(pytestconfig.getoption("--hypothesis-examples", default=HYPOTHESIS_DEFAULT_EXAMPLES))
+    examples = resolve_examples(
+        pytestconfig.getoption(
+            "--hypothesis-examples", default=HYPOTHESIS_DEFAULT_EXAMPLES
+        )
+    )
     seed_value = resolve_seed(pytestconfig.getoption("--hypothesis-seed", default=None))
 
     # Capture the worst case the runner sees, so we can emit it as evidence on
     # FAIL. Mutated by the inner function via closure.
-    worst: dict = {"verdict": "pass", "severity": None, "reasons": (), "shrunk_case": None, "status": None, "body": None}
+    worst: dict = {
+        "verdict": "pass",
+        "severity": None,
+        "reasons": (),
+        "shrunk_case": None,
+        "status": None,
+        "body": None,
+    }
     started = time.monotonic()
 
     @settings(
         max_examples=examples,
         deadline=10_000,  # 10 s per example
-        suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture, HealthCheck.filter_too_much],
+        suppress_health_check=[
+            HealthCheck.too_slow,
+            HealthCheck.function_scoped_fixture,
+            HealthCheck.filter_too_much,
+        ],
         derandomize=True,  # paired with hyp_seed() decorator below
     )
     @hyp_seed(seed_value)

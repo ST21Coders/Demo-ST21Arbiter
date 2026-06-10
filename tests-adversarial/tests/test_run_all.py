@@ -21,6 +21,7 @@ Test inventory (matches the prompt's per-task list):
  10. Global timeout: a sleeping layer gets killed and the run still produces
      a (partial) report.
 """
+
 from __future__ import annotations
 
 import json
@@ -45,9 +46,7 @@ def _write_minimal_manifest_passthrough(monkeypatch):
     def _fake_run():
         return 0, "manifest matches\n", ""
 
-    monkeypatch.setattr(
-        "scripts.check_manifest_drift.run", _fake_run, raising=True
-    )
+    monkeypatch.setattr("scripts.check_manifest_drift.run", _fake_run, raising=True)
 
 
 def _stub_cognito_identity(monkeypatch):
@@ -106,7 +105,11 @@ def _stub_layer_runner(monkeypatch, behaviours: dict[str, dict]):
                 json.dumps(
                     spec.get(
                         "cost",
-                        {"total_usd": 0.0, "per_layer_usd": {layer: 0.0}, "probe_counts": {}},
+                        {
+                            "total_usd": 0.0,
+                            "per_layer_usd": {layer: 0.0},
+                            "probe_counts": {},
+                        },
                     ),
                     indent=2,
                 )
@@ -208,9 +211,7 @@ def test_manifest_drift_exits_one(monkeypatch, tmp_path):
     def _fake_run():
         return 1, "", "manifest drift detected: pages added: ['fake']\n"
 
-    monkeypatch.setattr(
-        "scripts.check_manifest_drift.run", _fake_run, raising=True
-    )
+    monkeypatch.setattr("scripts.check_manifest_drift.run", _fake_run, raising=True)
 
     result = run_all.run(
         layers=["e2e"],
@@ -239,7 +240,11 @@ def test_layer_subset_only_runs_selected(monkeypatch, tmp_path):
             (run_dir / layer / "results.json").write_text("[]\n", encoding="utf-8")
             (run_dir / layer / "cost.json").write_text(
                 json.dumps(
-                    {"total_usd": 0.0, "per_layer_usd": {layer: 0.0}, "probe_counts": {}}
+                    {
+                        "total_usd": 0.0,
+                        "per_layer_usd": {layer: 0.0},
+                        "probe_counts": {},
+                    }
                 ),
                 encoding="utf-8",
             )
@@ -373,7 +378,11 @@ def test_global_timeout_yields_exit_three_and_partial_report(monkeypatch, tmp_pa
             (run_dir / layer / "results.json").write_text("[]\n", encoding="utf-8")
             (run_dir / layer / "cost.json").write_text(
                 json.dumps(
-                    {"total_usd": 0.0, "per_layer_usd": {layer: 0.0}, "probe_counts": {}}
+                    {
+                        "total_usd": 0.0,
+                        "per_layer_usd": {layer: 0.0},
+                        "probe_counts": {},
+                    }
                 ),
                 encoding="utf-8",
             )

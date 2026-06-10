@@ -5,25 +5,25 @@
   "personas": [
     {
       "id": "ciso",
-      "username": "ciso_daiana",
+      "username": "ciso_diana@meridianinsurance.com",
       "cognito_group": "ciso",
       "label": "CISO"
     },
     {
       "id": "soc",
-      "username": "soc_marcus",
+      "username": "soc_marcus@meridianinsurance.com",
       "cognito_group": "soc",
       "label": "SOC"
     },
     {
       "id": "grc",
-      "username": "grc_priya",
+      "username": "grc_priya@meridianinsurance.com",
       "cognito_group": "grc",
       "label": "GRC"
     },
     {
       "id": "employee",
-      "username": "emp_sarah",
+      "username": "emp_sarah@meridianinsurance.com",
       "cognito_group": "employee",
       "label": "Employee"
     }

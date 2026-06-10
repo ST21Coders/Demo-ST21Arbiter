@@ -18,6 +18,7 @@ Plus a few targeted coverage tests for the validation invariants
 error messages from load_results) so a regression in those paths trips a
 test instead of silently making the renderer behave oddly.
 """
+
 from __future__ import annotations
 
 import json
@@ -164,7 +165,10 @@ def test_empty_results_yields_all_uncovered_cells(
     assert s["skipped"] == 0
     # The label strings render "0/<total>" so the report makes the uncovered
     # state obvious in the footer.
-    assert s["pages_covered_label"] == f"0/{manifest_dimensions['pages'] * manifest_dimensions['personas']}"
+    assert (
+        s["pages_covered_label"]
+        == f"0/{manifest_dimensions['pages'] * manifest_dimensions['personas']}"
+    )
     assert s["routes_covered_label"] == f"0/{manifest_dimensions['routes']}"
     assert s["tools_covered_label"] == f"0/{manifest_dimensions['tools']}"
 
@@ -496,9 +500,7 @@ def test_skipped_status_counted_in_summary(manifest: dict):
 def _write_layer_results(run_dir: Path, layer: str, rows: list[dict]) -> None:
     layer_dir = run_dir / layer
     layer_dir.mkdir(parents=True, exist_ok=True)
-    (layer_dir / "results.json").write_text(
-        json.dumps(rows), encoding="utf-8"
-    )
+    (layer_dir / "results.json").write_text(json.dumps(rows), encoding="utf-8")
 
 
 def test_load_results_reads_all_four_layers(tmp_path: Path):
@@ -600,9 +602,7 @@ def test_load_results_rejects_top_level_object(tmp_path: Path):
     """Layer files must be a JSON list of result dicts; an object is wrong."""
     layer_dir = tmp_path / "e2e"
     layer_dir.mkdir()
-    (layer_dir / "results.json").write_text(
-        json.dumps({"tests": []}), encoding="utf-8"
-    )
+    (layer_dir / "results.json").write_text(json.dumps({"tests": []}), encoding="utf-8")
     with pytest.raises(ValueError, match="must contain a JSON list"):
         load_results(tmp_path)
 

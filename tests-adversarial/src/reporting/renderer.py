@@ -29,6 +29,7 @@ Public entry points:
   render_html(report, out_dir)    -> Path  (writes report.html)
   render_summary(report, out_dir) -> Path  (writes summary.md)
 """
+
 from __future__ import annotations
 
 import re
@@ -582,9 +583,7 @@ def render_summary(report: dict, out_dir: Path) -> Path:
         "summary": summary_block,
         "cost_actual_str": _format_money(cost.get("actual_usd")),
         "cost_cap_str": _format_money(cost.get("cap_usd")),
-        "cost_pct_str": _cost_percent_str(
-            cost.get("actual_usd"), cost.get("cap_usd")
-        ),
+        "cost_pct_str": _cost_percent_str(cost.get("actual_usd"), cost.get("cap_usd")),
         "status_label": _status_label(summary_block),
         "persona_count": persona_count,
         "sentinel_count": sentinel_count,
@@ -612,7 +611,7 @@ def _count_personas(coverage: dict) -> int:
     empty — the summary line then reads "across 4 personas" which is
     accurate for every real run.
     """
-    pages = (coverage.get("pages") or {})
+    pages = coverage.get("pages") or {}
     for cells in pages.values():
         if cells:
             return len(cells)
@@ -628,7 +627,7 @@ def _count_sentinel_tools(coverage: dict) -> int:
     # on the manifest entry, not the matrix. We can't recover it from
     # `coverage` alone. The known sentinel id is `master.chat_surface`;
     # checking for its presence is the cheapest reliable signal.
-    tools = (coverage.get("agent_tools") or {})
+    tools = coverage.get("agent_tools") or {}
     return 1 if "master.chat_surface" in tools else 0
 
 

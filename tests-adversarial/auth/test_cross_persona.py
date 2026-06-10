@@ -62,6 +62,7 @@ CloudWatch for ``harness-probe`` and identify any auth-layer probe that
 somehow leaked through (e.g. a real session id collision). Keep the
 prefix stable.
 """
+
 from __future__ import annotations
 
 import re
@@ -153,7 +154,9 @@ def materialise_path(path: str, placeholder: str = _PATH_PARAM_PLACEHOLDER) -> s
     return _PATH_PARAM_RE.sub(placeholder, path)
 
 
-def _request_url(route: dict, api_base_url: str, chat_function_url: str | None) -> str | None:
+def _request_url(
+    route: dict, api_base_url: str, chat_function_url: str | None
+) -> str | None:
     """Pick the right base URL for a route.
 
     `/chat` lives behind the Function URL (AuthType=NONE) in production —

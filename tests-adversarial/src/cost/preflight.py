@@ -18,6 +18,7 @@ Public surface:
     estimate_cost(layer_budgets: dict[str, LayerBudget]) -> Estimate
     preflight(cap_usd: float, layer_budgets: dict[str, LayerBudget]) -> None
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -97,8 +98,12 @@ def _cost_for_layer(
             f"{sorted(rates.keys())}). Either update the layer's model_id or "
             f"add the model to both MODEL_PRICING source files."
         )
-    input_cost = (max(0, budget.max_input_tokens) / 1_000_000.0) * float(model_rates["input"])
-    output_cost = (max(0, budget.max_output_tokens) / 1_000_000.0) * float(model_rates["output"])
+    input_cost = (max(0, budget.max_input_tokens) / 1_000_000.0) * float(
+        model_rates["input"]
+    )
+    output_cost = (max(0, budget.max_output_tokens) / 1_000_000.0) * float(
+        model_rates["output"]
+    )
     return input_cost + output_cost
 
 

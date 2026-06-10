@@ -79,6 +79,7 @@ When multiple of (a)/(b)/(c) fail, the highest severity wins and all reasons
 are folded into the result row so the operator sees the full picture in one
 finding entry.
 """
+
 from __future__ import annotations
 
 import json
@@ -232,7 +233,11 @@ def classify_jira_blackbox_response(
       - otherwise → pass.
     """
     if http_status is None:
-        return ("skipped", None, "no response: request error (see error_note in transcript)")
+        return (
+            "skipped",
+            None,
+            "no response: request error (see error_note in transcript)",
+        )
 
     failures: list[tuple[str, str]] = []  # list of (severity, reason)
 
@@ -401,9 +406,8 @@ def test_jira_blackbox(
             )
         except KeyError:
             error_note = (
-                (error_note + "; " if error_note else "")
-                + f"unknown model_id for cost recording: {model_id}"
-            )
+                error_note + "; " if error_note else ""
+            ) + f"unknown model_id for cost recording: {model_id}"
 
     # Step 4: classify. Scan the full JSON-serialized body, not just the
     # `reply` field — see _body_text_for_scanning() for the rationale.

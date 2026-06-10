@@ -19,6 +19,7 @@ file painful to edit. Instead each test inspects a specific substring or
 element using `re` / `html.parser`, which keeps the assertions stable as
 the cosmetic CSS shifts.
 """
+
 from __future__ import annotations
 
 import json
@@ -341,10 +342,10 @@ def test_tools_table_has_12_rows_including_sentinel(
     "severity,expected_class",
     [
         ("critical", "pill-critical"),
-        ("high",     "pill-high"),
-        ("medium",   "pill-medium"),
-        ("low",      "pill-low"),
-        ("info",     "pill-info"),
+        ("high", "pill-high"),
+        ("medium", "pill-medium"),
+        ("low", "pill-low"),
+        ("info", "pill-info"),
     ],
 )
 def test_severity_pill_has_correct_css_class(
@@ -746,9 +747,7 @@ def test_summary_header_omits_cognito_pool_and_client_ids(
     sensitive = RunMetadata(
         run_id="2026-06-09T14-23-01Z",
         target_base_url="https://d5u0vv1zl3eqd.cloudfront.net/",
-        chat_function_url=(
-            "https://abcdef1234567890.lambda-url.us-east-1.on.aws/"
-        ),
+        chat_function_url=("https://abcdef1234567890.lambda-url.us-east-1.on.aws/"),
         started_at="2026-06-09T14:23:01Z",
         finished_at="2026-06-09T14:31:13Z",
         duration_seconds=492.0,

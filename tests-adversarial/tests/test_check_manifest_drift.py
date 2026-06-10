@@ -17,6 +17,7 @@ Covers:
     startswith block with nested subs), template normalization, and the
     @tool detector's robustness against decorator-as-substring in comments.
 """
+
 from __future__ import annotations
 
 import json
@@ -104,7 +105,7 @@ def test_pages_removed_from_source_present_in_manifest_flagged_as_drift(monkeypa
 # ───────────────────────────── routes drift ────────────────────────────────
 
 
-_REAL_HANDLER_INJECTED_ROUTE = '''\
+_REAL_HANDLER_INJECTED_ROUTE = """\
 def handler(event, context):
     path = event.get("path") or ""
     method = (event.get("httpMethod") or "").upper()
@@ -189,7 +190,7 @@ def handler(event, context):
         return {}
 
     return {}
-'''
+"""
 
 
 def test_routes_added_in_source_missing_in_manifest_flagged_as_drift(monkeypatch):
@@ -237,7 +238,9 @@ def test_tool_added_in_source_missing_in_manifest_flagged_as_drift(monkeypatch):
     def fake_read(repo_root: Path, agent: str) -> str:
         text = real_read(repo_root, agent)
         if agent == "master_orchestrator":
-            text += "\n\n@tool\ndef brand_new_tool(query: str) -> str:\n    return 'x'\n"
+            text += (
+                "\n\n@tool\ndef brand_new_tool(query: str) -> str:\n    return 'x'\n"
+            )
         return text
 
     monkeypatch.setattr(drift, "_read_agent", fake_read)
@@ -276,7 +279,9 @@ def test_tool_removed_from_source_present_in_manifest_flagged_as_drift(monkeypat
 # ─────────────────────── jira_specialist black-box ─────────────────────────
 
 
-def test_jira_specialist_flagged_if_source_in_repo_flipped_to_true(monkeypatch, tmp_path):
+def test_jira_specialist_flagged_if_source_in_repo_flipped_to_true(
+    monkeypatch, tmp_path
+):
     """If someone flips source_in_repo on jira_specialist to true, the drift
     check must surface that as a flagged invariant — the harness would
     otherwise silently keep treating it as black-box."""
@@ -301,7 +306,9 @@ def test_jira_specialist_runtime_missing_is_flagged(monkeypatch, tmp_path):
     fires too — black-box coverage is a deliberate invariant, not an
     accidental omission."""
     real = json.loads(_MANIFEST_PATH.read_text(encoding="utf-8"))
-    real["runtimes"] = [r for r in real.get("runtimes", []) if r.get("id") != "jira_specialist"]
+    real["runtimes"] = [
+        r for r in real.get("runtimes", []) if r.get("id") != "jira_specialist"
+    ]
     tmp_manifest = tmp_path / "manifest.json"
     tmp_manifest.write_text(json.dumps(real), encoding="utf-8")
 
@@ -317,13 +324,15 @@ def test_jira_specialist_runtime_missing_is_flagged(monkeypatch, tmp_path):
 
 def test_normalize_template_replaces_path_params():
     assert drift._normalize_template("/findings/{conflict_id}") == "/findings/{}"
-    assert drift._normalize_template("/actions/{cr_id}/approve") == "/actions/{}/approve"
+    assert (
+        drift._normalize_template("/actions/{cr_id}/approve") == "/actions/{}/approve"
+    )
     assert drift._normalize_template("/health") == "/health"
     assert drift._normalize_template("/a/{x}/b/{y}/c") == "/a/{}/b/{}/c"
 
 
 def test_extract_routes_from_source_handles_path_eq_with_method():
-    src = '''\
+    src = """\
 def handler(event, context):
     path = ""
     method = ""
@@ -331,7 +340,7 @@ def handler(event, context):
         return {}
     if path == "/bar":
         return {}
-'''
+"""
     routes = drift._extract_routes_from_source(src)
     assert ("POST", "/foo") in routes
     # Bare path== with no method defaults to GET.
@@ -339,13 +348,13 @@ def handler(event, context):
 
 
 def test_extract_routes_from_source_handles_startswith_with_inline_method():
-    src = '''\
+    src = """\
 def handler(event, context):
     path = ""
     method = ""
     if path.startswith("/scan-runs/") and method == "GET":
         return {}
-'''
+"""
     routes = drift._extract_routes_from_source(src)
     assert ("GET", "/scan-runs/{}") in routes
 
@@ -355,7 +364,7 @@ def test_extract_routes_from_source_handles_startswith_block_with_nested_subs():
     nested `sub == ...` lines are what the real handler dispatches on.
     The parser must emit one tuple per nested sub, not just the bare prefix.
     """
-    src = '''\
+    src = """\
 def handler(event, context):
     path = ""
     method = ""
@@ -366,7 +375,7 @@ def handler(event, context):
             return {}
         if sub == "reject":
             return {}
-'''
+"""
     routes = drift._extract_routes_from_source(src)
     assert ("POST", "/actions/{}/approve") in routes
     assert ("POST", "/actions/{}/reject") in routes
@@ -376,7 +385,7 @@ def handler(event, context):
 
 def test_extract_routes_from_source_handles_startswith_block_with_not_sub():
     """The /conversations/{} block: bare `not sub` paths map to /conversations/{}."""
-    src = '''\
+    src = """\
 def handler(event, context):
     path = ""
     method = ""
@@ -389,7 +398,7 @@ def handler(event, context):
             return {}
         if not sub and method == "DELETE":
             return {}
-'''
+"""
     routes = drift._extract_routes_from_source(src)
     assert ("GET", "/conversations/{}/messages") in routes
     assert ("GET", "/conversations/{}") in routes
@@ -399,7 +408,7 @@ def handler(event, context):
 def test_extract_routes_from_source_ignores_strings_outside_handler():
     """A route literal inside an unrelated helper or comment must not be picked
     up — the parser only scans the handler() function body."""
-    src = '''\
+    src = """\
 # if path == "/comment-only" should not be picked up
 ROUTES = ["/string-literal"]
 
@@ -411,7 +420,7 @@ def _other_helper(event):
 def handler(event, context):
     if path == "/real-route" and method == "GET":
         return {}
-'''
+"""
     routes = drift._extract_routes_from_source(src)
     assert ("GET", "/real-route") in routes
     assert ("GET", "/comment-only") not in routes
@@ -419,7 +428,7 @@ def handler(event, context):
 
 
 def test_extract_tools_from_agent_handles_bare_decorator():
-    src = '''\
+    src = """\
 @tool
 def my_tool(query: str) -> str:
     return ""
@@ -427,14 +436,14 @@ def my_tool(query: str) -> str:
 @tool
 def another_tool(query: str, max: int = 5) -> str:
     return ""
-'''
+"""
     assert drift._extract_tools_from_agent_source(src) == {"my_tool", "another_tool"}
 
 
 def test_extract_tools_from_agent_ignores_comment_mention_of_tool():
     """The master_orchestrator's source contains `# @tool wrappers...` in a
     comment. That must not be misread as a decorator on the next def."""
-    src = '''\
+    src = """\
 # @tool wrappers (which only receive query from the LLM) can forward via env vars
 def not_a_tool(query: str) -> str:
     return ""
@@ -442,18 +451,18 @@ def not_a_tool(query: str) -> str:
 @tool
 def real_tool(query: str) -> str:
     return ""
-'''
+"""
     assert drift._extract_tools_from_agent_source(src) == {"real_tool"}
 
 
 def test_extract_tools_from_agent_handles_tool_with_args():
     """If the decorator is ever invoked with arguments, the parser still
     extracts the function name on the next def."""
-    src = '''\
+    src = """\
 @tool(name="custom")
 def my_tool(query: str) -> str:
     return ""
-'''
+"""
     assert drift._extract_tools_from_agent_source(src) == {"my_tool"}
 
 

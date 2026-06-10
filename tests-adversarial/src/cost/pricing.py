@@ -12,6 +12,7 @@ Public surface:
     load_pricing() -> dict[str, dict[str, float]]
     PricingDriftError(RuntimeError)
 """
+
 from __future__ import annotations
 
 import re
@@ -118,9 +119,7 @@ _COMPUTED_ENTRY_RE = re.compile(
 )
 # Resolves `export const NAME = 'value'` (single or double quotes) for the
 # computed-key indirection.
-_JS_CONST_RE_TMPL = (
-    r"export\s+const\s+{name}\s*=\s*['\"](?P<value>[^'\"]+)['\"]"
-)
+_JS_CONST_RE_TMPL = r"export\s+const\s+{name}\s*=\s*['\"](?P<value>[^'\"]+)['\"]"
 
 
 def _extract_js_const(source: str, name: str) -> str:
@@ -233,9 +232,7 @@ def _reconcile(
             "and\n"
             f"  {_MOCKDATA_JS}\n"
             "\n"
-            "Differences:\n"
-            + "\n".join(drifts)
-            + "\n\n"
+            "Differences:\n" + "\n".join(drifts) + "\n\n"
             "Edit both files together (project rule, see CLAUDE.md)."
         )
 

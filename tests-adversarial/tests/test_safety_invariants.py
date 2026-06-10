@@ -18,6 +18,7 @@ Allowed exception: `boto3.client("cognito-idp")` — used by
 Spec mapping: AC25 ("the harness does not modify Infra/, agents/, ui/, or any
 AWS resource during a run").
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -101,7 +102,9 @@ def test_no_forbidden_boto3_clients_in_harness_sources():
         "Forbidden infrastructure-mutating pattern(s) found in harness sources. "
         "The harness must never modify deployed AWS resources. "
         "Hits:\n  "
-        + "\n  ".join(f"{rel}:{line} contains {pattern!r}" for rel, pattern, line in offenders)
+        + "\n  ".join(
+            f"{rel}:{line} contains {pattern!r}" for rel, pattern, line in offenders
+        )
     )
 
 
@@ -118,7 +121,7 @@ def test_no_writes_to_infra_params_dev_json():
     the literal path string does NOT also contain a write verb in the same
     file.
     """
-    write_verbs = ('open(', '.write_text(', '.write(', 'json.dump(')
+    write_verbs = ("open(", ".write_text(", ".write(", "json.dump(")
     offenders: list[str] = []
 
     for rel, content in _iter_python_files():
@@ -196,5 +199,7 @@ def test_only_permitted_boto3_client_is_cognito_idp():
     assert not offenders, (
         "Found boto3.client() call(s) against a service other than `cognito-idp`. "
         "Only Cognito access is permitted. Hits:\n  "
-        + "\n  ".join(f"{rel}:{line} uses boto3.client({svc!r})" for rel, svc, line in offenders)
+        + "\n  ".join(
+            f"{rel}:{line} uses boto3.client({svc!r})" for rel, svc, line in offenders
+        )
     )

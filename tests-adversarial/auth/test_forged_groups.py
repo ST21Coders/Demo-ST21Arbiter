@@ -84,6 +84,7 @@ Skip behaviour
 Tests skip cleanly when ``DEMO_PASSWORD`` is unset (no real IdToken to forge
 from) — the ``identities`` fixture takes care of that at module-scope.
 """
+
 from __future__ import annotations
 
 import base64
@@ -353,7 +354,9 @@ def _build_lateral_pair() -> tuple[dict, str, list[str], str, str]:
 FORGED_GROUPS_UPWARD_PAIRS: list[tuple[dict, str, list[str], str, str]] = (
     _build_upward_pairs()
 )
-FORGED_GROUPS_LATERAL_PAIR: tuple[dict, str, list[str], str, str] = _build_lateral_pair()
+FORGED_GROUPS_LATERAL_PAIR: tuple[dict, str, list[str], str, str] = (
+    _build_lateral_pair()
+)
 FORGED_GROUPS_PAIRS: list[tuple[dict, str, list[str], str, str]] = (
     FORGED_GROUPS_UPWARD_PAIRS + [FORGED_GROUPS_LATERAL_PAIR]
 )

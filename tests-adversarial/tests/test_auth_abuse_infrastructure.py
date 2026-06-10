@@ -10,6 +10,7 @@ They do NOT run any of the parametrised tests in `auth/test_*.py` — those
 need DEMO_PASSWORD + a deployed target and live under the auth pytest
 selection.
 """
+
 from __future__ import annotations
 
 import base64
@@ -96,7 +97,9 @@ def test_cross_persona_canonical_ac9_id_present() -> None:
 
 def test_cross_persona_token_usage_soc_pair_points_at_get_token_usage() -> None:
     """The AC9 pair must target the `/token-usage` GET route with persona=soc."""
-    by_test_id = {test_id: (route, persona) for route, persona, test_id in CROSS_PERSONA_PAIRS}
+    by_test_id = {
+        test_id: (route, persona) for route, persona, test_id in CROSS_PERSONA_PAIRS
+    }
     route, persona = by_test_id["auth.token-usage.soc-forbidden"]
     assert route["id"] == "get-token-usage"
     assert route["method"] == "GET"
@@ -111,9 +114,7 @@ def test_cross_persona_ids_are_unique() -> None:
 
 def test_cross_persona_count_is_at_least_three_for_token_usage_route() -> None:
     """The `get-token-usage` route is ciso-only, so it produces 3 pairs."""
-    tu_pairs = [
-        p for p in CROSS_PERSONA_PAIRS if p[0]["id"] == "get-token-usage"
-    ]
+    tu_pairs = [p for p in CROSS_PERSONA_PAIRS if p[0]["id"] == "get-token-usage"]
     assert len(tu_pairs) == 3
     # Personas covered: soc, grc, employee (all non-CISO).
     personas = {p[1] for p in tu_pairs}
@@ -184,12 +185,12 @@ def test_make_jwt_extra_fields_round_trip() -> None:
 @pytest.mark.parametrize(
     ("status_code", "expected_status", "expected_severity"),
     [
-        (200, "fail", SEVERITY_PRIV_ESC_HIGH),     # 2xx => privilege esc
+        (200, "fail", SEVERITY_PRIV_ESC_HIGH),  # 2xx => privilege esc
         (201, "fail", SEVERITY_PRIV_ESC_HIGH),
         (299, "fail", SEVERITY_PRIV_ESC_HIGH),
-        (401, "pass", None),                        # rejected
-        (403, "pass", None),                        # rejected
-        (400, "fail", SEVERITY_API_CRASH_MEDIUM),   # other 4xx unexpected
+        (401, "pass", None),  # rejected
+        (403, "pass", None),  # rejected
+        (400, "fail", SEVERITY_API_CRASH_MEDIUM),  # other 4xx unexpected
         (404, "fail", SEVERITY_API_CRASH_MEDIUM),
         (500, "fail", SEVERITY_API_CRASH_MEDIUM),
         (503, "fail", SEVERITY_API_CRASH_MEDIUM),
@@ -628,9 +629,13 @@ def test_forged_groups_covers_all_three_non_ciso_personas_per_route() -> None:
     from collections import defaultdict
 
     by_route: dict[str, set[str]] = defaultdict(set)
-    for route, original_persona, _forged_groups, _forged_persona, _test_id in (
-        FORGED_GROUPS_UPWARD_PAIRS
-    ):
+    for (
+        route,
+        original_persona,
+        _forged_groups,
+        _forged_persona,
+        _test_id,
+    ) in FORGED_GROUPS_UPWARD_PAIRS:
         by_route[route["id"]].add(original_persona)
     for route_id, originals in by_route.items():
         assert originals == {"soc", "grc", "employee"}, (
@@ -640,9 +645,13 @@ def test_forged_groups_covers_all_three_non_ciso_personas_per_route() -> None:
 
 def test_forged_groups_upward_pairs_target_ciso_impersonation() -> None:
     """Every upward pair must forge groups to ``["ciso"]`` exactly."""
-    for route, _original, forged_groups, forged_persona, _test_id in (
-        FORGED_GROUPS_UPWARD_PAIRS
-    ):
+    for (
+        route,
+        _original,
+        forged_groups,
+        forged_persona,
+        _test_id,
+    ) in FORGED_GROUPS_UPWARD_PAIRS:
         assert forged_groups == ["ciso"], (
             f"upward pair for {route['id']!r} has unexpected forged_groups={forged_groups!r}"
         )
@@ -683,12 +692,12 @@ def test_forged_groups_lateral_pair_targets_token_usage_and_soc() -> None:
 @pytest.mark.parametrize(
     ("status_code", "expected_status", "expected_severity"),
     [
-        (200, "fail", SEVERITY_FORGED_PRIV_ESC_HIGH),     # 2xx => priv esc
+        (200, "fail", SEVERITY_FORGED_PRIV_ESC_HIGH),  # 2xx => priv esc
         (201, "fail", SEVERITY_FORGED_PRIV_ESC_HIGH),
         (299, "fail", SEVERITY_FORGED_PRIV_ESC_HIGH),
-        (401, "pass", None),                               # rejected
-        (403, "pass", None),                               # rejected
-        (400, "fail", SEVERITY_FORGED_API_CRASH_MEDIUM),   # other 4xx
+        (401, "pass", None),  # rejected
+        (403, "pass", None),  # rejected
+        (400, "fail", SEVERITY_FORGED_API_CRASH_MEDIUM),  # other 4xx
         (404, "fail", SEVERITY_FORGED_API_CRASH_MEDIUM),
         (500, "fail", SEVERITY_FORGED_API_CRASH_MEDIUM),
         (503, "fail", SEVERITY_FORGED_API_CRASH_MEDIUM),
