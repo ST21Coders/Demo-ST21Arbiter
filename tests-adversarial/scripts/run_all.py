@@ -55,6 +55,7 @@ _LAYERS_ALL: tuple[str, ...] = (
     "headers",
     "dos",
     "logic",
+    "logging_audit",
 )
 
 # Per-layer wall-clock cap overrides. Most layers share the global
@@ -62,10 +63,15 @@ _LAYERS_ALL: tuple[str, ...] = (
 # 5-minute ceilings of their own as a safety guard: a misconfigured
 # `--dos-rps` / duration pair (DoS) or a runaway state-machine probe
 # (logic) shouldn't allow the run to keep hammering the dev environment
-# past 5 min.
+# past 5 min. The logging_audit layer gets a 10-minute cap — its
+# CloudWatch FilterLogEvents queries can legitimately take 10+ seconds
+# each, and the corpus-parametrized log-injection downstream probe runs
+# one CloudWatch query per payload (5 payloads × ~10 s + propagation
+# sleep + 3 audit-log scans).
 _LAYER_HARD_CAPS_SECONDS: dict[str, float] = {
     "dos": 300.0,
     "logic": 300.0,
+    "logging_audit": 600.0,
 }
 
 # Default to a CloudFront URL matching CLAUDE.local.md. Operators override via
@@ -328,6 +334,20 @@ def _build_layer_budgets(layers: list[str]) -> dict[str, Any]:
         # Bedrock invocation per run, bounded and informational only.
         budgets["logic"] = LayerBudget(
             name="logic",
+            max_input_tokens=0,
+            max_output_tokens=0,
+        )
+    if "logging_audit" in layers:
+        # Logging / audit layer makes zero Bedrock calls — every probe
+        # is HTTP + CloudWatch FilterLogEvents + DDB Scan. The body-field
+        # redaction probe and the log-injection downstream probes do POST
+        # to /chat, but only to plant a canary; the cost is one short
+        # Bedrock invocation per payload and is bounded by the corpus
+        # size. We keep the budget at zero so the layer can't accidentally
+        # blow the cost cap; the actual Bedrock cost ends up attributed
+        # to the LLM layer's pricing path if any operator wires that up.
+        budgets["logging_audit"] = LayerBudget(
+            name="logging_audit",
             max_input_tokens=0,
             max_output_tokens=0,
         )

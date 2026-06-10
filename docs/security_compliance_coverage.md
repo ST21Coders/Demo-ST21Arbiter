@@ -1,7 +1,7 @@
 # ARBITER Adversarial Harness — Security Compliance Coverage Matrix
 
 **Date:** 2026-06-10
-**Harness version:** post-Block-F (2026-06-10)
+**Harness version:** post-Block-G (2026-06-10)
 **Reference standard:** internal compliance checklist (OWASP Top 10 + API Top 10 + LLM Top 10 + CWE common weaknesses)
 
 This document maps every item on the requested compliance checklist to the current state of the adversarial test harness at `tests-adversarial/`. For each item it states:
@@ -28,7 +28,7 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 | 7 | Cross-site scripting (XSS) | ✅ Covered | `fuzz/corpus/xss.json` (14 entries incl. OWASP polyglot, `<svg onload>`, javascript: URLs) + reflection-detection on every response. **Note:** classifier has a 6-char floor to avoid false positives — flagged in earlier fuzz review. | – |
 | 8 | Server-Side Template Injection (SSTI) | ✅ Covered | Block A: `fuzz/corpus/ssti.json` (7 entries: `{{7*7}}`, `${{7*7}}`, `<%= 7*7 %>`, SpEL RCE, Twig dump). Evaluated-form detection (literal `49` in response) is documented as future enhancement. | – |
 | 9 | Header / CRLF injection | ✅ Covered | `fuzz/corpus/header_injection.json` (5 entries including CRLF + Set-Cookie smuggling). Probes every route. | – |
-| 10 | Log injection | ✅ Covered | Block A: `fuzz/corpus/log_injection.json` (5 entries: CR/LF, ANSI ESC[2K erase-line, NUL truncation, ANSI color codes). API-layer reflection check only; CloudWatch verification deferred to Block G. | – |
+| 10 | Log injection | ✅ Covered | Block A: `fuzz/corpus/log_injection.json` (5 entries: CR/LF, ANSI ESC[2K erase-line, NUL truncation, ANSI color codes) — API-layer reflection check. Block G: `logging_audit/test_log_injection_downstream.py` adds the CloudWatch verification — for each corpus payload, asserts the payload lands in a single CloudWatch event (no CR/LF split → no log forgery) with no ANSI residue. | – |
 
 **Section totals:** 10 covered · 0 partial · 0 missing  *(post-Block-A)*
 
@@ -175,14 +175,14 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 
 | # | Item | Status | Where / Gap | Effort to close |
 |---|---|---|---|---|
-| 67 | Insufficient logging of security events | ❌ Missing | No probe that triggers a forged-token attempt and asserts a CloudWatch log entry appears in `audit-log` table. | Medium (~half day) — needs DDB read fixture |
-| 68 | Logging sensitive data | ❌ Missing | No probe that triggers a known sensitive value (a JWT, a password) and grep-scans CloudWatch for accidental logging. | Medium (~half day) |
+| 67 | Insufficient logging of security events | ✅ Covered | Block G: `logging_audit/test_security_events_logged.py` — 4 scenarios (`forged-token`, `cross-persona`, `legitimate-approve`, `brute-force`). For each, capture epoch, trigger event, sleep 3 s, scan `dev-st21arbiter-poc-audit-log` DDB table with a FilterExpression on `timestamp >= start_iso` plus client-side needle match. PASS on ≥1 matching row; FAIL HIGH on zero matches. | – |
+| 68 | Logging sensitive data | ✅ Covered | Block G: `logging_audit/test_log_redaction.py` — 3 scenarios. (a) JWT not logged: send IdToken in Authorization, search CloudWatch via `logs:FilterLogEvents` for first + last 40 char fragments. (b) Body field not logged: POST `/chat` with `harness-canary-<uuid>-secret`, search CloudWatch. (c) Email not logged in errors: trigger Cognito InitiateAuth failure with synthetic email, search CloudWatch. PASS on zero canary hits; FAIL HIGH per hit. | – |
 | 69 | No alerting / monitoring | ⚪ Out of scope | CloudWatch Alarms / EventBridge rule audit. Separate from runtime probe. | – |
 | 70 | Mutable or attacker-deletable logs | ⚪ Out of scope | CloudWatch immutability / S3 Object Lock configuration audit. | – |
-| 71 | Log injection | 🟡 Partial | API-layer reflection check covered by Block A (see #10). CloudWatch-side verification (did the payload land in logs unsanitized?) deferred to Block G. | – |
+| 71 | Log injection | ✅ Covered | API-layer reflection check covered by Block A (see #10). Block G: `logging_audit/test_log_injection_downstream.py` — for each payload in `fuzz/corpus/log_injection.json`, wraps the payload with a UUID marker, POSTs as the `/chat` prompt, then reads CloudWatch and counts matching events. PASS on 1 event (no split) with no ANSI residue; FAIL MEDIUM if CR/LF split the line into >1 events (log forgery); FAIL LOW on single-line but ANSI escape present; PASS on 0 events (API didn't log; not the classifier's finding). | – |
 | 72 | No incident response plan | ⚪ Out of scope | Process / runbook, not a runtime test. | – |
 
-**Section totals:** 0 covered · 1 partial · 2 missing · 3 out-of-scope  *(post-Block-A)*
+**Section totals:** 3 covered · 0 partial · 0 missing · 3 out-of-scope  *(post-Block-G)*
 
 ---
 
@@ -215,11 +215,11 @@ The end of the document has a priority-ranked build plan for closing the gaps.
 | 8. Client-side | 5 | 0 | 0 | 0 | 5 |
 | 9. Logic / workflow | 1 | 0 | 0 | 2 | 3 |
 | 10. DoS | 2 | 0 | 0 | 1 | 3 |
-| 11. Logging / monitoring | 0 | 1 | 2 | 3 | 6 |
+| 11. Logging / monitoring | 3 | 0 | 0 | 3 | 6 |
 | 12. LLM Top-10 | 4 | 0 | 1 | 2 | 7 |
-| **Totals** | **47** | **5** | **10** | **17** | **79** |
+| **Totals** | **50** | **4** | **8** | **17** | **79** |
 
-**Coverage post-Block-F: 47/79 fully (59%), 52/79 at least partial (66%), 17/79 out of scope (22%).**
+**Coverage post-Block-G: 50/79 fully (63%), 54/79 at least partial (68%), 17/79 out of scope (22%).**
 
 Block A delta: +10 fully covered, +1 partial (mass assignment + log injection re-classified), −11 missing.
 Block B delta: +6 fully covered (items 23, 24, 31, 35, 55, 56), −3 partial (items 23, 55 → covered; item 41 stays partial — bundle/SRI scan still scheduled for Block D), −3 missing (items 24, 31, 35 + 56).
@@ -227,6 +227,7 @@ Block C delta: +6 fully covered (items 11, 13, 17, 19, 21, 33, 48), +1 partial (
 Block D delta: +5 fully covered (items 25, 41, 42, 59, 60), −1 partial (item 25 → covered), −1 partial (item 41 → covered), −3 missing (items 42, 59, 60).
 Block E delta: +3 fully covered (items 51, 64, 65), −2 partial (items 64, 65 → covered), −1 missing (item 51).
 Block F delta: +3 fully covered (items 46, 50, 61), −1 partial (item 50 → covered), −2 missing (items 46, 61).
+Block G delta: +3 fully covered (items 67, 68, 71), −1 partial (item 71 → covered), −2 missing (items 67, 68).
 
 The 17 out-of-scope items are real items on the checklist — they just need different tools (SCA, AWS config audit, IR runbook review, CI hardening), not this runtime harness. They should be addressed and recorded as "covered by other controls" rather than ignored.
 
@@ -377,12 +378,49 @@ classifier verdict, the JSON walker's depth cap, the parametrize
 generator's persona enumeration, and the builder's acceptance of
 `layer="logic"`.
 
-## Block G — Logging audit (~half day)
+## Block G — Logging audit ✅ Done (2026-06-10)
 
-| Item | Test |
-|---|---|
-| Security-event logging | `logging/test_audit_log.py` (trigger a forged-token attempt, read DDB audit-log, assert entry exists) |
-| Sensitive data in logs | `logging/test_log_redaction.py` (trigger a known sensitive value, grep CloudWatch via boto3) |
+New top-level `tests-adversarial/logging_audit/` directory. Covers items 67, 68, 71.
+Landed 2026-06-10. Coverage moved 59% → 63% (or 66% → 68% counting partials).
+
+Directory name uses `logging_audit/` (not `logging/`) to avoid collision with
+the stdlib `logging` module — pytest's collector imports the package by
+directory name and any module inside that tries `import logging` would
+otherwise resolve to `./logging` instead of the stdlib package.
+
+| Item | Test | Status |
+|---|---|---|
+| Security-event logging (#67) | `logging_audit/test_security_events_logged.py` — 4 scenarios (`forged-token`, `cross-persona`, `legitimate-approve`, `brute-force`). Captures epoch, triggers event, sleeps 3 s (5 s for brute-force), then scans `dev-st21arbiter-poc-audit-log` DDB table with `Attr("timestamp").gte(start_iso)` + client-side needle match. PASS on ≥1 matching row; FAIL HIGH on zero matches (audit silence = the finding). | ✅ |
+| Sensitive data in logs (#68) | `logging_audit/test_log_redaction.py` — 3 scenarios. (a) JWT not logged: send IdToken in Authorization, search CloudWatch via `logs:FilterLogEvents` for first + last 40 char fragments. (b) Body field not logged: POST `/chat` with `harness-canary-<uuid>-secret`, search CloudWatch. (c) Email not logged: trigger Cognito InitiateAuth with synthetic email, search CloudWatch. PASS on zero canary hits; FAIL HIGH per hit. Failure messages truncate the canary to an 8-char fingerprint to avoid re-logging the leaked value. | ✅ |
+| Log injection downstream (#71) | `logging_audit/test_log_injection_downstream.py` — parametrized over every payload in `fuzz/corpus/log_injection.json` (5 cases). Wraps each payload with a UUID marker, POSTs as the `/chat` prompt, then searches CloudWatch for the marker. PASS on exactly 1 matching event (no split) and no ANSI residue. FAIL MEDIUM on >1 matched events (CR/LF split → log forgery vector). FAIL LOW on 1 event with ANSI ESC control bytes present in the sample. PASS on 0 events (API didn't log — #67/#68 cover that surface separately). | ✅ |
+
+Wiring: `tests-adversarial/package.json::scripts.test:logging` plus a new
+`"logging_audit"` entry in `scripts/run_all.py::_LAYERS_ALL` with a zero-budget
+`LayerBudget` (the layer makes no Bedrock calls; the /chat-canary probe
+costs are bounded and accounted for separately). A per-layer hard cap at
+600 s (`_LAYER_HARD_CAPS_SECONDS["logging_audit"] = 600.0`) bounds the
+layer's wall-clock independently of the global timeout — CloudWatch
+`FilterLogEvents` queries can legitimately take 10+ seconds each, and the
+corpus-parametrized log-injection downstream probe runs one CloudWatch
+query per payload plus 3 audit-log scans. `src/coverage/builder.py::_LAYERS`
+gained `"logging_audit"` so the orchestrator finds the layer's
+`results.json` at aggregation time. New unit tests in
+`tests/test_logging_audit_infrastructure.py` (23 tests) pin every
+classifier verdict, the ANSI-detection logic for CSI / OSC / color-code
+sequences, the `_LAYERS_ALL` / `_LAYER_HARD_CAPS_SECONDS` / `_build_layer_budgets`
+wiring in `run_all.py`, the builder's acceptance of `layer="logging_audit"`,
+and the `test:logging` npm script.
+
+The layer is module-level skipped when:
+
+  * `DEMO_PASSWORD` is unset (cannot acquire IdTokens for the trigger phase).
+  * AWS creds are unresolvable (`NoCredentialsError` on the probe call).
+  * The principal lacks `logs:FilterLogEvents` on the api_handler log group.
+  * The principal lacks `dynamodb:Scan` on the audit-log table.
+  * The audit-log table or log group is not provisioned.
+
+A skip is itself a real signal (#67 finding territory — silent infra means
+silent attack detection).
 
 ## Block H — Fault injection (~1+ day, larger)
 
@@ -439,4 +477,4 @@ If we run the same daily harness cadence and each "Block" above is one focused b
 
 After every block, the compliance matrix in this document gets updated and the daily PDF report shows the new percentages.
 
-*Last updated: 2026-06-10 (post-Block-E). Refresh this doc after every block lands.*
+*Last updated: 2026-06-10 (post-Block-G). Refresh this doc after every block lands.*

@@ -11,6 +11,7 @@
     "test:headers": "python3.13 -m pytest headers/",
     "test:dos": "python3.13 -m pytest dos/",
     "test:logic": "python3.13 -m pytest logic/",
+    "test:logging": "python3.13 -m pytest logging_audit/",
     "test:all": "python3.13 -m scripts.run_all",
     "test:promote-baseline": "python3.13 -m scripts.promote_baseline",
     "test:check-drift": "python3.13 -m scripts.check_manifest_drift"
