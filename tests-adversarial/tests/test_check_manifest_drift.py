@@ -46,15 +46,15 @@ def test_run_against_live_tree_exits_zero_and_prints_match_line():
         f"stdout did not start with expected match line: {stdout!r}"
     )
     # The summary tallies pages, routes, tools.
-    # Pages: 17 = 16 real .jsx pages + 1 synthetic (`spa-root`).
-    # Routes: 26 real API Gateway routes parsed from `api_handler.py`.
+    # Pages: 19 = 18 real .jsx pages + 1 synthetic (`spa-root`).
+    # Routes: 30 real API Gateway routes parsed from `api_handler.py`.
     #         The drift checker compares against the manifest's NON-synthetic
     #         routes, so the synthetic `cognito-initiate-auth` sentinel for
     #         the brute-force test is excluded.
-    # Tools: 14 = 12 real in-repo tools + 1 jira black-box + 1 synthetic
+    # Tools: 24 = 22 real in-repo tools + 1 jira black-box + 1 synthetic
     #         sentinel (`master.chat_surface`, for LLM red-team coverage rows).
-    assert "(17 pages, 26 routes, 14 tools)" in stdout, (
-        f"summary counts drifted from expected (17/26/14): {stdout!r}"
+    assert "(19 pages, 30 routes, 24 tools)" in stdout, (
+        f"summary counts drifted from expected (19/30/24): {stdout!r}"
     )
 
 

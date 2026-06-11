@@ -47,9 +47,9 @@ _MANIFEST_PATH = _HARNESS_ROOT / "src" / "coverage" / "manifest.json"
 @pytest.fixture
 def manifest() -> dict:
     """The real, committed manifest. Tests depend on its current shape.
-    17 pages × 4 personas = 68 cells (16 real + spa-root synthetic
-    sentinel for bundle scans), 27 api_routes (26 real + 1 synthetic
-    `cognito-initiate-auth` for the brute-force test), 14 agent_tools
+    19 pages × 4 personas = 76 cells (18 real + spa-root synthetic
+    sentinel for bundle scans), 31 api_routes (30 real + 1 synthetic
+    `cognito-initiate-auth` for the brute-force test), 24 agent_tools
     (incl. master.chat_surface sentinel)."""
     return json.loads(_MANIFEST_PATH.read_text(encoding="utf-8"))
 
@@ -478,17 +478,19 @@ def test_documented_unsafe_counted_but_not_in_findings(
     assert report["summary"]["failed"] == 0
 
 
-def test_tools_covered_label_reflects_12_entry_manifest(
+def test_tools_covered_label_reflects_24_entry_manifest(
     manifest: dict,
     empty_matrix: dict,
     empty_cost: dict,
     metadata: RunMetadata,
     run_dir: Path,
 ) -> None:
-    """The manifest has 14 agent_tools post-Block-B (incl. master.chat_surface
-    sentinel).
+    """The manifest has 24 agent_tools after the 2026-06 source drift
+    (master.servicenow_lookup + 9 awsconfig_specialist describe_*
+    tools added on top of the 14-entry Block-B baseline; still
+    includes master.chat_surface sentinel).
 
-    No results means 0/14 covered. This guards against a future regression
+    No results means 0/24 covered. This guards against a future regression
     where the sentinel tool is silently dropped from the manifest.
     """
     report = build_report(
@@ -499,7 +501,7 @@ def test_tools_covered_label_reflects_12_entry_manifest(
         metadata=metadata,
         results=[],
     )
-    assert report["summary"]["tools_covered_label"] == "0/14"
+    assert report["summary"]["tools_covered_label"] == "0/24"
 
 
 def test_json_output_is_deterministic(
@@ -676,8 +678,9 @@ def test_summary_uses_matrix_coverage_labels(
         metadata=metadata,
         results=rows,
     )
-    # Post-Block-D: 1 of 68 cells covered (17 pages × 4 personas, +spa-root),
-    # 0 of 26 routes, 0 of 14 tools.
-    assert report["summary"]["pages_covered_label"] == "1/68"
-    assert report["summary"]["routes_covered_label"] == "0/27"
-    assert report["summary"]["tools_covered_label"] == "0/14"
+    # Post 2026-06 drift: 1 of 76 cells covered (19 pages × 4 personas,
+    # including spa-root + the two new pages impact-analysis and whatif),
+    # 0 of 31 routes, 0 of 24 tools.
+    assert report["summary"]["pages_covered_label"] == "1/76"
+    assert report["summary"]["routes_covered_label"] == "0/31"
+    assert report["summary"]["tools_covered_label"] == "0/24"

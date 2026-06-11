@@ -389,12 +389,14 @@ def test_execute_case_handles_request_exceptions() -> None:
 # ───────────────────────── enumerable test count ─────────────────────────────
 
 
-def test_hypothesis_layer_enumerates_exactly_25_routes() -> None:
+def test_hypothesis_layer_enumerates_exactly_30_routes() -> None:
     """Collection over fuzz/test_hypothesis_strategies.py produces N tests
-    where N equals the manifest's api_routes count.
+    where N equals the manifest's non-synthetic api_routes count.
 
-    Post-Block-B that count is 26 (Block A: 25 → Block B adds get-agent-status).
-    The task-13 prompt budgets 8 examples × N routes = ~200 generative tests
+    Post 2026-06 source drift that count is 30 (Block-B baseline: 26 →
+    + post-jira-comment, post-jira-transition, post-scan-dry-run,
+    post-servicenow-impact-analysis).
+    The task-13 prompt budgets 8 examples × N routes = ~240 generative tests
     counted at the example level. At the pytest-collection level the count
     is N — one row per route per persona (CISO), since the layer does NOT
     fan out across all 4 personas (the per-persona fanout is task 12's job).
@@ -420,7 +422,7 @@ def test_hypothesis_layer_enumerates_exactly_25_routes() -> None:
         timeout=60,
     )
     out = result.stdout + result.stderr
-    assert "26 tests collected" in out, out
+    assert "30 tests collected" in out, out
 
 
 def test_hypothesis_layer_skips_without_demo_password() -> None:

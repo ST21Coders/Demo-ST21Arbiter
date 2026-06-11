@@ -48,8 +48,9 @@ _MANIFEST_PATH = _HARNESS_ROOT / "src" / "coverage" / "manifest.json"
 
 @pytest.fixture
 def manifest() -> dict:
-    """The real, committed manifest. Tests depend on its current shape (15
-    pages, 25 routes, 11 tools, 4 personas — see task 5 acceptance)."""
+    """The real, committed manifest. Tests depend on its current shape (19
+    pages, 31 routes, 24 tools, 4 personas as of the 2026-06 source drift —
+    see task 5 acceptance for the original 15/25/11 baseline)."""
     return json.loads(_MANIFEST_PATH.read_text(encoding="utf-8"))
 
 
