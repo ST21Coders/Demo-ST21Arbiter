@@ -13,6 +13,7 @@ import CreateTicketButton from '../components/CreateTicketButton'
    Each entry maps to a real ARBITER AgentCore runtime. `id` is the routing
    target sent to POST /chat (api_handler resolves it → runtime ARN). Live
    status comes from useAgentStatus() (GET /agent-status). */
+   status comes from useAgentStatus()(GET / agent - status). */
 
 const MCP_SERVERS = [
   {
@@ -31,7 +32,7 @@ const MCP_SERVERS = [
     description: 'Answers questions about Zscaler Internet Access URL allowlists and category policy.',
     tools: [
       { name: 'retrieve_zscaler_policy', desc: 'KB lookup of ZIA policy exports' },
-      { name: 'lookup_url_category',      desc: 'Live URL category classification' },
+      { name: 'lookup_url_category', desc: 'Live URL category classification' },
     ],
   },
   {
@@ -40,17 +41,19 @@ const MCP_SERVERS = [
     host: 'agentcore · awsconfig_specialist',
     description: 'Read-only inventory, network/exposure, and change-impact analysis across the AWS account (S3, ELB, ECR, Lambda, EC2, Cognito, VPC) plus Config compliance. Credentials are never returned.',
     tools: [
-      { name: 'list_resources',            desc: 'Account-wide resource inventory (AWS Config query)' },
+      { name: 'list_resources', desc: 'Account-wide resource inventory (AWS Config query)' },
       { name: 'get_resource_relationships', desc: 'Dependency graph for blast-radius / impact' },
-      { name: 'describe_network',          desc: 'VPCs, public/private subnets, open security groups' },
-      { name: 'describe_ec2_instances',    desc: 'EC2 placement + public-exposure posture' },
-      { name: 'describe_load_balancers',   desc: 'ELBv2 scheme, listeners, target groups' },
-      { name: 'describe_lambdas',          desc: 'Lambda config + env-var keys (values redacted)' },
-      { name: 'describe_s3_buckets',       desc: 'Bucket public-access, encryption, versioning' },
+      { name: 'describe_network', desc: 'VPCs, public/private subnets, open security groups' },
+      { name: 'describe_ec2_instances', desc: 'EC2 placement + public-exposure posture' },
+      { name: 'describe_load_balancers', desc: 'ELBv2 scheme, listeners, target groups' },
+      { name: 'describe_lambdas', desc: 'Lambda config + env-var keys (values redacted)' },
+      { name: 'describe_s3_buckets', desc: 'Bucket public-access, encryption, versioning' },
       { name: 'describe_ecr_repositories', desc: 'ECR repos, scan-on-push, tag mutability' },
-      { name: 'describe_cognito',          desc: 'User pools + clients (secrets redacted), removal impact' },
-      { name: 'list_config_rules',         desc: 'AWS Config rules + compliance state' },
-      { name: 'retrieve_awsconfig_docs',   desc: 'KB lookup of control guidance' },
+      { name: 'describe_glue', desc: 'Glue crawlers (state, schedule, last run) + catalog DBs' },
+      { name: 'describe_dynamodb_tables', desc: 'DynamoDB table config — keys/indexes/encryption/PITR (no item data)' },
+      { name: 'describe_cognito', desc: 'User pools + clients (secrets redacted), removal impact' },
+      { name: 'list_config_rules', desc: 'AWS Config rules + compliance state' },
+      { name: 'retrieve_awsconfig_docs', desc: 'KB lookup of control guidance' },
     ],
   },
   {
@@ -60,7 +63,7 @@ const MCP_SERVERS = [
     description: 'Answers questions about Palo Alto perimeter firewall security rules, App-ID enforcement, and egress controls.',
     tools: [
       { name: 'retrieve_paloalto_policy', desc: 'KB lookup of PAN-OS rulebase exports' },
-      { name: 'lookup_firewall_rule',     desc: 'Live PAN-OS rule / App-ID lookup' },
+      { name: 'lookup_firewall_rule', desc: 'Live PAN-OS rule / App-ID lookup' },
     ],
   },
   {
@@ -78,10 +81,10 @@ const MCP_SERVERS = [
     host: 'agentcore · servicenow_specialist',
     description: 'IT-asset change-impact analysis from the ServiceNow CMDB + Change Management (Table/Change REST).',
     tools: [
-      { name: 'query_ci',         desc: 'Resolve an AWS resource/ARN to a CMDB CI' },
+      { name: 'query_ci', desc: 'Resolve an AWS resource/ARN to a CMDB CI' },
       { name: 'get_affected_cis', desc: 'Blast-radius traversal over cmdb_rel_ci' },
-      { name: 'get_ci_owner',     desc: 'Owning/support team for a CI' },
-      { name: 'query_change',     desc: 'Look up a change_request by number' },
+      { name: 'get_ci_owner', desc: 'Owning/support team for a CI' },
+      { name: 'query_change', desc: 'Look up a change_request by number' },
     ],
   },
 ]
@@ -91,30 +94,29 @@ const MCP_SERVERS = [
    stays chat-enabled so a transient /agent-status hiccup never blocks a real
    agent. */
 function deriveStatus(raw, staticPlaceholder) {
-  if (staticPlaceholder)            return { bucket: 'OFFLINE',  label: 'PLACEHOLDER',  chat: false }
-  if (!raw)                         return { bucket: 'PENDING',  label: 'CHECKING…',    chat: true  }
-  if (raw === 'READY')              return { bucket: 'ONLINE',   label: 'READY',        chat: true  }
-  if (raw === 'PLACEHOLDER')        return { bucket: 'OFFLINE',  label: 'NOT DEPLOYED', chat: false }
+  if (staticPlaceholder) return { bucket: 'OFFLINE', label: 'PLACEHOLDER', chat: false }
+  if (!raw) return { bucket: 'PENDING', label: 'CHECKING…', chat: true }
+  if (raw === 'READY') return { bucket: 'ONLINE', label: 'READY', chat: true }
+  if (raw === 'PLACEHOLDER') return { bucket: 'OFFLINE', label: 'NOT DEPLOYED', chat: false }
   if (raw.endsWith('FAILED') || raw === 'DELETING')
-                                    return { bucket: 'OFFLINE',  label: raw,            chat: false }
+    return { bucket: 'OFFLINE', label: raw, chat: false }
   return { bucket: 'DEGRADED', label: raw, chat: true } // CREATING / UPDATING / …
 }
 
 /* ─── Components ─────────────────────────────────────────────────────── */
 
 // Status bucket → tailwind colour classes for the dot + label.
-const DOT_CLASS  = { ONLINE: 'bg-emerald-500', DEGRADED: 'bg-amber-500', PENDING: 'bg-slate-400', OFFLINE: 'bg-red-500' }
+const DOT_CLASS = { ONLINE: 'bg-emerald-500', DEGRADED: 'bg-amber-500', PENDING: 'bg-slate-400', OFFLINE: 'bg-red-500' }
 const TEXT_CLASS = { ONLINE: 'text-emerald-600', DEGRADED: 'text-amber-600', PENDING: 'text-slate-500', OFFLINE: 'text-red-600' }
 
 function ServerListItem({ server, selected, onSelect }) {
   return (
     <button
       onClick={() => onSelect(server)}
-      className={`w-full text-left px-3 py-3 rounded-lg border transition-all ${
-        selected?.id === server.id
+      className={`w-full text-left px-3 py-3 rounded-lg border transition-all ${selected?.id === server.id
           ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
           : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
-      }`}
+        }`}
     >
       <div className="flex items-center gap-2 mb-1">
         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${DOT_CLASS[server.bucket] || 'bg-slate-400'}`} />
@@ -187,10 +189,10 @@ function Message({ msg }) {
 
 const SUGGESTED = {
   sharepoint: ['What does MIG-POL-001 say about cloud collaboration tools?', 'Find the remote access policy', 'Search policies for MFA requirements'],
-  zscaler:    ['Is dropbox.com allowed?', 'What URL categories are blocked?', 'Check the TeamViewer category'],
-  paloalto:   ['Is outbound tor traffic allowed at the perimeter?', 'Show the egress security rules', 'What does PAN-SEC-EGRESS-ANYANY-ALLOW-001 permit?'],
-  awsconfig:  ['List non-compliant resources', 'Which Config rules are failing?', 'Show S3 encryption compliance'],
-  jira:       ['List my open issues', 'Show issues in the MIG project', 'What is the status of MIG-123?'],
+  zscaler: ['Is dropbox.com allowed?', 'What URL categories are blocked?', 'Check the TeamViewer category'],
+  paloalto: ['Is outbound tor traffic allowed at the perimeter?', 'Show the egress security rules', 'What does PAN-SEC-EGRESS-ANYANY-ALLOW-001 permit?'],
+  awsconfig: ['List non-compliant resources', 'Which Config rules are failing?', 'Show S3 encryption compliance'],
+  jira: ['List my open issues', 'Show issues in the MIG project', 'What is the status of MIG-123?'],
   servicenow: [],
 }
 
@@ -232,7 +234,7 @@ export default function MCPChat() {
 
   // Fetch the user's session list once on mount.
   useEffect(() => {
-    listSessions().catch(() => {})
+    listSessions().catch(() => { })
   }, [listSessions])
 
   // Reset chat when the user picks a different server (only if no session is loaded).
@@ -367,9 +369,8 @@ export default function MCPChat() {
               <button
                 key={s.session_id}
                 onClick={() => openSession(s.session_id, s.title)}
-                className={`w-full text-left px-2 py-1.5 rounded text-xs hover:bg-slate-100 transition-colors ${
-                  activeSessionId === s.session_id ? 'bg-indigo-50 border border-indigo-200' : ''
-                }`}
+                className={`w-full text-left px-2 py-1.5 rounded text-xs hover:bg-slate-100 transition-colors ${activeSessionId === s.session_id ? 'bg-indigo-50 border border-indigo-200' : ''
+                  }`}
               >
                 <p className="font-medium text-slate-800 truncate">{s.title || s.session_id}</p>
                 <p className="text-[10px] text-slate-500">
