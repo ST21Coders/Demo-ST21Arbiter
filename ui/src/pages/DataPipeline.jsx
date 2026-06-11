@@ -258,6 +258,82 @@ function SourceCard({ source }) {
   )
 }
 
+// ── Two-path flow explainer (static — shown beneath the dropzone) ───────────
+// Drives off the same STEP_DEFS / STEP_DEFS_STRUCTURED used by UploadRow, so the
+// explainer can't drift from how an upload actually progresses. Purely cosmetic:
+// neutral chips, no live status (per-upload status lives in UploadRow below).
+
+const PATH_DEFS = [
+  {
+    id: 'policy',
+    title: 'Policy Documents',
+    subtitle: '.pdf · .docx · .txt · .md · .json → Knowledge Base',
+    steps: STEP_DEFS,
+    Icon: FileText,
+    accent: { bg: '#eef2ff', icon: '#4f46e5', border: '#c7d2fe' },
+  },
+  {
+    id: 'structured',
+    title: 'Structured Exports',
+    subtitle: '.csv → Glue / Athena catalog',
+    steps: STEP_DEFS_STRUCTURED,
+    Icon: Database,
+    accent: { bg: '#fff7ed', icon: '#ea580c', border: '#fed7aa' },
+  },
+]
+
+const STEP_ICON = { raw: Upload, processed: Server, kb: Database, catalog: Database, scan: CheckCircle }
+
+function PathCard({ path }) {
+  const HeaderIcon = path.Icon
+  return (
+    <div className="rounded-xl p-4 bg-white"
+         style={{ border: `1px solid ${path.accent.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+             style={{ background: path.accent.bg }}>
+          <HeaderIcon size={16} style={{ color: path.accent.icon }} />
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-slate-900 text-sm">{path.title}</p>
+          <p className="text-xs text-slate-500 truncate" title={path.subtitle}>{path.subtitle}</p>
+        </div>
+      </div>
+      <div>
+        {path.steps.map((step, i) => {
+          const Icon = STEP_ICON[step.key] || Clock
+          return (
+            <div key={step.key}>
+              <div className="flex items-start gap-2.5">
+                <span className="flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md border whitespace-nowrap"
+                      style={{ background: STATUS_STYLE.pending.bg, borderColor: STATUS_STYLE.pending.border, color: '#334155' }}>
+                  <Icon size={12} style={{ color: path.accent.icon }} />
+                  {step.label}
+                </span>
+                <p className="text-[10px] text-slate-400 leading-snug pt-1.5">{step.desc}</p>
+              </div>
+              {i < path.steps.length - 1 && (
+                <div className="text-slate-300 text-sm leading-none pl-3 py-0.5 select-none">↓</div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function PipelinePaths() {
+  return (
+    <div>
+      <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-3">Processing Paths</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {PATH_DEFS.map(p => <PathCard key={p.id} path={p} />)}
+      </div>
+    </div>
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DataPipeline() {
@@ -356,6 +432,9 @@ export default function DataPipeline() {
 
       {/* Upload zone */}
       <UploadDropzone onFile={handleFile} />
+
+      {/* Two-path flow explainer */}
+      <PipelinePaths />
 
       {/* Recent uploads */}
       {uploads.length > 0 && (
