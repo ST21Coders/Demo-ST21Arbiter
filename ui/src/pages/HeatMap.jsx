@@ -619,7 +619,7 @@ function DomainSourceMatrixView({ findings, loading, onCellClick }) {
                       <button
                         onClick={() => count > 0 && onCellClick?.(dk, sp)}
                         disabled={count === 0}
-                        className={`w-24 h-[66px] rounded-lg font-bold text-lg transition-transform hover:scale-105 disabled:cursor-default disabled:hover:scale-100 ${cellClass(count)}`}
+                        className={`w-24 h-16 rounded-lg font-bold text-lg transition-transform hover:scale-105 disabled:cursor-default disabled:hover:scale-100 ${cellClass(count)}`}
                       >
                         {count > 0 ? count : '—'}
                       </button>
@@ -668,7 +668,7 @@ function SourceSeverityMatrixView({ findings }) {
                   const count = matrix[domain]?.[sev] ?? 0
                   return (
                     <td key={sev} className="text-center py-1">
-                      <div className={`w-24 h-[66px] rounded-lg font-bold text-lg flex items-center justify-center ${cellClass(count)}`}>
+                      <div className={`w-24 h-16 rounded-lg font-bold text-lg flex items-center justify-center ${cellClass(count)}`}>
                         {count > 0 ? count : '—'}
                       </div>
                     </td>
