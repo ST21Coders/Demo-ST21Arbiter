@@ -128,12 +128,19 @@ def target_base_url() -> str:
 
 @pytest.fixture(scope="session")
 def api_base_url() -> str:
-    """API Gateway base URL.
+    """API Gateway invoke URL (the host that actually serves /conversations,
+    /findings, /token-usage, etc.).
 
     Read order:
-      1. `API_BASE_URL` env (preferred — operator sets it explicitly).
+      1. `API_BASE_URL` env (preferred, operator sets it explicitly).
       2. `TARGET_API_URL` env (legacy name).
-      3. Fallback: `${TARGET_BASE_URL}/api`.
+
+    No fallback to `${TARGET_BASE_URL}/api`. CloudFront does NOT proxy
+    /api/* to API Gateway in this deployment, so a fallback URL returns
+    the SPA's index.html for every API request and the classifiers
+    silently misread that as "API accepts X". Source of truth: CFN
+    export dev-st21arbiter-poc-ApiEndpoint. Module-skips if neither
+    var is set.
     """
     explicit = os.environ.get("API_BASE_URL", "").strip()
     if explicit:
@@ -141,10 +148,12 @@ def api_base_url() -> str:
     legacy = os.environ.get("TARGET_API_URL", "").strip()
     if legacy:
         return legacy.rstrip("/")
-    base = os.environ.get(
-        "TARGET_BASE_URL", "https://d5u0vv1zl3eqd.cloudfront.net"
-    ).strip()
-    return f"{base.rstrip('/')}/api"
+    pytest.skip(
+        "layer requires API_BASE_URL or TARGET_API_URL to be set "
+        "(CFN export dev-st21arbiter-poc-ApiEndpoint). CloudFront does "
+        "not proxy /api/* in this deployment.",
+        allow_module_level=True,
+    )
 
 
 @pytest.fixture(scope="session")

@@ -61,10 +61,16 @@ have READ-ONLY visibility into the AWS account this runs in and answer two kinds
 of question:
 
   1. Inventory / configuration — what resources exist (S3, load balancers, ECR,
-     Lambda, EC2, Cognito, VPC/subnets, etc.) and how they are set up. Use:
-       list_resources, get_resource_relationships, describe_network,
-       describe_ec2_instances, describe_load_balancers, describe_lambdas,
-       describe_s3_buckets, describe_ecr_repositories, describe_cognito.
+     Lambda, EC2, Cognito, VPC/subnets, etc.) and how they are set up. PREFER the
+     direct describe tools — they always work: describe_s3_buckets,
+     describe_network (VPCs/subnets/security groups), describe_ec2_instances,
+     describe_load_balancers, describe_lambdas, describe_ecr_repositories,
+     describe_glue, describe_dynamodb_tables, describe_cognito. The AWS Config
+     tools (list_resources, get_resource_relationships) depend on the AWS Config
+     recorder, which may be OFF — if they return nothing or an error, immediately
+     fall back to the describe_* tools above. (Glue crawlers aren't in AWS Config
+     at all — use describe_glue. describe_dynamodb_tables returns table CONFIG
+     only, never item data.)
   2. Security posture / impact-radius — "are my resources in a private subnet?",
      "what is exposed to the public internet?", "what happens if I remove this
      Cognito pool / open this EC2 to a public subnet?" Gather the facts with the
@@ -105,6 +111,8 @@ ecr = boto3.client("ecr", region_name=REGION)
 lambda_client = boto3.client("lambda", region_name=REGION)
 s3 = boto3.client("s3", region_name=REGION)
 cognito = boto3.client("cognito-idp", region_name=REGION)
+glue = boto3.client("glue", region_name=REGION)
+dynamodb = boto3.client("dynamodb", region_name=REGION)
 
 
 # ──────────────────────────── credential redaction (choke point) ─────────
@@ -219,6 +227,24 @@ def _resolve_type(name: str) -> str:
     return _TYPE_ALIASES.get(n.lower().replace(" ", ""), n)
 
 
+# When AWS Config recording is off, the Config-backed tools have no data — point
+# the model at the direct describe tools, which don't depend on the recorder.
+_DESCRIBE_HINT = ("Use the direct describe tools instead (they do not depend on "
+                  "AWS Config): describe_s3_buckets, describe_network (VPCs/subnets/"
+                  "security groups), describe_ec2_instances, describe_load_balancers, "
+                  "describe_lambdas, describe_ecr_repositories, describe_glue, "
+                  "describe_dynamodb_tables, describe_cognito.")
+
+
+def _config_recording() -> bool:
+    """True if an AWS Config recorder is actively recording in this region."""
+    try:
+        st = config.describe_configuration_recorder_status().get("ConfigurationRecordersStatus", [])
+        return any(s.get("recording") for s in st)
+    except Exception:
+        return False
+
+
 # ──────────────────────────── inventory / detail tools ───────────────────
 @tool
 def list_resources(resource_type: str = "") -> str:
@@ -231,6 +257,9 @@ def list_resources(resource_type: str = "") -> str:
     Args:
         resource_type: Optional resource type or alias to filter by.
     """
+    if not _config_recording():
+        return ("AWS Config recording is not enabled in this region, so the Config "
+                "inventory is empty. " + _DESCRIBE_HINT)
     try:
         if not resource_type:
             expr = "SELECT resourceType, COUNT(*) GROUP BY resourceType ORDER BY COUNT(*) DESC"
@@ -241,13 +270,13 @@ def list_resources(resource_type: str = "") -> str:
         resp = config.select_resource_config(Expression=expr, Limit=100)
         rows = [json.loads(r) if isinstance(r, str) else r for r in resp.get("Results", [])]
         if not rows:
-            return ("No resources returned. The AWS Config recorder may not be enabled, "
-                    "or it is not recording this resource type. Try a direct describe_* tool.")
+            return ("No resources returned from AWS Config (recorder may not cover this "
+                    "type). " + _DESCRIBE_HINT)
         return _safe({"query": expr, "count": len(rows),
                       "more": bool(resp.get("NextToken")), "results": rows})
     except Exception as e:
         log.exception("list_resources failed")
-        return f"(error querying AWS Config inventory: {e})"
+        return f"(AWS Config query failed: {e}). {_DESCRIBE_HINT}"
 
 
 @tool
@@ -260,6 +289,9 @@ def get_resource_relationships(resource_type: str, resource_id: str) -> str:
         resource_id: The resource id (e.g. 'i-0abc...', a bucket name, a user-pool id).
     """
     rt = _resolve_type(resource_type)
+    if not _config_recording():
+        return ("AWS Config recording is not enabled in this region, so resource "
+                "relationships are unavailable. " + _DESCRIBE_HINT)
     try:
         resp = config.batch_get_resource_config(
             resourceKeys=[{"resourceType": rt, "resourceId": resource_id}])
@@ -559,6 +591,126 @@ def describe_ecr_repositories() -> str:
         return f"(error describing ECR repositories: {e})"
 
 
+def _glue_targets(targets: dict) -> list[dict]:
+    """Flatten a crawler's target spec to a readable list."""
+    out: list[dict] = []
+    for t in targets.get("S3Targets", []):
+        out.append({"type": "s3", "path": t.get("Path")})
+    for t in targets.get("JdbcTargets", []):
+        out.append({"type": "jdbc", "connection": t.get("ConnectionName"), "path": t.get("Path")})
+    for t in targets.get("CatalogTargets", []):
+        out.append({"type": "catalog", "database": t.get("DatabaseName"),
+                    "tables": t.get("Tables", [])})
+    for t in targets.get("DynamoDBTargets", []):
+        out.append({"type": "dynamodb", "path": t.get("Path")})
+    return out
+
+
+@tool
+def describe_glue(name_contains: str = "") -> str:
+    """Glue crawlers and Data Catalog databases: crawler state, target, schedule,
+    role, and last-crawl status. AWS Config does NOT record Glue crawlers, so this
+    is the source for them (e.g. the structured-ingestion crawler).
+
+    Args:
+        name_contains: Optional substring to filter crawler / database names.
+    """
+    try:
+        crawlers = []
+        for page in glue.get_paginator("get_crawlers").paginate():
+            for c in page.get("Crawlers", []):
+                name = c.get("Name", "")
+                if name_contains and name_contains.lower() not in name.lower():
+                    continue
+                last = c.get("LastCrawl") or {}
+                crawlers.append({
+                    "name": name, "state": c.get("State"),
+                    "database": c.get("DatabaseName"),
+                    "role": c.get("Role"),
+                    "schedule": (c.get("Schedule") or {}).get("ScheduleExpression"),
+                    "targets": _glue_targets(c.get("Targets") or {}),
+                    "last_crawl": {"status": last.get("Status"),
+                                   "start_time": last.get("StartTime"),
+                                   "error": last.get("ErrorMessage")},
+                })
+        databases = []
+        try:
+            for page in glue.get_paginator("get_databases").paginate():
+                for d in page.get("DatabaseList", []):
+                    dn = d.get("Name", "")
+                    if name_contains and name_contains.lower() not in dn.lower():
+                        continue
+                    databases.append({"name": dn, "location": d.get("LocationUri")})
+        except Exception:
+            pass
+        if not crawlers and not databases:
+            return "No Glue crawlers or databases found (or none matched the filter)."
+        return _safe({"crawler_count": len(crawlers), "crawlers": crawlers,
+                      "database_count": len(databases), "databases": databases})
+    except Exception as e:
+        log.exception("describe_glue failed")
+        return f"(error describing Glue: {e})"
+
+
+@tool
+def describe_dynamodb_tables(name_contains: str = "") -> str:
+    """DynamoDB tables — METADATA only (never reads item data): key schema,
+    billing mode, item count, size, GSIs/LSIs, encryption (SSE/KMS), streams,
+    point-in-time recovery, and status. Use for "what DynamoDB tables exist?" /
+    "how is table X configured / is it encrypted / backed up?".
+
+    Args:
+        name_contains: Optional substring to filter table names.
+    """
+    try:
+        names: list[str] = []
+        for page in dynamodb.get_paginator("list_tables").paginate():
+            names.extend(page.get("TableNames", []))
+        if name_contains:
+            names = [n for n in names if name_contains.lower() in n.lower()]
+        if not names:
+            return "No DynamoDB tables found (or none matched the filter)."
+        out = []
+        for n in names[:50]:
+            try:
+                t = dynamodb.describe_table(TableName=n)["Table"]
+            except Exception as e:
+                out.append({"name": n, "error": str(e)})
+                continue
+            sse = t.get("SSEDescription") or {}
+            prov = t.get("ProvisionedThroughput") or {}
+            info: dict[str, Any] = {
+                "name": n, "status": t.get("TableStatus"),
+                "item_count": t.get("ItemCount"), "size_bytes": t.get("TableSizeBytes"),
+                "billing_mode": (t.get("BillingModeSummary") or {}).get("BillingMode")
+                                or ("PROVISIONED" if prov.get("ReadCapacityUnits") else None),
+                "key_schema": [{"attr": k["AttributeName"], "key": k["KeyType"]} for k in t.get("KeySchema", [])],
+                "global_secondary_indexes": [g["IndexName"] for g in t.get("GlobalSecondaryIndexes", [])],
+                "local_secondary_indexes": [l["IndexName"] for l in t.get("LocalSecondaryIndexes", [])],
+                "stream": (t.get("StreamSpecification") or {}).get("StreamViewType")
+                          if (t.get("StreamSpecification") or {}).get("StreamEnabled") else None,
+                "encryption": ({"type": sse.get("SSEType"), "kms_key": sse.get("KMSMasterKeyArn")}
+                               if sse else "DEFAULT (AWS-owned key)"),
+                "deletion_protection": t.get("DeletionProtectionEnabled"),
+            }
+            # Point-in-time recovery is a separate read-only describe call.
+            try:
+                pitr = dynamodb.describe_continuous_backups(TableName=n)
+                info["pitr"] = (pitr.get("ContinuousBackupsDescription", {})
+                                .get("PointInTimeRecoveryDescription", {})
+                                .get("PointInTimeRecoveryStatus"))
+            except Exception:
+                pass
+            out.append(info)
+        result: dict[str, Any] = {"count": len(out), "tables": out}
+        if len(names) > 50:
+            result["note"] = f"{len(names)} tables total; showing first 50 (narrow with name_contains)."
+        return _safe(result)
+    except Exception as e:
+        log.exception("describe_dynamodb_tables failed")
+        return f"(error describing DynamoDB tables: {e})"
+
+
 @tool
 def describe_cognito(user_pool_id: str = "") -> str:
     """Cognito user pools and their app clients (client SECRETS are redacted at
@@ -763,6 +915,8 @@ def build_agent() -> Agent:
             describe_lambdas,
             describe_s3_buckets,
             describe_ecr_repositories,
+            describe_glue,
+            describe_dynamodb_tables,
             describe_cognito,
             # compliance + docs
             list_config_rules,
