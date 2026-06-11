@@ -12,8 +12,7 @@ import CreateTicketButton from '../components/CreateTicketButton'
 /* ─── MCP server registry ────────────────────────────────────────────
    Each entry maps to a real ARBITER AgentCore runtime. `id` is the routing
    target sent to POST /chat (api_handler resolves it → runtime ARN). Live
-   status comes from useAgentStatus() (GET /agent-status); ServiceNow is a
-   static placeholder until its agent ships. */
+   status comes from useAgentStatus() (GET /agent-status). */
 
 const MCP_SERVERS = [
   {
@@ -37,14 +36,21 @@ const MCP_SERVERS = [
   },
   {
     id: 'awsconfig',
-    name: 'AWS Config Specialist',
+    name: 'AWS Resource & Posture Specialist',
     host: 'agentcore · awsconfig_specialist',
-    description: 'Reads AWS Config rules and live compliance state for infrastructure resources.',
+    description: 'Read-only inventory, network/exposure, and change-impact analysis across the AWS account (S3, ELB, ECR, Lambda, EC2, Cognito, VPC) plus Config compliance. Credentials are never returned.',
     tools: [
-      { name: 'list_config_rules',           desc: 'List AWS Config rules' },
-      { name: 'get_rule_compliance',         desc: 'Compliance state for a rule' },
-      { name: 'list_noncompliant_resources', desc: 'Resources failing a rule' },
-      { name: 'retrieve_awsconfig_docs',     desc: 'KB lookup of Config guidance' },
+      { name: 'list_resources',            desc: 'Account-wide resource inventory (AWS Config query)' },
+      { name: 'get_resource_relationships', desc: 'Dependency graph for blast-radius / impact' },
+      { name: 'describe_network',          desc: 'VPCs, public/private subnets, open security groups' },
+      { name: 'describe_ec2_instances',    desc: 'EC2 placement + public-exposure posture' },
+      { name: 'describe_load_balancers',   desc: 'ELBv2 scheme, listeners, target groups' },
+      { name: 'describe_lambdas',          desc: 'Lambda config + env-var keys (values redacted)' },
+      { name: 'describe_s3_buckets',       desc: 'Bucket public-access, encryption, versioning' },
+      { name: 'describe_ecr_repositories', desc: 'ECR repos, scan-on-push, tag mutability' },
+      { name: 'describe_cognito',          desc: 'User pools + clients (secrets redacted), removal impact' },
+      { name: 'list_config_rules',         desc: 'AWS Config rules + compliance state' },
+      { name: 'retrieve_awsconfig_docs',   desc: 'KB lookup of control guidance' },
     ],
   },
   {
@@ -68,11 +74,15 @@ const MCP_SERVERS = [
   },
   {
     id: 'servicenow',
-    name: 'ServiceNow',
-    host: 'placeholder · agent not deployed',
-    placeholder: true,
-    description: 'ITSM integration for INC / CHG / RITM tickets. Specialist agent not yet deployed.',
-    tools: [],
+    name: 'ServiceNow Specialist',
+    host: 'agentcore · servicenow_specialist',
+    description: 'IT-asset change-impact analysis from the ServiceNow CMDB + Change Management (Table/Change REST).',
+    tools: [
+      { name: 'query_ci',         desc: 'Resolve an AWS resource/ARN to a CMDB CI' },
+      { name: 'get_affected_cis', desc: 'Blast-radius traversal over cmdb_rel_ci' },
+      { name: 'get_ci_owner',     desc: 'Owning/support team for a CI' },
+      { name: 'query_change',     desc: 'Look up a change_request by number' },
+    ],
   },
 ]
 

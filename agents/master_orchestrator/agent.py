@@ -14,6 +14,7 @@ Environment variables (set via AgentCore Runtime configuration):
   AWSCONFIG_RUNTIME_ARN    ARN of the awsconfig_specialist runtime
   ZSCALER_RUNTIME_ARN      ARN of the zscaler_specialist runtime
   JIRA_RUNTIME_ARN         ARN of the jira_specialist runtime
+  SERVICENOW_RUNTIME_ARN   ARN of the servicenow_specialist runtime
   MODEL_ID                 Bedrock model (default: Nova 2 Lite cross-region inference profile)
   GUARDRAIL_ID             Bedrock guardrail (optional)
   GUARDRAIL_VERSION        Guardrail version (default: DRAFT)
@@ -53,6 +54,7 @@ AWSCONFIG_RUNTIME_ARN = os.environ.get("AWSCONFIG_RUNTIME_ARN", "")
 ZSCALER_RUNTIME_ARN = os.environ.get("ZSCALER_RUNTIME_ARN", "")
 PALOALTO_RUNTIME_ARN = os.environ.get("PALOALTO_RUNTIME_ARN", "")
 JIRA_RUNTIME_ARN = os.environ.get("JIRA_RUNTIME_ARN", "")
+SERVICENOW_RUNTIME_ARN = os.environ.get("SERVICENOW_RUNTIME_ARN", "")
 # Optional: when set, the scan pulls Zscaler enforcement observations live from
 # the structured_specialist (Athena over the Glue-catalogued zscaler_rules table)
 # instead of the bundled fixtures. Falls back to fixtures on any error.
@@ -65,6 +67,7 @@ _missing = [
         ("ZSCALER_RUNTIME_ARN", ZSCALER_RUNTIME_ARN),
         ("PALOALTO_RUNTIME_ARN", PALOALTO_RUNTIME_ARN),
         ("JIRA_RUNTIME_ARN", JIRA_RUNTIME_ARN),
+        ("SERVICENOW_RUNTIME_ARN", SERVICENOW_RUNTIME_ARN),
     ] if not val
 ]
 if _missing:
@@ -82,11 +85,14 @@ firewall rules, and report results to enterprise security analysts.
 
 WORKFLOW
 1. Call the relevant specialist tools (sharepoint_lookup, awsconfig_lookup,
-   zscaler_lookup, paloalto_lookup, jira_lookup) to gather evidence. Run them
-   in parallel when the query spans multiple domains. Skip a tool if the query
-   clearly does not touch that source. Use paloalto_lookup for perimeter
-   firewall / App-ID / egress questions, and jira_lookup for questions about
-   Jira issues/tickets or to raise a ticket for a confirmed conflict.
+   zscaler_lookup, paloalto_lookup, jira_lookup, servicenow_lookup) to gather
+   evidence. Run them in parallel when the query spans multiple domains. Skip a
+   tool if the query clearly does not touch that source. Use paloalto_lookup for
+   perimeter firewall / App-ID / egress questions, jira_lookup for questions
+   about Jira issues/tickets or to raise a ticket for a confirmed conflict, and
+   servicenow_lookup for IT-asset change-impact analysis — which CIs a change
+   affects, which team owns the work, and which team must approve it (CMDB +
+   Change Management).
 2. When the user asks about LIVE findings, the latest scan, or current
    compliance posture (rather than what a policy *says*), prefer the
    conflicts/scan-history tools (query_conflicts, query_scan_runs) so the
@@ -228,6 +234,20 @@ def jira_lookup(query: str) -> str:
             or "create a bug for the dropbox URL conflict".
     """
     return _invoke_runtime(JIRA_RUNTIME_ARN, query)
+
+
+@tool
+def servicenow_lookup(query: str) -> str:
+    """Look up the ServiceNow CMDB / Change Management for IT-asset change-impact
+    analysis — which CIs are affected by a change, which team owns the work, and
+    whether CAB approval is required.
+
+    Args:
+        query: Natural-language query, e.g. "what is the impact of changing
+            mig-prod-claims-data-primary and who owns it?" or "who approves a
+            change to the prod claims ALB?".
+    """
+    return _invoke_runtime(SERVICENOW_RUNTIME_ARN, query)
 
 
 # ──────────────────────────── Memory helpers ──────────────────────
@@ -395,7 +415,8 @@ def build_agent() -> Agent:
     return Agent(
         model=BedrockModel(**model_kwargs),
         system_prompt=SYSTEM_PROMPT,
-        tools=[sharepoint_lookup, awsconfig_lookup, zscaler_lookup, paloalto_lookup, jira_lookup],
+        tools=[sharepoint_lookup, awsconfig_lookup, zscaler_lookup, paloalto_lookup,
+               jira_lookup, servicenow_lookup],
     )
 
 

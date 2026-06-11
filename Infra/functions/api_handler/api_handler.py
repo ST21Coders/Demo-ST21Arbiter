@@ -65,6 +65,7 @@ SPECIALIST_RUNTIME_ARNS = {
     "zscaler":    os.environ.get("ZSCALER_RUNTIME_ARN", "").strip(),
     "paloalto":   os.environ.get("PALOALTO_RUNTIME_ARN", "").strip(),
     "jira":       os.environ.get("JIRA_RUNTIME_ARN", "").strip(),
+    "servicenow": os.environ.get("SERVICENOW_RUNTIME_ARN", "").strip(),
 }
 SESSIONS_TABLE = os.environ.get("SESSIONS_TABLE", "")
 CONFLICTS_TABLE = os.environ.get("CONFLICTS_TABLE", "")
@@ -203,6 +204,9 @@ def handler(event, context):
 
     if path == "/jira/comment" and method == "POST":
         return _handle_jira_comment(event)
+
+    if path == "/servicenow/impact-analysis" and method == "POST":
+        return _handle_servicenow_impact(event)
 
     if path == "/scan/dry-run" and method == "POST":
         return _handle_scan_dry_run(event)
@@ -1212,6 +1216,7 @@ _AGENT_DISPLAY_NAMES = {
     "zscaler":    "Zscaler ZIA Specialist",
     "paloalto":   "Palo Alto NGFW Specialist",
     "jira":       "JIRA Specialist",
+    "servicenow": "ServiceNow Specialist",
 }
 
 
@@ -1221,8 +1226,8 @@ def _handle_agent_status(event):
     Calls bedrock-agentcore-control list_agent_runtimes and matches each
     specialist by its configured ARN (patched onto this Lambda by
     deploy_agents.py) → {id, name, status}. Agents not yet deployed (no ARN, or
-    the ARN isn't in the live list) report PLACEHOLDER. ServiceNow is a static
-    placeholder (no agent). Matching by ARN avoids hardcoding the project name.
+    the ARN isn't in the live list) report PLACEHOLDER. Matching by ARN avoids
+    hardcoding the project name.
     """
     arn_to_status: dict[str, str] = {}
     try:
@@ -1238,8 +1243,6 @@ def _handle_agent_status(event):
         arn = SPECIALIST_RUNTIME_ARNS.get(agent_id, "")
         status = arn_to_status.get(arn, "PLACEHOLDER") if arn else "PLACEHOLDER"
         servers.append({"id": agent_id, "name": name, "status": status})
-    # ServiceNow has no runtime yet — static placeholder card.
-    servers.append({"id": "servicenow", "name": "ServiceNow", "status": "PLACEHOLDER"})
     return _ok({"servers": servers})
 
 
@@ -1478,6 +1481,76 @@ def _handle_jira_comment(event):
     _audit("JIRA_COMMENTED", cr_id or jira_key, user_id, "COMPLETED",
            {"jira_ticket_key": jira_key, "comment": comment, "cr_id": cr_id})
     return _ok({"status": "commented", "jira_ticket_key": jira_key, "url": parsed.get("url")})
+
+
+# ──────────────────────────── /servicenow/impact-analysis ───────
+def _handle_servicenow_impact(event):
+    """IT-asset change-impact analysis via the servicenow_specialist runtime.
+
+    Body: {resource, target_environment?, severity?, draft_change?}. The runtime
+    resolves the CMDB CI, walks cmdb_rel_ci for the blast radius, finds the
+    owning team, and (when draft_change) drafts a change_request with the
+    affected CIs attached. We graft the recommended approver chain here via
+    _build_approver_chain (single source of truth, reused from the CR workflow)
+    so "who approves" is consistent with ARBITER's own change requests.
+
+    Falls back to a structured mock when the runtime isn't deployed, so the
+    Impact Analysis page still renders (mirrors _handle_jira_create).
+    """
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+    resource = (body.get("resource") or body.get("target_resource") or "").strip()
+    if not resource:
+        return _err(400, "Missing 'resource'")
+    target_env = (body.get("target_environment") or "PROD").strip().upper()
+    severity = (body.get("severity") or "HIGH").strip().upper()
+    draft_change = bool(body.get("draft_change"))
+    approver_chain = _build_approver_chain(target_env, severity)
+
+    sn_arn = SPECIALIST_RUNTIME_ARNS.get("servicenow")
+    if not sn_arn:
+        # Runtime not deployed — return the structure so the UI page works.
+        return _ok({
+            "configured": False, "changed_resource": {"input": resource},
+            "affected_cis": [], "owner_team": "", "cab_required": target_env == "PROD",
+            "approver_chain": approver_chain, "target_environment": target_env,
+            "severity": severity,
+            "note": "ServiceNow runtime not configured — run scripts/deploy_agents.py.",
+        })
+
+    try:
+        resp = agentcore.invoke_agent_runtime(
+            agentRuntimeArn=sn_arn,
+            payload=json.dumps({
+                "action": "impact_analysis",
+                "resource": resource,
+                "target_environment": target_env,
+                "severity": severity,
+                "draft_change": draft_change,
+            }).encode("utf-8"),
+            contentType="application/json",
+            accept="application/json",
+        )
+        result = json.loads(resp["response"].read().decode("utf-8"))
+    except Exception as e:
+        logger.exception("ServiceNow impact-analysis invocation failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+
+    if result.get("error"):
+        return _err(502, f"ServiceNow impact analysis failed: {result['error']}")
+
+    # Graft the approver chain (reused from the CR workflow) onto the CMDB facts.
+    result["approver_chain"] = approver_chain
+    user_id = _caller_user_id(event) or "anonymous"
+    change = (result.get("change") or {})
+    _audit("SERVICENOW_IMPACT_ANALYSIS", resource, user_id, "COMPLETED", {
+        "affected_count": len(result.get("affected_cis") or []),
+        "owner_team": result.get("owner_team"),
+        "drafted_change": change.get("number"),
+    })
+    return _ok(result)
 
 
 # ──────────────────────────── POST /scan ────────────────────────

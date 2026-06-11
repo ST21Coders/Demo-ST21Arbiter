@@ -80,6 +80,7 @@ export const AGENT_MODELS = {
   sharepoint: import.meta.env.VITE_SHAREPOINT_MODEL_ID || NOVA_LITE,
   awsconfig:  import.meta.env.VITE_AWSCONFIG_MODEL_ID  || NOVA_LITE,
   zscaler:    import.meta.env.VITE_ZSCALER_MODEL_ID    || NOVA_LITE,
+  servicenow: import.meta.env.VITE_SERVICENOW_MODEL_ID || NOVA_LITE,
 }
 
 // Friendly display name for a raw foundation-model ID. Matched by substring so

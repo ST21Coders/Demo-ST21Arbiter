@@ -25,7 +25,7 @@ export const PERSONAS = {
     role: 'GRC Analyst',
     color: '#6366f1',
     gradient: 'linear-gradient(135deg, #6366f1, #4338ca)',
-    access: ['dashboard', 'findings', 'heatmap', 'governance', 'audit', 'analyst', 'whatif'],
+    access: ['dashboard', 'findings', 'heatmap', 'governance', 'audit', 'analyst', 'whatif', 'impact-analysis'],
     badge: 'GRC',
     description: 'Runs AI scans, reviews all findings, tracks compliance posture across PCI-DSS/NAIC/SOC2, and uses chatbot for drill-down queries.',
   },
@@ -38,7 +38,7 @@ export const PERSONAS = {
     role: 'SOC Analyst',
     color: '#f472b6',
     gradient: 'linear-gradient(135deg, #f472b6, #db2777)',
-    access: ['dashboard', 'findings', 'heatmap', 'actions', 'audit', 'analyst', 'whatif'],
+    access: ['dashboard', 'findings', 'heatmap', 'actions', 'audit', 'analyst', 'whatif', 'impact-analysis'],
     badge: 'SOC',
     description: 'Alert-driven — sees new detections on the dashboard, investigates broader exposure via chatbot, initiates remediation actions.',
   },
@@ -51,7 +51,7 @@ export const PERSONAS = {
     role: 'CISO',
     color: '#f59e0b',
     gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
-    access: ['dashboard', 'findings', 'heatmap', 'actions', 'governance', 'audit', 'analyst', 'whatif', 'llm-control', 'pipeline', 'mcp-chat', 'integrations', 'token-usage'],
+    access: ['dashboard', 'findings', 'heatmap', 'actions', 'governance', 'audit', 'analyst', 'whatif', 'llm-control', 'pipeline', 'mcp-chat', 'integrations', 'token-usage', 'impact-analysis'],
     badge: 'CISO',
     description: 'Executive approver — reviews critical findings, approves or rejects change requests requiring CISO sign-off, monitors compliance posture.',
   },
@@ -72,6 +72,7 @@ export const ROUTE_ACCESS = {
   '/mcp-chat':    'mcp-chat',
   '/integrations': 'integrations',
   '/token-usage': 'token-usage',
+  '/impact-analysis': 'impact-analysis',
   // '/personas' and '/settings' have no entry — always accessible to any
   // authenticated persona (demo page / personal preferences respectively).
 }

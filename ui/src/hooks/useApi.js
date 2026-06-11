@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { API_URL, CHAT_URL, USE_MOCK } from '../config'
-import { MOCK_CONFLICTS, MOCK_CHANGE_REQUESTS, MOCK_AUDIT, MOCK_TOKEN_USAGE } from '../mockData'
+import { MOCK_CONFLICTS, MOCK_CHANGE_REQUESTS, MOCK_AUDIT, MOCK_TOKEN_USAGE, mockImpactAnalysis } from '../mockData'
 import { authHeaders, refresh, signIn } from './useAuth'
 
 // Wrap every API Gateway call with the Cognito IdToken in the
@@ -298,8 +298,8 @@ export function useConversations(opts = {}) {
 // chat_type ('analyst' | 'mcp') is stamped onto new session rows so the two
 // chats can be listed separately. `target` selects which agent runtime handles
 // the message: absent/'master' → orchestrator fan-out (Analyst page); a
-// specialist id ('sharepoint' | 'zscaler' | 'awsconfig' | 'jira') → that agent
-// directly (MCP page). Response: { reply, session_id }.
+// specialist id ('sharepoint' | 'zscaler' | 'awsconfig' | 'jira' | 'servicenow')
+// → that agent directly (MCP page). Response: { reply, session_id }.
 export async function sendChat({ prompt, session_id, chat_type, target }) {
   if (USE_MOCK || !CHAT_URL) {
     await sleep(600 + Math.random() * 800)
@@ -312,6 +312,21 @@ export async function sendChat({ prompt, session_id, chat_type, target }) {
   })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
   return res.json()
+}
+
+// IT-asset change-impact analysis via the servicenow_specialist runtime.
+// POST /servicenow/impact-analysis {resource, target_environment, severity,
+// draft_change} → {changed_resource, affected_cis, owner_team, cab_required,
+// approver_chain, change?}. draft_change=true also drafts a real change_request.
+export async function runImpactAnalysis({ resource, target_environment = 'PROD', severity = 'HIGH', draft_change = false }) {
+  if (USE_MOCK) {
+    await sleep(500 + Math.random() * 500)
+    return mockImpactAnalysis({ resource, target_environment, severity, draft_change })
+  }
+  return apiFetch('/servicenow/impact-analysis', {
+    method: 'POST',
+    body: JSON.stringify({ resource, target_environment, severity, draft_change }),
+  })
 }
 
 // Single-round-trip dashboard aggregate. Polls every 60s.
@@ -494,7 +509,7 @@ export function useMcpHealth() {
 // Live AgentCore runtime status for the MCP page, keyed by agent id. Backed by
 // GET /agent-status (bedrock-agentcore list-agent-runtimes). Returns a map
 // { [id]: status } where status is READY / CREATING / PLACEHOLDER / etc.
-// Polls every 30s. ServiceNow (no runtime) always reports PLACEHOLDER.
+// Polls every 30s.
 export function useAgentStatus() {
   const [statusById, setStatusById] = useState({})
   const load = useCallback(async () => {
@@ -502,7 +517,7 @@ export function useAgentStatus() {
       if (USE_MOCK) {
         setStatusById({
           sharepoint: 'READY', zscaler: 'READY', awsconfig: 'READY',
-          paloalto: 'READY', jira: 'READY', servicenow: 'PLACEHOLDER',
+          paloalto: 'READY', jira: 'READY', servicenow: 'READY',
         })
         return
       }

@@ -107,6 +107,21 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-jira-specialist"
 
+  ServicenowSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/servicenow-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-servicenow-specialist"
+
   # ──────────────────────────── AgentCore Runtime Role ─────────
   # Assumed by the bedrock-agentcore service to run agent containers.
   # Permissions cover: model invocation, KB retrieval, ECR image pull,
@@ -407,6 +422,270 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-jira-agent-runtime-role"
 
+  # ──────────────────────────── ServiceNow Agent Runtime Role ──
+  # Tier-0 least-privilege role for the servicenow_specialist runtime ONLY. Like
+  # the JIRA agent, it calls an EXTERNAL SaaS (ServiceNow) over 443 and must not
+  # inherit the shared role's broad grants (AWS Config, KB retrieve, sessions
+  # table, AgentCore Memory). It needs only: read its one secret, invoke the
+  # model + guardrail, pull its image, write its logs, decrypt with the relevant
+  # CMKs, trace, manage its ENIs, and write its token-usage row.
+  #
+  # NOTE: the impact workflow reads the (seeded) ServiceNow CMDB over REST — it
+  # does NOT call live AWS Config in this build. If you enable the optional
+  # live-AWS enrichment tools (config:GetAggregateResourceConfig /
+  # resource-explorer-2:Search / ssm:GetInventory), add those actions here AND
+  # ensure a Config aggregator exists — the shared role grants only
+  # config:Select*, not GetAggregate*.
+  ServicenowAgentRuntimeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-servicenow-agent-runtime-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: bedrock-agentcore.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: ServicenowAgentRuntimePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: BedrockModelAndGuardrail
+                Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                  - bedrock:ApplyGuardrail
+                Resource: "*"
+              - Sid: ServicenowSecretOnly
+                # Scoped to the single ServiceNow secret (Secrets Manager appends
+                # a random 6-char suffix, hence the trailing wildcard). The "-*"
+                # is REQUIRED — without it GetSecretValue is denied on the real
+                # secret ARN. No access to any other secret under the project path.
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Environment}/${ProjectName}/servicenow-*"
+              - Sid: TokenUsageWrite
+                Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Environment}-${ProjectName}-token-usage"
+              - Sid: ECRImagePull
+                Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource: "*"
+              - Sid: CloudWatchLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                Resource:
+                  - !Sub
+                    - "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/${RuntimePrefix}_servicenow_specialist*"
+                    - RuntimePrefix: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}"]]
+                  - !Sub
+                    - "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/${RuntimePrefix}_servicenow_specialist*:*"
+                    - RuntimePrefix: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}"]]
+              - Sid: KMSDecrypt
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                  - kms:DescribeKey
+                Resource:
+                  # DataAtRest: ECR image layers. Secrets: the ServiceNow secret
+                  # (if re-encrypted with the CMK). DynamoDB: token-usage CMK —
+                  # required or PutItem silently fails (encryption context).
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-SecretsKeyArn"
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+              - Sid: XRay
+                Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                Resource: "*"
+              - Sid: VPCNetworking
+                Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:AssignPrivateIpAddresses
+                  - ec2:UnassignPrivateIpAddresses
+                Resource: "*"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-servicenow-agent-runtime-role"
+
+  # ──────────────────────────── AWS Config / Resource-Posture Role ──
+  # Dedicated role for the awsconfig_specialist, which performs broad READ-ONLY
+  # resource inventory + posture/impact analysis across the account. Kept off the
+  # shared role specifically so it does NOT inherit secretsmanager:GetSecretValue,
+  # the Secrets CMK, S3 write, or AgentCore Memory — i.e. the "never reads secret
+  # material" guarantee is enforced by IAM here, not just by what the code calls.
+  # Read-only inventory APIs only; credential-shaped fields are additionally
+  # scrubbed in the agent before any output reaches the model.
+  AwsConfigAgentRuntimeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-awsconfig-agent-runtime-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: bedrock-agentcore.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: AwsConfigAgentRuntimePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: BedrockModelGuardrailAndKB
+                Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                  - bedrock:ApplyGuardrail
+                  - bedrock:Retrieve
+                  - bedrock:RetrieveAndGenerate
+                Resource: "*"
+              - Sid: AWSConfigRead
+                Effect: Allow
+                Action:
+                  - config:DescribeComplianceByConfigRule
+                  - config:DescribeComplianceByResource
+                  - config:DescribeConfigRules
+                  - config:GetComplianceDetailsByConfigRule
+                  - config:GetComplianceDetailsByResource
+                  - config:GetComplianceSummaryByConfigRule
+                  - config:GetComplianceSummaryByResourceType
+                  - config:DescribeConfigurationRecorders
+                  - config:DescribeConfigurationRecorderStatus
+                  - config:SelectResourceConfig
+                  - config:SelectAggregateResourceConfig
+                  - config:BatchGetResourceConfig
+                  - config:GetResourceConfigHistory
+                  - config:ListDiscoveredResources
+                  - config:GetDiscoveredResourceCounts
+                Resource: "*"
+              # ── Read-only resource inventory + posture (inventory, network,
+              # EC2 exposure, ELB, Lambda, S3, ECR, Cognito). STRICTLY read-only:
+              # no create/modify/delete, and deliberately NO secretsmanager /
+              # ssm:GetParameter / kms:Decrypt-of-data / ec2 user-data actions, so
+              # no credential material is reachable from this role.
+              - Sid: AWSResourceInventoryReadOnly
+                Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - ec2:DescribeVpcs
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeRouteTables
+                  - ec2:DescribeInternetGateways
+                  - ec2:DescribeNatGateways
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DescribeAddresses
+                  - elasticloadbalancing:DescribeLoadBalancers
+                  - elasticloadbalancing:DescribeListeners
+                  - elasticloadbalancing:DescribeTargetGroups
+                  - elasticloadbalancing:DescribeTargetHealth
+                  - elasticloadbalancing:DescribeTags
+                  - ecr:DescribeRepositories
+                  - ecr:DescribeImages
+                  - ecr:ListImages
+                  - ecr:GetLifecyclePolicy
+                  - lambda:ListFunctions
+                  - lambda:ListLayers
+                  - s3:ListAllMyBuckets
+                  - s3:GetBucketLocation
+                  - s3:GetBucketPublicAccessBlock
+                  - s3:GetBucketPolicyStatus
+                  - s3:GetEncryptionConfiguration
+                  - s3:GetBucketVersioning
+                  - s3:GetBucketTagging
+                  - cognito-idp:ListUserPools
+                  - cognito-idp:DescribeUserPool
+                  - cognito-idp:ListUserPoolClients
+                  - cognito-idp:DescribeUserPoolClient
+                  - apigateway:GET
+                Resource: "*"
+              - Sid: TokenUsageWrite
+                Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Environment}-${ProjectName}-token-usage"
+              - Sid: ECRImagePull
+                Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource: "*"
+              - Sid: CloudWatchLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                Resource:
+                  - !Sub
+                    - "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/${RuntimePrefix}_awsconfig_specialist*"
+                    - RuntimePrefix: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}"]]
+                  - !Sub
+                    - "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/${RuntimePrefix}_awsconfig_specialist*:*"
+                    - RuntimePrefix: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}"]]
+              - Sid: KMSDecrypt
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                  - kms:DescribeKey
+                Resource:
+                  # DataAtRest: ECR image layers. DynamoDB: token-usage CMK —
+                  # required or PutItem silently fails. NO Secrets CMK on purpose.
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+              - Sid: XRay
+                Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                Resource: "*"
+              - Sid: VPCNetworking
+                Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:AssignPrivateIpAddresses
+                  - ec2:UnassignPrivateIpAddresses
+                Resource: "*"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-awsconfig-agent-runtime-role"
+
   # ──────────────────────────── AgentCore Security Group ───────
   # Outbound-only. Inbound is not used because invocations come in over
   # the AgentCore service's managed ingress, not directly into the VPC.
@@ -435,6 +714,14 @@ Outputs:
     Value: !GetAtt JiraAgentRuntimeRole.Arn
     Export:
       Name: !Sub "${Environment}-${ProjectName}-JiraAgentRuntimeRoleArn"
+  ServicenowAgentRuntimeRoleArn:
+    Value: !GetAtt ServicenowAgentRuntimeRole.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ServicenowAgentRuntimeRoleArn"
+  AwsConfigAgentRuntimeRoleArn:
+    Value: !GetAtt AwsConfigAgentRuntimeRole.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-AwsConfigAgentRuntimeRoleArn"
   AgentCoreSGId:
     Value: !Ref AgentCoreSG
     Export:
@@ -459,3 +746,7 @@ Outputs:
     Value: !GetAtt JiraSpecialistRepo.RepositoryUri
     Export:
       Name: !Sub "${Environment}-${ProjectName}-JiraSpecialistRepoUri"
+  ServicenowSpecialistRepoUri:
+    Value: !GetAtt ServicenowSpecialistRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ServicenowSpecialistRepoUri"
