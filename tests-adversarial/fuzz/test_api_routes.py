@@ -70,9 +70,16 @@ _MANIFEST_PATH = _HARNESS_ROOT / "src" / "coverage" / "manifest.json"
 
 
 def _load_manifest_routes() -> list[dict]:
-    """Read the manifest at collection time and return its api_routes list."""
+    """Read the manifest at collection time and return its real api_routes.
+
+    Synthetic sentinel entries (``synthetic: true``, e.g. the
+    ``cognito-initiate-auth`` row that gives the brute-force test a
+    target_id to bind to) are excluded — they don't map to a real API
+    Gateway URL the fuzz layer can probe.
+    """
     raw = json.loads(_MANIFEST_PATH.read_text(encoding="utf-8"))
-    return list(raw.get("api_routes") or [])
+    routes = list(raw.get("api_routes") or [])
+    return [r for r in routes if r.get("synthetic") is not True]
 
 
 def _load_corpus_at_collection() -> dict[str, dict]:

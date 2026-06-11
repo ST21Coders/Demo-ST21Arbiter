@@ -122,6 +122,21 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-servicenow-specialist"
 
+  ServicenowSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/servicenow-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-servicenow-specialist"
+
   # ──────────────────────────── AgentCore Runtime Role ─────────
   # Assumed by the bedrock-agentcore service to run agent containers.
   # Permissions cover: model invocation, KB retrieval, ECR image pull,

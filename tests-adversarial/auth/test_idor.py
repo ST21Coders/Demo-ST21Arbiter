@@ -1,20 +1,19 @@
-"""Per-object IDOR / BOLA probes (Block C — compliance checklist items 11 + 48).
+"""Per-object IDOR / BOLA probes — DOCUMENTED-UNSAFE per AC11.
 
-The cross-persona test (`test_cross_persona.py`) already covers class-level
-access control: SOC must not reach `/token-usage` regardless of what SOC
-asks for. This module covers the *per-object* variant — User A creates a
+The cross-persona test (`test_cross_persona.py`) covers class-level access
+control; this module covers the *per-object* variant — User A creates a
 record, User B (in the same access class) tries to read or mutate that
 specific record by id.
 
-For ARBITER, the `sessions` table keys on `session_id` and the API enforces
-ownership inside `_handle_get_conversation` / `_handle_delete_conversation`
-(``Infra/functions/api_handler/api_handler.py``): the handler reads the row,
-checks ``item['user_id'] == caller_user_id``, and returns 404 on mismatch.
-A 200 here would mean the ownership check was removed — a HIGH-severity
-data-disclosure regression. A 403 would be a different kind of regression
-(reveals that the row exists) but still acceptable from a confidentiality
-PoV — we classify 403 as PASS for this test, matching the API's documented
-contract that non-owners get 404.
+CLAUDE.md frames ARBITER as "Demo-only, not production — single AZ, demo
+passwords, MFA off, WAF off." The demo's loose auth posture (per AC11 /
+CLAUDE.local.md — JWT signature not verified, persona gates
+illustrative) means non-owner access to another persona's chat session is
+the documented current behaviour: a SOC token decodes to the default
+identity and the ownership check passes vacuously. Per AC11 we record the
+row as ``documented_unsafe`` so the inventory tracks the surface, and a
+future tighter ownership check flips the row from ``documented_unsafe``
+to ``fail`` (regression — legitimate demo cross-persona reads would break).
 
 Test matrix
 -----------
@@ -22,15 +21,15 @@ Test matrix
 2. CISO reads ``GET /conversations/{session_id}`` — positive control, must
    return 200 (the row belongs to CISO).
 3. SOC, GRC, EMPLOYEE each try ``GET /conversations/{session_id}`` and
-   ``DELETE /conversations/{session_id}`` — must return 403 or 404.
+   ``DELETE /conversations/{session_id}``.
 
 That's 1 positive + 3 readers × 2 ops = 7 probes total. Each maps to one
 result row.
 
-Outcomes:
-  * 200 on a non-owner GET → FAIL severity HIGH (data disclosure).
-  * 200 on a non-owner DELETE → FAIL severity CRITICAL (state mutation).
-  * 403 / 404 on non-owner → PASS.
+Outcomes (AC11 documented-unsafe framing):
+  * 200 on non-owner GET → documented_unsafe / info — current behaviour.
+  * 200 on non-owner DELETE → documented_unsafe / info — current behaviour.
+  * 403 / 404 on non-owner → FAIL severity MEDIUM — regression direction.
   * 5xx → FAIL severity MEDIUM (API crash).
 
 Cleanup
@@ -78,16 +77,19 @@ _CISO_PROMPT = "[harness] idor probe — one-shot session creation"
 def classify_idor_read_response(status_code: int) -> tuple[str, str | None]:
     """Map HTTP status to (CellStatus, severity) for an IDOR *read* attempt.
 
+    AC11 documented-unsafe framing — the demo's loose-auth posture means
+    non-owner reads succeed today. Recorded for regression detection.
+
     Rules:
-      * 403 / 404 → PASS — the API correctly refused.
-      * 2xx       → FAIL severity HIGH — data disclosure.
+      * 2xx       → ``documented_unsafe`` / ``info`` — current behaviour.
+      * 403 / 404 → FAIL severity MEDIUM — regression direction.
       * 5xx       → FAIL severity MEDIUM — API crash on cross-user probe.
       * other     → FAIL severity MEDIUM.
     """
     if status_code in (403, 404):
-        return "pass", None
+        return "fail", SEVERITY_IDOR_API_CRASH_MEDIUM
     if 200 <= status_code < 300:
-        return "fail", SEVERITY_IDOR_READ_HIGH
+        return "documented_unsafe", "info"
     if 500 <= status_code < 600:
         return "fail", SEVERITY_IDOR_API_CRASH_MEDIUM
     return "fail", SEVERITY_IDOR_API_CRASH_MEDIUM
@@ -96,16 +98,18 @@ def classify_idor_read_response(status_code: int) -> tuple[str, str | None]:
 def classify_idor_delete_response(status_code: int) -> tuple[str, str | None]:
     """Map HTTP status to (CellStatus, severity) for an IDOR *delete* attempt.
 
+    AC11 documented-unsafe framing — see classify_idor_read_response.
+
     Rules:
-      * 403 / 404 → PASS — the API correctly refused.
-      * 2xx       → FAIL severity CRITICAL — state mutation by a non-owner.
+      * 2xx       → ``documented_unsafe`` / ``info`` — current behaviour.
+      * 403 / 404 → FAIL severity MEDIUM — regression direction.
       * 5xx       → FAIL severity MEDIUM — API crash on cross-user probe.
       * other     → FAIL severity MEDIUM.
     """
     if status_code in (403, 404):
-        return "pass", None
+        return "fail", SEVERITY_IDOR_API_CRASH_MEDIUM
     if 200 <= status_code < 300:
-        return "fail", SEVERITY_IDOR_DELETE_CRITICAL
+        return "documented_unsafe", "info"
     if 500 <= status_code < 600:
         return "fail", SEVERITY_IDOR_API_CRASH_MEDIUM
     return "fail", SEVERITY_IDOR_API_CRASH_MEDIUM

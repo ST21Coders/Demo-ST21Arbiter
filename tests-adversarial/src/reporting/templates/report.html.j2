@@ -321,13 +321,25 @@
             <td><code>{{ f.test_id }}</code></td>
             <td>{{ f.layer }}</td>
             <td>{{ f.target_kind }}</td>
-            <td><code class="truncate">{{ f.target_id }}</code></td>
+            <td>
+              <code class="truncate">{{ f.target_id }}</code>
+              {# Soft-warn marker for unknown / drifted target_id rows.
+                 Strict matrix invariants still fire at matrix build time;
+                 the renderer's job is to keep producing a report. #}
+              {% if f.target_id_status and f.target_id_status != "ok" %}
+                <span title="{{ f.target_id_status }}" style="color:#b45309;">⚠</span>
+              {% endif %}
+            </td>
             <td class="truncate">{{ f.summary }}</td>
             <td>
               {% if f.evidence_path %}
                 <a href="{{ f.evidence_path }}"><code>{{ f.evidence_path }}</code></a>
               {% else %}
                 <span style="color:#7b8794;">—</span>
+              {% endif %}
+              {# Soft-warn marker for missing / not-found evidence. #}
+              {% if f.evidence_status and f.evidence_status != "ok" %}
+                <span title="{{ f.evidence_status }}" style="color:#b45309;">⚠</span>
               {% endif %}
             </td>
           </tr>

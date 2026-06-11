@@ -243,7 +243,16 @@ def test_api_route_methods_are_uppercase_known_verbs(manifest):
 
 
 def test_api_route_paths_start_with_slash(manifest):
+    """Real api_routes are API Gateway paths and must start with `/`.
+
+    Synthetic entries (``synthetic: true``, e.g. the ``cognito-initiate-auth``
+    sentinel for the brute-force test's target_id binding) may carry a full
+    URL (https://…) because they point at non-API-Gateway endpoints. They're
+    skipped here for that reason.
+    """
     for route in manifest["api_routes"]:
+        if route.get("synthetic") is True:
+            continue
         assert route["path"].startswith("/"), (
             f"api_route {route['id']} path '{route['path']}' must begin with '/'"
         )
@@ -257,8 +266,48 @@ def test_api_route_auth_required_is_bool(manifest):
         )
 
 
-def test_api_route_file_paths_exist_on_disk(manifest):
+def test_synthetic_api_route_flag_is_bool_when_present(manifest):
+    """``synthetic`` on api_routes mirrors the pages/agent_tools convention:
+    optional boolean. When present it must be a JSON boolean so the drift
+    checker's ``synthetic is True`` short-circuit stays unambiguous.
+    """
     for route in manifest["api_routes"]:
+        if "synthetic" in route:
+            assert isinstance(route["synthetic"], bool), (
+                f"api_route {route.get('id')} 'synthetic' must be a JSON "
+                f"boolean, got {type(route['synthetic']).__name__}"
+            )
+
+
+def test_synthetic_api_route_has_null_file_and_note(manifest):
+    """Synthetic api_routes must carry ``file: null`` and a ``note`` so a
+    future maintainer can tell why the entry exists without a source-tree
+    counterpart. Mirror of ``test_agent_tool_file_paths_exist_on_disk``'s
+    synthetic-handling contract.
+    """
+    for route in manifest["api_routes"]:
+        if route.get("synthetic") is not True:
+            continue
+        assert route.get("file") is None, (
+            f"synthetic api_route {route.get('id')} must have 'file': null "
+            f"(got {route.get('file')!r})"
+        )
+        assert "note" in route and route["note"], (
+            f"synthetic api_route {route.get('id')} must carry a 'note' "
+            f"field explaining the sentinel"
+        )
+
+
+def test_api_route_file_paths_exist_on_disk(manifest):
+    """Every non-synthetic api_route must reference a real source file.
+
+    Synthetic sentinel entries (``synthetic: true``, ``file: null``) are
+    skipped — they exist only to give harness layers a coverage row to
+    land on (e.g. ``cognito-initiate-auth`` for the brute-force test).
+    """
+    for route in manifest["api_routes"]:
+        if route.get("synthetic") is True:
+            continue
         path = _REPO_ROOT / route["file"]
         assert path.is_file(), (
             f"api_route {route['id']} references {route['file']} which is not a file"

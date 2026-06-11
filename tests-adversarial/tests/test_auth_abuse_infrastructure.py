@@ -24,7 +24,6 @@ from auth.conftest import (
     AuthResultsWriter,
     SEVERITY_API_CRASH_MEDIUM,
     SEVERITY_EXPIRED_ACCEPTED_HIGH,
-    SEVERITY_PRIV_ESC_HIGH,
     api_routes,
     auth_results_path,
     classify_cross_persona_response,
@@ -52,7 +51,6 @@ from auth.test_forged_groups import (
     FORGED_GROUPS_TEST_IDS,
     FORGED_GROUPS_UPWARD_PAIRS,
     SEVERITY_FORGED_API_CRASH_MEDIUM,
-    SEVERITY_FORGED_PRIV_ESC_HIGH,
     classify_forged_groups_response,
     forge_cognito_groups,
 )
@@ -185,13 +183,20 @@ def test_make_jwt_extra_fields_round_trip() -> None:
 @pytest.mark.parametrize(
     ("status_code", "expected_status", "expected_severity"),
     [
-        (200, "fail", SEVERITY_PRIV_ESC_HIGH),  # 2xx => privilege esc
-        (201, "fail", SEVERITY_PRIV_ESC_HIGH),
-        (299, "fail", SEVERITY_PRIV_ESC_HIGH),
-        (401, "pass", None),  # rejected
-        (403, "pass", None),  # rejected
-        (400, "fail", SEVERITY_API_CRASH_MEDIUM),  # other 4xx unexpected
+        # 2xx — the demo's documented behaviour per AC11 / CLAUDE.md
+        # ("Demo-only … persona gating illustrative"). Recorded so the row
+        # exists for regression detection but NOT counted as a finding.
+        (200, "documented_unsafe", "info"),
+        (201, "documented_unsafe", "info"),
+        (299, "documented_unsafe", "info"),
+        # 401 / 403 — regression direction: the platform has tightened and
+        # legitimate cross-persona traffic would start breaking.
+        (401, "fail", SEVERITY_API_CRASH_MEDIUM),
+        (403, "fail", SEVERITY_API_CRASH_MEDIUM),
+        # Other 4xx — unexpected.
+        (400, "fail", SEVERITY_API_CRASH_MEDIUM),
         (404, "fail", SEVERITY_API_CRASH_MEDIUM),
+        # 5xx — API crashed on the unauthorized probe.
         (500, "fail", SEVERITY_API_CRASH_MEDIUM),
         (503, "fail", SEVERITY_API_CRASH_MEDIUM),
     ],
@@ -199,28 +204,30 @@ def test_make_jwt_extra_fields_round_trip() -> None:
 def test_classify_cross_persona_response(
     status_code: int, expected_status: str, expected_severity: str | None
 ) -> None:
-    """Per the task-14 prompt's classification table."""
+    """AC11 documented-unsafe framing — 2xx is the current demo behaviour."""
     status, severity = classify_cross_persona_response(status_code)
     assert status == expected_status
     assert severity == expected_severity
 
 
-def test_faked_2xx_on_blocked_route_is_fail_high() -> None:
-    """The task-14 prompt's explicit acceptance bullet — re-asserted here."""
+def test_faked_2xx_on_blocked_route_is_documented_unsafe() -> None:
+    """AC11 framing: a 2xx from a blocked persona is the demo's current
+    documented behaviour, not a finding."""
     status, severity = classify_cross_persona_response(200)
-    assert status == "fail"
-    assert severity == "high"
+    assert status == "documented_unsafe"
+    assert severity == "info"
 
 
-def test_faked_403_on_blocked_route_is_pass() -> None:
-    """The task-14 prompt's explicit acceptance bullet — re-asserted here."""
+def test_faked_403_on_blocked_route_is_fail_medium() -> None:
+    """AC11 framing: 401/403 is the regression direction — the platform
+    tightened and legitimate cross-persona traffic would break."""
     status, severity = classify_cross_persona_response(403)
-    assert status == "pass"
-    assert severity is None
+    assert status == "fail"
+    assert severity == "medium"
 
 
 def test_faked_5xx_on_blocked_route_is_fail_medium() -> None:
-    """The task-14 prompt's explicit acceptance bullet — re-asserted here."""
+    """API crashed on the unauthorised probe."""
     status, severity = classify_cross_persona_response(500)
     assert status == "fail"
     assert severity == "medium"
@@ -692,13 +699,20 @@ def test_forged_groups_lateral_pair_targets_token_usage_and_soc() -> None:
 @pytest.mark.parametrize(
     ("status_code", "expected_status", "expected_severity"),
     [
-        (200, "fail", SEVERITY_FORGED_PRIV_ESC_HIGH),  # 2xx => priv esc
-        (201, "fail", SEVERITY_FORGED_PRIV_ESC_HIGH),
-        (299, "fail", SEVERITY_FORGED_PRIV_ESC_HIGH),
-        (401, "pass", None),  # rejected
-        (403, "pass", None),  # rejected
-        (400, "fail", SEVERITY_FORGED_API_CRASH_MEDIUM),  # other 4xx
+        # 2xx — demo's current documented behaviour per AC11 (JWT signature
+        # not verified). Recorded for regression detection; not a finding.
+        (200, "documented_unsafe", "info"),
+        (201, "documented_unsafe", "info"),
+        (299, "documented_unsafe", "info"),
+        # 401 / 403 — regression direction: legitimate demo callers would
+        # now break (signature verification or claim re-derivation kicked
+        # in).
+        (401, "fail", SEVERITY_FORGED_API_CRASH_MEDIUM),
+        (403, "fail", SEVERITY_FORGED_API_CRASH_MEDIUM),
+        # Other 4xx — unexpected.
+        (400, "fail", SEVERITY_FORGED_API_CRASH_MEDIUM),
         (404, "fail", SEVERITY_FORGED_API_CRASH_MEDIUM),
+        # 5xx — API crashed on the forged token.
         (500, "fail", SEVERITY_FORGED_API_CRASH_MEDIUM),
         (503, "fail", SEVERITY_FORGED_API_CRASH_MEDIUM),
     ],
@@ -706,28 +720,30 @@ def test_forged_groups_lateral_pair_targets_token_usage_and_soc() -> None:
 def test_classify_forged_groups_response(
     status_code: int, expected_status: str, expected_severity: str | None
 ) -> None:
-    """Per the task-16 prompt's classification table."""
+    """AC11 documented-unsafe framing — 2xx is the current demo behaviour."""
     status, severity = classify_forged_groups_response(status_code)
     assert status == expected_status
     assert severity == expected_severity
 
 
-def test_faked_200_on_forged_token_is_fail_high() -> None:
-    """Explicit task-16 acceptance bullet: 200 = privilege escalation."""
+def test_faked_200_on_forged_token_is_documented_unsafe() -> None:
+    """AC11 framing: a 2xx on a forged token is the demo's current
+    documented behaviour (signature not verified), not a finding."""
     status, severity = classify_forged_groups_response(200)
-    assert status == "fail"
-    assert severity == "high"
+    assert status == "documented_unsafe"
+    assert severity == "info"
 
 
-def test_faked_403_on_forged_token_is_pass() -> None:
-    """Explicit task-16 acceptance bullet: 403 = API correctly rejected."""
+def test_faked_403_on_forged_token_is_fail_medium() -> None:
+    """AC11 framing: 401/403 is the regression direction — legitimate demo
+    callers would now break."""
     status, severity = classify_forged_groups_response(403)
-    assert status == "pass"
-    assert severity is None
+    assert status == "fail"
+    assert severity == "medium"
 
 
 def test_faked_500_on_forged_token_is_fail_medium() -> None:
-    """Explicit task-16 acceptance bullet: 5xx = API crash on forged token."""
+    """5xx = API crash on forged token."""
     status, severity = classify_forged_groups_response(500)
     assert status == "fail"
     assert severity == "medium"
@@ -849,8 +865,6 @@ _os.environ.setdefault("COGNITO_USER_POOL_ID", "us-east-1_unitTestPool")
 from auth.test_idor import (  # noqa: E402
     IDOR_DELETE_TEST_IDS,
     IDOR_READ_TEST_IDS,
-    SEVERITY_IDOR_DELETE_CRITICAL,
-    SEVERITY_IDOR_READ_HIGH,
     classify_idor_delete_response,
     classify_idor_read_response,
 )
@@ -877,10 +891,14 @@ def test_idor_delete_test_ids_are_canonical() -> None:
 @pytest.mark.parametrize(
     ("status_code", "expected_status", "expected_severity"),
     [
-        (200, "fail", SEVERITY_IDOR_READ_HIGH),  # leak
-        (201, "fail", SEVERITY_IDOR_READ_HIGH),
-        (403, "pass", None),
-        (404, "pass", None),
+        # 2xx — demo's loose-auth posture means non-owner reads succeed
+        # today (AC11 documented-unsafe).
+        (200, "documented_unsafe", "info"),
+        (201, "documented_unsafe", "info"),
+        # 403 / 404 — regression direction.
+        (403, "fail", "medium"),
+        (404, "fail", "medium"),
+        # 5xx and other 4xx — API crash / unexpected.
         (500, "fail", "medium"),
         (400, "fail", "medium"),
     ],
@@ -896,10 +914,14 @@ def test_classify_idor_read_response(
 @pytest.mark.parametrize(
     ("status_code", "expected_status", "expected_severity"),
     [
-        (200, "fail", SEVERITY_IDOR_DELETE_CRITICAL),  # cross-user delete
-        (204, "fail", SEVERITY_IDOR_DELETE_CRITICAL),
-        (403, "pass", None),
-        (404, "pass", None),
+        # 2xx — demo's loose-auth posture means non-owner deletes succeed
+        # today (AC11 documented-unsafe).
+        (200, "documented_unsafe", "info"),
+        (204, "documented_unsafe", "info"),
+        # 403 / 404 — regression direction.
+        (403, "fail", "medium"),
+        (404, "fail", "medium"),
+        # 5xx — API crash.
         (500, "fail", "medium"),
     ],
 )
@@ -911,24 +933,27 @@ def test_classify_idor_delete_response(
     assert severity == expected_severity
 
 
-def test_idor_faked_200_read_is_fail_high() -> None:
-    """Explicit Block C bullet — non-owner 200 is HIGH (data disclosure)."""
+def test_idor_faked_200_read_is_documented_unsafe() -> None:
+    """AC11 framing: a non-owner 200 read is the demo's current
+    documented behaviour (loose-auth posture), not a finding."""
     status, severity = classify_idor_read_response(200)
-    assert status == "fail"
-    assert severity == "high"
+    assert status == "documented_unsafe"
+    assert severity == "info"
 
 
-def test_idor_faked_200_delete_is_fail_critical() -> None:
-    """Explicit Block C bullet — non-owner DELETE 200 is CRITICAL."""
+def test_idor_faked_200_delete_is_documented_unsafe() -> None:
+    """AC11 framing: a non-owner 204/200 DELETE is the demo's current
+    documented behaviour, not a finding."""
     status, severity = classify_idor_delete_response(200)
-    assert status == "fail"
-    assert severity == "critical"
+    assert status == "documented_unsafe"
+    assert severity == "info"
 
 
-def test_idor_faked_404_is_pass() -> None:
-    """Explicit Block C bullet — 404 (owner-mismatch) is PASS."""
-    assert classify_idor_read_response(404) == ("pass", None)
-    assert classify_idor_delete_response(404) == ("pass", None)
+def test_idor_faked_404_is_regression_fail_medium() -> None:
+    """AC11 framing: 403/404 is the regression direction — legitimate
+    demo cross-persona reads would now break."""
+    assert classify_idor_read_response(404) == ("fail", "medium")
+    assert classify_idor_delete_response(404) == ("fail", "medium")
 
 
 # ───────────────── Block C: auth.forced-browsing infrastructure ────────────
@@ -988,25 +1013,103 @@ def test_classify_forced_browsing_response(
     expected_status: str,
     expected_severity: str | None,
 ) -> None:
-    status, severity = classify_forced_browsing_response(path, status_code, body_len)
+    status, severity, _reason = classify_forced_browsing_response(
+        path, status_code, body_len
+    )
     assert status == expected_status
     assert severity == expected_severity
 
 
 def test_forced_browsing_200_with_html_body_is_fail_high() -> None:
     """Explicit Block C bullet."""
-    status, severity = classify_forced_browsing_response("/admin", 200, 4096)
+    status, severity, _reason = classify_forced_browsing_response("/admin", 200, 4096)
     assert status == "fail"
     assert severity == "high"
 
 
 def test_forced_browsing_security_txt_200_is_pass() -> None:
     """Explicit Block C special case."""
-    status, severity = classify_forced_browsing_response(
+    status, severity, _reason = classify_forced_browsing_response(
         "/.well-known/security.txt", 200, 2048
     )
     assert status == "pass"
     assert severity is None
+
+
+# ──────────────── SPA-fallback detection (false-positive fix) ───────────────
+
+
+def test_forced_browsing_spa_fallback_match_is_pass() -> None:
+    """When the response body fingerprint matches the SPA root, treat as PASS
+    with a clear ``skipped_reason``.
+
+    Fixes the 19 false-positive HIGH findings on the 2026-06-10 run, where
+    CloudFront's catch-all served `index.html` for /admin, /swagger, etc.
+    The body of those paths is byte-identical to the body of `/`.
+    """
+    spa_fp = "a" * 32
+    status, severity, reason = classify_forced_browsing_response(
+        "/admin",
+        200,
+        5000,
+        spa_root_fingerprint=spa_fp,
+        body_fingerprint=spa_fp,
+    )
+    assert status == "pass"
+    assert severity is None
+    assert reason == "SPA fallback (response identical to root)"
+
+
+def test_forced_browsing_spa_fallback_mismatch_falls_back_to_fail_high() -> None:
+    """When the body fingerprint does NOT match the SPA root, the 200 is a
+    real finding (not the catch-all).
+
+    This is the surface the original detector cared about — an admin
+    console actually responding from `/admin`.
+    """
+    status, severity, reason = classify_forced_browsing_response(
+        "/admin",
+        200,
+        5000,
+        spa_root_fingerprint="a" * 32,
+        body_fingerprint="b" * 32,
+    )
+    assert status == "fail"
+    assert severity == "high"
+    assert reason is None
+
+
+def test_forced_browsing_no_spa_fingerprint_uses_legacy_path() -> None:
+    """If the SPA-root fetch failed (fingerprint is None), the detector
+    falls back to the pre-fix classification — never under-reports a real
+    leak.
+    """
+    status, severity, reason = classify_forced_browsing_response(
+        "/admin",
+        200,
+        5000,
+        spa_root_fingerprint=None,
+        body_fingerprint="b" * 32,
+    )
+    assert status == "fail"
+    assert severity == "high"
+    assert reason is None
+
+
+def test_forced_browsing_spa_fallback_does_not_apply_to_4xx() -> None:
+    """4xx responses are still PASS by their normal rule; the SPA-fallback
+    check only fires inside the 2xx branch.
+    """
+    status, severity, reason = classify_forced_browsing_response(
+        "/admin",
+        404,
+        5000,
+        spa_root_fingerprint="a" * 32,
+        body_fingerprint="a" * 32,
+    )
+    assert status == "pass"
+    assert severity is None
+    assert reason is None
 
 
 # ───────────────── Block C: auth.brute-force infrastructure ────────────

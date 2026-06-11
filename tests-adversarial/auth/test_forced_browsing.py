@@ -47,6 +47,7 @@ or framework default-empty response. Below it, we treat the surface as
 
 from __future__ import annotations
 
+import hashlib
 import re
 import time
 
@@ -121,30 +122,100 @@ FORCED_BROWSING_TEST_IDS: list[str] = [
 ]
 
 
+def _body_fingerprint(body: bytes) -> str:
+    """sha256 fingerprint (first 32 hex chars) of a response body.
+
+    Used to detect React SPA catch-all responses: CloudFront falls back to
+    `index.html` for any path the SPA router doesn't know about, so a probe
+    against `/admin` or `/swagger` returns the same bytes as a probe
+    against `/`. We hash both and compare, which catches the fallback even
+    if the response body changes between runs (only the prefix matters).
+    """
+    return hashlib.sha256(body or b"").hexdigest()[:32]
+
+
 def classify_forced_browsing_response(
-    path: str, status_code: int, body_len: int
-) -> tuple[str, str | None]:
-    """Map (path, HTTP status, body length) to (CellStatus, severity).
+    path: str,
+    status_code: int,
+    body_len: int,
+    *,
+    spa_root_fingerprint: str | None = None,
+    body_fingerprint: str | None = None,
+) -> tuple[str, str | None, str | None]:
+    """Map (path, status, body length, body fingerprint) to (status, severity, skipped_reason).
 
     Rules:
       * 401 / 403 / 404 → PASS.
       * ``/.well-known/security.txt`` 200 → PASS (special-case).
-      * 200 with body_len >= 32 → FAIL severity HIGH.
+      * 200 whose body fingerprint matches the SPA root → PASS with
+        ``skipped_reason: "SPA fallback (response identical to root)"``.
+        CloudFront's catch-all returns `index.html` for every unknown
+        path; the body of `/admin` is byte-identical to `/`, which is
+        not an admin-console exposure. Without this check the harness
+        reported 19 false-positive HIGH findings on the 2026-06-10 run.
+      * 200 with body_len >= 32 (and NOT SPA fallback) → FAIL severity HIGH.
       * 200 with body_len < 32 → FAIL severity LOW.
       * 5xx → FAIL severity MEDIUM.
       * other → FAIL severity LOW.
+
+    The third tuple element is a ``skipped_reason`` string that is set ONLY
+    for the SPA-fallback PASS so the row in results.json carries the
+    rationale. Other PASS / FAIL outcomes return ``None`` in that slot.
     """
     if status_code in (401, 403, 404):
-        return "pass", None
+        return "pass", None, None
     if path in _POSITIVE_ON_200 and 200 <= status_code < 300:
-        return "pass", None
+        return "pass", None, None
     if 200 <= status_code < 300:
+        # SPA fallback detection: if both fingerprints are available and
+        # match, treat as PASS with a clear reason. Bytes-identical
+        # response means CloudFront served the React index.html for an
+        # unknown path; the probe is not a finding.
+        if (
+            spa_root_fingerprint is not None
+            and body_fingerprint is not None
+            and spa_root_fingerprint == body_fingerprint
+        ):
+            return (
+                "pass",
+                None,
+                "SPA fallback (response identical to root)",
+            )
         if body_len >= _TRIVIAL_BODY_BYTES:
-            return "fail", SEVERITY_FORCED_BROWSING_HIGH
-        return "fail", SEVERITY_FORCED_BROWSING_LOW
+            return "fail", SEVERITY_FORCED_BROWSING_HIGH, None
+        return "fail", SEVERITY_FORCED_BROWSING_LOW, None
     if 500 <= status_code < 600:
-        return "fail", SEVERITY_FORCED_BROWSING_MEDIUM
-    return "fail", SEVERITY_FORCED_BROWSING_LOW
+        return "fail", SEVERITY_FORCED_BROWSING_MEDIUM, None
+    return "fail", SEVERITY_FORCED_BROWSING_LOW, None
+
+
+@pytest.fixture(scope="module")
+def spa_root_fingerprint(
+    target_base_url: str,
+    http_session: requests.Session,
+) -> str | None:
+    """Hash of the SPA root (`/`) response body.
+
+    Used by the per-path probes to detect CloudFront's catch-all
+    fallback: any path the React router doesn't know about returns the
+    SPA's ``index.html``, so the body of `/admin` is byte-identical to
+    the body of `/`. Comparing fingerprints converts those 200s from
+    false-positive HIGH findings into clean PASSes with a clear
+    ``skipped_reason``.
+
+    Returns None if the root probe itself fails — the per-path tests then
+    fall back to the pre-fix classification (which over-reports admin
+    paths but never under-reports a real leak).
+    """
+    try:
+        resp = http_session.request("GET", target_base_url, allow_redirects=False)
+    except requests.RequestException:
+        return None
+    if not (200 <= resp.status_code < 300):
+        # Non-2xx root means CloudFront isn't fronting the SPA the way the
+        # detector expects. Bail safely.
+        return None
+    return _body_fingerprint(resp.content or b"")
 
 
 @pytest.mark.parametrize(
@@ -157,12 +228,13 @@ def test_unauthenticated_forced_browsing(
     test_id: str,
     api_base_url: str,
     http_session: requests.Session,
+    spa_root_fingerprint: str | None,
     results_writer,
 ) -> None:
     """GET ``${API_BASE_URL}${path}`` with NO auth header.
 
     Records one result row per path. FAIL HIGH if a non-trivial 200 leaks
-    a sensitive surface.
+    a sensitive surface that isn't just the SPA's catch-all fallback.
     """
     url = f"{api_base_url.rstrip('/')}{path}"
     started = time.monotonic()
@@ -189,9 +261,15 @@ def test_unauthenticated_forced_browsing(
         pytest.skip(f"request error: {exc}")
 
     duration = time.monotonic() - started
-    body_len = len(response.content or b"")
-    status, severity = classify_forced_browsing_response(
-        path, response.status_code, body_len
+    body = response.content or b""
+    body_len = len(body)
+    body_fp = _body_fingerprint(body)
+    status, severity, skipped_reason = classify_forced_browsing_response(
+        path,
+        response.status_code,
+        body_len,
+        spa_root_fingerprint=spa_root_fingerprint,
+        body_fingerprint=body_fp,
     )
 
     row: dict = {
@@ -204,6 +282,11 @@ def test_unauthenticated_forced_browsing(
     }
     if severity is not None:
         row["severity"] = severity
+    if skipped_reason is not None:
+        # Used for the SPA-fallback PASS — keeps the rationale in the row
+        # so an auditor reading results.json sees why /admin & friends
+        # didn't fail despite their 200.
+        row["skipped_reason"] = skipped_reason
     if status == "fail":
         row["evidence_path"] = f"auth/results.json#{test_id}"
     results_writer.record(row)

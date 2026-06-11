@@ -84,6 +84,24 @@ def pytest_addoption(parser: pytest.Parser) -> None:
             "dev DDB with harness traffic."
         ),
     )
+    # Per-run persona breadth knob (MVP scope cut). Default 1 = CISO only:
+    # CISO has access to every route, and per-persona gating is covered by
+    # the auth layer's cross-persona enumeration. Fanning the fuzz
+    # parametrisation across 4 personas blows the layer past the 10-minute
+    # wall-clock cap (25 routes × ~60 payloads × 4 personas ≈ 11,680
+    # tests). Default 1 → ~2,920 tests fits inside the budget at 5 RPS.
+    parser.addoption(
+        "--fuzz-personas",
+        action="store",
+        type=int,
+        default=1,
+        help=(
+            "Number of personas to fan the fuzz layer over (default 1 = "
+            "CISO only, max 4 = ciso,soc,grc,employee in manifest order). "
+            "Per-persona authorization gating is covered by the auth layer; "
+            "fuzzing only as CISO keeps the layer inside its wall-clock cap."
+        ),
+    )
     # Task-13 knob. Default count keeps a single layer run at ~40s wall-clock
     # under the 5 RPS throttle (8 examples × 25 routes × 0.2s). Honored by
     # `fuzz/test_hypothesis_strategies.py`.
@@ -188,15 +206,60 @@ def identities() -> dict:
         )
 
 
-# Parameterized auth header — pytest fans this out across all 4 personas.
-# A fuzz test that takes `auth_header` runs once per persona; tests that only
-# need a single token typically take a positional persona fixture instead.
-@pytest.fixture(params=["ciso", "soc", "grc", "employee"], ids=lambda p: f"persona={p}")
-def auth_header(request: pytest.FixtureRequest, identities: dict) -> dict:
-    """`{Authorization: "Bearer <IdToken>"}` for one of the 4 personas.
+# Persona order. CISO comes first so the default `--fuzz-personas 1` lands
+# on CISO (the persona with access to every manifest route — fuzzing CISO
+# alone exercises every reachable surface). Order then matches the
+# manifest's persona declaration order so a value of 2/3/4 stays
+# deterministic across runs.
+_FUZZ_PERSONA_ORDER = ("ciso", "soc", "grc", "employee")
+_FUZZ_HARD_PERSONA_CEILING = len(_FUZZ_PERSONA_ORDER)
 
-    Parameterized so a single test definition runs 4×. Set `indirect=False`
-    (the default) so the parameter value is the persona id string.
+
+def _resolve_fuzz_personas(config: pytest.Config) -> list[str]:
+    """Resolve the persona breadth for this run, honoring --fuzz-personas.
+
+    Clamped to [1, 4]; values outside the range are silently coerced into
+    it so a misconfigured CLI cannot enumerate fewer than CISO or more
+    than the manifest's 4 personas.
+    """
+    raw = int(config.getoption("--fuzz-personas"))
+    if raw < 1:
+        raw = 1
+    if raw > _FUZZ_HARD_PERSONA_CEILING:
+        raw = _FUZZ_HARD_PERSONA_CEILING
+    return list(_FUZZ_PERSONA_ORDER[:raw])
+
+
+# Parameterized auth header. Default: CISO only — CISO has access to every
+# route per the manifest, so fuzzing CISO alone exercises every reachable
+# surface. Per-persona authorization gating is exercised by the auth layer.
+# Operators opt into wider coverage with `--fuzz-personas N` (max 4).
+def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
+    """Parametrise the `auth_header` fixture from `--fuzz-personas`.
+
+    Doing this in `pytest_generate_tests` (instead of `params=[...]` on the
+    fixture decorator) lets the persona list come from a CLI flag — the
+    decorator can't see config. We only act when the test actually asks
+    for the `auth_header` fixture so the hook stays scoped.
+    """
+    if "auth_header" not in metafunc.fixturenames:
+        return
+    personas = _resolve_fuzz_personas(metafunc.config)
+    metafunc.parametrize(
+        "auth_header",
+        personas,
+        ids=[f"persona={p}" for p in personas],
+        indirect=True,
+    )
+
+
+@pytest.fixture()
+def auth_header(request: pytest.FixtureRequest, identities: dict) -> dict:
+    """`{Authorization: "Bearer <IdToken>"}` for the parametrised persona.
+
+    Parametrised via ``pytest_generate_tests`` above. Default fan-out is
+    CISO only (one persona); operators opt into 2/3/4 personas with
+    ``--fuzz-personas N``.
     """
     from src.identity.cognito_auth import Persona
 

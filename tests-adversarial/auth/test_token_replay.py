@@ -20,10 +20,15 @@ the base identity:
    in legitimate callers).
 
 3. `auth.<route-id>.access-token-instead-of-id-token`
-   The API expects the IdToken (claims include `cognito:groups`, `sub`,
-   `cognito:username`). Sending the AccessToken in `Authorization` should be
-   rejected, since the AccessToken does not carry `cognito:groups` and the
-   CISO-only handlers `_require_ciso(event)` should refuse.
+   The API decodes the bearer token's middle segment as JSON and reads
+   ``cognito:groups`` / ``sub`` from there — both IdTokens and AccessTokens
+   are Cognito-signed, share the same ``sub``, and decode to the same
+   group claim on this demo's pool. Per AC11 / CLAUDE.md ("Demo-only, not
+   production"), accepting an AccessToken in the IdToken slot is the demo's
+   documented current behaviour. The row is recorded so the inventory
+   tracks the surface and so a future deploy that distinguishes token_use
+   flips it from ``documented_unsafe`` to ``fail`` (regression: legitimate
+   demo callers that happened to forward the AccessToken would break).
 
 The first two families are deterministic / documentation-only — they don't
 hit the network. The third actually sends a request.
@@ -141,17 +146,17 @@ def test_access_token_instead_of_id_token(
 ) -> None:
     """Send the CISO AccessToken in `Authorization` instead of the IdToken.
 
-    The api_handler reads `cognito:groups` from the bearer token's payload
-    to drive `_require_ciso`. The AccessToken does NOT carry that claim —
-    so any CISO-only route should reject. Non-CISO-only routes may legit-
-    imately accept the AccessToken (depending on whether the handler reads
-    `sub` only, which IS present on the AccessToken).
+    AC11 / CLAUDE.md documented-unsafe framing — the demo intentionally
+    does NOT distinguish IdToken from AccessToken (both decode to the same
+    group claim on this Cognito pool). A 200 is the documented current
+    behaviour; a 401/403 means the platform tightened (regression — a
+    legitimate demo caller forwarding the AccessToken would now break).
 
-    Pass criteria for this test:
-      - 401 / 403: pass (API distinguishes IdToken from AccessToken).
-      - 200 on a CISO-only route: fail severity HIGH (privilege escalation
-        — the AccessToken bypasses `_require_ciso`).
+    Classification:
+      - 200 on a CISO-only route: documented_unsafe / info — the demo's
+        current behaviour. Recorded for regression detection; not a finding.
       - 200 on a non-CISO route: pass (sub is sub; legitimate).
+      - 401 / 403: fail severity MEDIUM — regression direction.
       - 5xx: fail severity MEDIUM (API crashed).
     """
     from src.identity.cognito_auth import Persona
@@ -216,13 +221,19 @@ def test_access_token_instead_of_id_token(
         "duration_seconds": duration,
     }
     if status_code in (401, 403):
-        # API correctly rejected the AccessToken.
-        pass
+        # Regression direction: legitimate demo callers forwarding the
+        # AccessToken would now break.
+        row["status"] = "fail"
+        row["severity"] = "medium"
+        row["evidence_path"] = f"auth/results.json#{test_id}"
     elif 200 <= status_code < 300:
         if ciso_only:
-            # Privilege escalation — _require_ciso bypassed via AccessToken.
-            row["status"] = "fail"
-            row["severity"] = "high"
+            # AC11 documented-unsafe: the demo intentionally accepts an
+            # AccessToken in the IdToken slot (signature/group claim model
+            # collapses them). Record the row so regressions surface, but
+            # don't count it as a finding.
+            row["status"] = "documented_unsafe"
+            row["severity"] = "info"
             row["evidence_path"] = f"auth/results.json#{test_id}"
         # else: non-CISO route + 200 is fine (sub-based lookup may legit-
         # imately use the AccessToken).

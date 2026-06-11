@@ -356,9 +356,18 @@ def _manifest_pages(manifest: dict) -> set[str]:
 
 
 def _manifest_routes(manifest: dict) -> set[tuple[str, str]]:
-    """Return the set of `(method, normalized_path)` from manifest api_routes."""
+    """Return the set of `(method, normalized_path)` from manifest api_routes.
+
+    Synthetic route entries (carrying ``synthetic: true``) are harness-only
+    sentinels — e.g. ``cognito-initiate-auth`` for the brute-force test's
+    target_id binding — that don't map to any line in ``api_handler.py``.
+    They're skipped here so the drift checker doesn't report them as
+    "manifest routes missing in source".
+    """
     out: set[tuple[str, str]] = set()
     for r in manifest.get("api_routes", []):
+        if r.get("synthetic") is True:
+            continue
         method = (r.get("method") or "").upper()
         path = r.get("path") or ""
         if not method or not path:

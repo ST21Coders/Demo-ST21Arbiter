@@ -57,6 +57,7 @@ _LAYERS_ALL: tuple[str, ...] = (
     "logic",
     "logging_audit",
     "fault",
+    "features",
 )
 
 # Per-layer wall-clock cap overrides. Most layers share the global
@@ -74,6 +75,16 @@ _LAYER_HARD_CAPS_SECONDS: dict[str, float] = {
     "logic": 300.0,
     "logging_audit": 600.0,
     "fault": 300.0,
+    # Features: positive end-to-end smokes. ~12 /chat round-trips at up to
+    # 30 s each, plus a few list/poll calls. 10-minute cap leaves headroom
+    # for slow Bedrock days; the layer itself usually finishes well under
+    # 5 minutes.
+    "features": 600.0,
+    # Fuzz: 30 min ceiling. At the default CISO-only fan-out (~2,920
+    # tests) the layer fits inside the 10-min budget at 5 RPS; the wider
+    # cap is for `--fuzz-personas N>1` runs and for the throttle's
+    # backoff behaviour on slow days.
+    "fuzz": 1800.0,
 }
 
 # Default to a CloudFront URL matching CLAUDE.local.md. Operators override via
@@ -348,6 +359,19 @@ def _build_layer_budgets(layers: list[str]) -> dict[str, Any]:
         # wires that up.
         budgets["fault"] = LayerBudget(
             name="fault",
+            max_input_tokens=0,
+            max_output_tokens=0,
+        )
+    if "features" in layers:
+        # Features layer: positive end-to-end smokes. Each chat round-trip
+        # makes one short Bedrock invocation (the master orchestrator's
+        # Nova 2 Lite turn plus any specialist fan-out). At ~12 probes the
+        # total Bedrock spend stays under 2 cents in the worst case. We
+        # keep the LayerBudget at zero so the preflight cap doesn't reject
+        # this layer; actual per-call cost is captured by the layer's own
+        # cost.json (summed by cost_tracker_dict).
+        budgets["features"] = LayerBudget(
+            name="features",
             max_input_tokens=0,
             max_output_tokens=0,
         )

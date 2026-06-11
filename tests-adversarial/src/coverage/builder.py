@@ -493,6 +493,7 @@ _LAYERS = (
     "logic",
     "logging_audit",
     "fault",
+    "features",
 )
 
 

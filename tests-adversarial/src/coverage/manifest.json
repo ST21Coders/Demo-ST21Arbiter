@@ -173,6 +173,15 @@
       "note": "No <Guarded> wrapper in App.jsx — universally reachable. Sections inside self-gate by route access."
     },
     {
+      "id": "impact-analysis",
+      "file": "ui/src/pages/ImpactAnalysis.jsx",
+      "route": "/impact-analysis",
+      "label": "Change Impact Analysis",
+      "accessible_to": ["ciso", "soc", "grc"],
+      "blocked_for": ["employee"],
+      "note": "ROUTE_ACCESS['/impact-analysis'] = 'impact-analysis'. CISO, SOC, and GRC personas all carry 'impact-analysis' in their PERSONAS[*].access list (PersonaContext.jsx); Employee does not."
+    },
+    {
       "id": "integrations",
       "file": "ui/src/pages/Integrations.jsx",
       "route": "/integrations",
@@ -180,6 +189,15 @@
       "accessible_to": ["ciso"],
       "blocked_for": ["soc", "grc", "employee"],
       "note": "CISO-only per ui/src/contexts/PersonaContext.jsx::PERSONAS.ciso.access + ROUTE_ACCESS['/integrations'] = 'integrations'."
+    },
+    {
+      "id": "whatif",
+      "file": "ui/src/pages/WhatIf.jsx",
+      "route": "/whatif",
+      "label": "What-If Scan",
+      "accessible_to": ["ciso", "soc", "grc"],
+      "blocked_for": ["employee"],
+      "note": "ROUTE_ACCESS['/whatif'] = 'whatif'. CISO, SOC, and GRC personas all carry 'whatif' in their PERSONAS[*].access list (PersonaContext.jsx); Employee does not."
     },
     {
       "id": "signin",
@@ -437,13 +455,64 @@
       "accessible_to": ["ciso", "soc", "grc", "employee"]
     },
     {
+      "id": "post-jira-comment",
+      "method": "POST",
+      "path": "/jira/comment",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 205,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "note": "Handler at api_handler.py::_handle_jira_comment (line 1462). Calls _caller_user_id for the audit row but does not enforce a Cognito-group restriction in-Lambda — UI access is the gate (no /jira/comment UI surface for Employee)."
+    },
+    {
       "id": "post-jira-tickets",
       "method": "POST",
       "path": "/jira/tickets",
       "file": "Infra/functions/api_handler/api_handler.py",
-      "line": 182,
+      "line": 199,
       "auth_required": true,
       "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "post-jira-transition",
+      "method": "POST",
+      "path": "/jira/transition",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 202,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "note": "Handler at api_handler.py::_handle_jira_transition (line 1421). Calls _caller_user_id for the audit row but does not enforce a Cognito-group restriction in-Lambda."
+    },
+    {
+      "id": "post-scan-dry-run",
+      "method": "POST",
+      "path": "/scan/dry-run",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 211,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "note": "Handler at api_handler.py::_handle_scan_dry_run (line 1624). Backs the /whatif page. Calls _caller_user_id for audit + run id derivation but does not enforce a Cognito-group restriction in-Lambda — UI access is the gate (no /whatif for Employee)."
+    },
+    {
+      "id": "post-servicenow-impact-analysis",
+      "method": "POST",
+      "path": "/servicenow/impact-analysis",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 208,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "note": "Handler at api_handler.py::_handle_servicenow_impact (line 1487). Backs the /impact-analysis page. Calls _caller_user_id for audit but does not enforce a Cognito-group restriction in-Lambda — UI access is the gate (no /impact-analysis for Employee)."
+    },
+    {
+      "id": "cognito-initiate-auth",
+      "method": "POST",
+      "path": "https://cognito-idp.us-east-1.amazonaws.com/",
+      "file": null,
+      "line": null,
+      "auth_required": false,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "synthetic": true,
+      "note": "Synthetic route id for Cognito's InitiateAuth endpoint, used by auth/test_brute_force.py. Not an API Gateway route."
     }
   ],
   "agent_tools": [
@@ -495,6 +564,16 @@
       "note": "Wrapper IS in this repo (master_orchestrator forwards to JIRA_RUNTIME_ARN). The downstream jira_specialist runtime's source is NOT in this repo (CLAUDE.md off-limits list) — see runtimes[].jira_specialist + agent_tools.jira.black_box for the black-box coverage row."
     },
     {
+      "id": "master.servicenow_lookup",
+      "agent": "master_orchestrator",
+      "tool_name": "servicenow_lookup",
+      "file": "agents/master_orchestrator/agent.py",
+      "line": 240,
+      "callable_via": "chat",
+      "probe": "Who approves a change to the prod claims ALB?",
+      "note": "Forwards to SERVICENOW_RUNTIME_ARN — ServiceNow CMDB / Change Management specialist runtime for IT-asset change-impact analysis. The specialist's source-of-truth for tool inventory is its own agent.py at agents/servicenow_specialist/agent.py (not yet enumerated here)."
+    },
+    {
       "id": "sharepoint.retrieve_policies",
       "agent": "sharepoint_specialist",
       "tool_name": "retrieve_policies",
@@ -505,6 +584,78 @@
       "note": "Reached transitively from the master via sharepoint_lookup. No direct fan-out path from /chat."
     },
     {
+      "id": "awsconfig.describe_cognito",
+      "agent": "awsconfig_specialist",
+      "tool_name": "describe_cognito",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 563,
+      "callable_via": "chat",
+      "probe": "Describe the Cognito user pool used by ARBITER."
+    },
+    {
+      "id": "awsconfig.describe_ec2_instances",
+      "agent": "awsconfig_specialist",
+      "tool_name": "describe_ec2_instances",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 371,
+      "callable_via": "chat",
+      "probe": "Describe the EC2 instances in this account."
+    },
+    {
+      "id": "awsconfig.describe_ecr_repositories",
+      "agent": "awsconfig_specialist",
+      "tool_name": "describe_ecr_repositories",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 534,
+      "callable_via": "chat",
+      "probe": "List our ECR repositories and their scan-on-push setting."
+    },
+    {
+      "id": "awsconfig.describe_lambdas",
+      "agent": "awsconfig_specialist",
+      "tool_name": "describe_lambdas",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 453,
+      "callable_via": "chat",
+      "probe": "Describe the Lambda functions for the ARBITER API."
+    },
+    {
+      "id": "awsconfig.describe_load_balancers",
+      "agent": "awsconfig_specialist",
+      "tool_name": "describe_load_balancers",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 421,
+      "callable_via": "chat",
+      "probe": "Describe the load balancers in this account."
+    },
+    {
+      "id": "awsconfig.describe_network",
+      "agent": "awsconfig_specialist",
+      "tool_name": "describe_network",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 337,
+      "callable_via": "chat",
+      "probe": "Describe the VPC network layout, including public subnets and open ingress."
+    },
+    {
+      "id": "awsconfig.describe_s3_buckets",
+      "agent": "awsconfig_specialist",
+      "tool_name": "describe_s3_buckets",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 491,
+      "callable_via": "chat",
+      "probe": "List the S3 buckets and their public-access configuration."
+    },
+    {
+      "id": "awsconfig.get_resource_relationships",
+      "agent": "awsconfig_specialist",
+      "tool_name": "get_resource_relationships",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 254,
+      "callable_via": "chat",
+      "probe": "Show the AWS Config resource relationships for an EC2 instance."
+    },
+    {
       "id": "awsconfig.list_config_rules",
       "agent": "awsconfig_specialist",
       "tool_name": "list_config_rules",
@@ -512,6 +663,15 @@
       "line": 59,
       "callable_via": "chat",
       "probe": "List our active AWS Config rules."
+    },
+    {
+      "id": "awsconfig.list_resources",
+      "agent": "awsconfig_specialist",
+      "tool_name": "list_resources",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 224,
+      "callable_via": "chat",
+      "probe": "List the AWS Config resources of type AWS::EC2::Instance."
     },
     {
       "id": "awsconfig.get_rule_compliance",

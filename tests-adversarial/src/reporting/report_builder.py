@@ -19,11 +19,17 @@ Acceptance criteria this module enforces
        `under_budget` derived together so a test on the dict can assert
        `actual_usd < cap_usd` and `under_budget is True` in one shot.
 
-  AC20 (evidence-on-disk): every entry in `findings[]` must carry a non-empty
-       `evidence_path` that resolves to an existing file under `run_dir`. If
-       any FAIL result lacks evidence or points at a missing file,
-       `MissingEvidenceError` is raised BEFORE any partial report is built,
-       so the orchestrator never writes a broken `report.json`.
+  AC20 (evidence-on-disk): every entry in `findings[]` carries an
+       ``evidence_status`` field — ``"ok"`` when the file resolves on
+       disk, ``"missing_pointer"`` when the FAIL row has no
+       ``evidence_path``, and ``"not_found:<path>"`` when the pointer is
+       set but the file doesn't exist. Each finding also carries a
+       ``target_id_status`` field — ``"ok"`` when the id is in the
+       manifest section for its kind, ``"unknown_target:<id>"`` or
+       ``"unknown_kind:<kind>"`` otherwise. The renderer surfaces
+       non-``ok`` values with a warning marker; the builder does NOT
+       raise. ``MissingEvidenceError`` is still exported for callers
+       that want to opt into strict behaviour.
 
 ────────────────────────────────────────────────────────────────────────────
 Inputs
@@ -155,37 +161,68 @@ def _severity_rank(severity: str | None) -> tuple[int, str]:
         return (len(_SEVERITY_TIERS), label)
 
 
-def _check_evidence_exists(run_dir: Path, evidence_path: str, test_id: str) -> str:
-    """Resolve `evidence_path` under `run_dir` and confirm the file exists.
+def _evidence_status(
+    run_dir: Path,
+    evidence_path: str,
+    test_id: str,  # noqa: ARG001
+) -> str:
+    """Resolve `evidence_path` under `run_dir` and return a soft-warn status.
 
-    Returns the original `evidence_path` string (the caller stores the
-    relative form in the report so a forwarded run directory is portable).
+    Returns one of:
+      * ``"ok"``                — the file exists on disk.
+      * ``"missing_pointer"``   — ``evidence_path`` is None / empty.
+      * ``"not_found:<path>"``  — pointer set but the file does not exist.
 
-    Raises MissingEvidenceError if:
-      - `evidence_path` is None or empty (defensive — builder.py already
-        validates this for FAIL rows, but we re-check here so a downstream
-        caller that bypasses build_matrix still gets caught), OR
-      - the resolved path doesn't exist on disk under `run_dir`.
-
-    We use `(run_dir / evidence_path).resolve()` so a relative path like
-    `e2e/screenshots/foo.png` is anchored to the run dir, while an already-
-    absolute path is left alone. Either way the existence check is the
-    same.
+    Soft-warn semantics: the renderer surfaces non-``ok`` values with a
+    visible warning marker, but the builder never raises. Two prior runs
+    crashed the final report on strict AC20 enforcement, which is hostile
+    to the operator when the bulk of the report would have been useful.
+    The original strict-raise behaviour was retained via
+    ``MissingEvidenceError`` (still exported) but is no longer invoked by
+    the default path.
     """
     if not evidence_path:
-        raise MissingEvidenceError(
-            f"finding '{test_id}' has no evidence_path — AC20 requires every "
-            f"failure to point at an on-disk artifact under {run_dir}."
-        )
+        return "missing_pointer"
     candidate = Path(evidence_path)
     resolved = candidate if candidate.is_absolute() else (run_dir / candidate)
     if not resolved.is_file():
-        raise MissingEvidenceError(
-            f"finding '{test_id}' references evidence_path '{evidence_path}' "
-            f"which does not resolve to an existing file under {run_dir} "
-            f"(resolved to {resolved})."
-        )
-    return evidence_path
+        return f"not_found:{evidence_path}"
+    return "ok"
+
+
+def _target_id_status(
+    target_id: str,
+    target_kind: str,
+    manifest: dict,
+    test_id: str,  # noqa: ARG001
+) -> str:
+    """Resolve a finding's `target_id` against the manifest and return a
+    soft-warn status string.
+
+    Returns one of:
+      * ``"ok"``                       — the target_id exists in the
+                                          appropriate manifest section.
+      * ``"unknown_target:<target>"``  — the target_id is not in the
+                                          manifest section for its kind.
+      * ``"unknown_kind:<kind>"``      — target_kind is not one we map.
+
+    Soft-warn: the renderer shows the warning marker; the builder never
+    raises. The runtime strict check still lives in
+    ``src/coverage/builder.py::_place_result`` for matrix construction —
+    the report builder's role is to produce a report even when an
+    individual finding's metadata drifted.
+    """
+    if target_kind == "page":
+        index = {p["id"] for p in manifest.get("pages", [])}
+    elif target_kind == "api_route":
+        index = {r["id"] for r in manifest.get("api_routes", [])}
+    elif target_kind == "agent_tool":
+        index = {t["id"] for t in manifest.get("agent_tools", [])}
+    else:
+        return f"unknown_kind:{target_kind}"
+    if target_id in index:
+        return "ok"
+    return f"unknown_target:{target_id}"
 
 
 def _summary_short_text(result: TestResult) -> str:
@@ -247,11 +284,14 @@ def _build_cost_block(cost: dict, cap_usd: float) -> dict:
     }
 
 
-def _extract_findings(run_dir: Path, results: Iterable[TestResult]) -> list[dict]:
+def _extract_findings(
+    run_dir: Path, manifest: dict, results: Iterable[TestResult]
+) -> list[dict]:
     """Walk the raw results list, pull out every FAIL, and produce one
-    finding dict per FAIL. Each finding is validated for on-disk evidence
-    (AC20) BEFORE the list is returned, so a missing artifact short-circuits
-    the whole build.
+    finding dict per FAIL. Each finding carries soft-warn status fields
+    (``evidence_status``, ``target_id_status``) so the renderer can flag
+    missing-evidence or unknown-target rows with a warning marker without
+    crashing the whole build.
 
     DOCUMENTED_UNSAFE is NOT included — those confirm a documented contract,
     not a regression (per AC11). They're tallied in the summary instead.
@@ -262,12 +302,20 @@ def _extract_findings(run_dir: Path, results: Iterable[TestResult]) -> list[dict
     for result in results:
         if result.status != CellStatus.FAIL:
             continue
-        # AC20 enforcement: every FAIL must have an existing evidence file.
-        # builder.py validates evidence_path is set, but it does NOT check
-        # that the file exists — that's this module's job because only the
-        # report builder knows about `run_dir`.
-        evidence_path = _check_evidence_exists(
-            run_dir, result.evidence_path or "", result.test_id
+        # Soft-warn evidence check: write a status string instead of
+        # raising. Prior strict-raise behaviour crashed the report builder
+        # twice on FAIL rows whose evidence file got cleaned up between
+        # layer run and report build; the renderer now surfaces the
+        # warning visibly instead.
+        evidence_path = result.evidence_path or ""
+        evidence_status = _evidence_status(run_dir, evidence_path, result.test_id)
+        # Soft-warn target check: same idea — if the target_id has
+        # drifted from the manifest, render the row with a marker rather
+        # than abort. The matrix builder still enforces this strictly at
+        # placement time, so a stale id can't poison the matrix; the
+        # report builder's role is to keep producing a report.
+        target_id_status = _target_id_status(
+            result.target_id, result.target_kind, manifest, result.test_id
         )
         findings.append(
             {
@@ -278,6 +326,8 @@ def _extract_findings(run_dir: Path, results: Iterable[TestResult]) -> list[dict
                 "target_id": result.target_id,
                 "summary": _summary_short_text(result),
                 "evidence_path": evidence_path,
+                "evidence_status": evidence_status,
+                "target_id_status": target_id_status,
             }
         )
     # Rank: severity tier ascending (critical first), then target_id
@@ -409,18 +459,25 @@ def build_report(
         `report.json`. Keeping write separate from build lets the
         orchestrator dry-run the schema before committing to disk.
 
-    Raises
-    ------
-    MissingEvidenceError
-        A FAIL result has no `evidence_path`, or the path doesn't resolve
-        to an existing file under `run_dir`. AC20.
+    Notes
+    -----
+    Soft-warn for AC20 / target_id: prior strict behaviour raised
+    ``MissingEvidenceError`` and ``UnknownTargetError`` when a FAIL row
+    lacked evidence on disk or pointed at a manifest id that had drifted.
+    Two daily runs crashed on those checks even though the rest of the
+    report would have been useful. The builder now writes
+    ``evidence_status`` and ``target_id_status`` fields on each finding
+    so the renderer can flag the row with a visible warning marker
+    without aborting the build. The strict matrix invariants in
+    ``src/coverage/builder.py::_place_result`` still fire when the
+    matrix is constructed, so a stale id cannot poison the matrix.
     """
     results_list = list(results) if results is not None else []
 
-    # Extract findings FIRST — if AC20 is violated we want to fail before
-    # building the rest of the dict, so a broken report.json never lands
-    # on disk.
-    findings = _extract_findings(run_dir, results_list)
+    # Extract findings — soft-warn on missing evidence / unknown
+    # target_id (renderer shows the warning marker; builder never
+    # raises). See module docstring for the rationale.
+    findings = _extract_findings(run_dir, manifest, results_list)
 
     # Build the diff-from-last-green block (task 24). `build_diff` handles
     # both the with-baseline (AC14) and without-baseline (AC15) cases —

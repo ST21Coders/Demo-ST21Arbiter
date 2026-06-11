@@ -195,6 +195,39 @@ const PAGE_ASSERTIONS = {
       ).toBeVisible({ timeout: HEADING_TIMEOUT })
     },
   },
+  integrations: {
+    label: 'Integrations Marketplace',
+    assert: async (page) => {
+      // Integrations.jsx renders an h1 "Integrations Marketplace" with a
+      // Plug icon. The catalog itself is mock data; we only need the
+      // heading to prove the page mounted.
+      await expect(
+        page.getByRole('heading', { name: /integrations marketplace/i }),
+      ).toBeVisible({ timeout: HEADING_TIMEOUT })
+    },
+  },
+  'impact-analysis': {
+    label: 'Change Impact Analysis',
+    assert: async (page) => {
+      // ImpactAnalysis.jsx renders an h1 "Change Impact Analysis" with a
+      // Network icon. The result panel is empty until the user submits a
+      // resource — the heading alone proves the page mounted.
+      await expect(
+        page.getByRole('heading', { name: /change impact analysis/i }),
+      ).toBeVisible({ timeout: HEADING_TIMEOUT })
+    },
+  },
+  whatif: {
+    label: 'What-If Scan',
+    assert: async (page) => {
+      // WhatIf.jsx renders an h1 "What-If Scan" with a FlaskConical icon.
+      // The simulation result is empty until the user picks a preset — the
+      // heading alone proves the page mounted.
+      await expect(
+        page.getByRole('heading', { name: /what-if scan/i }),
+      ).toBeVisible({ timeout: HEADING_TIMEOUT })
+    },
+  },
   signin: {
     label: 'Sign In (post-redirect shell)',
     assert: async (page) => {

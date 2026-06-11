@@ -565,3 +565,100 @@ def test_writer_output_loads_via_coverage_builder(tmp_path: Path) -> None:
     assert cells[0]["status"] == "fail"
     assert cells[0]["severity"] == "high"
     assert matrix.summary["failures"] == 1
+
+
+# ───────────────────── fuzz-persona scope cut (MVP) ──────────────────────────
+#
+# The fuzz layer enumerates `routes × payloads × personas`. Fanning the
+# persona axis over all 4 personas blows the layer past the 10-minute
+# wall-clock cap (~11,680 tests). Default `--fuzz-personas 1` (CISO only)
+# trims this to ~2,920 — fits inside the budget. Per-persona auth gating
+# is exercised by the auth layer's cross-persona enumeration.
+
+
+def test_resolve_fuzz_personas_default_is_ciso_only() -> None:
+    """Default `--fuzz-personas 1` resolves to CISO only.
+
+    CISO has access to every route in the manifest, so fuzzing CISO alone
+    exercises every reachable surface. Wider coverage is the operator's
+    explicit opt-in via the CLI flag.
+    """
+    from unittest.mock import MagicMock
+
+    from fuzz.conftest import _resolve_fuzz_personas
+
+    config = MagicMock()
+    config.getoption.return_value = 1
+    assert _resolve_fuzz_personas(config) == ["ciso"]
+
+
+def test_resolve_fuzz_personas_full_fan_out() -> None:
+    """`--fuzz-personas 4` resolves to the manifest order.
+
+    Order pinned so the test inventory stays deterministic across runs.
+    """
+    from unittest.mock import MagicMock
+
+    from fuzz.conftest import _resolve_fuzz_personas
+
+    config = MagicMock()
+    config.getoption.return_value = 4
+    assert _resolve_fuzz_personas(config) == ["ciso", "soc", "grc", "employee"]
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (0, ["ciso"]),  # < 1 clamps up to 1
+        (-3, ["ciso"]),
+        (5, ["ciso", "soc", "grc", "employee"]),  # > 4 clamps down to 4
+        (99, ["ciso", "soc", "grc", "employee"]),
+        (2, ["ciso", "soc"]),  # in-range pass-through
+        (3, ["ciso", "soc", "grc"]),
+    ],
+)
+def test_resolve_fuzz_personas_clamp_and_pass_through(
+    raw: int, expected: list[str]
+) -> None:
+    """Out-of-range values clamp into [1, 4]; in-range values pass through."""
+    from unittest.mock import MagicMock
+
+    from fuzz.conftest import _resolve_fuzz_personas
+
+    config = MagicMock()
+    config.getoption.return_value = raw
+    assert _resolve_fuzz_personas(config) == expected
+
+
+def test_fuzz_personas_cli_flag_is_registered() -> None:
+    """The `--fuzz-personas` option must be registered by `pytest_addoption`.
+
+    Operator-facing flag — drift in the option name silently breaks the
+    orchestrator's wider-coverage opt-in.
+    """
+    cmd = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "fuzz/",
+        "--help",
+    ]
+    result = subprocess.run(
+        cmd,
+        cwd=str(_HARNESS_ROOT),
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert "--fuzz-personas" in result.stdout, (
+        f"--fuzz-personas not advertised in pytest --help: {result.stdout}"
+    )
+
+
+def test_runner_hard_cap_for_fuzz() -> None:
+    """The fuzz layer should be pinned to a 30-minute wall-clock cap so a
+    `--fuzz-personas 4` run cannot exceed it.
+    """
+    from scripts.run_all import _LAYER_HARD_CAPS_SECONDS
+
+    assert _LAYER_HARD_CAPS_SECONDS.get("fuzz") == 1800.0

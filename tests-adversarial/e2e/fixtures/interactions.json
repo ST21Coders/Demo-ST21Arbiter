@@ -95,9 +95,31 @@
       "expected_signal": "no-console-error",
       "severity": "low"
     },
+    "integrations": {
+      "interaction_id": "type-search-query",
+      "description": "Type into the connector-catalog search input on the Integrations marketplace page. Read-only filter; no backend mutation.",
+      "selector_role": "textbox",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
+    "impact-analysis": {
+      "interaction_id": "click-example-chip",
+      "description": "Click one of the suggested example resource chips on the Change Impact Analysis page to populate the resource input. Does NOT submit the form (submission would POST /servicenow/impact-analysis — covered by the fuzz layer).",
+      "selector_text": "alb-mig-prod-claims-api-001",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
+    "whatif": {
+      "interaction_id": null,
+      "reason": "The only primary interaction on the What-If page is 'Run What-If', which POSTs to /scan/dry-run and invokes the master AgentCore Runtime — that costs Bedrock tokens against the LLM layer budget and would tie this test to live agent state. Page-mount coverage is already in e2e.page.whatif.*; the /scan/dry-run route is exercised by the fuzz layer."
+    },
     "signin": {
       "interaction_id": null,
       "reason": "Authenticated personas hitting /signin are redirected away (Navigate to='/' replace). There is no interactive element on the page for an authenticated persona. The Cognito Hosted UI flow is exercised by the no-auth project's cognito-hosted-ui.spec.js."
+    },
+    "spa-root": {
+      "interaction_id": null,
+      "reason": "Synthetic sentinel page in the manifest (synthetic: true). Not a real React page — it represents the index.html + linked JS bundles for Block D bundle scans. No interactive element to probe; bundle-scan coverage lives in the auth/headers layers."
     }
   }
 }

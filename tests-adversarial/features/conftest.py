@@ -1,25 +1,25 @@
-"""Pytest fixtures for the headers / transport-security layer (Block B).
+"""Pytest fixtures for the features (positive end-to-end) layer.
 
-Why a separate conftest
------------------------
-The headers layer is structurally similar to `auth/` and `fuzz/`: it needs
-base URLs, a `requests.Session` with a sane timeout + RPS throttle, and a
-results writer that drains to `${RUN_DIR}/headers/results.json` at session end.
-Each layer keeps its own conftest so a standalone `pytest headers/` run still
-works.
+Why a dedicated conftest
+------------------------
+The features layer differs from the adversarial layers above:
 
-Layer scope
------------
-The headers layer covers checklist items #23 (plaintext transmission), #24
-(weak crypto algorithms), #31 (security headers), #35 (CORS), #55 (CSRF),
-and #56 (clickjacking). All probes are read-only or rejected-by-design, so
-there's no `--include-destructive` toggle — every test runs by default.
+  * Default expected outcome is **PASS**. A FAIL row is a real feature
+    regression, not a security finding. Severity tags are still applied
+    (`high` = broken feature, `medium` = degraded, `low` = cosmetic).
+  * The HTTP session uses a **30 s timeout** because /chat legitimately takes
+    8-15 s under Bedrock. The other layers cap at 10 s.
+  * Tests run as **each persona** (4 of them) for the per-persona modules
+    (chat roundtrip, conversation persistence). Routing / KB / cost / token
+    tests pin to CISO since the question is "does the feature work" not
+    "does it work per persona".
 
 Bedrock cost
 ------------
-The headers layer makes zero Bedrock calls. The `cost.json` stash at session
-end is all-zero by design — it exists so the orchestrator (`scripts/run_all.py`)
-can aggregate every layer's cost dict uniformly.
+Each /chat probe touches Bedrock. Typical Nova 2 Lite spend per turn is well
+under $0.001, so the worst-case (~12 chat calls × $0.001) sits inside the
+1-cent layer budget the orchestrator allocates. The session-end cost.json
+sums the per-call costs recorded by `cost_tracker_dict`.
 """
 
 from __future__ import annotations
@@ -35,14 +35,14 @@ from pathlib import Path
 import pytest
 import requests
 
-# Make `src.identity.cognito_auth` and harness `scripts.*` importable when
-# pytest is invoked from the `headers/` subdirectory.
+# Make `src.identity.cognito_auth`, `features.classifiers`, and harness
+# `scripts.*` importable when pytest is invoked from the `features/` subdir.
 _HARNESS_ROOT = Path(__file__).resolve().parent.parent
 if str(_HARNESS_ROOT) not in sys.path:
     sys.path.insert(0, str(_HARNESS_ROOT))
 
 
-# ───────────────────────────── manifest loader ───────────────────────────────
+# ──────────────────────────── manifest helpers ───────────────────────────────
 
 
 _MANIFEST_PATH = _HARNESS_ROOT / "src" / "coverage" / "manifest.json"
@@ -50,9 +50,7 @@ _MANIFEST_PATH = _HARNESS_ROOT / "src" / "coverage" / "manifest.json"
 
 @lru_cache(maxsize=1)
 def manifest() -> dict:
-    """Read and cache the coverage manifest. Module-scoped reads — pytest
-    walks parametrise() at collection time so this fires before any fixture.
-    """
+    """Read and cache the coverage manifest."""
     return json.loads(_MANIFEST_PATH.read_text(encoding="utf-8"))
 
 
@@ -64,17 +62,17 @@ def api_routes() -> list[dict]:
 # ────────────────────────────── path helpers ─────────────────────────────────
 
 
-def headers_results_path(run_dir: str | Path | None) -> Path:
-    """Where the headers layer writes its `results.json`.
+def features_results_path(run_dir: str | Path | None) -> Path:
+    """Where the features layer writes its `results.json`.
 
-    Mirrors the auth/fuzz convention: when `RUN_DIR` is set (orchestrator
-    runs), write under `${RUN_DIR}/headers/results.json`; otherwise fall back
-    to `test-reports/_local/headers/results.json` so a standalone
-    `pytest headers/` run still produces an artifact.
+    Mirrors the other layers' convention: write under
+    `${RUN_DIR}/features/results.json` when RUN_DIR is set, otherwise fall
+    back to `test-reports/_local/features/results.json` so standalone runs
+    still produce an artifact.
     """
     if run_dir:
-        return Path(run_dir) / "headers" / "results.json"
-    return _HARNESS_ROOT / "test-reports" / "_local" / "headers" / "results.json"
+        return Path(run_dir) / "features" / "results.json"
+    return _HARNESS_ROOT / "test-reports" / "_local" / "features" / "results.json"
 
 
 # ─────────────────────────── base-url fixtures ───────────────────────────────
@@ -98,12 +96,11 @@ def api_base_url() -> str:
       1. `API_BASE_URL` env (preferred, operator sets it explicitly).
       2. `TARGET_API_URL` env (legacy name).
 
-    No fallback to `${TARGET_BASE_URL}/api`. CloudFront does NOT proxy
-    /api/* to API Gateway in this deployment, so a fallback URL returns
-    the SPA's index.html for every API request and the classifiers
-    silently misread that as "API accepts X". Source of truth: CFN
-    export dev-st21arbiter-poc-ApiEndpoint. Module-skips if neither
-    var is set.
+    No fallback to `${TARGET_BASE_URL}/api`. CloudFront does NOT proxy /api/*
+    to API Gateway in this deployment, so a fallback URL would return the
+    SPA's index.html for every API request and the harness would falsely
+    report conversation persistence and token usage as broken (regression
+    incident 2026-06-11). Module-skips if neither var is set.
     """
     explicit = os.environ.get("API_BASE_URL", "").strip()
     if explicit:
@@ -112,9 +109,10 @@ def api_base_url() -> str:
     if legacy:
         return legacy.rstrip("/")
     pytest.skip(
-        "layer requires API_BASE_URL or TARGET_API_URL to be set "
-        "(CFN export dev-st21arbiter-poc-ApiEndpoint). CloudFront does "
-        "not proxy /api/* in this deployment.",
+        "features layer requires API_BASE_URL (the API Gateway invoke URL) or "
+        "TARGET_API_URL to be set. CloudFront does not proxy /api/* to the "
+        "API in this deployment. Source: CFN export "
+        "dev-st21arbiter-poc-ApiEndpoint.",
         allow_module_level=True,
     )
 
@@ -124,14 +122,14 @@ def chat_function_url() -> str | None:
     """Lambda Function URL for `/chat`. May be None.
 
     `/chat` is served by a Function URL (AuthType=NONE) rather than API
-    Gateway to dodge the 29s integration timeout. Headers tests that hit
-    `/chat` skip when this env var is unset.
+    Gateway to dodge the 29 s integration timeout. Tests that hit `/chat`
+    skip when this env var is unset.
     """
     url = os.environ.get("CHAT_FUNCTION_URL", "").strip()
     return url.rstrip("/") if url else None
 
 
-# ───────────────────────────── identities ────────────────────────────────────
+# ─────────────────────────────── identities ──────────────────────────────────
 
 
 @pytest.fixture(scope="session")
@@ -139,9 +137,8 @@ def identities() -> dict:
     """The four demo Cognito identities, session-scoped.
 
     Skipped at module level when DEMO_PASSWORD is unset — without a real
-    Authorization header the CSRF probe (which needs to compare cookie-only
-    vs token-only) can't draw a real distinction. Tests that don't need a
-    live identity can call `_throttle()` directly and skip this fixture.
+    Authorization header none of the features probes can complete. A FAIL
+    here would be misleading (the harness failed to log in, not the app).
     """
     from src.identity.cognito_auth import (
         CognitoAuthError,
@@ -153,12 +150,12 @@ def identities() -> dict:
         return fetch_all()
     except MissingPasswordError as exc:
         pytest.skip(
-            f"DEMO_PASSWORD not set — headers layer cannot acquire IdTokens: {exc}",
+            f"DEMO_PASSWORD not set — features layer cannot acquire IdTokens: {exc}",
             allow_module_level=True,
         )
     except CognitoAuthError as exc:
         pytest.skip(
-            f"Cognito auth failed — headers layer cannot acquire IdTokens: {exc}",
+            f"Cognito auth failed — features layer cannot acquire IdTokens: {exc}",
             allow_module_level=True,
         )
 
@@ -166,10 +163,9 @@ def identities() -> dict:
 # ─────────────────────────── http session + throttle ─────────────────────────
 
 
-# Module-level throttle state. Shared across all tests in the run. Independent
-# of the other layers — each pytest invocation has its own `_LAST_REQUEST_TS`.
+# Module-level throttle state. 5 RPS cap matches auth/fuzz/headers convention.
 _LAST_REQUEST_TS: list[float] = [0.0]
-_THROTTLE_INTERVAL_SECONDS = 0.2  # 5 RPS cap — matches auth/fuzz convention.
+_THROTTLE_INTERVAL_SECONDS = 0.2  # 5 RPS
 
 
 def _throttle() -> None:
@@ -183,23 +179,17 @@ def _throttle() -> None:
 
 @pytest.fixture(scope="session")
 def http_session() -> Generator[requests.Session, None, None]:
-    """A `requests.Session` configured for the headers layer.
+    """A `requests.Session` with a 30 s default timeout for /chat.
 
-    Default timeout is enforced via a wrapper around `request()` rather than
-    a `Session` attribute, because `requests` does not honor a Session-level
-    `timeout` (the kwarg has to be on each call).
-
-    Headers tests need to inspect redirects (e.g. http → https) — so we
-    default `allow_redirects=False`. Tests that want to follow a chain can
-    override per-call.
+    The 30 s default matches the chat-roundtrip budget — anything beyond is
+    a feature regression and the classifier flags it MEDIUM.
     """
     sess = requests.Session()
     original_request = sess.request
 
     def _wrapped_request(method, url, **kwargs):
         _throttle()
-        kwargs.setdefault("timeout", 10)
-        kwargs.setdefault("allow_redirects", False)
+        kwargs.setdefault("timeout", 30)
         return original_request(method, url, **kwargs)
 
     sess.request = _wrapped_request  # type: ignore[assignment]
@@ -210,9 +200,9 @@ def http_session() -> Generator[requests.Session, None, None]:
 # ─────────────────────────── results writer ──────────────────────────────────
 
 
-class HeadersResultsWriter:
-    """Accumulates headers `TestResult`-shaped rows and writes them at session
-    end. Shape matches `src/coverage/builder.py::TestResult`.
+class FeaturesResultsWriter:
+    """Accumulates features `TestResult`-shaped rows and writes them at
+    session end. Shape matches `src/coverage/builder.py::TestResult`.
     """
 
     def __init__(self) -> None:
@@ -241,49 +231,65 @@ class HeadersResultsWriter:
 
 
 @pytest.fixture(scope="session")
-def results_writer() -> Generator[HeadersResultsWriter, None, None]:
+def results_writer() -> Generator[FeaturesResultsWriter, None, None]:
     """Session-scoped writer. Drained to disk by `pytest_sessionfinish`."""
-    writer = HeadersResultsWriter()
+    writer = FeaturesResultsWriter()
     yield writer
-    # The actual write happens in pytest_sessionfinish below so a session
+    # Actual write happens in pytest_sessionfinish below so a session
     # interrupt (KeyboardInterrupt, --maxfail) still flushes what we have.
 
 
-_LIVE_WRITER: dict[str, HeadersResultsWriter] = {}
+_LIVE_WRITER: dict[str, FeaturesResultsWriter] = {}
+_LIVE_COST: dict[str, dict] = {}
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _capture_writer(results_writer: HeadersResultsWriter) -> HeadersResultsWriter:
+def _capture_writer(results_writer: FeaturesResultsWriter) -> FeaturesResultsWriter:
     """Side-channel to give `pytest_sessionfinish` the writer instance."""
     _LIVE_WRITER["writer"] = results_writer
     return results_writer
 
 
-def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
-    """Drain the headers results writer to disk at session end.
+# ─────────────────────────── cost tracker dict ───────────────────────────────
 
-    Also writes a zero-shape `cost.json` because the layer makes no Bedrock
-    calls. The orchestrator (`scripts/run_all.py::_aggregate_cost`) sums
-    every layer's cost.json regardless of whether the layer ran, so the
-    presence of the file is what proves the layer's pass.
+
+@pytest.fixture(scope="session")
+def cost_tracker_dict() -> dict:
+    """Session-scoped dict each chat-creating test appends a cost row to.
+
+    Shape per row: {"layer": "features", "test_id": ..., "usd": float}.
+
+    The session-finish hook sums these into the layer's `cost.json` so the
+    orchestrator's `_aggregate_cost` can attribute the spend cleanly.
     """
+    bucket = {"rows": []}
+    _LIVE_COST["bucket"] = bucket
+    return bucket
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    """Drain the features results writer + cost stash to disk at session end."""
     writer = _LIVE_WRITER.get("writer")
     if writer is None:
         return
-    out_path = headers_results_path(os.environ.get("RUN_DIR"))
+    out_path = features_results_path(os.environ.get("RUN_DIR"))
     try:
         writer.write(out_path)
     except OSError as exc:
-        print(f"warning: headers results write failed: {exc}", file=sys.stderr)
+        print(f"warning: features results write failed: {exc}", file=sys.stderr)
 
+    # Cost stash. Sum every recorded row into a single per-layer total so the
+    # orchestrator's aggregate_cost reads it uniformly.
     cost_path = out_path.parent / "cost.json"
+    bucket = _LIVE_COST.get("bucket", {"rows": []})
+    total_usd = sum(float(r.get("usd", 0.0) or 0.0) for r in bucket["rows"])
     try:
         cost_path.write_text(
             json.dumps(
                 {
-                    "total_usd": 0.0,
-                    "per_layer_usd": {"headers": 0.0},
-                    "probe_counts": {},
+                    "total_usd": round(total_usd, 6),
+                    "per_layer_usd": {"features": round(total_usd, 6)},
+                    "probe_counts": {"features": len(bucket["rows"])},
                 },
                 indent=2,
             )
@@ -291,7 +297,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
             encoding="utf-8",
         )
     except OSError as exc:
-        print(f"warning: headers cost stash failed: {exc}", file=sys.stderr)
+        print(f"warning: features cost stash failed: {exc}", file=sys.stderr)
 
 
 # ─────────────────── shared evidence-path helper ────────────────────────────
@@ -300,17 +306,17 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
 def evidence_path_for(test_id: str) -> str:
     """Stable evidence pointer per layer's convention.
 
-    Mirrors auth/fuzz: every FAIL row points back at its own row in the
-    layer's results.json. The renderer dereferences this for the report
-    drill-down. AC20 requires every FAIL to have an `evidence_path`.
+    Mirrors auth/fuzz/headers/dos: every FAIL row points back at its own row
+    in the layer's results.json. AC20 requires every FAIL to have an
+    `evidence_path`.
     """
-    return f"headers/results.json#{test_id}"
+    return f"features/results.json#{test_id}"
 
 
 __all__ = [
-    "HeadersResultsWriter",
+    "FeaturesResultsWriter",
     "api_routes",
     "evidence_path_for",
-    "headers_results_path",
+    "features_results_path",
     "manifest",
 ]
