@@ -626,6 +626,20 @@ Resources:
                   - cognito-idp:DescribeUserPool
                   - cognito-idp:ListUserPoolClients
                   - cognito-idp:DescribeUserPoolClient
+                  - glue:GetCrawler
+                  - glue:GetCrawlers
+                  - glue:ListCrawlers
+                  - glue:GetCrawlerMetrics
+                  - glue:GetDatabase
+                  - glue:GetDatabases
+                  - glue:GetTable
+                  - glue:GetTables
+                  # DynamoDB METADATA only — table config, never item data
+                  # (no GetItem/Query/Scan/BatchGetItem here on purpose).
+                  - dynamodb:ListTables
+                  - dynamodb:DescribeTable
+                  - dynamodb:DescribeContinuousBackups
+                  - dynamodb:DescribeTimeToLive
                   - apigateway:GET
                 Resource: "*"
               - Sid: TokenUsageWrite

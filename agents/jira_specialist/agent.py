@@ -12,7 +12,9 @@ Environment variables:
   MODEL_ID           Bedrock model (default: Nova 2 Lite cross-region inference profile)
   GUARDRAIL_ID       Optional guardrail
   GUARDRAIL_VERSION  Guardrail version (default: DRAFT)
-  JIRA_SECRET_ID     Secrets Manager id holding {"url","email","api_token"}.
+  JIRA_SECRET_ID     Secrets Manager id holding {"url","email","api_token"} and
+                     optionally "confluence_url" (the .../wiki base) to enable the
+                     Confluence tools (username/token are reused from email/api_token).
                      Empty/unreadable = agent runs in "(JIRA not configured)" mode.
 """
 from __future__ import annotations
@@ -44,8 +46,10 @@ GUARDRAIL_VERSION = os.environ.get("GUARDRAIL_VERSION", "DRAFT")
 # Tier-0 least-privilege scoping for the mcp-atlassian server (set via runtime
 # env in deploy_agents.py so they're declarative). Passed straight through to
 # the mcp-atlassian subprocess:
-#   ENABLED_TOOLS        — allowlist of MCP tool names the server exposes; drops
-#                          unused write/delete/transition + all Confluence tools.
+#   ENABLED_TOOLS        — allowlist of MCP tool names the server exposes: Jira
+#                          read + create + L1-resolution (transition/comment) plus
+#                          Confluence search/read/create/update. The Confluence
+#                          tools only function when CONFLUENCE_URL is in the secret.
 #   JIRA_PROJECTS_FILTER — optional: restrict Jira ops to these project keys.
 #                          OFF by default (empty) so reads aren't silently scoped
 #                          out — set it via runtime env only if you want the limit.
@@ -56,18 +60,32 @@ JIRA_ENABLED_TOOLS = os.environ.get(
     # get_transitions is needed so a transition can be resolved by name → id
     # defensively (workflow transition ids differ per project).
     "jira_search,jira_get_issue,jira_get_all_projects,jira_create_issue,"
-    "jira_get_transitions,jira_transition_issue,jira_add_comment",
+    "jira_get_transitions,jira_transition_issue,jira_add_comment,"
+    # Confluence read + page create/update (enabled only when CONFLUENCE_URL set).
+    "confluence_search,confluence_get_page,confluence_create_page,confluence_update_page",
 )
 JIRA_PROJECTS_FILTER = os.environ.get("JIRA_PROJECTS_FILTER", "")
+# Default Confluence space KEY to use when the user gives a space by display name
+# or omits it. mcp-atlassian's confluence_create_page needs the key, not the name.
+# Set via deploy_agents.py env override.
+CONFLUENCE_DEFAULT_SPACE_KEY = os.environ.get("CONFLUENCE_DEFAULT_SPACE_KEY", "Arbiterpoc")
 
-SYSTEM_PROMPT = """You are the JIRA specialist for ARBITER. You answer
-questions about Jira issues, tickets, projects, and sprints, and you can create
-or update issues when explicitly asked.
+SYSTEM_PROMPT = f"""You are the Atlassian specialist for ARBITER. You work with
+Jira (issues, tickets, projects, sprints) and Confluence (spaces and pages). You
+read live data and, when explicitly asked, create/update Jira issues and
+create/update Confluence pages.
 
-Use the available Jira tools to read live data. Cite the issue keys (e.g.
-MIG-123) you reference. Do not fabricate issue keys, statuses, or assignees —
-if a tool returns nothing, say so. Keep answers concise and factual, suitable
-for a security analyst's ticket notes.
+Use the available tools for live data. Cite the artifacts you reference — Jira
+issue keys (e.g. MIG-123) and Confluence page titles/URLs.
+
+When creating a Confluence page, pass the space KEY to confluence_create_page —
+never the space display name. If the user gives a space by display name (e.g.
+"Arbiter-poc-confluence") or does not name a space, use the default space key
+"{CONFLUENCE_DEFAULT_SPACE_KEY}". Render the supplied content as the page body and
+return the new page's title and URL.
+
+Do not fabricate issue keys, page ids, statuses, or assignees — if a tool returns
+nothing, say so. Keep answers concise and factual.
 """
 
 app = BedrockAgentCoreApp()
@@ -100,6 +118,14 @@ def _build_mcp_client(creds: dict[str, str]) -> MCPClient:
         "JIRA_USERNAME": creds.get("email", ""),
         "JIRA_API_TOKEN": creds.get("api_token", ""),
     }
+    # Confluence (same Atlassian site + token). Only set when confluence_url is
+    # present in the secret, so a Jira-only secret can't half-configure Confluence.
+    # mcp-atlassian reads CONFLUENCE_URL/USERNAME/API_TOKEN from its process env.
+    confluence_url = creds.get("confluence_url", "")
+    if confluence_url:
+        subprocess_env["CONFLUENCE_URL"] = confluence_url
+        subprocess_env["CONFLUENCE_USERNAME"] = creds.get("email", "")
+        subprocess_env["CONFLUENCE_API_TOKEN"] = creds.get("api_token", "")
     # Tier-0 scoping — only set when configured so an empty value can't
     # accidentally widen the surface.
     if JIRA_PROJECTS_FILTER:

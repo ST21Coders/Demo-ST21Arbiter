@@ -48,6 +48,8 @@ const MCP_SERVERS = [
       { name: 'describe_lambdas',          desc: 'Lambda config + env-var keys (values redacted)' },
       { name: 'describe_s3_buckets',       desc: 'Bucket public-access, encryption, versioning' },
       { name: 'describe_ecr_repositories', desc: 'ECR repos, scan-on-push, tag mutability' },
+      { name: 'describe_glue',             desc: 'Glue crawlers (state, schedule, last run) + catalog DBs' },
+      { name: 'describe_dynamodb_tables',  desc: 'DynamoDB table config — keys/indexes/encryption/PITR (no item data)' },
       { name: 'describe_cognito',          desc: 'User pools + clients (secrets redacted), removal impact' },
       { name: 'list_config_rules',         desc: 'AWS Config rules + compliance state' },
       { name: 'retrieve_awsconfig_docs',   desc: 'KB lookup of control guidance' },

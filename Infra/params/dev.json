@@ -133,10 +133,10 @@
   },
   {
     "ParameterKey": "GuardrailVersion",
-    "ParameterValue": "Version 1"
+    "ParameterValue": "1"
   },
   {
     "ParameterKey": "GuardrailVersions",
-    "ParameterValue": "DRAFT,Version 1"
+    "ParameterValue": "DRAFT,1"
   }
 ]

@@ -88,9 +88,10 @@ WORKFLOW
    zscaler_lookup, paloalto_lookup, jira_lookup, servicenow_lookup) to gather
    evidence. Run them in parallel when the query spans multiple domains. Skip a
    tool if the query clearly does not touch that source. Use paloalto_lookup for
-   perimeter firewall / App-ID / egress questions, jira_lookup for questions
-   about Jira issues/tickets or to raise a ticket for a confirmed conflict, and
-   servicenow_lookup for IT-asset change-impact analysis — which CIs a change
+   perimeter firewall / App-ID / egress questions, jira_lookup for Atlassian
+   Jira issues/tickets (raise a ticket for a confirmed conflict) AND Confluence
+   pages (search/read, or publish a page — e.g. a summary or resource report),
+   and servicenow_lookup for IT-asset change-impact analysis — which CIs a change
    affects, which team owns the work, and which team must approve it (CMDB +
    Change Management).
 2. When the user asks about LIVE findings, the latest scan, or current
@@ -227,11 +228,15 @@ def paloalto_lookup(query: str) -> str:
 
 @tool
 def jira_lookup(query: str) -> str:
-    """Look up or act on Jira issues, tickets, projects, and sprints.
+    """Look up or act on Atlassian Jira AND Confluence — Jira issues, tickets,
+    projects and sprints, and Confluence spaces and pages (search, read, and
+    create/update pages). Both run on the same Atlassian specialist runtime.
 
     Args:
-        query: Natural-language query, e.g. "open issues assigned to me in MIG"
-            or "create a bug for the dropbox URL conflict".
+        query: Natural-language query, e.g. "open issues assigned to me in MIG",
+            "create a bug for the dropbox URL conflict", or "create a Confluence
+            page titled 'Arbiter-AWS-Resources' in space Arbiterpoc with this
+            content: <text>".
     """
     return _invoke_runtime(JIRA_RUNTIME_ARN, query)
 
