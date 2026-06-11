@@ -1,5 +1,27 @@
 """ARBITER AWS Config / Resource-Posture Specialist — runs on Bedrock AgentCore Runtime.
+"""ARBITER AWS Config / Resource-Posture Specialist — runs on Bedrock AgentCore Runtime.
 
+Read-only analyst over the AWS account this runtime is deployed in
+(669810405473 / us-east-1). It answers two broad classes of question:
+
+  1. Inventory & detail — "what S3 buckets / load balancers / ECR repos /
+     Lambdas / EC2 instances do we have, and how are they configured?"
+  2. Posture & impact-radius — "are my resources in a private subnet?",
+     "what is exposed to the public internet?", "what happens if I remove this
+     Cognito user pool / open this EC2 instance to a public subnet?"
+
+Data sources:
+  - AWS Config advanced queries + relationships (account inventory + the
+    dependency graph used for blast-radius reasoning).
+  - Live service describe/list/get APIs (richer per-service detail).
+  - Bedrock Knowledge Base (control rationale / historical snapshots).
+
+SECURITY — this agent is strictly READ-ONLY and MUST NOT leak credentials.
+Every tool routes its output through _scrub() (a recursive redaction choke
+point) before returning, so secret-shaped fields (passwords, tokens, client
+secrets, access keys, private keys) and Lambda env-var secret values never reach
+the model. The agent never calls APIs that return raw secret material
+(SecretsManager GetSecretValue, SSM GetParameter, EC2 user-data, etc.).
 Read-only analyst over the AWS account this runtime is deployed in
 (669810405473 / us-east-1). It answers two broad classes of question:
 

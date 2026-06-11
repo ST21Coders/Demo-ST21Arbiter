@@ -13,6 +13,7 @@ import CreateTicketButton from '../components/CreateTicketButton'
    Each entry maps to a real ARBITER AgentCore runtime. `id` is the routing
    target sent to POST /chat (api_handler resolves it → runtime ARN). Live
    status comes from useAgentStatus() (GET /agent-status). */
+   status comes from useAgentStatus()(GET / agent - status). */
 
 const MCP_SERVERS = [
   {
