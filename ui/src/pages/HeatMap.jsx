@@ -3,11 +3,9 @@ import {
   Loader2, AlertTriangle, RefreshCw,
   BarChart3, Network, HeartPulse,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import { useFindings, useScanFeed } from '../hooks/useApi'
 import {
-  buildConflictMatrix, buildDomainSourceMatrix,
-  DOMAIN_LABELS, DOMAIN_KEYS, SOURCE_PAIRS, TEAMS, TEAM_LABELS,
+  buildConflictMatrix,
 } from '../mockData'
 import { AGENT_MODELS, modelLabel } from '../config'
 
@@ -325,7 +323,7 @@ function TopologyCanvas() {
             <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-violet-600 rounded" /> Output</span>
           </div>
         </div>
-        <div style={{ minWidth: CW + 32, padding: '16px' }} ref={containerRef}>
+        <div style={{ width: 'fit-content', minWidth: CW + 32, padding: '16px', margin: '0 auto' }} ref={containerRef}>
           <svg width={CW} height={CANVAS_H} style={{ display: 'block' }}>
 
             {/* Tier labels */}
@@ -579,167 +577,59 @@ function StatusDot({ status }) {
   return <span className={cls} />
 }
 
-// ─── Conflict Matrix tab ──────────────────────────────────────────────────────
-// The doc-mandated grid: Compliance Domain (rows) × Source Pair (cols).
-// Click a cell to drill into the matching Findings filter. The legacy
-// Source × Severity grid remains accessible via the bottom tab toggle.
-
-function DomainSourceMatrixView({ findings, loading, onCellClick }) {
-  const matrix = buildDomainSourceMatrix(findings)
+function SourceSeverityMatrixView({ findings, loading }) {
+  const matrix = buildConflictMatrix(findings)
   if (loading) return (
     <div className="flex items-center justify-center py-24">
       <Loader2 size={24} className="animate-spin text-slate-400" />
     </div>
   )
   return (
-    <div className="card overflow-x-auto">
-      <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
-        Compliance Domain × Source System
+    <div className="card overflow-x-auto p-4">
+      <p className="text-xs font-semibold text-slate-700 uppercase tracking-[0.18em] mb-5">
+        Domain × Severity Matrix
       </p>
-      <table className="w-full text-sm border-separate border-spacing-1.5">
-        <thead>
-          <tr>
-            <th className="text-left text-xs text-slate-500 font-medium pb-2 w-44">Domain</th>
-            {SOURCE_PAIRS.map(s => (
-              <th key={s} className="text-xs text-slate-700 font-semibold pb-2 text-center">{s}</th>
-            ))}
-            <th className="text-xs text-slate-500 font-medium pb-2 text-center">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {DOMAIN_KEYS.map(dk => {
-            const rowTotal = SOURCE_PAIRS.reduce((s, sp) => s + (matrix[dk]?.[sp] ?? 0), 0)
-            return (
-              <tr key={dk}>
-                <td className="text-xs text-slate-700 font-semibold pr-4 py-1">{DOMAIN_LABELS[dk]}</td>
-                {SOURCE_PAIRS.map(sp => {
-                  const count = matrix[dk]?.[sp] ?? 0
-                  return (
-                    <td key={sp} className="text-center py-1">
-                      <button
-                        onClick={() => count > 0 && onCellClick?.(dk, sp)}
-                        disabled={count === 0}
-                        className={`w-full rounded-lg py-3 font-bold text-lg transition-transform hover:scale-105 disabled:cursor-default disabled:hover:scale-100 ${cellClass(count)}`}
-                      >
-                        {count > 0 ? count : '—'}
-                      </button>
-                    </td>
-                  )
-                })}
-                <td className="text-center">
-                  <span className="text-xs font-bold text-slate-700">{rowTotal}</span>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-function SourceSeverityMatrixView({ findings }) {
-  const matrix = buildConflictMatrix(findings)
-  return (
-    <div className="card overflow-x-auto">
-      <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
-        Source × Severity (legacy view)
-      </p>
-      <table className="w-full text-sm border-separate border-spacing-1.5">
-        <thead>
-          <tr>
-            <th className="text-left text-xs text-slate-500 font-medium pb-2 w-36">Source</th>
-            {SEVERITIES.map(s => (
-              <th key={s} className={`text-xs font-bold pb-2 text-center w-28 ${
-                s === 'CRITICAL' ? 'text-red-700' : s === 'HIGH' ? 'text-orange-700' :
-                s === 'MEDIUM' ? 'text-amber-700' : 'text-emerald-700'
-              }`}>{s}</th>
-            ))}
-            <th className="text-xs text-slate-500 font-medium pb-2 text-center">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {DOMAINS.map(domain => {
-            const rowTotal = SEVERITIES.reduce((sum, s) => sum + (matrix[domain]?.[s] ?? 0), 0)
-            return (
-              <tr key={domain}>
-                <td className="text-xs text-slate-700 font-semibold pr-4 py-1">{domain}</td>
-                {SEVERITIES.map(sev => {
-                  const count = matrix[domain]?.[sev] ?? 0
-                  return (
-                    <td key={sev} className="text-center py-1">
-                      <div className={`rounded-lg py-3 font-bold text-lg ${cellClass(count)}`}>
-                        {count > 0 ? count : '—'}
-                      </div>
-                    </td>
-                  )
-                })}
-                <td className="text-center">
-                  <span className="text-xs font-bold text-slate-700">{rowTotal}</span>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-function ConflictMatrix({ findings, loading }) {
-  const navigate = useNavigate()
-  const [matrixTab, setMatrixTab] = useState('domain-source')
-  const [teamScope, setTeamScope] = useState('')
-  // Per-team segregation: scope the matrix to a single team across all three
-  // ownership axes (owner / consumer / platform).
-  const scoped = teamScope
-    ? findings.filter(f => [f.owner_team, f.consumer_team, f.platform_team].includes(teamScope))
-    : findings
-  const contradictions = scoped.filter(f => f.conflict_type === 'CONTRADICTION').length
-  const gaps          = scoped.filter(f => f.conflict_type === 'GAP').length
-  const drifts        = scoped.filter(f => f.conflict_type === 'DRIFT').length
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: 'Total Conflicts', value: scoped.length,                                                         color: 'text-slate-900' },
-          { label: 'Contradiction',   value: contradictions,                                                        color: 'text-rose-700' },
-          { label: 'Gap',             value: gaps,                                                                  color: 'text-amber-700' },
-          { label: 'Drift',           value: drifts,                                                                color: 'text-orange-700' },
-        ].map(k => (
-          <div key={k.label} className="card text-center py-3">
-            <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-            <p className="text-xs text-slate-500 mt-1">{k.label}</p>
-          </div>
-        ))}
+      <div className="min-w-max">
+        <table className="w-auto text-sm border-separate border-spacing-x-2 border-spacing-y-3">
+          <thead>
+            <tr>
+              <th className="text-left text-xs text-slate-500 font-medium pb-1 w-40">Domain / Source</th>
+              {SEVERITIES.map(s => (
+                <th key={s} className={`text-xs font-bold pb-1 text-center uppercase w-[118px] ${
+                  s === 'CRITICAL' ? 'text-red-700' : s === 'HIGH' ? 'text-orange-700' :
+                  s === 'MEDIUM' ? 'text-amber-700' : 'text-emerald-700'
+                }`}>{s}</th>
+              ))}
+              <th className="text-xs text-slate-500 font-medium pb-1 text-right w-12">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {DOMAINS.map(domain => {
+              const rowTotal = SEVERITIES.reduce((sum, s) => sum + (matrix[domain]?.[s] ?? 0), 0)
+              return (
+                <tr key={domain}>
+                  <td className="text-sm text-slate-700 font-semibold pr-4 whitespace-nowrap">{domain}</td>
+                  {SEVERITIES.map(sev => {
+                    const count = matrix[domain]?.[sev] ?? 0
+                    return (
+                      <td key={sev} className="text-center">
+                        <div className={`w-[110px] h-[52px] rounded-lg font-bold text-lg flex items-center justify-center mx-auto ${cellClass(count)}`}>
+                          {count > 0 ? count : '—'}
+                        </div>
+                      </td>
+                    )
+                  })}
+                  <td className="text-right">
+                    <span className="text-sm font-bold text-slate-700">{rowTotal}</span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
 
-      <div className="flex gap-2 text-xs items-center">
-        <button
-          onClick={() => setMatrixTab('domain-source')}
-          className={matrixTab === 'domain-source' ? 'btn-primary' : 'btn-ghost'}
-        >Domain × Source</button>
-        <button
-          onClick={() => setMatrixTab('source-severity')}
-          className={matrixTab === 'source-severity' ? 'btn-primary' : 'btn-ghost'}
-        >Source × Severity</button>
-        <select value={teamScope} onChange={e => setTeamScope(e.target.value)} className="input w-44 text-xs ml-auto">
-          <option value="">All Teams</option>
-          {TEAMS.map(t => <option key={t} value={t}>{TEAM_LABELS[t]}</option>)}
-        </select>
-      </div>
-
-      {matrixTab === 'domain-source'
-        ? <DomainSourceMatrixView
-            findings={scoped}
-            loading={loading}
-            onCellClick={(dk, sp) => navigate(`/findings?domain=${dk}&source=${encodeURIComponent(sp)}${teamScope ? `&team=${teamScope}` : ''}`)}
-          />
-        : <SourceSeverityMatrixView findings={scoped} />
-      }
-
-      <div className="flex items-center gap-4 pt-1">
+      <div className="flex items-center gap-4 border-t border-slate-200 mt-4 pt-4">
         <p className="text-xs text-slate-500 font-medium">Density:</p>
         {[
           { label: '0',  cls: 'hm-0' },
@@ -748,11 +638,39 @@ function ConflictMatrix({ findings, loading }) {
           { label: '3',  cls: 'hm-3' },
           { label: '4+', cls: 'hm-4' },
         ].map(l => (
-          <div key={l.label} className="flex items-center gap-1.5">
-            <div className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold ${l.cls}`}>{l.label}</div>
+          <div key={l.label} className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold ${l.cls}`}>
+            {l.label}
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function ConflictMatrix({ findings, loading }) {
+  const scoped = findings
+  const contradictions = scoped.filter(f => f.conflict_type === 'CONTRADICTION').length
+  const criticalHigh = scoped.filter(f => ['CRITICAL', 'HIGH'].includes(f.severity)).length
+  const crossDomain = scoped.filter(f => f.type === 'CROSS_DOMAIN').length
+  const intraDocument = scoped.filter(f => f.type === 'INTRA_DOCUMENT').length
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Total Conflicts', value: scoped.length, color: 'text-slate-900' },
+          { label: 'Cross-Domain', value: crossDomain || contradictions, color: 'text-indigo-700' },
+          { label: 'Intra-Document', value: intraDocument, color: 'text-sky-700' },
+          { label: 'Critical / High', value: criticalHigh, color: 'text-rose-700' },
+        ].map(k => (
+          <div key={k.label} className="card text-center py-5">
+            <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
+            <p className="text-xs text-slate-500 mt-2">{k.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <SourceSeverityMatrixView findings={scoped} loading={loading} />
     </div>
   )
 }
