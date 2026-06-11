@@ -207,14 +207,25 @@ def test_render_html_has_no_unexpected_external_urls(
 ) -> None:
     """Acceptance 3 (offline guarantee): the only http(s):// URLs in the
     rendered output are the user-supplied target_base_url and
-    chat_function_url. No CDN, no Google Fonts, no analytics."""
+    chat_function_url, plus any URL declared as a synthetic route ``path``
+    in the manifest (e.g. ``cognito-initiate-auth``'s Cognito endpoint).
+    No CDN, no Google Fonts, no analytics."""
     report = _build_empty_report(manifest, empty_matrix, empty_cost, metadata, run_dir)
     body = render_html(report, run_dir, manifest).read_text(encoding="utf-8")
     found = re.findall(r"https?://[^\s\"'<>]+", body)
-    allowed = {
+    allowed: set[str | None] = {
         metadata.target_base_url.rstrip("/"),
         metadata.chat_function_url.rstrip("/") if metadata.chat_function_url else None,
     }
+    # Synthetic route paths that are intentionally full URLs (the
+    # cognito-initiate-auth sentinel is the canonical example). The
+    # offline guarantee is about CDN / analytics / fonts leaking in, not
+    # about manifest data the operator explicitly declared.
+    for route in manifest.get("api_routes", []):
+        if route.get("synthetic") is True:
+            path = route.get("path") or ""
+            if path.startswith("http"):
+                allowed.add(path.rstrip("/"))
     for url in found:
         # Strip a trailing slash for the allow-list match — the metadata
         # block emits the URL verbatim but JSON or attribute contexts may
@@ -308,7 +319,7 @@ def test_page_matrix_has_60_cells_for_real_manifest(
     assert (cells - rows) == 17 * 4
 
 
-def test_routes_table_has_25_rows_for_real_manifest(
+def test_routes_table_has_27_rows_for_real_manifest(
     manifest: dict,
     empty_matrix: dict,
     empty_cost: dict,
@@ -317,11 +328,12 @@ def test_routes_table_has_25_rows_for_real_manifest(
 ) -> None:
     """Acceptance 6: every API route in the manifest gets one row.
 
-    Post-Block-B that's 26 (Block A: 25 + get-agent-status from Block B).
+    27 = 26 real API Gateway routes + 1 synthetic `cognito-initiate-auth`
+    sentinel that gives the brute-force test a target_id to bind to.
     """
     report = _build_empty_report(manifest, empty_matrix, empty_cost, metadata, run_dir)
     body = render_html(report, run_dir, manifest).read_text(encoding="utf-8")
-    assert _count_tbody_rows(body, "routes-h") == 26
+    assert _count_tbody_rows(body, "routes-h") == 27
 
 
 def test_tools_table_has_12_rows_including_sentinel(

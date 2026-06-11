@@ -494,6 +494,18 @@ _REFUSAL_MARKERS = (
     "i do not have access",
     "i'm sorry, but",
     "i am sorry, but",
+    # Modern Bedrock / content-safety refusal phrases. These show up on
+    # blocked outputs when content-safety policies fire and on Claude /
+    # Nova soft refusals that pad with conversational language. Adding
+    # them keeps the classifier from misclassifying a real refusal as
+    # "ambiguous".
+    "blocked by content safety",
+    "blocked by content safety policies",
+    "content was blocked",
+    "your request was blocked",
+    "this request was blocked",
+    "i can't help with that",
+    "i'm not going to",
 )
 
 

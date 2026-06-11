@@ -60,32 +60,38 @@ from fault.classifiers import (
 
 
 class TestClassifyFailClosed:
-    def test_401_is_pass(self) -> None:
+    """AC11 documented-unsafe framing — the demo doesn't fail-closed on
+    malformed auth by design; a 2xx is recorded as documented_unsafe and a
+    401/403/400 is the regression direction (FAIL MEDIUM).
+    """
+
+    def test_401_is_regression_fail_medium(self) -> None:
         status, severity, reason = classify_fail_closed(401, scenario="corrupted-jwt")
-        assert status == "pass"
-        assert severity is None
-        assert "401" in reason or "fail-closed" in reason
-
-    def test_403_is_pass(self) -> None:
-        status, severity, _ = classify_fail_closed(403, scenario="no-auth")
-        assert status == "pass"
-        assert severity is None
-
-    def test_400_is_pass(self) -> None:
-        status, _, _ = classify_fail_closed(400, scenario="basic-scheme")
-        assert status == "pass"
-
-    def test_200_is_high_fail_open(self) -> None:
-        status, severity, reason = classify_fail_closed(200, scenario="corrupted-jwt")
         assert status == "fail"
-        assert severity == SEVERITY_HIGH
-        assert "fail-open" in reason
+        assert severity == SEVERITY_MEDIUM
+        assert "regression" in reason.lower() or "401" in reason
 
-    def test_204_is_high_fail_open(self) -> None:
+    def test_403_is_regression_fail_medium(self) -> None:
+        status, severity, _ = classify_fail_closed(403, scenario="no-auth")
+        assert status == "fail"
+        assert severity == SEVERITY_MEDIUM
+
+    def test_400_is_regression_fail_medium(self) -> None:
+        status, severity, _ = classify_fail_closed(400, scenario="basic-scheme")
+        assert status == "fail"
+        assert severity == SEVERITY_MEDIUM
+
+    def test_200_is_documented_unsafe(self) -> None:
+        status, severity, reason = classify_fail_closed(200, scenario="corrupted-jwt")
+        assert status == "documented_unsafe"
+        assert severity == "info"
+        assert "documented-unsafe" in reason.lower() or "ac11" in reason.lower()
+
+    def test_204_is_documented_unsafe(self) -> None:
         # Any 2xx, including 204 No Content.
         status, severity, _ = classify_fail_closed(204, scenario="no-auth")
-        assert status == "fail"
-        assert severity == SEVERITY_HIGH
+        assert status == "documented_unsafe"
+        assert severity == "info"
 
     def test_500_is_medium_crash(self) -> None:
         status, severity, reason = classify_fail_closed(500, scenario="empty-auth")

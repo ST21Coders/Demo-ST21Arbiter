@@ -101,8 +101,16 @@ _EVIDENCE_DIR_NAME = "hypothesis-evidence"
 
 
 def _load_routes() -> list[dict]:
+    """Real API Gateway routes from the manifest.
+
+    Synthetic sentinel entries (``synthetic: true``) are excluded — they
+    don't map to a real API Gateway URL the fuzz layer can probe (e.g.
+    the ``cognito-initiate-auth`` sentinel that gives the brute-force
+    test a target_id to bind to lives outside API Gateway entirely).
+    """
     raw = json.loads(_MANIFEST_PATH.read_text(encoding="utf-8"))
-    return list(raw.get("api_routes") or [])
+    routes = list(raw.get("api_routes") or [])
+    return [r for r in routes if r.get("synthetic") is not True]
 
 
 _ROUTES: list[dict] = _load_routes()

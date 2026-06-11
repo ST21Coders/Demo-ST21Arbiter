@@ -45,11 +45,14 @@ def test_run_against_live_tree_exits_zero_and_prints_match_line():
     assert stdout.startswith("manifest.json matches source tree"), (
         f"stdout did not start with expected match line: {stdout!r}"
     )
-    # The summary tallies pages, routes, tools. Post-Block-D: 17 pages
-    # (+spa-root synthetic sentinel for bundle scans), 26 routes, 14 tools.
-    # The tool count is 14 = 12 real in-repo tools + 1 jira black-box + 1
-    # synthetic sentinel (`master.chat_surface`, for LLM red-team coverage rows).
-    # The page count is 17 = 16 real .jsx pages + 1 synthetic (`spa-root`).
+    # The summary tallies pages, routes, tools.
+    # Pages: 17 = 16 real .jsx pages + 1 synthetic (`spa-root`).
+    # Routes: 26 real API Gateway routes parsed from `api_handler.py`.
+    #         The drift checker compares against the manifest's NON-synthetic
+    #         routes, so the synthetic `cognito-initiate-auth` sentinel for
+    #         the brute-force test is excluded.
+    # Tools: 14 = 12 real in-repo tools + 1 jira black-box + 1 synthetic
+    #         sentinel (`master.chat_surface`, for LLM red-team coverage rows).
     assert "(17 pages, 26 routes, 14 tools)" in stdout, (
         f"summary counts drifted from expected (17/26/14): {stdout!r}"
     )
@@ -207,6 +210,22 @@ def test_routes_added_in_source_missing_in_manifest_flagged_as_drift(monkeypatch
     assert exit_code == 1
     assert "API_ROUTES added in source, missing in manifest" in stderr
     assert "GET /brand-new-route" in stderr
+
+
+def test_synthetic_route_is_not_flagged_as_removed_from_source():
+    """The ``cognito-initiate-auth`` synthetic route lives in the manifest
+    but has no source-tree counterpart (it's not in api_handler.py). The
+    drift checker must skip ``synthetic: true`` route entries so it
+    doesn't report them as ``API_ROUTES removed from source``.
+
+    Mirror of the existing synthetic-handling for pages (``spa-root``) and
+    agent_tools (``master.chat_surface``).
+    """
+    exit_code, stdout, stderr = drift.run()
+    assert exit_code == 0
+    assert "cognito-initiate-auth" not in stderr.lower()
+    # And the synthetic Cognito URL itself must not appear as "removed".
+    assert "POST https://cognito-idp" not in stderr
 
 
 def test_routes_removed_from_source_present_in_manifest_flagged_as_drift(monkeypatch):

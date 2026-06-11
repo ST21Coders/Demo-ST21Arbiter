@@ -47,9 +47,10 @@ _MANIFEST_PATH = _HARNESS_ROOT / "src" / "coverage" / "manifest.json"
 @pytest.fixture
 def manifest() -> dict:
     """The real, committed manifest. Tests depend on its current shape.
-    Post-Block-D: 17 pages × 4 personas = 68 cells (Block B: 16 + spa-root
-    synthetic sentinel for bundle scans), 26 api_routes,
-    14 agent_tools (incl. master.chat_surface sentinel)."""
+    17 pages × 4 personas = 68 cells (16 real + spa-root synthetic
+    sentinel for bundle scans), 27 api_routes (26 real + 1 synthetic
+    `cognito-initiate-auth` for the brute-force test), 14 agent_tools
+    (incl. master.chat_surface sentinel)."""
     return json.loads(_MANIFEST_PATH.read_text(encoding="utf-8"))
 
 
@@ -181,18 +182,22 @@ def test_single_fail_with_evidence_produces_one_finding(
     assert finding["summary"]  # non-empty
 
 
-def test_fail_without_evidence_raises_missing_evidence_error(
+def test_fail_without_evidence_produces_soft_warn_finding(
     manifest: dict,
     empty_matrix: dict,
     empty_cost: dict,
     metadata: RunMetadata,
     run_dir: Path,
 ) -> None:
-    """A FAIL TestResult with no evidence_path -> MissingEvidenceError.
+    """A FAIL TestResult with no evidence_path now produces a finding with
+    ``evidence_status: "missing_pointer"`` instead of crashing the build.
 
-    builder.py raises this at matrix-build time too, but here we exercise
-    the report builder's own AC20 guard (the path where someone constructed
-    the matrix differently and the FAIL still needs to be caught).
+    The builder used to raise ``MissingEvidenceError`` here. Two prior
+    daily runs crashed on that strict check even though the rest of the
+    report would have been useful — see the module docstring for the
+    soft-warn rationale. The matrix-build path in ``coverage/builder.py``
+    still enforces evidence on FAIL rows, so the strict behaviour
+    survives where it matters.
     """
     fail = TestResult(
         test_id="e2e.page.findings.soc",
@@ -201,30 +206,36 @@ def test_fail_without_evidence_raises_missing_evidence_error(
         target_kind="page",
         target_id="findings",
         persona="soc",
-        evidence_path=None,  # AC20 violation
+        evidence_path=None,
         severity="high",
     )
-    with pytest.raises(MissingEvidenceError) as excinfo:
-        build_report(
-            run_dir=run_dir,
-            manifest=manifest,
-            matrix=empty_matrix,
-            cost=empty_cost,
-            metadata=metadata,
-            results=[fail],
-        )
-    assert "evidence_path" in str(excinfo.value)
-    assert "e2e.page.findings.soc" in str(excinfo.value)
+    report = build_report(
+        run_dir=run_dir,
+        manifest=manifest,
+        matrix=empty_matrix,
+        cost=empty_cost,
+        metadata=metadata,
+        results=[fail],
+    )
+    assert len(report["findings"]) == 1
+    finding = report["findings"][0]
+    assert finding["test_id"] == "e2e.page.findings.soc"
+    assert finding["evidence_status"] == "missing_pointer"
+    # target_id is in the manifest — that field stays "ok".
+    assert finding["target_id_status"] == "ok"
 
 
-def test_fail_with_nonexistent_evidence_raises_missing_evidence_error(
+def test_fail_with_nonexistent_evidence_produces_soft_warn_finding(
     manifest: dict,
     empty_matrix: dict,
     empty_cost: dict,
     metadata: RunMetadata,
     run_dir: Path,
 ) -> None:
-    """evidence_path points somewhere — but no such file exists -> raise."""
+    """evidence_path points somewhere — but no such file exists. The
+    builder records ``evidence_status: "not_found:<path>"`` instead of
+    raising.
+    """
     fail = TestResult(
         test_id="auth.token-usage.soc-forbidden",
         status=CellStatus.FAIL,
@@ -234,16 +245,64 @@ def test_fail_with_nonexistent_evidence_raises_missing_evidence_error(
         evidence_path="auth/probes/does-not-exist.jsonl",
         severity="high",
     )
-    with pytest.raises(MissingEvidenceError) as excinfo:
-        build_report(
-            run_dir=run_dir,
-            manifest=manifest,
-            matrix=empty_matrix,
-            cost=empty_cost,
-            metadata=metadata,
-            results=[fail],
-        )
-    assert "does-not-exist.jsonl" in str(excinfo.value)
+    report = build_report(
+        run_dir=run_dir,
+        manifest=manifest,
+        matrix=empty_matrix,
+        cost=empty_cost,
+        metadata=metadata,
+        results=[fail],
+    )
+    assert len(report["findings"]) == 1
+    finding = report["findings"][0]
+    assert finding["evidence_status"].startswith("not_found:")
+    assert "does-not-exist.jsonl" in finding["evidence_status"]
+
+
+def test_missing_evidence_error_still_exported() -> None:
+    """The exception class is still part of the public surface for callers
+    that want to opt into strict AC20 behaviour (e.g. a CI gate). The
+    soft-warn default is only for the report builder's own findings pass.
+    """
+    assert issubclass(MissingEvidenceError, RuntimeError)
+
+
+def test_fail_with_unknown_target_id_produces_soft_warn_finding(
+    manifest: dict,
+    empty_matrix: dict,
+    empty_cost: dict,
+    metadata: RunMetadata,
+    run_dir: Path,
+) -> None:
+    """A FAIL whose target_id is not in the manifest gets a soft-warn
+    ``target_id_status: "unknown_target:<id>"`` instead of crashing.
+
+    Mirror of the brute-force-test ``cognito-initiate-auth`` row that
+    crashed the report builder on the 2026-06-10 run.
+    """
+    ev = _write_evidence(run_dir, "auth/probes/orphan.jsonl")
+    fail = TestResult(
+        test_id="auth.brute-force.throttle-kicks-in",
+        status=CellStatus.FAIL,
+        layer="auth",
+        target_kind="api_route",
+        target_id="cognito-initiate-auth-drifted",
+        evidence_path=ev,
+        severity="high",
+    )
+    report = build_report(
+        run_dir=run_dir,
+        manifest=manifest,
+        matrix=empty_matrix,
+        cost=empty_cost,
+        metadata=metadata,
+        results=[fail],
+    )
+    assert len(report["findings"]) == 1
+    finding = report["findings"][0]
+    assert finding["evidence_status"] == "ok"
+    assert finding["target_id_status"].startswith("unknown_target:")
+    assert "cognito-initiate-auth-drifted" in finding["target_id_status"]
 
 
 def test_findings_ranked_by_severity(
@@ -620,5 +679,5 @@ def test_summary_uses_matrix_coverage_labels(
     # Post-Block-D: 1 of 68 cells covered (17 pages × 4 personas, +spa-root),
     # 0 of 26 routes, 0 of 14 tools.
     assert report["summary"]["pages_covered_label"] == "1/68"
-    assert report["summary"]["routes_covered_label"] == "0/26"
+    assert report["summary"]["routes_covered_label"] == "0/27"
     assert report["summary"]["tools_covered_label"] == "0/14"

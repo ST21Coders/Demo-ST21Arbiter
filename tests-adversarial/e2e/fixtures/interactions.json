@@ -95,9 +95,20 @@
       "expected_signal": "no-console-error",
       "severity": "low"
     },
+    "integrations": {
+      "interaction_id": "type-search-query",
+      "description": "Type into the connector-catalog search input on the Integrations marketplace page. Read-only filter; no backend mutation.",
+      "selector_role": "textbox",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
     "signin": {
       "interaction_id": null,
       "reason": "Authenticated personas hitting /signin are redirected away (Navigate to='/' replace). There is no interactive element on the page for an authenticated persona. The Cognito Hosted UI flow is exercised by the no-auth project's cognito-hosted-ui.spec.js."
+    },
+    "spa-root": {
+      "interaction_id": null,
+      "reason": "Synthetic sentinel page in the manifest (synthetic: true). Not a real React page — it represents the index.html + linked JS bundles for Block D bundle scans. No interactive element to probe; bundle-scan coverage lives in the auth/headers layers."
     }
   }
 }

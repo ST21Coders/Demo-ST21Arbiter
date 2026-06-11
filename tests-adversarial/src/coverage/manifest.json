@@ -444,6 +444,17 @@
       "line": 182,
       "auth_required": true,
       "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "cognito-initiate-auth",
+      "method": "POST",
+      "path": "https://cognito-idp.us-east-1.amazonaws.com/",
+      "file": null,
+      "line": null,
+      "auth_required": false,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "synthetic": true,
+      "note": "Synthetic route id for Cognito's InitiateAuth endpoint, used by auth/test_brute_force.py. Not an API Gateway route."
     }
   ],
   "agent_tools": [

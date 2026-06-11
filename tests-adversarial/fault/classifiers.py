@@ -49,23 +49,33 @@ def classify_fail_closed(
 ) -> tuple[str, str | None, str]:
     """Classify the outcome of a fail-closed probe.
 
+    AC11 / CLAUDE.md documented-unsafe framing: the demo intentionally
+    does NOT reject malformed / missing auth metadata at the API boundary
+    (the lambda decodes the payload without verifying signatures and
+    resolves to a default identity when claims aren't parseable). A 2xx
+    on a corrupt header is therefore the demo's documented current
+    behaviour, not a regression.
+
     Inputs:
       response_status: HTTP status of the API call. 0 = transport failure.
       scenario: human-readable scenario slug (e.g. "corrupted-jwt-payload")
-                used both for severity selection and the verdict message.
+                used in the verdict message.
 
     Verdicts:
-      PASS:
-        * Server rejected with one of the documented auth-rejected codes
-          (400 / 401 / 403). Auth metadata corruption was caught.
-      FAIL HIGH:
-        * 2xx returned despite malformed / missing auth metadata. Fail-open
-          on parse error: the API treated the corrupt request as legitimate.
+      documented_unsafe / info:
+        * 2xx returned despite malformed / missing auth metadata — the
+          demo's current documented behaviour per AC11. Recorded for
+          regression detection; not a finding.
       FAIL MEDIUM:
-        * 5xx returned — the auth path crashed on malformed input rather
-          than rejecting cleanly. Operationally fragile.
+        * 400 / 401 / 403 — regression direction: the platform has
+          tightened and legitimate demo callers that rely on the loose
+          decode would break.
+      FAIL MEDIUM:
+        * 5xx returned — the auth path crashed on malformed input.
       FAIL MEDIUM:
         * Transport-layer failure (status == 0). Could not reach a verdict.
+      FAIL MEDIUM:
+        * 3xx or other 4xx — unexpected response shape.
     """
     if response_status == 0:
         return (
@@ -82,16 +92,19 @@ def classify_fail_closed(
         )
     if response_status in _AUTH_REJECTED_CODES:
         return (
-            "pass",
-            None,
-            f"{scenario}: rejected with HTTP {response_status} (fail-closed)",
+            "fail",
+            SEVERITY_MEDIUM,
+            f"{scenario}: HTTP {response_status} on a malformed-auth probe — "
+            f"regression direction: legitimate demo callers relying on the "
+            f"AC11 loose-decode contract would now break",
         )
     if 200 <= response_status < 300:
         return (
-            "fail",
-            SEVERITY_HIGH,
+            "documented_unsafe",
+            "info",
             f"{scenario}: 2xx response (HTTP {response_status}) on malformed auth — "
-            f"fail-open: API accepted the corrupt request",
+            f"documented-unsafe per AC11 (current demo behaviour, recorded "
+            f"for regression detection)",
         )
     # 3xx or other 4xx outside the rejected set — flag MEDIUM so an operator
     # notices the surprise. Could be a redirect to the Hosted UI (acceptable

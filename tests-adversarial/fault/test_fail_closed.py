@@ -1,8 +1,18 @@
-"""Fail-closed probes (#43 — fail-open logic).
+"""Fail-closed probes — DOCUMENTED-UNSAFE per AC11.
 
-Verify the API rejects requests when auth metadata is partially malformed
-rather than proceeding as anonymous / CISO / etc. ("fail-open" = treat the
-broken request as legitimate; "fail-closed" = refuse cleanly).
+Verify the API's behaviour when auth metadata is partially malformed.
+CLAUDE.md / CLAUDE.local.md document the demo's trust model: the lambda
+decodes the JWT payload without verifying the signature, the persona
+gates are illustrative, and a malformed / missing Authorization header
+resolves to a default identity rather than refusing. All five scenarios
+in this module hit that same documented-unsafe surface.
+
+Per AC11 we reclassify the "fail-open" outcome (2xx on a malformed auth
+probe) as ``documented_unsafe`` / ``info`` so the row stays in the
+inventory and acts as a regression detector, but does NOT crowd the daily
+report's failure count. A 401/403 today is the regression direction:
+legitimate demo callers (which today rely on the loose decode) would
+break.
 
 Scenarios
 ---------
@@ -19,9 +29,10 @@ Scenarios
   5. ``non-bearer-scheme``               — ``Authorization: Basic …``.
 
 Each probe sends a deliberately-corrupt request to a CISO-only route
-(``GET /token-usage``) and expects a 4xx rejection. PASS on 401/403/400;
-FAIL HIGH on 2xx (fail-open); FAIL MEDIUM on 5xx (crash) or transport
-drop.
+(``GET /token-usage``). Classification (AC11 framing):
+  * 2xx → documented_unsafe / info — current demo behaviour.
+  * 401/403/400 → FAIL severity MEDIUM — regression direction.
+  * 5xx → FAIL severity MEDIUM (crash) or transport drop.
 
 Test IDs follow the harness convention: ``fault.fail-closed.<scenario>``.
 """

@@ -195,6 +195,17 @@ const PAGE_ASSERTIONS = {
       ).toBeVisible({ timeout: HEADING_TIMEOUT })
     },
   },
+  integrations: {
+    label: 'Integrations Marketplace',
+    assert: async (page) => {
+      // Integrations.jsx renders an h1 "Integrations Marketplace" with a
+      // Plug icon. The catalog itself is mock data; we only need the
+      // heading to prove the page mounted.
+      await expect(
+        page.getByRole('heading', { name: /integrations marketplace/i }),
+      ).toBeVisible({ timeout: HEADING_TIMEOUT })
+    },
+  },
   signin: {
     label: 'Sign In (post-redirect shell)',
     assert: async (page) => {
