@@ -325,7 +325,7 @@ function TopologyCanvas() {
             <span className="flex items-center gap-1.5"><span className="w-2 h-0.5 bg-violet-600 rounded" /> Output</span>
           </div>
         </div>
-        <div style={{ minWidth: CW + 32, padding: '16px' }} ref={containerRef}>
+        <div style={{ width: 'fit-content', minWidth: CW + 32, padding: '16px', margin: '0 auto' }} ref={containerRef}>
           <svg width={CW} height={CANVAS_H} style={{ display: 'block' }}>
 
             {/* Tier labels */}
@@ -596,14 +596,14 @@ function DomainSourceMatrixView({ findings, loading, onCellClick }) {
       <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
         Compliance Domain × Source System
       </p>
-      <table className="w-full text-sm border-separate border-spacing-1.5">
+      <table className="w-auto min-w-max text-sm border-separate border-spacing-1.5">
         <thead>
           <tr>
             <th className="text-left text-xs text-slate-500 font-medium pb-2 w-44">Domain</th>
             {SOURCE_PAIRS.map(s => (
-              <th key={s} className="text-xs text-slate-700 font-semibold pb-2 text-center">{s}</th>
+              <th key={s} className="text-[11px] text-slate-700 font-semibold pb-2 text-center w-24 leading-tight">{s}</th>
             ))}
-            <th className="text-xs text-slate-500 font-medium pb-2 text-center">Total</th>
+            <th className="text-xs text-slate-500 font-medium pb-2 text-center w-14">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -611,7 +611,7 @@ function DomainSourceMatrixView({ findings, loading, onCellClick }) {
             const rowTotal = SOURCE_PAIRS.reduce((s, sp) => s + (matrix[dk]?.[sp] ?? 0), 0)
             return (
               <tr key={dk}>
-                <td className="text-xs text-slate-700 font-semibold pr-4 py-1">{DOMAIN_LABELS[dk]}</td>
+                <td className="text-xs text-slate-700 font-semibold pr-4 py-1 whitespace-nowrap">{DOMAIN_LABELS[dk]}</td>
                 {SOURCE_PAIRS.map(sp => {
                   const count = matrix[dk]?.[sp] ?? 0
                   return (
@@ -619,7 +619,7 @@ function DomainSourceMatrixView({ findings, loading, onCellClick }) {
                       <button
                         onClick={() => count > 0 && onCellClick?.(dk, sp)}
                         disabled={count === 0}
-                        className={`w-full rounded-lg py-3 font-bold text-lg transition-transform hover:scale-105 disabled:cursor-default disabled:hover:scale-100 ${cellClass(count)}`}
+                        className={`w-16 h-11 rounded-lg font-bold text-base transition-transform hover:scale-105 disabled:cursor-default disabled:hover:scale-100 ${cellClass(count)}`}
                       >
                         {count > 0 ? count : '—'}
                       </button>
@@ -645,17 +645,17 @@ function SourceSeverityMatrixView({ findings }) {
       <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-4">
         Source × Severity (legacy view)
       </p>
-      <table className="w-full text-sm border-separate border-spacing-1.5">
+      <table className="w-auto min-w-max text-sm border-separate border-spacing-1.5">
         <thead>
           <tr>
             <th className="text-left text-xs text-slate-500 font-medium pb-2 w-36">Source</th>
             {SEVERITIES.map(s => (
-              <th key={s} className={`text-xs font-bold pb-2 text-center w-28 ${
+              <th key={s} className={`text-xs font-bold pb-2 text-center w-20 ${
                 s === 'CRITICAL' ? 'text-red-700' : s === 'HIGH' ? 'text-orange-700' :
                 s === 'MEDIUM' ? 'text-amber-700' : 'text-emerald-700'
               }`}>{s}</th>
             ))}
-            <th className="text-xs text-slate-500 font-medium pb-2 text-center">Total</th>
+            <th className="text-xs text-slate-500 font-medium pb-2 text-center w-14">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -663,12 +663,12 @@ function SourceSeverityMatrixView({ findings }) {
             const rowTotal = SEVERITIES.reduce((sum, s) => sum + (matrix[domain]?.[s] ?? 0), 0)
             return (
               <tr key={domain}>
-                <td className="text-xs text-slate-700 font-semibold pr-4 py-1">{domain}</td>
+                <td className="text-xs text-slate-700 font-semibold pr-4 py-1 whitespace-nowrap">{domain}</td>
                 {SEVERITIES.map(sev => {
                   const count = matrix[domain]?.[sev] ?? 0
                   return (
                     <td key={sev} className="text-center py-1">
-                      <div className={`rounded-lg py-3 font-bold text-lg ${cellClass(count)}`}>
+                      <div className={`w-16 h-11 rounded-lg font-bold text-base flex items-center justify-center ${cellClass(count)}`}>
                         {count > 0 ? count : '—'}
                       </div>
                     </td>
