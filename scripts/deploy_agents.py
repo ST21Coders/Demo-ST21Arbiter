@@ -98,6 +98,12 @@ AGENTS = [
         "repo_export": f"{PREFIX}-AwsConfigSpecialistRepoUri",
         "model_param": "AwsConfigModelId",
         "env_model_var": "AWSCONFIG_MODEL_ID",
+        # Dedicated Tier-0 role: broad READ-ONLY resource inventory + posture,
+        # but NO secret access (no secretsmanager:GetSecretValue / Secrets CMK /
+        # S3 write). Falls back to the shared role if the export is missing
+        # (09-agentcore not yet redeployed) — but then it inherits the shared
+        # role's secret perms, so redeploy 09-agentcore for the no-leak guarantee.
+        "role_export": f"{PREFIX}-AwsConfigAgentRuntimeRoleArn",  # from 09-agentcore
         "env_overrides": {},
     },
     {
@@ -149,18 +155,48 @@ AGENTS = [
         # Jira URL/email/API token live in this Secrets Manager secret (JSON
         # {url,email,api_token}). Create it before deploy — see DEPLOYMENT.md.
         # Empty secret = agent runs in "(JIRA not configured)" mode.
-        # Tier-0 scoping: minimal tool allowlist (read + create only; no
-        # Confluence/delete). JIRA_PROJECTS_FILTER intentionally NOT set — it
-        # silently scoped reads out; least-privilege here comes from the
-        # service account's project permissions + the tool allowlist instead.
+        # Tier-0 scoping: minimal tool allowlist (Jira read + create + L1
+        # resolution, plus Confluence search/read/create/update). The Confluence
+        # tools only function when the secret carries "confluence_url" (the .../wiki
+        # base) — see agents/jira_specialist/agent.py::_build_mcp_client.
+        # JIRA_PROJECTS_FILTER intentionally NOT set — it silently scoped reads
+        # out; least-privilege here comes from the service account's permissions
+        # + the tool allowlist instead.
         "env_overrides": {
             "JIRA_SECRET_ID": f"{ENV}/{PROJECT}/jira",
-            # Read + create + L1-resolution writes (transition/comment). get_transitions
-            # lets a transition be resolved by name → id defensively.
+            # Default Confluence space KEY (mcp-atlassian needs the key, not the
+            # display name "Arbiter-poc-confluence"). Used when the user omits the
+            # space or names it by display name.
+            "CONFLUENCE_DEFAULT_SPACE_KEY": "Arbiterpoc",
+            # Jira read + create + L1-resolution writes (transition/comment;
+            # get_transitions resolves a transition by name → id defensively),
+            # plus Confluence search/read/create/update.
             "ENABLED_TOOLS": (
                 "jira_search,jira_get_issue,jira_get_all_projects,jira_create_issue,"
-                "jira_get_transitions,jira_transition_issue,jira_add_comment"
+                "jira_get_transitions,jira_transition_issue,jira_add_comment,"
+                "confluence_search,confluence_get_page,confluence_create_page,confluence_update_page"
             ),
+        },
+    },
+    {
+        "name": "servicenow-specialist",
+        "src": "agents/servicenow_specialist",
+        "repo_export": f"{PREFIX}-ServicenowSpecialistRepoUri",  # from 09-agentcore
+        "model_param": "ServicenowModelId",
+        "env_model_var": "SERVICENOW_MODEL_ID",
+        # Tier-0: like JIRA, the ServiceNow agent calls an EXTERNAL SaaS, so it
+        # runs under its own least-privilege role (not the shared role). Falls
+        # back to the shared role if the export is missing (09-agentcore not yet
+        # redeployed).
+        "role_export": f"{PREFIX}-ServicenowAgentRuntimeRoleArn",  # from 09-agentcore
+        # Instance URL + creds live in this Secrets Manager secret (JSON, either
+        # {instance_url,username,password} or {instance_url,client_id,client_secret}).
+        # Create it before deploy — see DEPLOYMENT.md. Empty/unreadable secret =
+        # agent runs in "(ServiceNow not configured)" mode (mock CHG ids).
+        # SERVICENOW_API_BASE is read from the secret's instance_url; set it here
+        # only to override.
+        "env_overrides": {
+            "SERVICENOW_SECRET_ID": f"{ENV}/{PROJECT}/servicenow",
         },
     },
     {
@@ -487,6 +523,7 @@ def _patch_api_handler_lambda(runtime_arns: dict[str, str]) -> None:
         "zscaler-specialist":    "ZSCALER_RUNTIME_ARN",
         "paloalto-specialist":   "PALOALTO_RUNTIME_ARN",
         "jira-specialist":       "JIRA_RUNTIME_ARN",
+        "servicenow-specialist": "SERVICENOW_RUNTIME_ARN",
     }
     desired = {}
     for name, env_key in arn_env_map.items():
@@ -650,6 +687,7 @@ def main() -> None:
                 ("paloalto-specialist", "PALOALTO_RUNTIME_ARN"),
                 ("structured-specialist", "STRUCTURED_RUNTIME_ARN"),
                 ("jira-specialist", "JIRA_RUNTIME_ARN"),
+                ("servicenow-specialist", "SERVICENOW_RUNTIME_ARN"),
             ]:
                 arn = runtime_arns.get(spec_name)
                 if not arn:

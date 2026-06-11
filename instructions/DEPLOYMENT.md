@@ -358,6 +358,39 @@ Runtimes and patches the api_handler Lambda with the resulting runtime ARNs
 > `url` = Jira Cloud base URL · `email` = Atlassian account (USER) · `api_token`
 > from id.atlassian.com → Security → API tokens. Never commit these values.
 
+> **ServiceNow secret (optional, for the ServiceNow specialist):** the
+> `servicenow-specialist` runtime reads its instance URL + credentials from
+> Secrets Manager id `dev/st21arbiter-poc/servicenow`. Create it before this
+> step, or the agent runs in "(ServiceNow not configured)" mode (mock CHG ids).
+> Basic auth (PDI) or OAuth2 client-credentials are both supported:
+> ```bash
+> # basic auth (simplest for a ServiceNow PDI)
+> aws secretsmanager create-secret --region us-east-1 \
+>   --name dev/st21arbiter-poc/servicenow \
+>   --secret-string '{"instance_url":"https://devNNNNN.service-now.com","username":"admin","password":"<pwd>"}'
+> # OR OAuth2 client-credentials (production-correct; register an OAuth app in
+> # ServiceNow → System OAuth → Application Registry):
+> #   '{"instance_url":"https://<inst>.service-now.com","client_id":"...","client_secret":"..."}'
+> ```
+> The integration user needs `cmdb_read` + `itil` roles (read CMDB / create
+> change_request). `SERVICENOW_API_BASE` is read from the secret's `instance_url`
+> (override via the runtime env only if needed).
+>
+> **Seed the demo CMDB (Plane-1 stand-in):** instead of running the Service
+> Graph Connector for AWS, hand-load a small, relationship-rich CMDB on the PDI
+> so impact analysis is demonstrable end to end. The CI set + ownership mirror
+> the scan fixtures (`alb-mig-prod-claims-api-001`, `mig-prod-claims-data-primary`,
+> `pcx-mig-prod-dev-001`):
+> ```bash
+> source scripts/.venv/bin/activate
+> SN_INSTANCE_URL=https://devNNNNN.service-now.com SN_USERNAME=admin SN_PASSWORD=<pwd> \
+>   python3 scripts/seed_servicenow_cmdb.py            # or --from-secret to reuse the secret above
+> ```
+> **Production path (not built here):** replace the seed with the **Service Graph
+> Connector for AWS** (ServiceNow Store) fed by AWS Config Recorder + Aggregator
+> over an STS cross-account role; it populates the same `cmdb_ci` / `cmdb_rel_ci`
+> contract, so no ARBITER code changes are needed to switch.
+
 ```bash
 cd ST21-ARBITER
 KB_ID=<KB_ID> \
@@ -378,7 +411,7 @@ aws bedrock-agentcore-control list-agent-runtimes --region us-east-1 \
   --output table
 ```
 
-Five runtimes in `READY` state (sharepoint, awsconfig, zscaler, jira, master).
+Runtimes in `READY` state (sharepoint, awsconfig, zscaler, paloalto, structured, jira, servicenow, master).
 
 ```bash
 aws lambda get-function-configuration --function-name dev-st21arbiter-poc-api-handler \

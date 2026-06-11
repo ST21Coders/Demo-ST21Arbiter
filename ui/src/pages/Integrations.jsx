@@ -17,7 +17,7 @@ const CATALOG = [
       { id: 'sharepoint', name: 'SharePoint',      vendor: 'Microsoft',           desc: 'Enterprise policy documents (Graph API → Knowledge Base).',  agentId: 'sharepoint', live: true },
       { id: 'zscaler',    name: 'Zscaler ZIA',      vendor: 'Zscaler',             desc: 'URL allowlists, DLP, and category enforcement policy.',      agentId: 'zscaler',    live: true },
       { id: 'paloalto',   name: 'Palo Alto NGFW',   vendor: 'Palo Alto Networks',  desc: 'Perimeter firewall rules, App-ID, and egress controls.',     agentId: 'paloalto',   live: true },
-      { id: 'awsconfig',  name: 'AWS Config',       vendor: 'Amazon Web Services', desc: 'Infrastructure compliance rules and live resource state.',   agentId: 'awsconfig',  live: true },
+      { id: 'awsconfig',  name: 'AWS Config + Resource Posture', vendor: 'Amazon Web Services', desc: 'Read-only account inventory, network/exposure & change-impact analysis (S3/ELB/ECR/Lambda/EC2/Cognito) + Config compliance.', agentId: 'awsconfig',  live: true },
     ],
   },
   {
@@ -25,7 +25,7 @@ const CATALOG = [
     blurb: 'Where ARBITER raises and resolves change/incident work.',
     items: [
       { id: 'jira',       name: 'Jira',             vendor: 'Atlassian',           desc: 'Issue creation and L1 ticket resolution via the Atlassian MCP server.', agentId: 'jira', live: true },
-      { id: 'servicenow', name: 'ServiceNow',       vendor: 'ServiceNow',          desc: 'INC / CHG / RITM ticketing. Specialist agent on the roadmap.',          comingSoon: true },
+      { id: 'servicenow', name: 'ServiceNow',       vendor: 'ServiceNow',          desc: 'CMDB change-impact analysis + change_request drafting (Table/Change REST).', agentId: 'servicenow', live: true },
     ],
   },
   {

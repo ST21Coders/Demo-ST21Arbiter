@@ -18,6 +18,7 @@ import WhatIf from './pages/WhatIf'
 import LLMControl from './pages/LLMControl'
 import MCPChat from './pages/MCPChat'
 import Integrations from './pages/Integrations'
+import ImpactAnalysis from './pages/ImpactAnalysis'
 import TokenTracking from './pages/TokenTracking'
 import Personas from './pages/Personas'
 import Settings from './pages/Settings'
@@ -166,6 +167,7 @@ function Shell() {
             <Route path="/llm-control" element={<Guarded path="/llm-control"><LLMControl /></Guarded>} />
             <Route path="/mcp-chat"    element={<Guarded path="/mcp-chat"><MCPChat /></Guarded>} />
             <Route path="/integrations" element={<Guarded path="/integrations"><Integrations /></Guarded>} />
+            <Route path="/impact-analysis" element={<Guarded path="/impact-analysis"><ImpactAnalysis /></Guarded>} />
             <Route path="/token-usage" element={<Guarded path="/token-usage"><TokenTracking /></Guarded>} />
             <Route path="/personas"    element={<Personas />} />
             {/* Universal — no <Guarded> wrapper (like /personas). Every

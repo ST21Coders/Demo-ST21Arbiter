@@ -845,6 +845,72 @@ function _generateTokenUsage() {
 
 export const MOCK_TOKEN_USAGE = _generateTokenUsage()
 
+// ─── ServiceNow change-impact analysis (mock) ───────────────────────────
+// Mirrors the /servicenow/impact-analysis response shape (CMDB facts + the
+// grafted approver chain). The affected-CI graph matches the seeded demo CMDB
+// in scripts/seed_servicenow_cmdb.py so mock and live modes look the same.
+const _IMPACT_FIXTURES = {
+  'alb-mig-prod-claims-api-001': {
+    changed_resource: { name: 'alb-mig-prod-claims-api-001', class: 'cmdb_ci_lb', correlation_id: 'arn:aws:elasticloadbalancing:us-east-1:669810405473:loadbalancer/app/alb-mig-prod-claims-api-001' },
+    owner_team: 'Cloud Infrastructure',
+    affected_cis: [
+      { name: 'Claims API', class: 'cmdb_ci_appl', depth: 1, via: 'Depends on::Used by', direction: 'downstream' },
+    ],
+  },
+  'mig-prod-claims-data-primary': {
+    changed_resource: { name: 'mig-prod-claims-data-primary', class: 'cmdb_ci_db_instance', correlation_id: 'arn:aws:rds:us-east-1:669810405473:db:mig-prod-claims-data-primary' },
+    owner_team: 'Data Governance',
+    affected_cis: [
+      { name: 'Claims API', class: 'cmdb_ci_appl', depth: 1, via: 'Depends on::Used by', direction: 'downstream' },
+    ],
+  },
+  'pcx-mig-prod-dev-001': {
+    changed_resource: { name: 'pcx-mig-prod-dev-001', class: 'cmdb_ci_network', correlation_id: 'arn:aws:ec2:us-east-1:669810405473:vpc-peering-connection/pcx-mig-prod-dev-001' },
+    owner_team: 'Network Engineering',
+    affected_cis: [
+      { name: 'vpc-mig-prod-001', class: 'cmdb_ci_network', depth: 1, via: 'Connects to::Connected by', direction: 'downstream' },
+      { name: 'vpc-mig-dev-002', class: 'cmdb_ci_network', depth: 1, via: 'Connects to::Connected by', direction: 'downstream' },
+    ],
+  },
+}
+
+function _mockApproverChain(env, severity) {
+  const e = (env || '').toUpperCase(), s = (severity || '').toUpperCase()
+  if (e === 'DEV') return []
+  if (e === 'STAGING') return [{ role: 'team_lead', email: 'team-lead@meridianinsurance.com', status: 'PENDING', description: 'Team Lead approval required for STAGING' }]
+  if (e === 'PRE_PROD') return [
+    { role: 'manager', email: 'manager@meridianinsurance.com', status: 'PENDING', description: 'Manager approval required for PRE_PROD' },
+    { role: 'owning_team_lead', email: 'owning-team-lead@meridianinsurance.com', status: 'PENDING', description: 'Owning Team Lead approval required for PRE_PROD' },
+  ]
+  const chain = [
+    { role: 'ciso', email: 'ciso_diana@meridianinsurance.com', status: 'PENDING', description: 'CISO approval required for PROD' },
+    { role: 'vp_security', email: 'vp-security@meridianinsurance.com', status: 'PENDING', description: 'VP Security approval required for PROD' },
+  ]
+  if (s === 'CRITICAL' || s === 'HIGH') chain.push({ role: 'legal', type: 'NOTIFICATION', email: 'legal@meridianinsurance.com', status: 'NOTIFIED', description: 'Legal notified of regulatory impact' })
+  return chain
+}
+
+export function mockImpactAnalysis({ resource, target_environment = 'PROD', severity = 'HIGH', draft_change = false }) {
+  const fx = _IMPACT_FIXTURES[resource]
+  const cab = (target_environment || '').toUpperCase() === 'PROD' || ['CRITICAL', 'HIGH'].includes((severity || '').toUpperCase())
+  const out = {
+    configured: true,
+    changed_resource: fx ? { input: resource, ...fx.changed_resource } : { input: resource, name: resource },
+    affected_cis: fx ? fx.affected_cis : [],
+    owner_team: fx ? fx.owner_team : 'unassigned',
+    cab_required: cab,
+    target_environment, severity,
+    approver_chain: _mockApproverChain(target_environment, severity),
+    note: fx ? undefined : `(mock) No seeded CMDB CI for '${resource}'.`,
+  }
+  if (draft_change) {
+    const n = 30000 + (resource.length * 7) % 900
+    out.change = { number: `CHG00${n}`, sys_id: `mock${n}`, url: '#' }
+    out.affected_attached = out.affected_cis.length
+  }
+  return out
+}
+
 // Token records → CSV blob (used by the Token Tracking page Export button).
 export function tokenUsageToCsv(records) {
   const headers = [
