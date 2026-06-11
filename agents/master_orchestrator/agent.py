@@ -15,7 +15,6 @@ Environment variables (set via AgentCore Runtime configuration):
   ZSCALER_RUNTIME_ARN      ARN of the zscaler_specialist runtime
   JIRA_RUNTIME_ARN         ARN of the jira_specialist runtime
   SERVICENOW_RUNTIME_ARN   ARN of the servicenow_specialist runtime
-  SERVICENOW_RUNTIME_ARN   ARN of the servicenow_specialist runtime
   MODEL_ID                 Bedrock model (default: Nova 2 Lite cross-region inference profile)
   GUARDRAIL_ID             Bedrock guardrail (optional)
   GUARDRAIL_VERSION        Guardrail version (default: DRAFT)
