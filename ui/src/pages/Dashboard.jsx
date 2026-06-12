@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ScanLine, ShieldAlert, ShieldCheck, Clock, AlertTriangle, ArrowRight, Loader2, TrendingUp, Activity, Upload, FileText, Zap } from 'lucide-react'
+import { ScanLine, ShieldAlert, ShieldCheck, Clock, AlertTriangle, ArrowRight, Loader2, TrendingUp, Activity, Upload, FileText, Zap, Server, Database, Users } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
 import { useFindings, useDashboard, triggerScan, getScanRun, useScanFeed } from '../hooks/useApi'
 import { SeverityBadge, StatusBadge, TypeBadge } from '../components/SeverityBadge'
@@ -39,6 +39,49 @@ function StatCard({ icon: Icon, label, value, sub, color = 'indigo' }) {
   )
 }
 
+// ── Monitoring scope strip ──────────────────────────────────────────────────
+// Read-only overview of what ARBITER is watching across the connected sources.
+// Static demo figures (live deployments populate these from S3 object counts +
+// the DDB audit table); kept here so the Dashboard shows scope at a glance.
+const SCOPE_METRICS = [
+  { icon: FileText, label: 'SharePoint',     value: '2.2K', sub: '35.3 MB · policy docs' },
+  { icon: Server,   label: 'Zscaler',        value: '8',    sub: '33.2 MB · ZIA configs' },
+  { icon: Database, label: 'AWS Config',     value: '5',    sub: '123.7 MB · snapshots' },
+  { icon: Activity, label: 'Resources',      value: '2.2K', sub: 'monitored items' },
+  { icon: Users,    label: 'Users in Scope', value: '8.4K', sub: 'MIG headcount' },
+  { icon: Clock,    label: 'Audit Events',   value: '41',   sub: 'log entries' },
+]
+
+function MonitoringScope() {
+  return (
+    <div className="rounded-xl bg-white border border-slate-200"
+         style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200">
+        <div className="flex items-center gap-2">
+          <Activity size={14} className="text-indigo-600" />
+          <p className="text-xs font-semibold text-slate-700 uppercase tracking-[0.18em]">Monitoring Scope</p>
+        </div>
+        <p className="text-[10px] text-slate-400">Live from S3 + DynamoDB</p>
+      </div>
+      <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {SCOPE_METRICS.map(m => {
+          const Icon = m.icon
+          return (
+            <div key={m.label} className="rounded-lg border border-slate-200 p-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Icon size={12} className="text-slate-400 flex-shrink-0" />
+                <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider truncate">{m.label}</p>
+              </div>
+              <p className="text-xl font-bold text-slate-900 tabular-nums leading-none">{m.value}</p>
+              <p className="text-[11px] text-slate-500 mt-1.5">{m.sub}</p>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // Heat-map cell colour by count. Tailwind classes mirror HeatMap.jsx's hm-* CSS.
 function heatCell(n) {
   if (n === 0) return { bg: '#f8fafc', fg: '#94a3b8', border: '#e2e8f0' }
@@ -60,7 +103,7 @@ function HeatMapGrid({ findings, onCellClick }) {
         <p className="text-[10px] text-slate-400">conflicts only · compliant alignments excluded</p>
       </div>
       <div className="p-4 overflow-x-auto">
-        <table className="w-full text-sm border-separate border-spacing-2 min-w-[480px]">
+        <table className="w-auto text-sm border-separate border-spacing-2">
           <thead>
             <tr>
               <th className="text-left text-xs text-slate-500 font-medium w-44 pb-2">Domain</th>
@@ -84,7 +127,7 @@ function HeatMapGrid({ findings, onCellClick }) {
                         <button
                           onClick={() => onCellClick?.(dk, sp, count)}
                           disabled={count === 0}
-                          className="w-full rounded-lg py-3 font-bold text-lg transition-transform hover:scale-105 disabled:cursor-default disabled:hover:scale-100"
+                          className="inline-flex items-center justify-center w-[104px] h-12 rounded-lg font-bold text-lg transition-transform hover:scale-105 disabled:cursor-default disabled:hover:scale-100"
                           style={{
                             background: c.bg,
                             color: c.fg,
@@ -367,6 +410,9 @@ export default function Dashboard() {
         <StatCard icon={ShieldCheck}  label="Resolved"           value={resolved}         color="emerald" />
         <StatCard icon={Clock}        label="Total Findings"     value={findings.length}  color="indigo"  />
       </div>
+
+      {/* Monitoring scope — what ARBITER is watching across sources */}
+      <MonitoringScope />
 
       {/* Persona-specific quick action surfaced first for SOC + CISO */}
       {personaId === 'ciso' && dashAgg?.kpis?.pending_approvals > 0 && (

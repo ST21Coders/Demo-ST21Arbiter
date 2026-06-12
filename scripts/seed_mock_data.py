@@ -2,10 +2,12 @@
 Seed mock data into ARBITER DDB tables for the demo.
 
 Inserts:
-  - 14 conflicts (ARBITER-UC01..UC14, incl. 2 Palo Alto) with the new schema
+  - 26 conflicts (ARBITER-UC01..UC26, incl. 2 Palo Alto) with the new schema
                   fields (conflict_type, domain, policy_citations,
                   enforcement_evidence, scan_run_id="seed-bootstrap", rule_key,
-                  fp_score, compliant=false)
+                  fp_score, compliant=false). 20 OPEN (UC01-UC20) + 6 RESOLVED
+                  (UC21-UC26, non-critical). Severity: 9 CRITICAL / 9 HIGH /
+                  6 MEDIUM / 2 LOW.
   - 16 compliant rows (COMPLIANT-UC*-*) — same shape, compliant=true
   - 2 change-requests (UC07 + UC08) with full approver chain
   - 8 audit-log entries spanning the last 24h
@@ -213,6 +215,135 @@ UC_DATA = [
       {"source": "PaloAlto", "rule_id": "PAN-SEC-APP-TOR-ALLOW-022", "action": "ALLOW",
        "raw": {"application": ["tor", "ultrasurf"]}}],
      ["PCI DSS 1.3", "NAIC MDL-668"], Decimal("0.04"), "CONTRADICTION", ["Zscaler", "PaloAlto"], -3600),
+
+    # ── Seed volume: additional OPEN conflicts (UC15-UC20) ──────────────────────
+    ("UC15", "CRITICAL", "CLOUD_SECURITY", "SharePoint+AWS Config",
+     "Public RDS snapshot exposes production claims database",
+     "MIG-POL-004-CS04", "rds-mig-prod-claims-snap-0417",
+     [{"doc": "MIG-POL-004", "version": "v4.0", "section": "4",
+       "quote": "No production data store shall be publicly exposed.",
+       "confidence": Decimal("0.98")}],
+     [{"source": "AWSConfig", "resource_id": "rds-mig-prod-claims-snap-0417", "action": "NON_COMPLIANT",
+       "raw": {"public": True, "restore_attribute": "all"}}],
+     ["NAIC MDL-668", "SOC 2 CC6.1"], Decimal("0.03"), "DRIFT", ["SharePoint", "AWSConfig"], -1080),
+
+    ("UC16", "CRITICAL", "DATA_GOVERNANCE", "SharePoint+AWS Config",
+     "Customer-document S3 bucket public and unencrypted",
+     "MIG-POL-003-DG02", "mig-prod-customer-docs",
+     [{"doc": "MIG-POL-003", "version": "v2.2", "section": "2",
+       "quote": "All customer data requires encryption-at-rest and private ACLs.",
+       "confidence": Decimal("0.97")}],
+     [{"source": "AWSConfig", "resource_id": "mig-prod-customer-docs", "action": "NON_COMPLIANT",
+       "raw": {"block_public_acls": False, "default_encryption": False}}],
+     ["NAIC MDL-668", "ISO 27001 A.8.24"], Decimal("0.02"), "DRIFT", ["SharePoint", "AWSConfig"], -1560),
+
+    ("UC17", "CRITICAL", "NETWORK_SECURITY", "Zscaler+Palo Alto",
+     "Anonymizer egress re-enabled on Palo Alto perimeter",
+     "ZIA-URLCAT-ANONYMIZER-BLOCK", "PAN-SEC-APP-TOR-ALLOW-031",
+     [],
+     [{"source": "Zscaler", "rule_id": "ZIA-URLCAT-ANONYMIZER-BLOCK", "action": "BLOCK",
+       "raw": {"category": "Anonymizer"}},
+      {"source": "PaloAlto", "rule_id": "PAN-SEC-APP-TOR-ALLOW-031", "action": "ALLOW",
+       "raw": {"application": ["tor", "ultrasurf"]}}],
+     ["ISO 27001 A.8.20"], Decimal("0.04"), "CONTRADICTION", ["Zscaler", "PaloAlto"], -2460),
+
+    ("UC18", "HIGH", "ACCESS_MGMT", "SharePoint+Zscaler",
+     "Terminated contractor accounts retain ZTNA access",
+     "MIG-POL-001-AM05", "ZPA-USERGRP-CONTRACTORS-2024",
+     [{"doc": "MIG-POL-001", "version": "v3.4", "section": "5",
+       "quote": "Access must be revoked within 24h of termination.",
+       "confidence": Decimal("0.96")}],
+     [{"source": "Zscaler", "rule_id": "ZPA-USERGRP-CONTRACTORS-2024", "action": "ALLOW",
+       "raw": {"stale_identities": 11}}],
+     ["SOC 2 CC6.2"], Decimal("0.09"), "GAP", ["SharePoint", "Zscaler"], -3300),
+
+    ("UC19", "HIGH", "VENDOR_MGMT", "SharePoint+Zscaler",
+     "Unapproved SaaS (Notion) permitted by URL policy",
+     "MIG-POL-001-VM02", "ZIA-URLCAT-COLLAB-ALLOW-058",
+     [{"doc": "MIG-POL-001", "version": "v3.4", "section": "2.1",
+       "quote": "Only vendors on the approved list with a completed assessment may be permitted.",
+       "confidence": Decimal("0.95")}],
+     [{"source": "Zscaler", "rule_id": "ZIA-URLCAT-COLLAB-ALLOW-058", "action": "ALLOW",
+       "raw": {"domain": "notion.so", "approved": False}}],
+     ["ISO 27001 A.5.19"], Decimal("0.11"), "CONTRADICTION", ["SharePoint", "Zscaler"], -4320),
+
+    ("UC20", "MEDIUM", "COMPLIANCE", "SharePoint+Zscaler",
+     "Web-log retention below the 365-day policy minimum",
+     "MIG-POL-002-CP07", "ZIA-NSS-LOG-RETENTION-90D",
+     [{"doc": "MIG-POL-002", "version": "v5.1", "section": "7",
+       "quote": "Web logs must be retained for a minimum of 365 days.",
+       "confidence": Decimal("0.96")}],
+     [{"source": "Zscaler", "rule_id": "ZIA-NSS-LOG-RETENTION-90D", "action": "MONITOR",
+       "raw": {"retention_days": 90}}],
+     ["SOC 2 CC7.2", "ISO 27001 A.8.15"], Decimal("0.14"), "GAP", ["SharePoint", "Zscaler"], -5760),
+]
+
+
+# ── Seed volume: RESOLVED findings (UC21-UC26) ────────────────────────────────
+# Same tuple shape as UC_DATA; written with status="RESOLVED" (see main()). Kept
+# compliant=False (via conflict_item) so the /findings API — which drops
+# compliant=true rows — still returns them, and severity is never CRITICAL so they
+# raise Total + Resolved without inflating the Open / Critical tiles.
+RESOLVED_DATA = [
+    ("UC21", "HIGH", "CLOUD_SECURITY", "SharePoint+AWS Config",
+     "ALB alb-mig-prod-quotes-004 now fronted by AWS WAF",
+     "MIG-POL-004-CS01", "alb-mig-prod-quotes-004",
+     [{"doc": "MIG-POL-004", "version": "v4.0", "section": "2",
+       "quote": "Production ALBs require AWS WAF + OWASP CRS.",
+       "confidence": Decimal("0.98")}],
+     [{"source": "AWSConfig", "resource_id": "alb-mig-prod-quotes-004", "action": "COMPLIANT",
+       "raw": {"waf_attached": True, "closed_by": "CR-20260604-WAF014"}}],
+     ["SOC 2 CC6.1"], Decimal("0.02"), "DRIFT", ["SharePoint", "AWSConfig"], -108000),
+
+    ("UC22", "HIGH", "NETWORK_SECURITY", "SharePoint+Palo Alto",
+     "Palo Alto any-any egress rule removed",
+     "MIG-POL-002-NS06", "PAN-SEC-EGRESS-ANYANY-ALLOW-001",
+     [{"doc": "MIG-POL-002", "version": "v5.1", "section": "6",
+       "quote": "Perimeter egress must be default-deny.",
+       "confidence": Decimal("0.97")}],
+     [{"source": "PaloAlto", "rule_id": "PAN-SEC-EGRESS-ANYANY-ALLOW-001", "action": "REMOVED",
+       "raw": {"closed_by": "CR-20260602-EGR009"}}],
+     ["ISO 27001 A.8.20"], Decimal("0.03"), "GAP", ["SharePoint", "PaloAlto"], -158400),
+
+    ("UC23", "MEDIUM", "ACCESS_MGMT", "SharePoint+Zscaler",
+     "MFA enforcement extended to all non-admin users",
+     "MIG-POL-002-AM04", "ZPA-AUTHPOL-ALL-USERS-MFA",
+     [{"doc": "MIG-POL-002", "version": "v5.1", "section": "4.1",
+       "quote": "MFA is required for ALL users.",
+       "confidence": Decimal("0.97")}],
+     [{"source": "Zscaler", "rule_id": "ZPA-AUTHPOL-ALL-USERS-MFA", "action": "MFA_REQUIRED",
+       "raw": {"scope": "All Users", "closed_by": "CR-20260531-MFA006"}}],
+     ["SOC 2 CC6.1"], Decimal("0.04"), "GAP", ["SharePoint", "Zscaler"], -208800),
+
+    ("UC24", "MEDIUM", "DATA_GOVERNANCE", "SharePoint+AWS Config",
+     "Cross-region replication retargeted in-region (us-west-2)",
+     "MIG-POL-003-DG03", "mig-prod-actuarial-data",
+     [{"doc": "MIG-POL-003", "version": "v2.2", "section": "3",
+       "quote": "Customer data must remain within the continental United States.",
+       "confidence": Decimal("0.97")}],
+     [{"source": "AWSConfig", "resource_id": "mig-prod-actuarial-data", "action": "COMPLIANT",
+       "raw": {"replication_target": "us-west-2", "closed_by": "CR-20260528-RES004"}}],
+     ["NAIC MDL-668"], Decimal("0.03"), "DRIFT", ["SharePoint", "AWSConfig"], -252000),
+
+    ("UC25", "LOW", "VENDOR_MGMT", "SharePoint+Zscaler",
+     "Vendor geo allow-list corrected to the approved country set",
+     "MIG-POL-003-VM04", "ZPA-GEO-RESTRICT-APPROVED",
+     [{"doc": "MIG-POL-003", "version": "v2.2", "section": "4",
+       "quote": "Approved vendor countries: US, IN, UK, SG, DE, AU, PH, CA.",
+       "confidence": Decimal("0.96")}],
+     [{"source": "Zscaler", "rule_id": "ZPA-GEO-RESTRICT-APPROVED", "action": "ALLOW",
+       "raw": {"countries": ["US", "IN", "UK", "SG", "DE", "AU", "PH", "CA"], "closed_by": "CR-20260526-GEO003"}}],
+     ["ISO 27001 A.5.19"], Decimal("0.06"), "CONTRADICTION", ["SharePoint", "Zscaler"], -316800),
+
+    ("UC26", "LOW", "COMPLIANCE", "SharePoint+Zscaler",
+     "SSL inspection exception register backfilled",
+     "MIG-POL-002-CP02", "ZIA-SSL-EXCEPTION-REGISTER",
+     [{"doc": "MIG-POL-002", "version": "v5.1", "section": "2.2",
+       "quote": "SSL inspection exceptions must be documented with a 90-day max.",
+       "confidence": Decimal("0.96")}],
+     [{"source": "Zscaler", "rule_id": "ZIA-SSL-EXCEPTION-REGISTER", "action": "DOCUMENTED",
+       "raw": {"exceptions_registered": True, "closed_by": "CR-20260524-SSL002"}}],
+     ["SOC 2 CC7.2"], Decimal("0.05"), "GAP", ["SharePoint", "Zscaler"], -396000),
 ]
 
 
@@ -237,6 +368,18 @@ OWNERSHIP = {
     "UC12": {"owner_team": "data-governance",   "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["application", "network"]},
     "UC13": {"owner_team": "network-eng",       "consumer_team": "app-dev",     "platform_team": "platform-security", "tags": ["network", "infrastructure"]},
     "UC14": {"owner_team": "network-eng",       "consumer_team": "app-dev",     "platform_team": "platform-security", "tags": ["network", "application"]},
+    "UC15": {"owner_team": "cloud-infra",       "consumer_team": "app-dev",     "platform_team": "cloud-infra",       "tags": ["infrastructure", "data-residency"]},
+    "UC16": {"owner_team": "data-governance",   "consumer_team": "cloud-infra", "platform_team": "cloud-infra",       "tags": ["data-residency", "infrastructure"]},
+    "UC17": {"owner_team": "network-eng",       "consumer_team": "app-dev",     "platform_team": "platform-security", "tags": ["network", "application"]},
+    "UC18": {"owner_team": "platform-security", "consumer_team": "app-dev",     "platform_team": "platform-security", "tags": ["identity"]},
+    "UC19": {"owner_team": "vendor-mgmt",       "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["vendor", "application"]},
+    "UC20": {"owner_team": "platform-security", "consumer_team": "cloud-infra", "platform_team": "platform-security", "tags": ["infrastructure"]},
+    "UC21": {"owner_team": "cloud-infra",       "consumer_team": "app-dev",     "platform_team": "cloud-infra",       "tags": ["infrastructure", "network"]},
+    "UC22": {"owner_team": "network-eng",       "consumer_team": "app-dev",     "platform_team": "platform-security", "tags": ["network", "infrastructure"]},
+    "UC23": {"owner_team": "platform-security", "consumer_team": "app-dev",     "platform_team": "platform-security", "tags": ["identity"]},
+    "UC24": {"owner_team": "data-governance",   "consumer_team": "cloud-infra", "platform_team": "cloud-infra",       "tags": ["data-residency", "infrastructure"]},
+    "UC25": {"owner_team": "vendor-mgmt",       "consumer_team": "app-dev",     "platform_team": "network-eng",       "tags": ["vendor", "network"]},
+    "UC26": {"owner_team": "platform-security", "consumer_team": "cloud-infra", "platform_team": "platform-security", "tags": ["infrastructure"]},
 }
 _OWNERSHIP_DEFAULT = {"owner_team": "unassigned", "consumer_team": "", "platform_team": "", "tags": ["untriaged"]}
 
@@ -409,8 +552,8 @@ SCAN_RUN_ROW = {
     "duration_ms":   20000,
     "rule_pack_version": "v1",
     "totals": {
-        "conflicts": 12, "compliant": 14,
-        "critical": 4, "high": 4, "medium": 4, "low": 0,
+        "conflicts": 20, "compliant": 16,
+        "critical": 9, "high": 7, "medium": 4, "low": 0,
     },
     "source_versions": {
         "sharepoint_kb_ingestion_id": "seed",
@@ -435,6 +578,7 @@ def put_into(table_name: str, items: list[dict]) -> int:
 
 def main() -> int:
     conflicts = [conflict_item(uc) for uc in UC_DATA]
+    conflicts += [{**conflict_item(uc), "status": "RESOLVED"} for uc in RESOLVED_DATA]
     compliant_age = -1800
     compliant = []
     for row in COMPLIANT_ROWS:
@@ -460,7 +604,7 @@ def main() -> int:
     print(f"  ✓ scan-runs           : wrote {n} rows (post-Step-2)")
 
     n = put_into(T_OWNERSHIP_RULES, ownership_rule_rows())
-    print(f"  ✓ ownership-rules     : wrote {n} rows (14 UC + wildcard default)")
+    print(f"  ✓ ownership-rules     : wrote {n} rows (26 UC + wildcard default)")
 
     print()
     print("Done.")

@@ -11,6 +11,7 @@ import FindingDetail from './pages/FindingDetail'
 import HeatMap from './pages/HeatMap'
 import ActionCenter from './pages/ActionCenter'
 import Governance from './pages/Governance'
+import Reports from './pages/Reports'
 import DataPipeline from './pages/DataPipeline'
 import AuditLogs from './pages/AuditLogs'
 import AnalystView from './pages/AnalystView'
@@ -160,6 +161,7 @@ function Shell() {
             <Route path="/heatmap"     element={<Guarded path="/heatmap"><HeatMap /></Guarded>} />
             <Route path="/actions"     element={<Guarded path="/actions"><ActionCenter /></Guarded>} />
             <Route path="/governance"  element={<Guarded path="/governance"><Governance /></Guarded>} />
+            <Route path="/reports"     element={<Guarded path="/reports"><Reports /></Guarded>} />
             <Route path="/pipeline"    element={<Guarded path="/pipeline"><DataPipeline /></Guarded>} />
             <Route path="/audit"       element={<Guarded path="/audit"><AuditLogs /></Guarded>} />
             <Route path="/analyst"     element={<Guarded path="/analyst"><AnalystView /></Guarded>} />

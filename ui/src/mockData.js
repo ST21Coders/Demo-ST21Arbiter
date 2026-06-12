@@ -513,11 +513,149 @@ const OWNERSHIP_BY_RULE = {
 const OWNERSHIP_DEFAULT = { owner_team: 'unassigned', consumer_team: '', platform_team: '', tags: ['untriaged'] }
 export function ownershipForRule(ruleKey) { return OWNERSHIP_BY_RULE[ruleKey] || OWNERSHIP_DEFAULT }
 
-// Final export — RAW_CONFLICTS rows enriched with scanner schema fields + ownership.
-export const MOCK_CONFLICTS = RAW_CONFLICTS.map(c => {
-  const merged = { ...c, ...(UC_ENRICHMENT[c.conflict_id] || {}) }
-  return { ...ownershipForRule(merged.rule_key), ...merged }
-})
+// ── Additional seed conflicts (demo volume) ─────────────────────────────────
+// Extra findings so the Dashboard KPI tiles (Open / Critical / Resolved / Total)
+// reflect a fuller workload — matched 1:1 by scripts/seed_mock_data.py for live mode.
+// All rows are compliant:false so the live /findings API (which drops compliant=true
+// rows) still returns them. OPEN rows are active conflicts; RESOLVED rows carry
+// status:'RESOLVED' at non-critical severity, so they raise Total + Resolved without
+// inflating Open (status filter) or Critical (severity is never CRITICAL on resolved).
+// Each row is already fully shaped (ownership inline), so it bypasses the .map below.
+const EXTRA_CONFLICTS = [
+  // — Active conflicts (OPEN) —
+  { conflict_id: 'ARBITER-UC15', severity: 'CRITICAL', status: 'OPEN', compliant: false, conflict_type: 'DRIFT', type: 'CROSS_DOMAIN',
+    domain: 'CLOUD_SECURITY', source_pair: 'SharePoint+AWS Config', domains: ['SharePoint', 'AWSConfig'],
+    title: 'Public RDS snapshot exposes production claims database', fp_score: 0.03,
+    source_policy: 'MIG-POL-004 v4.0 §4', source_technical: 'rds-mig-prod-claims-snap-0417',
+    finding: 'An automated RDS snapshot of mig-prod-claims-db is shared publicly (restore attribute = all). MIG-POL-004 §4 prohibits public exposure of any production data store.',
+    impact: 'Full claims database recoverable by any AWS account. Tier-1 PII at risk.',
+    remediation: ['Remove the public share attribute from rds-mig-prod-claims-snap-0417', 'Audit all shared snapshots across prod accounts', 'Enable AWS Config rule rds-snapshots-public-prohibited'],
+    policy_mandates: ['MIG-POL-004-CS04'], regulatory: ['NAIC MDL-668 §4', 'SOC 2 CC6.1'],
+    detected_at: new Date(Date.now() - 18 * 60000).toISOString(),
+    owner_team: 'cloud-infra', consumer_team: 'app-dev', platform_team: 'cloud-infra', tags: ['infrastructure', 'data-residency'] },
+  { conflict_id: 'ARBITER-UC16', severity: 'CRITICAL', status: 'OPEN', compliant: false, conflict_type: 'DRIFT', type: 'CROSS_DOMAIN',
+    domain: 'DATA_GOVERNANCE', source_pair: 'SharePoint+AWS Config', domains: ['SharePoint', 'AWSConfig'],
+    title: 'Customer-document S3 bucket public and unencrypted', fp_score: 0.02,
+    source_policy: 'MIG-POL-003 v2.2 §2', source_technical: 'mig-prod-customer-docs',
+    finding: 'Bucket mig-prod-customer-docs has BlockPublicAcls=false and default encryption disabled. MIG-POL-003 §2 mandates encryption-at-rest and private ACLs for all customer data.',
+    impact: 'Policyholder documents readable anonymously; no encryption at rest.',
+    remediation: ['Enable S3 Block Public Access on mig-prod-customer-docs', 'Apply SSE-KMS default encryption', 'Add bucket to the data-residency Config conformance pack'],
+    policy_mandates: ['MIG-POL-003-DG02'], regulatory: ['NAIC MDL-668 §3', 'ISO 27001 A.8.24'],
+    detected_at: new Date(Date.now() - 26 * 60000).toISOString(),
+    owner_team: 'data-governance', consumer_team: 'cloud-infra', platform_team: 'cloud-infra', tags: ['data-residency', 'infrastructure'] },
+  { conflict_id: 'ARBITER-UC17', severity: 'CRITICAL', status: 'OPEN', compliant: false, conflict_type: 'CONTRADICTION', type: 'CROSS_DOMAIN',
+    domain: 'NETWORK_SECURITY', source_pair: 'Zscaler+Palo Alto', domains: ['Zscaler', 'PaloAlto'],
+    title: 'Anonymizer egress re-enabled on Palo Alto perimeter', fp_score: 0.04,
+    source_policy: 'MIG-POL-002 v5.1 §6', source_technical: 'PAN-SEC-APP-TOR-ALLOW-031',
+    finding: 'A new Palo Alto rule PAN-SEC-APP-TOR-ALLOW-031 permits tor/ultrasurf outbound, contradicting Zscaler ZIA-URLCAT-ANONYMIZER-BLOCK and MIG-POL-002 §6 default-deny egress.',
+    impact: 'Data-exfiltration channel reopened; enforcement inconsistent across the two control planes.',
+    remediation: ['Disable PAN-SEC-APP-TOR-ALLOW-031', 'Reconcile Palo Alto egress with the Zscaler anonymizer block', 'Add a CAB gate for any new any-application allow rules'],
+    policy_mandates: ['MIG-POL-002-NS06'], regulatory: ['ISO 27001 A.8.20'],
+    detected_at: new Date(Date.now() - 41 * 60000).toISOString(),
+    owner_team: 'network-eng', consumer_team: 'app-dev', platform_team: 'platform-security', tags: ['network', 'application'] },
+  { conflict_id: 'ARBITER-UC18', severity: 'HIGH', status: 'OPEN', compliant: false, conflict_type: 'GAP', type: 'CROSS_DOMAIN',
+    domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint', 'Zscaler'],
+    title: 'Terminated contractor accounts retain ZTNA access', fp_score: 0.09,
+    source_policy: 'MIG-POL-001 v3.4 §5', source_technical: 'ZPA-USERGRP-CONTRACTORS-2024',
+    finding: 'Eleven contractor identities offboarded in HR remain in the Zscaler ZPA contractor group with active app segments. MIG-POL-001 §5 requires access revocation within 24h of termination.',
+    impact: 'Former contractors retain private-app access to internal systems.',
+    remediation: ['Remove the 11 offboarded identities from ZPA-USERGRP-CONTRACTORS-2024', 'Wire SCIM deprovisioning from the HR system', 'Schedule a weekly stale-account reconciliation'],
+    policy_mandates: ['MIG-POL-001-AM05'], regulatory: ['SOC 2 CC6.2'],
+    detected_at: new Date(Date.now() - 55 * 60000).toISOString(),
+    owner_team: 'platform-security', consumer_team: 'app-dev', platform_team: 'platform-security', tags: ['identity'] },
+  { conflict_id: 'ARBITER-UC19', severity: 'HIGH', status: 'OPEN', compliant: false, conflict_type: 'CONTRADICTION', type: 'CROSS_DOMAIN',
+    domain: 'VENDOR_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint', 'Zscaler'],
+    title: 'Unapproved SaaS (Notion) permitted by URL policy', fp_score: 0.11,
+    source_policy: 'MIG-POL-001 v3.4 §2.1', source_technical: 'ZIA-URLCAT-COLLAB-ALLOW-058',
+    finding: 'Zscaler allows notion.so under Collaboration, but Notion is not on the MIG-POL-001 approved-vendor list and has no completed vendor assessment.',
+    impact: 'Corporate data may flow to an unvetted third-party processor.',
+    remediation: ['Block notion.so pending a vendor risk assessment, or add it to the approved list once assessed', 'Reconcile ZIA collaboration allow-list against the approved-vendor register'],
+    policy_mandates: ['MIG-POL-001-VM02'], regulatory: ['ISO 27001 A.5.19'],
+    detected_at: new Date(Date.now() - 72 * 60000).toISOString(),
+    owner_team: 'vendor-mgmt', consumer_team: 'app-dev', platform_team: 'network-eng', tags: ['vendor', 'application'] },
+  { conflict_id: 'ARBITER-UC20', severity: 'MEDIUM', status: 'OPEN', compliant: false, conflict_type: 'GAP', type: 'CROSS_DOMAIN',
+    domain: 'COMPLIANCE', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint', 'Zscaler'],
+    title: 'Web-log retention below the 365-day policy minimum', fp_score: 0.14,
+    source_policy: 'MIG-POL-002 v5.1 §7', source_technical: 'ZIA-NSS-LOG-RETENTION-90D',
+    finding: 'Zscaler NSS log streaming is configured for 90-day retention; MIG-POL-002 §7 requires a minimum of 365 days for audit traceability.',
+    impact: 'Insufficient log history for incident forensics and audit evidence.',
+    remediation: ['Extend ZIA NSS retention to 365 days', 'Stream logs to the long-term S3 audit archive', 'Document the retention setting in the controls register'],
+    policy_mandates: ['MIG-POL-002-CP07'], regulatory: ['SOC 2 CC7.2', 'ISO 27001 A.8.15'],
+    detected_at: new Date(Date.now() - 96 * 60000).toISOString(),
+    owner_team: 'platform-security', consumer_team: 'cloud-infra', platform_team: 'platform-security', tags: ['infrastructure'] },
+
+  // — Resolved findings (status RESOLVED, non-critical → raise Total + Resolved only) —
+  { conflict_id: 'ARBITER-UC21', severity: 'HIGH', status: 'RESOLVED', compliant: false, conflict_type: 'DRIFT', type: 'CROSS_DOMAIN',
+    domain: 'CLOUD_SECURITY', source_pair: 'SharePoint+AWS Config', domains: ['SharePoint', 'AWSConfig'],
+    title: 'ALB alb-mig-prod-quotes-004 now fronted by AWS WAF', fp_score: 0.02,
+    source_policy: 'MIG-POL-004 v4.0 §2', source_technical: 'alb-mig-prod-quotes-004',
+    finding: 'WAF web ACL with OWASP CRS attached to the previously-exposed ALB; ingress restricted from 0.0.0.0/0. Closed via CR-20260604-WAF014.',
+    impact: 'Resolved — production ALB no longer internet-exposed without WAF.',
+    remediation: ['WAF web ACL attached', 'Security-group ingress tightened', 'Change executed and verified'],
+    policy_mandates: ['MIG-POL-004-CS01'], regulatory: ['SOC 2 CC6.1'],
+    detected_at: new Date(Date.now() - 30 * 3600000).toISOString(),
+    owner_team: 'cloud-infra', consumer_team: 'app-dev', platform_team: 'cloud-infra', tags: ['infrastructure', 'network'] },
+  { conflict_id: 'ARBITER-UC22', severity: 'HIGH', status: 'RESOLVED', compliant: false, conflict_type: 'GAP', type: 'CROSS_DOMAIN',
+    domain: 'NETWORK_SECURITY', source_pair: 'SharePoint+Palo Alto', domains: ['SharePoint', 'PaloAlto'],
+    title: 'Palo Alto any-any egress rule removed', fp_score: 0.03,
+    source_policy: 'MIG-POL-002 v5.1 §6', source_technical: 'PAN-SEC-EGRESS-ANYANY-ALLOW-001',
+    finding: 'The permissive any/any/any egress rule was replaced with an explicit allow-list and a default-deny. Closed via CR-20260602-EGR009.',
+    impact: 'Resolved — perimeter egress is now default-deny per policy.',
+    remediation: ['any-any rule deleted', 'Explicit allow-list authored', 'Default-deny verified in production'],
+    policy_mandates: ['MIG-POL-002-NS06'], regulatory: ['ISO 27001 A.8.20'],
+    detected_at: new Date(Date.now() - 44 * 3600000).toISOString(),
+    owner_team: 'network-eng', consumer_team: 'app-dev', platform_team: 'platform-security', tags: ['network', 'infrastructure'] },
+  { conflict_id: 'ARBITER-UC23', severity: 'MEDIUM', status: 'RESOLVED', compliant: false, conflict_type: 'GAP', type: 'CROSS_DOMAIN',
+    domain: 'ACCESS_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint', 'Zscaler'],
+    title: 'MFA enforcement extended to all non-admin users', fp_score: 0.04,
+    source_policy: 'MIG-POL-002 v5.1 §4.1', source_technical: 'ZPA-AUTHPOL-ALL-USERS-MFA',
+    finding: 'ZPA authentication policy now requires MFA for every user, not just privileged admins. Closed via CR-20260531-MFA006.',
+    impact: 'Resolved — MFA universally enforced per MIG-POL-002 §4.1.',
+    remediation: ['Auth policy scope widened to all users', 'Rollout verified for the 4,200 non-admin accounts'],
+    policy_mandates: ['MIG-POL-002-AM04'], regulatory: ['SOC 2 CC6.1'],
+    detected_at: new Date(Date.now() - 58 * 3600000).toISOString(),
+    owner_team: 'platform-security', consumer_team: 'app-dev', platform_team: 'platform-security', tags: ['identity'] },
+  { conflict_id: 'ARBITER-UC24', severity: 'MEDIUM', status: 'RESOLVED', compliant: false, conflict_type: 'DRIFT', type: 'CROSS_DOMAIN',
+    domain: 'DATA_GOVERNANCE', source_pair: 'SharePoint+AWS Config', domains: ['SharePoint', 'AWSConfig'],
+    title: 'Cross-region replication retargeted in-region (us-west-2)', fp_score: 0.03,
+    source_policy: 'MIG-POL-003 v2.2 §3', source_technical: 'mig-prod-actuarial-data',
+    finding: 'Replication target moved from eu-west-1 to us-west-2, restoring US data-residency. Closed via CR-20260528-RES004.',
+    impact: 'Resolved — customer data remains within the continental US.',
+    remediation: ['Replication rule retargeted to us-west-2', 'eu-west-1 replica purged', 'Residency Config rule passing'],
+    policy_mandates: ['MIG-POL-003-DG03'], regulatory: ['NAIC MDL-668 §3'],
+    detected_at: new Date(Date.now() - 70 * 3600000).toISOString(),
+    owner_team: 'data-governance', consumer_team: 'cloud-infra', platform_team: 'cloud-infra', tags: ['data-residency', 'infrastructure'] },
+  { conflict_id: 'ARBITER-UC25', severity: 'LOW', status: 'RESOLVED', compliant: false, conflict_type: 'CONTRADICTION', type: 'CROSS_DOMAIN',
+    domain: 'VENDOR_MGMT', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint', 'Zscaler'],
+    title: 'Vendor geo allow-list corrected to the approved country set', fp_score: 0.06,
+    source_policy: 'MIG-POL-003 v2.2 §4', source_technical: 'ZPA-GEO-RESTRICT-APPROVED',
+    finding: 'ZTNA geo restriction expanded from India/US-only to the full approved-country list (US, IN, UK, SG, DE, AU, PH, CA). Closed via CR-20260526-GEO003.',
+    impact: 'Resolved — vendor access matches MIG-POL-003 §4 approved countries.',
+    remediation: ['Geo allow-list aligned to the approved-vendor register', 'Change verified with vendor management'],
+    policy_mandates: ['MIG-POL-003-VM04'], regulatory: ['ISO 27001 A.5.19'],
+    detected_at: new Date(Date.now() - 88 * 3600000).toISOString(),
+    owner_team: 'vendor-mgmt', consumer_team: 'app-dev', platform_team: 'network-eng', tags: ['vendor', 'network'] },
+  { conflict_id: 'ARBITER-UC26', severity: 'LOW', status: 'RESOLVED', compliant: false, conflict_type: 'GAP', type: 'CROSS_DOMAIN',
+    domain: 'COMPLIANCE', source_pair: 'SharePoint+Zscaler', domains: ['SharePoint', 'Zscaler'],
+    title: 'SSL inspection exception register backfilled', fp_score: 0.05,
+    source_policy: 'MIG-POL-002 v5.1 §2.2', source_technical: 'ZIA-SSL-EXCEPTION-REGISTER',
+    finding: 'The 47 undocumented SSL bypass domains were reviewed; valid ones registered with 90-day expiry, the rest removed. Closed via CR-20260524-SSL002.',
+    impact: 'Resolved — all SSL inspection exceptions documented and time-bound.',
+    remediation: ['Exception register populated', 'Stale bypasses removed', '90-day expiry enforced'],
+    policy_mandates: ['MIG-POL-002-CP02'], regulatory: ['SOC 2 CC7.2'],
+    detected_at: new Date(Date.now() - 110 * 3600000).toISOString(),
+    owner_team: 'platform-security', consumer_team: 'cloud-infra', platform_team: 'platform-security', tags: ['infrastructure'] },
+]
+
+// Final export — RAW_CONFLICTS rows enriched with scanner schema fields + ownership,
+// plus the fully-shaped EXTRA_CONFLICTS (demo volume) appended verbatim.
+export const MOCK_CONFLICTS = [
+  ...RAW_CONFLICTS.map(c => {
+    const merged = { ...c, ...(UC_ENRICHMENT[c.conflict_id] || {}) }
+    return { ...ownershipForRule(merged.rule_key), ...merged }
+  }),
+  ...EXTRA_CONFLICTS,
+]
 
 // 14 compliant alignments the scanner records as positive evidence of working
 // controls. Heat map cells aggregate these alongside conflicts (compliant=true).
@@ -930,4 +1068,98 @@ export function tokenUsageToCsv(records) {
     ].map(escape).join(','))
   })
   return rows.join('\n')
+}
+
+// ── Reports (mock) ───────────────────────────────────────────────────────────
+// Mirrors Infra/functions/api_handler/report_catalog.py so the Reports page
+// renders the same catalog with USE_MOCK. In mock mode we can't run reportlab /
+// openpyxl, so mockGenerateReport builds a real client-side CSV/JSON download and
+// falls back to a JSON data export for pdf/xlsx/zip (the deployed backend produces
+// the true binary formats).
+export const MOCK_REPORT_CATEGORIES = ['Compliance', 'Risk', 'Audit']
+
+export const MOCK_REPORT_CATALOG = [
+  { id: 'executive_compliance', title: 'Executive Compliance Briefing', category: 'Compliance', audience: 'CISO, Board, Executive Risk Committee', formats: ['pdf'], default_format: 'pdf', icon: 'FileText', estimated_seconds: 3, parameters: [], tags: ['board', 'summary'],
+    description: 'Board-ready summary: overall score, per-framework breakdown, and the top open risks. Reflects current posture at the moment of generation.' },
+  { id: 'technical_compliance', title: 'Technical Compliance Report', category: 'Compliance', audience: 'QSA, External Auditor, GRC Analyst', formats: ['pdf', 'xlsx'], default_format: 'pdf', icon: 'FileSpreadsheet', estimated_seconds: 5,
+    parameters: [
+      { id: 'frameworks', label: 'Frameworks', type: 'multi_select', default: ['naic', 'pci-dss', 'sox', 'nist', 'iso27001'], options: [{ id: 'naic', label: 'NAIC MDL-668' }, { id: 'pci-dss', label: 'PCI-DSS 4.0' }, { id: 'sox', label: 'SOX' }, { id: 'nist', label: 'NIST CSF 2.0' }, { id: 'iso27001', label: 'ISO 27001:2022' }] },
+    ], tags: ['audit-handoff'],
+    description: 'Per-framework control posture: every control, its PASS/FAIL state, the linked conflict, severity and status.' },
+  { id: 'conflict_register', title: 'Conflict Register', category: 'Risk', audience: 'GRC Analyst, Risk Owner', formats: ['csv', 'xlsx', 'json'], default_format: 'csv', icon: 'Table', estimated_seconds: 2,
+    parameters: [
+      { id: 'severity', label: 'Severity', type: 'multi_select', default: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'], options: [{ id: 'CRITICAL', label: 'Critical' }, { id: 'HIGH', label: 'High' }, { id: 'MEDIUM', label: 'Medium' }, { id: 'LOW', label: 'Low' }] },
+      { id: 'status', label: 'Status', type: 'multi_select', default: ['OPEN', 'IN_REVIEW', 'RESOLVED'], options: [{ id: 'OPEN', label: 'Open' }, { id: 'IN_REVIEW', label: 'In review' }, { id: 'RESOLVED', label: 'Resolved' }] },
+    ], tags: ['register', 'inventory'],
+    description: 'The full conflict inventory — id, severity, status, domains, regulatory mappings — as a flat export.' },
+  { id: 'audit_trail', title: 'Audit Trail Export', category: 'Audit', audience: 'External Auditor, Regulator', formats: ['csv', 'json'], default_format: 'csv', icon: 'ScrollText', estimated_seconds: 2, parameters: [], tags: ['audit', 'evidence'],
+    description: 'Chronological audit-log events — scans, change requests, approvals, ingestion — for evidence and forensics.' },
+  { id: 'evidence_package', title: 'Evidence Package', category: 'Audit', audience: 'External Auditor, QSA, Regulator', formats: ['zip'], default_format: 'zip', icon: 'Package', estimated_seconds: 6,
+    parameters: [
+      { id: 'frameworks', label: 'Frameworks', type: 'multi_select', default: ['naic', 'pci-dss', 'sox', 'nist', 'iso27001'], options: [{ id: 'naic', label: 'NAIC MDL-668' }, { id: 'pci-dss', label: 'PCI-DSS 4.0' }, { id: 'sox', label: 'SOX' }, { id: 'nist', label: 'NIST CSF 2.0' }, { id: 'iso27001', label: 'ISO 27001:2022' }] },
+    ], tags: ['audit-ready', 'complete'],
+    description: 'ZIP bundle: technical compliance PDF, conflict register CSV, audit-trail JSON and a scores snapshot.' },
+]
+
+const _REPORT_TITLES = Object.fromEntries(MOCK_REPORT_CATALOG.map(r => [r.id, r.title]))
+
+function _csvCell(v) {
+  if (v == null) return ''
+  const s = Array.isArray(v) ? v.join('; ') : String(v)
+  return '"' + s.replace(/"/g, '""') + '"'
+}
+
+function _conflictsCsv(conflicts) {
+  const head = ['conflict_id', 'severity', 'status', 'title', 'domains', 'regulatory', 'detected_at']
+  const rows = [head.join(',')]
+  conflicts.forEach(c => rows.push([c.conflict_id, c.severity, c.status, c.title, c.domains, c.regulatory, c.detected_at].map(_csvCell).join(',')))
+  return rows.join('\n')
+}
+
+function _auditCsv(events) {
+  const head = ['timestamp', 'action_type', 'resource', 'user', 'status', 'details']
+  const rows = [head.join(',')]
+  events.forEach(e => rows.push([e.timestamp, e.action_type, e.resource, e.user, e.status,
+    typeof e.details === 'string' ? e.details : JSON.stringify(e.details || {})].map(_csvCell).join(',')))
+  return rows.join('\n')
+}
+
+// Client-side report generation for USE_MOCK. Returns the same payload shape as
+// the live POST /reports/generate (download_url ready to download).
+export function mockGenerateReport(reportId, format, _params) {
+  const spec = MOCK_REPORT_CATALOG.find(r => r.id === reportId)
+  const fmt = (format || spec?.default_format || 'json').toLowerCase()
+  const conflicts = MOCK_CONFLICTS.filter(c => !c.compliant)
+  const ts = new Date().toISOString().replace(/[:.]/g, '-')
+
+  let content, mime, ext
+  if (reportId === 'audit_trail') {
+    if (fmt === 'csv') { content = _auditCsv(MOCK_AUDIT); mime = 'text/csv'; ext = 'csv' }
+    else { content = JSON.stringify({ events: MOCK_AUDIT }, null, 2); mime = 'application/json'; ext = 'json' }
+  } else if (reportId === 'conflict_register') {
+    if (fmt === 'csv' || fmt === 'xlsx') { content = _conflictsCsv(conflicts); mime = 'text/csv'; ext = 'csv' }
+    else { content = JSON.stringify({ count: conflicts.length, conflicts }, null, 2); mime = 'application/json'; ext = 'json' }
+  } else {
+    // executive / technical / evidence_package → JSON data export in mock mode.
+    content = JSON.stringify({
+      report: reportId,
+      note: 'Mock export — deploy the backend for the true PDF / XLSX / ZIP output.',
+      frameworks: [
+        { id: 'naic', name: 'NAIC MDL-668', score: 65 }, { id: 'pci-dss', name: 'PCI-DSS 4.0', score: 73 },
+        { id: 'sox', name: 'SOX', score: 74 }, { id: 'nist', name: 'NIST CSF 2.0', score: 63 },
+        { id: 'iso27001', name: 'ISO 27001:2022', score: 63 },
+      ],
+      conflicts,
+    }, null, 2)
+    mime = 'application/json'; ext = 'json'
+  }
+
+  const blob = new Blob([content], { type: mime })
+  const filename = `${reportId}-${ts}.${ext}`
+  return {
+    report_type: reportId, report_title: _REPORT_TITLES[reportId] || reportId,
+    format: ext, filename, size_bytes: blob.size,
+    download_url: URL.createObjectURL(blob), report_url: URL.createObjectURL(blob),
+    expires_in: 0, generated_at: new Date().toISOString(), mock: true,
+  }
 }

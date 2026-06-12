@@ -52,13 +52,17 @@ MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-2-lite-v1:0")
 KB_ID = os.environ.get("KB_ID", "")
 GUARDRAIL_ID = os.environ.get("GUARDRAIL_ID")
 GUARDRAIL_VERSION = os.environ.get("GUARDRAIL_VERSION", "DRAFT")
+# Default AWS account this agent reports on. Resolved live via STS when possible
+# (account_identity tool), but defaults here so resource answers always reference
+# the correct account even if STS is unavailable. Override with AWS_ACCOUNT_ID.
+DEFAULT_ACCOUNT_ID = os.environ.get("AWS_ACCOUNT_ID", "669810405473")
 # Cap any single tool's serialized output so a broad describe can't blow the
 # model's context window. Truncation is flagged in the returned text.
 MAX_OUTPUT_CHARS = 6000
 
-SYSTEM_PROMPT = """You are the AWS resource & posture analyst for ARBITER. You
-have READ-ONLY visibility into the AWS account this runs in and answer two kinds
-of question:
+SYSTEM_PROMPT = f"""You are the AWS resource & posture analyst for ARBITER. You
+have READ-ONLY visibility into AWS account {DEFAULT_ACCOUNT_ID} ({REGION}) — the
+account this runs in — and answer two kinds of question:
 
   1. Inventory / configuration — what resources exist (S3, load balancers, ECR,
      Lambda, EC2, Cognito, VPC/subnets, etc.) and how they are set up. PREFER the
@@ -99,6 +103,9 @@ STRICT RULES
     Recommendation — the safer path (e.g. keep in a private subnet, scope the SG).
 - Cite resource ids / names verbatim. Never fabricate. If a source is empty or a
   read fails (e.g. Config recorder off, no permission), say so plainly.
+- When you name the AWS account or build/validate an ARN, default to account
+  {DEFAULT_ACCOUNT_ID} unless a tool result shows a different account id. Call
+  account_identity if you need to confirm the live account.
 - No markdown headers, emojis, or filler. Terse, factual, analyst tone.
 """
 
@@ -113,6 +120,7 @@ s3 = boto3.client("s3", region_name=REGION)
 cognito = boto3.client("cognito-idp", region_name=REGION)
 glue = boto3.client("glue", region_name=REGION)
 dynamodb = boto3.client("dynamodb", region_name=REGION)
+sts = boto3.client("sts", region_name=REGION)
 
 
 # ──────────────────────────── credential redaction (choke point) ─────────
@@ -246,6 +254,23 @@ def _config_recording() -> bool:
 
 
 # ──────────────────────────── inventory / detail tools ───────────────────
+@tool
+def account_identity() -> str:
+    """Return the AWS account id and region this agent reports on. Use when asked
+    which account, or to confirm the account before listing resources. Resolves the
+    live account via STS, falling back to the configured default if STS is denied.
+    """
+    account = DEFAULT_ACCOUNT_ID
+    source = "default"
+    try:
+        ident = sts.get_caller_identity()
+        account = ident.get("Account") or DEFAULT_ACCOUNT_ID
+        source = "sts"
+    except Exception as e:
+        log.info("account_identity: STS unavailable, using default account (%s)", e)
+    return _safe({"account_id": account, "region": REGION, "source": source})
+
+
 @tool
 def list_resources(resource_type: str = "") -> str:
     """Inventory account resources via AWS Config advanced query.
@@ -905,6 +930,8 @@ def build_agent() -> Agent:
         model=BedrockModel(**model_kwargs),
         system_prompt=SYSTEM_PROMPT,
         tools=[
+            # account context
+            account_identity,
             # inventory + impact
             list_resources,
             get_resource_relationships,

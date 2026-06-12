@@ -11,14 +11,14 @@ import {
 // ─── Dataset completeness ────────────────────────────────────────────────────
 
 describe('MOCK_CONFLICTS dataset', () => {
-  it('contains all 14 ARBITER use cases', () => {
-    expect(MOCK_CONFLICTS).toHaveLength(14)
+  it('contains all 26 findings (14 baseline use cases + 12 seed)', () => {
+    expect(MOCK_CONFLICTS).toHaveLength(26)
   })
 
   it('every use case has a unique conflict_id', () => {
     const ids = MOCK_CONFLICTS.map(f => f.conflict_id)
     const unique = new Set(ids)
-    expect(unique.size).toBe(14)
+    expect(unique.size).toBe(26)
   })
 
   it('all UC IDs follow ARBITER-UC0N format', () => {
@@ -69,10 +69,11 @@ describe('MOCK_CONFLICTS dataset', () => {
     })
   })
 
-  it('all 12 conflicts are OPEN (POC baseline state)', () => {
-    MOCK_CONFLICTS.forEach(f => {
-      expect(f.status).toBe('OPEN')
-    })
+  it('splits 20 OPEN / 6 RESOLVED', () => {
+    const open = MOCK_CONFLICTS.filter(f => f.status === 'OPEN').length
+    const resolved = MOCK_CONFLICTS.filter(f => f.status === 'RESOLVED').length
+    expect(open).toBe(20)
+    expect(resolved).toBe(6)
   })
 
   it('all type values are CROSS_DOMAIN', () => {
@@ -112,39 +113,44 @@ describe('MOCK_CONFLICTS dataset', () => {
 // ─── Severity distribution ───────────────────────────────────────────────────
 
 describe('Severity distribution', () => {
-  it('has 6 CRITICAL findings', () => {
+  it('has 9 CRITICAL findings', () => {
     const count = MOCK_CONFLICTS.filter(f => f.severity === 'CRITICAL').length
+    expect(count).toBe(9)
+  })
+
+  it('has 9 HIGH findings', () => {
+    const count = MOCK_CONFLICTS.filter(f => f.severity === 'HIGH').length
+    expect(count).toBe(9)
+  })
+
+  it('has 6 MEDIUM findings', () => {
+    const count = MOCK_CONFLICTS.filter(f => f.severity === 'MEDIUM').length
     expect(count).toBe(6)
   })
 
-  it('has 5 HIGH findings', () => {
-    const count = MOCK_CONFLICTS.filter(f => f.severity === 'HIGH').length
-    expect(count).toBe(5)
-  })
-
-  it('has 3 MEDIUM findings', () => {
-    const count = MOCK_CONFLICTS.filter(f => f.severity === 'MEDIUM').length
-    expect(count).toBe(3)
-  })
-
-  it('has 0 LOW findings', () => {
+  it('has 2 LOW findings', () => {
     const count = MOCK_CONFLICTS.filter(f => f.severity === 'LOW').length
-    expect(count).toBe(0)
+    expect(count).toBe(2)
   })
 
-  it('CRITICAL findings are UC04, UC05, UC07, UC08, UC09, UC14', () => {
+  it('CRITICAL findings are UC04, UC05, UC07, UC08, UC09, UC14, UC15, UC16, UC17', () => {
     const critIds = MOCK_CONFLICTS.filter(f => f.severity === 'CRITICAL').map(f => f.conflict_id).sort()
-    expect(critIds).toEqual(['ARBITER-UC04', 'ARBITER-UC05', 'ARBITER-UC07', 'ARBITER-UC08', 'ARBITER-UC09', 'ARBITER-UC14'])
+    expect(critIds).toEqual(['ARBITER-UC04', 'ARBITER-UC05', 'ARBITER-UC07', 'ARBITER-UC08', 'ARBITER-UC09', 'ARBITER-UC14', 'ARBITER-UC15', 'ARBITER-UC16', 'ARBITER-UC17'])
   })
 
-  it('HIGH findings are UC01, UC02, UC06, UC10, UC13', () => {
+  it('HIGH findings are UC01, UC02, UC06, UC10, UC13, UC18, UC19, UC21, UC22', () => {
     const highIds = MOCK_CONFLICTS.filter(f => f.severity === 'HIGH').map(f => f.conflict_id).sort()
-    expect(highIds).toEqual(['ARBITER-UC01', 'ARBITER-UC02', 'ARBITER-UC06', 'ARBITER-UC10', 'ARBITER-UC13'])
+    expect(highIds).toEqual(['ARBITER-UC01', 'ARBITER-UC02', 'ARBITER-UC06', 'ARBITER-UC10', 'ARBITER-UC13', 'ARBITER-UC18', 'ARBITER-UC19', 'ARBITER-UC21', 'ARBITER-UC22'])
   })
 
-  it('MEDIUM findings are UC03, UC11, UC12', () => {
+  it('MEDIUM findings are UC03, UC11, UC12, UC20, UC23, UC24', () => {
     const medIds = MOCK_CONFLICTS.filter(f => f.severity === 'MEDIUM').map(f => f.conflict_id).sort()
-    expect(medIds).toEqual(['ARBITER-UC03', 'ARBITER-UC11', 'ARBITER-UC12'])
+    expect(medIds).toEqual(['ARBITER-UC03', 'ARBITER-UC11', 'ARBITER-UC12', 'ARBITER-UC20', 'ARBITER-UC23', 'ARBITER-UC24'])
+  })
+
+  it('LOW findings are UC25, UC26', () => {
+    const lowIds = MOCK_CONFLICTS.filter(f => f.severity === 'LOW').map(f => f.conflict_id).sort()
+    expect(lowIds).toEqual(['ARBITER-UC25', 'ARBITER-UC26'])
   })
 })
 
@@ -175,8 +181,8 @@ describe('Domain coverage', () => {
   })
 
   it('policy-vs-tool conflicts reference SharePoint; cross-tool conflicts pair two enforcement points', () => {
-    // UC14 is a tool-vs-tool conflict (Zscaler vs Palo Alto) with no policy source.
-    const CROSS_TOOL = new Set(['ARBITER-UC14'])
+    // UC14 and UC17 are tool-vs-tool conflicts (Zscaler vs Palo Alto) with no policy source.
+    const CROSS_TOOL = new Set(['ARBITER-UC14', 'ARBITER-UC17'])
     MOCK_CONFLICTS.forEach(f => {
       if (CROSS_TOOL.has(f.conflict_id)) {
         expect(f.domains.length, `${f.conflict_id} should pair two sources`).toBeGreaterThanOrEqual(2)
@@ -217,10 +223,10 @@ describe('Regulatory references', () => {
 describe('countBySeverity()', () => {
   it('returns correct counts for full dataset', () => {
     const result = countBySeverity(MOCK_CONFLICTS)
-    expect(result.CRITICAL).toBe(6)
-    expect(result.HIGH).toBe(5)
-    expect(result.MEDIUM).toBe(3)
-    expect(result.LOW).toBe(0)
+    expect(result.CRITICAL).toBe(9)
+    expect(result.HIGH).toBe(9)
+    expect(result.MEDIUM).toBe(6)
+    expect(result.LOW).toBe(2)
   })
 
   it('returns all zeros for empty array', () => {
@@ -263,9 +269,9 @@ describe('buildConflictMatrix()', () => {
     })
   })
 
-  it('AWSConfig has 3 CRITICAL entries (UC07, UC08, UC09)', () => {
+  it('AWSConfig has 5 CRITICAL entries (UC07, UC08, UC09, UC15, UC16)', () => {
     const matrix = buildConflictMatrix(MOCK_CONFLICTS)
-    expect(matrix['AWSConfig'].CRITICAL).toBe(3)
+    expect(matrix['AWSConfig'].CRITICAL).toBe(5)
   })
 
   it('Zscaler has HIGH entries (UC01, UC02, UC06, UC10)', () => {

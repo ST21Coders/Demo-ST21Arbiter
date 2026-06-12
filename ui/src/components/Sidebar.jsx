@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, ShieldAlert, Activity, Wrench, Scale,
   GitBranch, ScrollText, MessageSquare, Cpu, Terminal,
-  Settings, Wifi, WifiOff, Shield, Users, Coins, Plug, FlaskConical, Network,
+  Settings, Wifi, WifiOff, Shield, Users, Coins, Plug, FlaskConical, Network, FileText,
 } from 'lucide-react'
 import { CHAT_URL, USE_MOCK, APP_VERSION } from '../config'
 import { usePersona } from '../contexts/PersonaContext'
@@ -24,6 +24,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/actions',     icon: Wrench,      label: 'Action Center', badgeKey: 'actions', badgeColor: 'bg-amber-500' },
       { to: '/governance',  icon: Scale,       label: 'Compliance' },
+      { to: '/reports',     icon: FileText,    label: 'Reports' },
       { to: '/audit',       icon: ScrollText,  label: 'Audit Logs' },
       { to: '/token-usage', icon: Coins,       label: 'Token Tracking', adminOnly: true },
     ],
@@ -53,6 +54,7 @@ const PAGE_TITLES = {
   '/heatmap':    'System Map',
   '/actions':    'Action Center',
   '/governance': 'Compliance',
+  '/reports':    'Reports',
   '/audit':      'Audit Logs',
   '/analyst':    'Analyst Chat',
   '/impact-analysis': 'Impact Analysis',

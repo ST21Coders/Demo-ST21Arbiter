@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronRight, Zap, Download,
+  FileText, FileSpreadsheet, Package, Loader2,
 } from 'lucide-react'
 import {
   CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
-import { useFindings, useChangeRequests } from '../hooks/useApi'
+import { useFindings, useChangeRequests, useCompliance } from '../hooks/useApi'
+import { USE_MOCK } from '../config'
 import ActionRequestModal from '../components/ActionRequestModal'
 import {
   SCORE_TREND_POINTS,
@@ -125,13 +127,49 @@ function ScoreTrend({ points }) {
   )
 }
 
+function GenerateButton({ label, icon: Icon, busy, disabled, onClick, accent }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex-1 min-w-0 flex items-center gap-2.5 px-4 py-3 rounded-lg border transition-all ${
+        busy ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800'
+      } disabled:opacity-50 disabled:cursor-not-allowed`}
+    >
+      <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
+           style={{ background: `${accent}14`, color: accent }}>
+        {busy ? <Loader2 size={15} className="animate-spin" /> : <Icon size={15} />}
+      </div>
+      <div className="flex-1 text-left min-w-0">
+        <p className="text-sm font-semibold truncate">{label}</p>
+        <p className="text-[11px] text-slate-500 truncate">{busy ? 'Generating…' : 'Click to generate & download'}</p>
+      </div>
+    </button>
+  )
+}
+
 export default function Governance() {
   const navigate = useNavigate()
   const { findings, load: loadFindings } = useFindings()
   const { createAction } = useChangeRequests()
+  const { generateReport } = useCompliance()
   const [actionTarget, setActionTarget] = useState(null)
+  const [reportBusy, setReportBusy] = useState(null)   // 'executive' | 'technical' | 'evidence_package' | `fw:<id>`
+  const [reportError, setReportError] = useState('')
 
   useEffect(() => { loadFindings() }, [loadFindings])
+
+  async function runReport(reportType, frameworks, busyKey) {
+    setReportBusy(busyKey)
+    setReportError('')
+    try {
+      await generateReport(reportType, frameworks)
+    } catch (e) {
+      setReportError(`Report generation failed: ${e.message}`)
+    } finally {
+      setReportBusy(null)
+    }
+  }
 
   const summaries = useMemo(() => frameworkSummaries(findings), [findings])
   const openCritical = findings.filter(f => f.severity === 'CRITICAL' && f.status === 'OPEN').length
@@ -175,6 +213,35 @@ export default function Governance() {
         {summaries.map(summary => <FrameworkScoreCard key={summary.id} framework={summary} />)}
       </div>
 
+      {/* Generate report */}
+      <div className="rounded-xl p-4 bg-white border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Generate report</p>
+          <p className="text-[10px] text-slate-400">Built from current findings, audit trail & scores · downloads automatically</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <GenerateButton label="Executive Summary (PDF)" icon={FileText} accent="#4f46e5"
+                          busy={reportBusy === 'executive'} disabled={!!reportBusy}
+                          onClick={() => runReport('executive', undefined, 'executive')} />
+          <GenerateButton label="Technical Report (PDF)" icon={FileSpreadsheet} accent="#0284c7"
+                          busy={reportBusy === 'technical'} disabled={!!reportBusy}
+                          onClick={() => runReport('technical', undefined, 'technical')} />
+          <GenerateButton label="Evidence Package (ZIP)" icon={Package} accent="#7c3aed"
+                          busy={reportBusy === 'evidence_package'} disabled={!!reportBusy}
+                          onClick={() => runReport('evidence_package', undefined, 'evidence_package')} />
+        </div>
+        {reportError ? (
+          <p className="text-[11px] text-red-700 mt-3 flex items-center gap-1.5"><XCircle size={12} /> {reportError}</p>
+        ) : (
+          <p className="text-[11px] text-slate-500 mt-3">
+            {USE_MOCK
+              ? 'Mock mode — reports are generated client-side as CSV/JSON. Deploy the backend for PDF/XLSX/ZIP.'
+              : 'Reports are saved to the reports bucket; presigned download links are valid for 24 hours.'}
+            {' '}For the full catalog and per-format exports, see the Reports page.
+          </p>
+        )}
+      </div>
+
       <ScoreTrend points={SCORE_TREND_POINTS} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -195,11 +262,12 @@ export default function Governance() {
                 </p>
               </div>
               <button
-                disabled
-                title={`Export ${fw.name} report (PDF)`}
-                className="btn-ghost flex items-center gap-1 text-[10px] px-2 py-1 opacity-50 cursor-not-allowed flex-shrink-0"
+                onClick={() => runReport('technical', [fw.id], `fw:${fw.id}`)}
+                disabled={!!reportBusy}
+                title={`Export ${fw.name} technical report (PDF)`}
+                className="btn-ghost flex items-center gap-1 text-[10px] px-2 py-1 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Download size={11} /> PDF
+                {reportBusy === `fw:${fw.id}` ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} PDF
               </button>
             </div>
 

@@ -240,6 +240,12 @@ Resources:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketName"
           S3_KMS_KEY_ARN:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-S3KeyArn"
+          # Synchronous compliance report generation (/reports/* + /compliance/report).
+          # Reports bucket is SSE-S3 (AES256), so PutObject needs no KMS header and
+          # the presigned GET download works with plain s3:GetObject.
+          REPORTS_BUCKET:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ReportsBucketName"
+          ORG_NAME: "Meridian Insurance Group"
       VpcConfig:
         SubnetIds:
           - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-PrivateSubnet1Id"
@@ -320,6 +326,30 @@ Resources:
             RestApiId: !Ref ArbiterApi
             Path: /audit
             Method: GET
+        ReportsCatalogGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /reports/catalog
+            Method: GET
+        ReportsGenerate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /reports/generate
+            Method: POST
+        ComplianceScoresGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /compliance/scores
+            Method: GET
+        ComplianceReportPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /compliance/report
+            Method: POST
         TokenUsageGet:
           Type: Api
           Properties:

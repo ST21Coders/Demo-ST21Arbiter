@@ -466,6 +466,77 @@ changes" → skipped).
 
 ---
 
+### 7.6 Re-deploying later — ALWAYS re-run `deploy_agents.py` after `deploy.sh`
+
+**Gotcha (causes "most backend calls return 500"):** `deploy.sh` — and any
+standalone `06-api` deploy — redeploys the `api_handler` Lambda from the SAM
+template, which **resets these env vars to empty**:
+`MASTER_AGENT_RUNTIME_ARN`, `SHAREPOINT_/AWSCONFIG_/ZSCALER_/PALOALTO_/JIRA_/SERVICENOW_RUNTIME_ARN`,
+and `MEMORY_ID`. They are only ever populated by `scripts/deploy_agents.py`.
+Symptom: data routes (`/findings`, `/dashboard`, `/audit`, `/reports`) keep
+returning 200, but every **agent / chat** route fails. The AgentCore runtimes and
+Memory are NOT deleted — only the Lambda env is blanked.
+
+**Correct redeploy sequence:**
+
+```bash
+# 1. Infra + UI (rebuilds the SPA, syncs to S3, invalidates CloudFront)
+cd Infra && DEMO_PASSWORD='<demo-pw>' ./deploy.sh
+
+# 2. ALWAYS run this right after — re-patches the runtime ARNs + MEMORY_ID onto
+#    the api_handler Lambda, and ships any agent code changes. Do NOT pass
+#    --skip-build (the ECR repos carry timestamp tags, not :latest).
+cd ../scripts && source .venv/bin/activate
+KB_ID=<id> GUARDRAIL_ID=<id> GUARDRAIL_VERSION=1 MASTER_MEMORY_ID=<id> \
+  AWS_REGION=us-east-1 python3 deploy_agents.py
+```
+
+**Fast re-patch (no agent rebuild)** — when you only changed infra and the agent
+images are unchanged, re-patch the ARNs directly instead of a full
+`deploy_agents.py` run:
+
+```bash
+python3 - <<'PY'
+import boto3
+r="us-east-1"; FN="dev-st21arbiter-poc-api-handler"
+ctl=boto3.client("bedrock-agentcore-control",region_name=r); lam=boto3.client("lambda",region_name=r)
+NAME_ENV={"master_orchestrator":"MASTER_AGENT_RUNTIME_ARN","sharepoint_specialist":"SHAREPOINT_RUNTIME_ARN",
+"awsconfig_specialist":"AWSCONFIG_RUNTIME_ARN","zscaler_specialist":"ZSCALER_RUNTIME_ARN",
+"paloalto_specialist":"PALOALTO_RUNTIME_ARN","jira_specialist":"JIRA_RUNTIME_ARN","servicenow_specialist":"SERVICENOW_RUNTIME_ARN"}
+patch={e:rt["agentRuntimeArn"] for rt in ctl.list_agent_runtimes(maxResults=100)["agentRuntimes"]
+       for s,e in NAME_ENV.items() if rt["agentRuntimeName"].endswith(s)}
+m=[x for x in ctl.list_memories(maxResults=10)["memories"] if "master_memory" in x["id"]]
+if m: patch["MEMORY_ID"]=m[0]["id"]
+env=lam.get_function_configuration(FunctionName=FN)["Environment"]["Variables"]; env.update(patch)
+lam.update_function_configuration(FunctionName=FN, Environment={"Variables":env})
+print("re-patched:", list(patch))
+PY
+```
+
+**Verify after either path:**
+
+```bash
+# ARNs non-empty
+aws lambda get-function-configuration --function-name dev-st21arbiter-poc-api-handler \
+  --region us-east-1 --query 'Environment.Variables.MASTER_AGENT_RUNTIME_ARN' --output text
+# all runtimes READY
+aws bedrock-agentcore-control list-agent-runtimes --region us-east-1 \
+  --query 'agentRuntimes[?contains(agentRuntimeName,`st21arbiter_poc`)].[agentRuntimeName,status]' --output table
+# data + agent round-trip (direct invoke, bypasses Cognito)
+aws lambda invoke --function-name dev-st21arbiter-poc-api-handler --region us-east-1 \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{"path":"/reports/catalog","httpMethod":"GET","requestContext":{}}' /tmp/r.json \
+  --query 'StatusCode' --output text && python3 -c "import json;print(json.load(open('/tmp/r.json'))['statusCode'])"
+```
+
+> **Reporting Lambda note:** `06-api` bundles `reportlab` + `openpyxl` for the
+> synchronous `/reports/*` + `/compliance/report` routes. Build on Linux (the
+> CodePipeline `deploy` CodeBuild does this) or with `sam build --use-container`
+> so the wheels match the Lambda architecture. If reportlab fails to bundle, PDF
+> and ZIP reports return a clear `501` but CSV/XLSX/JSON still work.
+
+---
+
 ## 8. Cognito setup — callback URLs and the 4 persona users
 
 ### 8.1 Whitelist localhost as a callback URL

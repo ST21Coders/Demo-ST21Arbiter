@@ -137,12 +137,12 @@ describe('Edge cases — matrix totals coherency', () => {
     expect(cellSum).toBeGreaterThanOrEqual(12)
   })
 
-  it('AWSConfig only has findings from UC07, UC08, UC09 (3 total)', () => {
+  it('AWSConfig findings (UC07-09 baseline + UC15, UC16, UC21, UC24 seed) total 7', () => {
     const matrix = buildConflictMatrix(MOCK_CONFLICTS)
     const awsTotal = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].reduce(
       (sum, s) => sum + matrix['AWSConfig'][s], 0
     )
-    expect(awsTotal).toBe(3)
+    expect(awsTotal).toBe(7)
   })
 })
 
