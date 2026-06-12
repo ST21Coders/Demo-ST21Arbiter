@@ -7,7 +7,6 @@ import {
 import { useFindings, useChangeRequests, useConversations } from '../hooks/useApi'
 import { SeverityBadge } from '../components/SeverityBadge'
 import ActionRequestModal from '../components/ActionRequestModal'
-import CreateTicketButton from '../components/CreateTicketButton'
 import { detectProblem } from '../detectProblem'
 import { CHAT_URL, AGENT_MODELS, modelLabel } from '../config'
 import { sendChat, createJiraTicket } from '../hooks/useApi'
@@ -400,6 +399,50 @@ function ActionCards({ actions, responseText, onCreateCR }) {
   )
 }
 
+// ── In-chat action bar ────────────────────────────────────────────────────────
+// The 3 actions the analyst sees on a detected problem. This is the surface that
+// actually renders (driven by detectProblem) — the agent rarely returns the
+// structured `msg.actions` that ActionCards needs. Create CR opens the CR modal
+// IN-PLACE (no navigation away from the chat); JIRA + Confluence open their own
+// modals, all prefilled with this answer.
+function ChatActions({ detected, responseText, onCreateCR }) {
+  const [jiraOpen, setJiraOpen] = useState(false)
+  const [confluenceOpen, setConfluenceOpen] = useState(false)
+  const actionLike = {
+    label: detected.title,
+    description: detected.description,
+    target_resource: detected.target_resource,
+    target_environment: detected.target_environment,
+    severity: detected.severity,
+    action_type: detected.action_type,
+    justification: detected.description,
+    conflict_id: detected.target_resource || '',
+    approval_chain: [],
+    blocking_policies: [],
+  }
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button onClick={() => onCreateCR(actionLike)}
+          className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5">
+          <ShieldAlert size={12} /> Create CR
+        </button>
+        <button onClick={() => setJiraOpen(true)}
+          className="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1.5">
+          <Ticket size={12} /> Open JIRA Ticket
+        </button>
+        <button onClick={() => setConfluenceOpen(true)}
+          className="bg-violet-600 hover:bg-violet-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1.5">
+          <FileText size={12} /> Create Confluence
+        </button>
+      </div>
+      <p className="text-[10px] text-slate-500 mt-1 ml-0.5">Resolve in-chat — each opens prefilled with this answer; you stay in the conversation.</p>
+      {jiraOpen && <JiraModal action={actionLike} responseText={responseText} onClose={() => setJiraOpen(false)} />}
+      {confluenceOpen && <ConfluenceModal action={actionLike} responseText={responseText} onClose={() => setConfluenceOpen(false)} />}
+    </>
+  )
+}
+
 // ── Message bubble ────────────────────────────────────────────────────────────
 
 function Message({ msg, onCreateCR }) {
@@ -743,7 +786,7 @@ export default function AnalystView() {
                 <Message msg={m} onCreateCR={handleCreateCR} />
                 {detected?.hasProblem && (
                   <div className="ml-10 mt-1">
-                    <CreateTicketButton detected={detected} />
+                    <ChatActions detected={detected} responseText={m.content} onCreateCR={handleCreateCR} />
                   </div>
                 )}
               </div>
