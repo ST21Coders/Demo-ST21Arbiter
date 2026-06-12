@@ -443,6 +443,18 @@ Resources:
             RestApiId: !Ref ArbiterApi
             Path: /jira/tickets
             Method: POST
+        JiraTicketQuery:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /jira/tickets
+            Method: GET
+        JiraTicketGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /jira/tickets/{jira_key}
+            Method: GET
         UploadsPresign:
           Type: Api
           Properties:

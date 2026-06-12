@@ -797,7 +797,9 @@ API Gateway base + `/chat` Function URL together expose:
 | GET    | `/conversations`, `/conversations/{id}/messages` | chat history (DDB sessions + AgentCore memory) |
 | POST   | `/chat` | **Function URL only** — long-running agent call (bypasses APIGW 29 s timeout) |
 | GET    | `/mcp-health` | MCP endpoint pings (UI status dots) |
-| POST   | `/jira/tickets` | stub returning `{mock_ticket_key:"MIG-MOCK-NNNN"}` |
+| GET    | `/jira/tickets` | search Jira issues by JQL/filter via `jira_specialist` |
+| GET    | `/jira/tickets/{jira_key}` | fetch one Jira issue by key via `jira_specialist` |
+| POST   | `/jira/tickets` | create Jira issue via `jira_specialist` (mock fallback when runtime is unset) |
 | POST   | `/uploads/presign` | presigned S3 PUT URL into the raw bucket |
 | GET    | `/uploads/list` | list the caller's uploads in raw or processed bucket |
 

@@ -123,6 +123,55 @@ def test_chat_no_runtime_arn_returns_503(api_handler, monkeypatch):
     assert resp["statusCode"] == 503
 
 
+# ──────────────────────────── /jira/tickets ────────────────────
+def test_jira_ticket_query_invokes_deterministic_read_action(api_handler, monkeypatch):
+    calls = []
+
+    def fake_invoke(action, args):
+        calls.append((action, args))
+        return {
+            "status": "ok",
+            "jql": 'project = "DEVARBITER"',
+            "issues": [{"key": "DEVARBITER-12", "summary": "Review policy"}],
+            "total": 1,
+        }
+
+    monkeypatch.setattr(api_handler, "_invoke_jira_action", fake_invoke)
+    resp = api_handler.handler(
+        lambda_event("GET", "/jira/tickets", query={"project_key": "DEVARBITER", "limit": "10"}),
+        None,
+    )
+    assert resp["statusCode"] == 200
+    assert _body(resp)["issues"][0]["key"] == "DEVARBITER-12"
+    assert calls == [("query_issues", {
+        "jql": "",
+        "project_key": "DEVARBITER",
+        "status": "",
+        "text": "",
+        "assignee": "",
+        "limit": "10",
+    })]
+
+
+def test_jira_ticket_get_fetches_single_issue(api_handler, monkeypatch):
+    def fake_invoke(action, args):
+        assert action == "query_issues"
+        assert args == {"issue_key": "DEVARBITER-12", "limit": 1}
+        return {"status": "ok", "issue": {"key": "DEVARBITER-12"}, "issues": [{"key": "DEVARBITER-12"}]}
+
+    monkeypatch.setattr(api_handler, "_invoke_jira_action", fake_invoke)
+    resp = api_handler.handler(lambda_event("GET", "/jira/tickets/DEVARBITER-12"), None)
+    assert resp["statusCode"] == 200
+    assert _body(resp)["issue"]["key"] == "DEVARBITER-12"
+
+
+def test_jira_ticket_query_runtime_error_returns_502(api_handler, monkeypatch):
+    monkeypatch.setattr(api_handler, "_invoke_jira_action", lambda action, args: {"error": "not configured"})
+    resp = api_handler.handler(lambda_event("GET", "/jira/tickets"), None)
+    assert resp["statusCode"] == 502
+    assert "jira query failed" in _body(resp)["error"].lower()
+
+
 # ──────────────────────────── /conversations ───────────────────
 def test_conversations_unauthenticated_returns_401(api_handler):
     resp = api_handler.handler(

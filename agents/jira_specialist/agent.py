@@ -160,6 +160,97 @@ def _tool_result_text(result: dict[str, Any]) -> str:
     return "\n".join(parts)
 
 
+def _json_from_tool_result(result: dict[str, Any]) -> Any:
+    """Return structured MCP content when present, otherwise parse text JSON."""
+    for block in result.get("content") or []:
+        if isinstance(block, dict) and "json" in block:
+            return block["json"]
+    raw = _tool_result_text(result)
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except Exception:
+        return raw
+
+
+def _normalize_issue(issue: Any, jira_url: str) -> dict[str, Any] | None:
+    """Project a Jira issue payload into the stable fields the UI needs."""
+    if not isinstance(issue, dict):
+        return None
+    fields = issue.get("fields") if isinstance(issue.get("fields"), dict) else {}
+    key = issue.get("key") or issue.get("issue_key") or issue.get("id")
+    if not key:
+        return None
+
+    def _name(value):
+        if isinstance(value, dict):
+            return value.get("displayName") or value.get("name") or value.get("value")
+        return value
+
+    status = fields.get("status") or issue.get("status")
+    priority = fields.get("priority") or issue.get("priority")
+    issue_type = fields.get("issuetype") or issue.get("issue_type") or issue.get("type")
+    assignee = fields.get("assignee") or issue.get("assignee")
+    reporter = fields.get("reporter") or issue.get("reporter")
+    project = fields.get("project") or issue.get("project")
+    url = issue.get("url") or issue.get("self")
+    if jira_url and not (isinstance(url, str) and "/browse/" in url):
+        url = f"{jira_url.rstrip('/')}/browse/{key}"
+    return {
+        "key": key,
+        "summary": fields.get("summary") or issue.get("summary") or "",
+        "status": _name(status),
+        "priority": _name(priority),
+        "issue_type": _name(issue_type),
+        "assignee": _name(assignee),
+        "reporter": _name(reporter),
+        "project_key": (project or {}).get("key") if isinstance(project, dict) else issue.get("project_key"),
+        "created": fields.get("created") or issue.get("created"),
+        "updated": fields.get("updated") or issue.get("updated"),
+        "url": url,
+    }
+
+
+def _issues_from_payload(data: Any, jira_url: str) -> list[dict[str, Any]]:
+    if isinstance(data, dict):
+        candidates = data.get("issues") or data.get("results") or data.get("items")
+        if candidates is None and (data.get("key") or data.get("issue_key")):
+            candidates = [data]
+    else:
+        candidates = data
+    out: list[dict[str, Any]] = []
+    for item in candidates or []:
+        normalized = _normalize_issue(item, jira_url)
+        if normalized:
+            out.append(normalized)
+    return out
+
+
+def _tool_arg_names(tools: Any, tool_name: str) -> set[str]:
+    """Best-effort read of an MCP tool input schema's argument names."""
+    for tool in tools or []:
+        name = getattr(tool, "tool_name", None)
+        if name is None and isinstance(tool, dict):
+            name = tool.get("tool_name") or tool.get("name")
+        if name != tool_name:
+            continue
+        schema = (
+            getattr(tool, "input_schema", None)
+            or getattr(tool, "inputSchema", None)
+            or (tool.get("input_schema") if isinstance(tool, dict) else None)
+            or (tool.get("inputSchema") if isinstance(tool, dict) else None)
+        )
+        tool_spec = getattr(tool, "tool_spec", None)
+        if schema is None and isinstance(tool_spec, dict):
+            schema = tool_spec.get("inputSchema") or tool_spec.get("input_schema")
+        if isinstance(schema, dict):
+            props = schema.get("properties") or {}
+            if isinstance(props, dict):
+                return set(props)
+    return set()
+
+
 def _create_issue(payload: dict[str, Any], creds: dict[str, str]) -> dict[str, Any]:
     """Deterministically create a Jira issue via the MCP create tool.
 
@@ -211,6 +302,90 @@ def _create_issue(payload: dict[str, Any], creds: dict[str, str]) -> dict[str, A
     url = f"{creds.get('url', '').rstrip('/')}/browse/{key}"
     log.info("Created JIRA issue %s in %s", key, project_key)
     return {"key": key, "url": url, "summary": summary, "project_key": project_key}
+
+
+def _jql_quote(value: str) -> str:
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _build_search_jql(payload: dict[str, Any]) -> str:
+    explicit = (payload.get("jql") or "").strip()
+    if explicit:
+        return explicit
+    clauses: list[str] = []
+    project_key = (payload.get("project_key") or payload.get("project") or "").strip()
+    status = (payload.get("status") or "").strip()
+    text = (payload.get("text") or payload.get("query") or "").strip()
+    assignee = (payload.get("assignee") or "").strip()
+    if project_key:
+        clauses.append(f"project = {_jql_quote(project_key)}")
+    if status:
+        clauses.append(f"status = {_jql_quote(status)}")
+    if assignee:
+        clauses.append(f"assignee = {_jql_quote(assignee)}")
+    if text:
+        clauses.append(f'text ~ {_jql_quote(text)}')
+    return " AND ".join(clauses) if clauses else "ORDER BY updated DESC"
+
+
+def _query_issues(payload: dict[str, Any], creds: dict[str, str]) -> dict[str, Any]:
+    """Deterministically search/read Jira issues via MCP. No LLM in this path."""
+    issue_key = (payload.get("issue_key") or payload.get("jira_key") or "").strip()
+    jql = _build_search_jql(payload)
+    limit = payload.get("limit") or payload.get("max_results") or 25
+    try:
+        limit = max(1, min(int(limit), 50))
+    except Exception:
+        limit = 25
+
+    try:
+        jira_mcp = _build_mcp_client(creds)
+        with jira_mcp:
+            tools = jira_mcp.list_tools_sync()
+            if issue_key:
+                get_tool = _resolve_tool(tools, "get", "issue", default="jira_get_issue")
+                result = jira_mcp.call_tool_sync(
+                    tool_use_id="arbiter-get-issue",
+                    name=get_tool,
+                    arguments={"issue_key": issue_key},
+                )
+                mode = "get"
+            else:
+                search_tool = _resolve_tool(tools, "search", default="jira_search")
+                search_args: dict[str, Any] = {"jql": jql}
+                arg_names = _tool_arg_names(tools, search_tool)
+                if "max_results" in arg_names:
+                    search_args["max_results"] = limit
+                else:
+                    search_args["limit"] = limit
+                result = jira_mcp.call_tool_sync(
+                    tool_use_id="arbiter-search-issues",
+                    name=search_tool,
+                    arguments=search_args,
+                )
+                mode = "search"
+    except Exception as e:
+        log.exception("JIRA query failed")
+        return {"error": f"{type(e).__name__}: {e}"}
+
+    raw_text = _tool_result_text(result)
+    if result.get("status") == "error":
+        return {"error": raw_text or "JIRA query tool returned an error"}
+    data = _json_from_tool_result(result)
+    issues = _issues_from_payload(data, creds.get("url", ""))
+    out: dict[str, Any] = {
+        "status": "ok",
+        "mode": mode,
+        "jql": None if issue_key else jql,
+        "limit": limit,
+        "issues": issues,
+        "total": len(issues),
+    }
+    if issue_key:
+        out["issue"] = issues[0] if issues else None
+    if not issues and raw_text:
+        out["raw"] = raw_text[:4000]
+    return out
 
 
 def _resolve_tool(tools, *needles, default=None):
@@ -354,6 +529,8 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     action = (payload.get("action") or "").strip()
     if action == "create_issue":
         return _create_issue(payload, creds)
+    if action == "query_issues":
+        return _query_issues(payload, creds)
     if action == "transition_issue":
         return _transition_issue(payload, creds)
     if action == "add_comment":

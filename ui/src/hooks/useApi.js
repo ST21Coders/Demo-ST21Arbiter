@@ -675,6 +675,53 @@ export async function createJiraTicket({ conflict_id, summary, description, proj
   return res.json()
 }
 
+function _jiraQueryString(params = {}) {
+  const qs = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      qs.set(key, String(value))
+    }
+  }
+  const text = qs.toString()
+  return text ? `?${text}` : ''
+}
+
+// Query JIRA issues via the deterministic jira_specialist read path.
+// Accepts { jql, project_key, status, text, assignee, limit }.
+export async function queryJiraTickets(params = {}) {
+  if (USE_MOCK || !CHAT_URL) {
+    await sleep(500)
+    return { status: 'mock', issues: [], total: 0 }
+  }
+  const res = await fetch(`${CHAT_URL}jira/tickets${_jiraQueryString(params)}`, {
+    headers: authHeaders(),
+  })
+  if (!res.ok) {
+    let detail = ''
+    try { detail = (await res.json())?.error || '' } catch { /* non-JSON body */ }
+    throw new Error(detail ? `${res.status}: ${detail}` : `${res.status} ${res.statusText}`)
+  }
+  return res.json()
+}
+
+// Fetch a single JIRA issue by key. Returns { issue, issues, raw? }.
+export async function getJiraTicket(jira_key) {
+  if (!jira_key) throw new Error('jira_key is required')
+  if (USE_MOCK || !CHAT_URL) {
+    await sleep(500)
+    return { status: 'mock', issue: null, issues: [] }
+  }
+  const res = await fetch(`${CHAT_URL}jira/tickets/${encodeURIComponent(jira_key)}`, {
+    headers: authHeaders(),
+  })
+  if (!res.ok) {
+    let detail = ''
+    try { detail = (await res.json())?.error || '' } catch { /* non-JSON body */ }
+    throw new Error(detail ? `${res.status}: ${detail}` : `${res.status} ${res.statusText}`)
+  }
+  return res.json()
+}
+
 // Shared POST-to-Function-URL helper for the JIRA L1 + What-If routes. Goes via
 // CHAT_URL (not API GW) because the MCP subprocess / runtime call can exceed the
 // 29s API Gateway integration timeout. Surfaces the Lambda's {"error"} body.

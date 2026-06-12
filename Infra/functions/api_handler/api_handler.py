@@ -16,6 +16,9 @@ Routes:
   GET  /uploads/list?bucket=raw|processed     → list the caller's files in the
                                                 named bucket (scoped to
                                                 users/<sub>/ prefix).
+  GET  /jira/tickets                          → search Jira issues by JQL/filter
+  GET  /jira/tickets/{jira_key}               → fetch one Jira issue
+  POST /jira/tickets                          → create Jira issue
   GET  /health                                → unauth health check
 
 Note: POST /conversations and POST /conversations/{id}/messages were removed —
@@ -205,6 +208,13 @@ def handler(event, context):
 
     if path == "/jira/tickets" and method == "POST":
         return _handle_jira_create(event)
+
+    if path == "/jira/tickets" and method == "GET":
+        return _handle_jira_query(event)
+
+    if path.startswith("/jira/tickets/") and method == "GET":
+        jira_key = unquote(path[len("/jira/tickets/"):].strip())
+        return _handle_jira_get(event, jira_key)
 
     if path == "/jira/transition" and method == "POST":
         return _handle_jira_transition(event)
@@ -1604,6 +1614,41 @@ def _invoke_jira_action(action: str, args: dict) -> dict:
     except Exception as e:
         logger.exception("JIRA %s invocation failed", action)
         return {"error": f"{type(e).__name__}: {e}"}
+
+
+def _handle_jira_query(event):
+    """Search Jira issues.
+
+    Query params: jql, project_key, status, text, assignee, limit.
+    Returns {status, jql, issues, total}. Uses the deterministic Jira runtime
+    action so reads do not depend on LLM prompt interpretation.
+    """
+    qs = event.get("queryStringParameters") or {}
+    args = {
+        "jql": (qs.get("jql") or "").strip(),
+        "project_key": (qs.get("project_key") or qs.get("project") or "").strip(),
+        "status": (qs.get("status") or "").strip(),
+        "text": (qs.get("text") or qs.get("q") or "").strip(),
+        "assignee": (qs.get("assignee") or "").strip(),
+        "limit": (qs.get("limit") or qs.get("max_results") or "25").strip(),
+    }
+    parsed = _invoke_jira_action("query_issues", args)
+    if parsed.get("error"):
+        return _err(502, f"JIRA query failed: {parsed['error']}")
+    return _ok(parsed)
+
+
+def _handle_jira_get(event, jira_key: str):
+    """Fetch one Jira issue by key."""
+    jira_key = (jira_key or "").strip()
+    if not jira_key:
+        return _err(400, "Missing jira key")
+    parsed = _invoke_jira_action("query_issues", {"issue_key": jira_key, "limit": 1})
+    if parsed.get("error"):
+        return _err(502, f"JIRA query failed: {parsed['error']}")
+    if parsed.get("issue") is None and not parsed.get("raw"):
+        return _err(404, f"JIRA issue {jira_key} not found")
+    return _ok(parsed)
 
 
 def _handle_jira_transition(event):
