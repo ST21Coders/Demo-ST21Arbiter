@@ -221,6 +221,78 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${Environment}-${ProjectName}-processing-pipeline"
       RetentionInDays: 30
 
+  # ──────────────────────────── Audit subscriber Lambda ───────────
+  # Receives Cognito failed-sign-in CloudTrail events via EventBridge and
+  # writes one AUTH_FAILED row to the audit-log table per match. Best-effort:
+  # any DDB error is logged at WARNING and the handler still returns 200 so
+  # EventBridge does not retry on transient throttles.
+  #
+  # VpcConfig is explicitly overridden with empty lists because the global
+  # default puts every function in PrivateSubnet1 — but this Lambda only calls
+  # DynamoDB + KMS over public endpoints and pays no Bedrock-related cold-start
+  # cost, so attaching an ENI is pure overhead. Reviewers: do not "fix" this
+  # back to inherit the global VpcConfig.
+  AuditCognitoSubscriberFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${Environment}-${ProjectName}-audit-cognito-subscriber"
+      Handler: handler.handler
+      CodeUri: ../functions/audit_cognito_subscriber/
+      Role:
+        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-AuditCognitoSubscriberRoleArn"
+      Timeout: 10
+      MemorySize: 256
+      VpcConfig:
+        SubnetIds: []
+        SecurityGroupIds: []
+      Environment:
+        Variables:
+          AUDIT_LOG_TABLE_NAME:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-AuditLogTableName"
+      Tags:
+        Name: !Sub "${Environment}-${ProjectName}-audit-cognito-subscriber"
+
+  # Filters CloudTrail's Cognito API calls to failed sign-ins on the dev user
+  # pool only. Scoping by userPoolId means this rule won't fire on any other
+  # Cognito pool that lands in this account later.
+  AuditCognitoSubscriberRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-cognito-auth-failed"
+      Description: "Failed Cognito sign-ins on the dev user pool → audit subscriber"
+      State: ENABLED
+      EventPattern:
+        source:
+          - aws.cognito-idp
+        detail-type:
+          - "AWS API Call via CloudTrail"
+        detail:
+          errorCode:
+            - NotAuthorizedException
+            - UserNotFoundException
+            - UserNotConfirmedException
+            - PasswordResetRequiredException
+          requestParameters:
+            userPoolId:
+              - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-UserPoolId"
+      Targets:
+        - Arn: !GetAtt AuditCognitoSubscriberFunction.Arn
+          Id: AuditCognitoSubscriber
+
+  AuditCognitoSubscriberPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AuditCognitoSubscriberFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt AuditCognitoSubscriberRule.Arn
+
+  AuditCognitoSubscriberLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Environment}-${ProjectName}-audit-cognito-subscriber"
+      RetentionInDays: 30
+
 Outputs:
   MasterOrchestratorRepoUri:
     Value: !GetAtt MasterOrchestratorRepo.RepositoryUri
