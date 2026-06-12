@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { API_URL, CHAT_URL, USE_MOCK } from '../config'
-import { MOCK_CONFLICTS, MOCK_CHANGE_REQUESTS, MOCK_AUDIT, MOCK_TOKEN_USAGE, mockImpactAnalysis } from '../mockData'
+import {
+  MOCK_CONFLICTS, MOCK_CHANGE_REQUESTS, MOCK_AUDIT, MOCK_TOKEN_USAGE, mockImpactAnalysis,
+  MOCK_REPORT_CATALOG, MOCK_REPORT_CATEGORIES, mockGenerateReport,
+} from '../mockData'
 import { authHeaders, refresh, signIn } from './useAuth'
 
 // Wrap every API Gateway call with the Cognito IdToken in the
@@ -27,6 +30,22 @@ async function apiFetch(path, options = {}) {
 
 // Simulated scan delay for mock mode
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+// Trigger a browser download for a generated report. Works for both same-origin
+// blob URLs (mock mode, where the `download` attribute names the file) and
+// cross-origin presigned S3 URLs (live mode, where S3's Content-Disposition
+// header forces the attachment download).
+export function triggerDownload(url, filename) {
+  if (!url) return
+  const a = document.createElement('a')
+  a.href = url
+  if (filename) a.download = filename
+  a.target = '_blank'
+  a.rel = 'noopener'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
 
 export function useFindings() {
   const [findings, setFindings] = useState([])
@@ -359,6 +378,69 @@ export function useDashboard() {
   }, [load])
 
   return { data, loading, reload: load }
+}
+
+// ── Reports ─────────────────────────────────────────────────────────────────
+// Synchronous report generation: generate() returns a payload with a ready
+// download_url (presigned S3 GET in live mode; an object-URL blob in mock mode).
+// No job table / polling — the backend builds the file inline.
+export function useReports() {
+  const [catalog, setCatalog] = useState(null)
+  const [loadingCatalog, setLoadingCatalog] = useState(false)
+
+  const loadCatalog = useCallback(async () => {
+    setLoadingCatalog(true)
+    try {
+      if (USE_MOCK) {
+        await sleep(150)
+        setCatalog({ catalog: MOCK_REPORT_CATALOG, categories: MOCK_REPORT_CATEGORIES })
+      } else {
+        const data = await apiFetch('/reports/catalog')
+        setCatalog(data)
+      }
+    } finally { setLoadingCatalog(false) }
+  }, [])
+
+  const generate = useCallback(async (report_type, format, params) => {
+    if (USE_MOCK) {
+      await sleep(500)
+      return mockGenerateReport(report_type, format, params)
+    }
+    return apiFetch('/reports/generate', {
+      method: 'POST',
+      body: JSON.stringify({ report_type, format, params: params || {} }),
+    })
+  }, [])
+
+  return { catalog, loadingCatalog, loadCatalog, generate }
+}
+
+// ── Compliance (Governance "Generate report" buttons + per-framework export) ──
+export function useCompliance() {
+  const [generating, setGenerating] = useState(null)
+
+  const generateReport = useCallback(async (report_type, frameworks) => {
+    setGenerating(report_type)
+    try {
+      let data
+      if (USE_MOCK) {
+        await sleep(500)
+        const map = { executive: 'executive_compliance', technical: 'technical_compliance', evidence_package: 'evidence_package' }
+        data = mockGenerateReport(map[report_type] || report_type, undefined, { frameworks })
+      } else {
+        data = await apiFetch('/compliance/report', {
+          method: 'POST',
+          body: JSON.stringify({ report_type, frameworks }),
+        })
+      }
+      if (data?.download_url || data?.report_url) {
+        triggerDownload(data.download_url || data.report_url, data.filename)
+      }
+      return data
+    } finally { setGenerating(null) }
+  }, [])
+
+  return { generating, generateReport }
 }
 
 // Trigger a scan run. Returns {scan_run_id, status, stub?}.

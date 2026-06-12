@@ -10,7 +10,7 @@ import ActionRequestModal from '../components/ActionRequestModal'
 import CreateTicketButton from '../components/CreateTicketButton'
 import { detectProblem } from '../detectProblem'
 import { CHAT_URL, AGENT_MODELS, modelLabel } from '../config'
-import { sendChat } from '../hooks/useApi'
+import { sendChat, createJiraTicket } from '../hooks/useApi'
 
 // CR statuses that count as "ticket resolved" → trigger auto-archive of the
 // originating chat. APPROVED is intentionally excluded: an approved CR is still
@@ -130,10 +130,169 @@ function SnowModal({ action, onClose }) {
   )
 }
 
+// ── JIRA + Confluence helpers ─────────────────────────────────────────────────
+// Both new actions reuse the already-deployed jira_specialist: JIRA via the
+// deterministic /jira/tickets create path, Confluence via a target:'jira' chat
+// turn (the specialist has the confluence_create_page tool). No backend change.
+
+function buildJiraDescription(action, responseText) {
+  const lines = []
+  if (action.description) lines.push(action.description)
+  if (action.target_resource) lines.push(`Target: ${action.target_resource}`)
+  if (action.approval_chain?.length) lines.push(`Approvers: ${action.approval_chain.join(', ')}`)
+  if (action.blocking_policies?.length) lines.push(`Blocking policies: ${action.blocking_policies.join(', ')}`)
+  if (responseText) lines.push('', '--- Analyst response ---', responseText)
+  return lines.join('\n')
+}
+
+function buildConfluenceContent(action, responseText) {
+  const lines = []
+  if (responseText) lines.push(responseText)
+  if (action.description) lines.push('', action.description)
+  if (action.approval_chain?.length) lines.push('', `Approvers: ${action.approval_chain.join(', ')}`)
+  return lines.join('\n').trim() || (action.label || '')
+}
+
+function ModalShell({ title, onClose, children }) {
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg slide-in shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-slate-200 sticky top-0 bg-white">
+          <h2 className="font-bold text-slate-900 text-base">{title}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-900 text-sm">✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// Open a JIRA ticket pre-filled with the recommended action + analyst response.
+function JiraModal({ action, responseText, onClose }) {
+  const [summary, setSummary] = useState(action.label || `ARBITER: ${action.target_resource || 'finding'}`)
+  const [description, setDescription] = useState(() => buildJiraDescription(action, responseText))
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState(null)   // {jira_ticket_key,url,status} | {error}
+
+  async function submit() {
+    setBusy(true); setResult(null)
+    try {
+      const r = await createJiraTicket({
+        conflict_id: action.conflict_id || action.target_resource || '',
+        summary: summary.trim(), description,
+        severity: action.severity || 'MEDIUM', project_key: 'DEVARBITER',
+      })
+      setResult(r)
+    } catch (e) {
+      setResult({ error: e.message })
+    } finally { setBusy(false) }
+  }
+
+  return (
+    <ModalShell title="Open JIRA Ticket" onClose={onClose}>
+      {result && (result.jira_ticket_key) ? (
+        <div className="p-6 text-center space-y-3">
+          <CheckCircle size={40} className="text-emerald-600 mx-auto" />
+          <p className="text-slate-900 font-semibold">JIRA Ticket {result.status === 'mock' ? 'Drafted' : 'Created'}</p>
+          <p className="text-slate-600 text-sm">Issue <span className="text-indigo-700 font-mono font-bold">{result.jira_ticket_key}</span></p>
+          {result.url && (
+            <a href={result.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700 text-sm inline-flex items-center gap-1 justify-center">
+              <ExternalLink size={13} /> Open in JIRA
+            </a>
+          )}
+          {result.note && <p className="text-amber-700 text-xs">{result.note}</p>}
+          <button onClick={onClose} className="btn-primary mt-2">Close</button>
+        </div>
+      ) : (
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-xs text-slate-600 mb-1.5">Summary</label>
+            <input value={summary} onChange={e => setSummary(e.target.value)} className="input w-full text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-600 mb-1.5">Description (preloaded from the response)</label>
+            <textarea rows={7} value={description} onChange={e => setDescription(e.target.value)} className="input w-full text-sm resize-none" />
+          </div>
+          <p className="text-xs text-slate-500">Project <span className="font-mono">DEVARBITER</span> · routed by the finding's owning team.</p>
+          {result?.error && <p className="text-xs text-red-700">Failed: {result.error}</p>}
+          <div className="flex gap-3 pt-1">
+            <button onClick={onClose} className="btn-ghost flex-1" disabled={busy}>Cancel</button>
+            <button onClick={submit} className="btn-primary flex-1 flex items-center justify-center gap-2" disabled={busy || !summary.trim()}>
+              {busy ? <><Loader2 size={14} className="animate-spin" /> Creating…</> : <><Ticket size={14} /> Create Ticket</>}
+            </button>
+          </div>
+        </div>
+      )}
+    </ModalShell>
+  )
+}
+
+// Create a Confluence page with a user-entered Title and the response as the body.
+function ConfluenceModal({ action, responseText, onClose }) {
+  const [title, setTitle] = useState(action.label || '')
+  const [spaceKey, setSpaceKey] = useState('Arbiterpoc')
+  const [content, setContent] = useState(() => buildConfluenceContent(action, responseText))
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState(null)   // {reply} | {error}
+
+  async function submit() {
+    if (!title.trim()) { setResult({ error: 'Please enter a page title.' }); return }
+    setBusy(true); setResult(null)
+    try {
+      const prompt =
+        `Create a Confluence page titled "${title.trim()}" in the Confluence space ${spaceKey.trim() || 'Arbiterpoc'}. ` +
+        `Use the following content as the page body, formatted with clear headings and bullet points:\n\n${content}\n\n` +
+        `After creating the page, reply with the new page's URL.`
+      const r = await sendChat({ prompt, target: 'jira', chat_type: 'analyst' })
+      setResult({ reply: r.reply || r.response || 'Page request submitted.' })
+    } catch (e) {
+      setResult({ error: e.message })
+    } finally { setBusy(false) }
+  }
+
+  return (
+    <ModalShell title="Create Confluence Page" onClose={onClose}>
+      {result?.reply ? (
+        <div className="p-6 space-y-3">
+          <div className="flex items-center gap-2"><CheckCircle size={20} className="text-emerald-600" /><p className="text-slate-900 font-semibold">Confluence response</p></div>
+          <div className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-64 overflow-y-auto">{result.reply}</div>
+          <button onClick={onClose} className="btn-primary">Close</button>
+        </div>
+      ) : (
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <label className="block text-xs text-slate-600 mb-1.5">Page title <span className="text-red-500">*</span></label>
+              <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Dropbox policy decision" className="input w-full text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-600 mb-1.5">Space key</label>
+              <input value={spaceKey} onChange={e => setSpaceKey(e.target.value)} className="input w-full text-sm font-mono" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-600 mb-1.5">Page content (preloaded from the response)</label>
+            <textarea rows={8} value={content} onChange={e => setContent(e.target.value)} className="input w-full text-sm resize-none" />
+          </div>
+          {result?.error && <p className="text-xs text-red-700">Failed: {result.error}</p>}
+          <div className="flex gap-3 pt-1">
+            <button onClick={onClose} className="btn-ghost flex-1" disabled={busy}>Cancel</button>
+            <button onClick={submit} className="btn-primary flex-1 flex items-center justify-center gap-2" disabled={busy || !title.trim()}>
+              {busy ? <><Loader2 size={14} className="animate-spin" /> Creating…</> : <><FileText size={14} /> Create Page</>}
+            </button>
+          </div>
+        </div>
+      )}
+    </ModalShell>
+  )
+}
+
 // ── Action cards ──────────────────────────────────────────────────────────────
 
-function ActionCards({ actions, onCreateCR }) {
+function ActionCards({ actions, responseText, onCreateCR }) {
   const [snowAction, setSnowAction] = useState(null)
+  const [jiraAction, setJiraAction] = useState(null)
+  const [confluenceAction, setConfluenceAction] = useState(null)
   const [notified, setNotified] = useState({})
 
   if (!actions?.length) return null
@@ -182,12 +341,26 @@ function ActionCards({ actions, onCreateCR }) {
               </div>
               <div className="flex-shrink-0 ml-2">
                 {action.type === 'CREATE_CR' && (
-                  <button
-                    onClick={() => onCreateCR(action)}
-                    className={`${meta.btn} text-xs px-3 py-1.5`}
-                  >
-                    Create CR
-                  </button>
+                  <div className="flex flex-col gap-1.5 items-stretch w-[140px]">
+                    <button
+                      onClick={() => onCreateCR(action)}
+                      className={`${meta.btn} text-xs px-3 py-1.5 inline-flex items-center justify-center gap-1.5`}
+                    >
+                      <ShieldAlert size={12} /> Create CR
+                    </button>
+                    <button
+                      onClick={() => setJiraAction(action)}
+                      className="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center justify-center gap-1.5"
+                    >
+                      <Ticket size={12} /> Open JIRA Ticket
+                    </button>
+                    <button
+                      onClick={() => setConfluenceAction(action)}
+                      className="bg-violet-600 hover:bg-violet-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center justify-center gap-1.5"
+                    >
+                      <FileText size={12} /> Create Confluence
+                    </button>
+                  </div>
                 )}
                 {['SERVICENOW_INC', 'SERVICENOW_RITM', 'SERVICENOW_CHG'].includes(action.type) && (
                   <button
@@ -217,6 +390,12 @@ function ActionCards({ actions, onCreateCR }) {
       {snowAction && (
         <SnowModal action={snowAction} onClose={() => setSnowAction(null)} />
       )}
+      {jiraAction && (
+        <JiraModal action={jiraAction} responseText={responseText} onClose={() => setJiraAction(null)} />
+      )}
+      {confluenceAction && (
+        <ConfluenceModal action={confluenceAction} responseText={responseText} onClose={() => setConfluenceAction(null)} />
+      )}
     </div>
   )
 }
@@ -237,7 +416,7 @@ function Message({ msg, onCreateCR }) {
           {msg.content}
         </div>
         {!isUser && msg.actions?.length > 0 && (
-          <ActionCards actions={msg.actions} onCreateCR={onCreateCR} />
+          <ActionCards actions={msg.actions} responseText={msg.content} onCreateCR={onCreateCR} />
         )}
       </div>
     </div>

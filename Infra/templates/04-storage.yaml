@@ -82,6 +82,39 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-processed"
 
+  # ──────────────────────────── S3: Reports Bucket ─────────────
+  # Generated compliance reports (PDF/CSV/XLSX/JSON/ZIP) written synchronously by
+  # api_handler and served back via presigned GET. These are derived artifacts (not
+  # KB-source data), and presigned download URLs must work directly from the
+  # browser — so this uses SSE-S3 (AES256) rather than the CMK on raw/processed,
+  # which would force the api_handler role to hold kms:Decrypt for every download.
+  # No EventBridge notification: reports must NOT enter the processing/KB pipeline.
+  ReportsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Environment}-${ProjectName}-reports"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireReports
+            Status: Enabled
+            Prefix: reports/
+            ExpirationInDays: 90
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-reports"
+
   # ──────────────────────────── DynamoDB Tables (4) ────────────
   # Only the four tables the React UI actually reads/writes:
   #   - conflicts        (Dashboard, Findings, HeatMap, Governance)
@@ -611,6 +644,14 @@ Outputs:
     Value: !Ref ProcessedBucket
     Export:
       Name: !Sub "${Environment}-${ProjectName}-ProcessedBucketName"
+  ReportsBucketArn:
+    Value: !GetAtt ReportsBucket.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ReportsBucketArn"
+  ReportsBucketName:
+    Value: !Ref ReportsBucket
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ReportsBucketName"
   StructuredGlueDatabaseName:
     Value: !Ref StructuredGlueDatabase
     Export:

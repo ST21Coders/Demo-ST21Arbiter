@@ -1,1 +1,4 @@
-# Runtime deps land here when the real implementation arrives.
+# boto3 / botocore are provided by the Lambda runtime — not pinned here.
+# Report generation deps (synchronous /reports + /compliance/report):
+reportlab==4.2.5   # PDF generation (executive / technical / evidence package)
+openpyxl==3.1.5    # XLSX generation (technical compliance, conflict register)

@@ -171,6 +171,17 @@ Resources:
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-raw/*"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/*"
+              # Synchronous report generation: api_handler PUTs generated reports
+              # into the reports bucket (SSE-S3, no KMS) and signs presigned GET
+              # URLs the browser downloads. GetObject must be allowed on the role
+              # so the presigned download URL it signs is usable.
+              - Sid: ReportsBucketReadWrite
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-reports/*"
               # POST /scan async-invokes the scanner Lambda. The Lambda is
               # deployed in 11-scanner.yaml; scoping by name prefix avoids a
               # circular dependency between 02-security and 11-scanner.

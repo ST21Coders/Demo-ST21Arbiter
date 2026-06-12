@@ -50,6 +50,10 @@ from boto3.dynamodb.conditions import Attr, Key
 from botocore.config import Config as BotoConfig
 from botocore.exceptions import ClientError
 
+import report_catalog
+import report_data
+import report_generators
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -77,6 +81,9 @@ TOKEN_USAGE_TABLE = os.environ.get("TOKEN_USAGE_TABLE", "")
 MEMORY_ID = os.environ.get("MEMORY_ID", "").strip()
 RAW_BUCKET = os.environ.get("RAW_BUCKET", "").strip()
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "").strip()
+REPORTS_BUCKET = os.environ.get("REPORTS_BUCKET", "").strip()
+REPORT_URL_EXPIRES_SECONDS = int(os.environ.get("REPORT_URL_EXPIRES_SECONDS", "86400"))
+ORG_NAME = os.environ.get("ORG_NAME", "Meridian Insurance Group")
 S3_KMS_KEY_ARN = os.environ.get("S3_KMS_KEY_ARN", "").strip()
 SCANNER_LAMBDA_NAME = os.environ.get("SCANNER_LAMBDA_NAME", "").strip()
 MCP_ENDPOINTS = [u.strip() for u in os.environ.get("MCP_ENDPOINTS", "").split(",") if u.strip()]
@@ -224,6 +231,19 @@ def handler(event, context):
     if path.startswith("/findings/") and method == "GET":
         conflict_id = _path_param(event, "conflict_id", path, "/findings/")
         return _handle_get_finding(event, conflict_id)
+
+    # ── Reporting + compliance scores ────────────────────────────
+    if path == "/reports/catalog" and method == "GET":
+        return _handle_reports_catalog(event)
+
+    if path == "/reports/generate" and method == "POST":
+        return _handle_reports_generate(event)
+
+    if path == "/compliance/scores" and method == "GET":
+        return _handle_compliance_scores(event)
+
+    if path == "/compliance/report" and method == "POST":
+        return _handle_compliance_report(event)
 
     # ── Change-request workflow (Step 4) ─────────────────────────
     if path == "/actions" and method == "POST":
@@ -527,6 +547,174 @@ def _handle_list_audit(event):
         return _err(502, f"{type(e).__name__}: {e}")
     items.sort(key=lambda i: i.get("timestamp") or "", reverse=True)
     return _ok({"logs": items})
+
+
+# ──────────────────────────── /reports + /compliance ───────────
+# Synchronous report generation: build the file from the same conflicts / audit /
+# framework data the UI shows, store it in the reports bucket, and return a
+# presigned GET URL the browser downloads directly. Fast (a few seconds) so it
+# runs inline within the API Gateway request window — no job table / polling.
+
+def _load_report_findings():
+    """Non-compliant findings scoped to the latest completed scan run — the same
+    set Findings/Governance show. Mirrors _handle_list_findings' scoping."""
+    tbl = _findings_table()
+    if not tbl:
+        return []
+    try:
+        items = tbl.scan(Limit=200).get("Items", [])
+    except Exception:
+        logger.exception("report findings scan failed")
+        return []
+    latest = _latest_completed_scan_run_id()
+    if latest:
+        scoped = [i for i in items if i.get("scan_run_id") == latest]
+        if scoped:
+            items = scoped
+    items = [i for i in items if not i.get("compliant")]
+    items.sort(key=lambda i: i.get("detected_at") or "", reverse=True)
+    return items
+
+
+def _load_report_audit(limit=500):
+    if not audit_table:
+        return []
+    try:
+        items = audit_table.scan(Limit=limit).get("Items", [])
+    except Exception:
+        logger.exception("report audit scan failed")
+        return []
+    items.sort(key=lambda i: i.get("timestamp") or "", reverse=True)
+    return items
+
+
+def _load_report_crs():
+    if not crs_table:
+        return []
+    try:
+        return crs_table.scan(Limit=200).get("Items", [])
+    except Exception:
+        logger.exception("report CR scan failed")
+        return []
+
+
+def _report_bundle(params):
+    findings = _load_report_findings()
+    summaries = report_data.framework_summaries(findings)
+    return {
+        "conflicts": findings,
+        "audit": _load_report_audit(),
+        "change_requests": _load_report_crs(),
+        "summaries": summaries,
+        "overall": report_data.overall_score(summaries),
+        "org_name": ORG_NAME,
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        "params": params or {},
+    }
+
+
+def _generate_and_store(report_id, fmt, spec, params):
+    if not REPORTS_BUCKET:
+        return _err(500, "REPORTS_BUCKET not configured")
+    bundle = _report_bundle(params)
+    try:
+        payload, content_type, ext = report_generators.generate(report_id, fmt, bundle)
+    except RuntimeError as e:           # reportlab/openpyxl unavailable in bundle
+        return _err(501, str(e))
+    except ValueError as e:
+        return _err(400, str(e))
+    except Exception as e:
+        logger.exception("report generation failed")
+        return _err(500, f"report generation failed: {e}")
+
+    now = datetime.now(timezone.utc)
+    filename = f"{report_id}-{now:%Y%m%dT%H%M%SZ}.{ext}"
+    key = f"reports/{now:%Y}/{now:%m}/{filename}"
+    try:
+        s3.put_object(Bucket=REPORTS_BUCKET, Key=key, Body=payload,
+                      ContentType=content_type,
+                      Metadata={"report_type": report_id, "format": fmt})
+    except ClientError as e:
+        logger.exception("report put_object failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    try:
+        url = s3.generate_presigned_url(
+            ClientMethod="get_object",
+            Params={"Bucket": REPORTS_BUCKET, "Key": key,
+                    "ResponseContentDisposition": f'attachment; filename="{filename}"'},
+            ExpiresIn=REPORT_URL_EXPIRES_SECONDS,
+            HttpMethod="GET",
+        )
+    except ClientError as e:
+        logger.exception("report presign failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+
+    return _ok({
+        "report_type": report_id, "report_title": spec["title"], "format": fmt,
+        "filename": filename, "s3_key": key, "bucket": REPORTS_BUCKET,
+        "size_bytes": len(payload),
+        "download_url": url, "report_url": url,   # download_url=Reports page, report_url=Governance buttons
+        "expires_in": REPORT_URL_EXPIRES_SECONDS,
+        "generated_at": bundle["generated_at"],
+    })
+
+
+def _handle_reports_catalog(event):
+    return _ok({"catalog": report_catalog.REPORT_CATALOG, "categories": report_catalog.CATEGORIES})
+
+
+def _handle_reports_generate(event):
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+    report_id = (body.get("report_type") or "").strip()
+    spec = report_catalog.catalog_by_id(report_id)
+    if not spec:
+        return _err(400, f"Unknown report_type '{report_id}'")
+    fmt = (body.get("format") or spec["default_format"]).strip().lower()
+    if fmt not in spec["formats"]:
+        return _err(400, f"format '{fmt}' not supported for {report_id}; allowed: {spec['formats']}")
+    return _generate_and_store(report_id, fmt, spec, body.get("params") or {})
+
+
+def _handle_compliance_scores(event):
+    findings = _load_report_findings()
+    summaries = report_data.framework_summaries(findings)
+    return _ok({
+        "frameworks": summaries,
+        "overall": report_data.overall_score(summaries),
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+    })
+
+
+# Legacy/simple mapping for the Governance "Generate report" buttons.
+_LEGACY_REPORT_MAP = {
+    "executive": ("executive_compliance", "pdf"),
+    "technical": ("technical_compliance", "pdf"),
+    "evidence_package": ("evidence_package", "zip"),
+}
+
+
+def _handle_compliance_report(event):
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+    rid = (body.get("report_type") or "executive").strip().lower()
+    mapped = _LEGACY_REPORT_MAP.get(rid)
+    if not mapped:
+        spec = report_catalog.catalog_by_id(rid)   # also accept a catalog id directly
+        if spec:
+            mapped = (rid, spec["default_format"])
+    if not mapped:
+        return _err(400, f"Unknown report_type '{rid}'")
+    report_id, fmt = mapped
+    spec = report_catalog.catalog_by_id(report_id)
+    params = {}
+    if body.get("frameworks"):
+        params["frameworks"] = body["frameworks"]
+    return _generate_and_store(report_id, fmt, spec, params)
 
 
 # ──────────────────────────── /token-usage (CISO only) ─────────

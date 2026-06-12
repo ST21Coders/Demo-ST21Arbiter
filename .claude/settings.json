@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /Users/sridharpchome/Documents/Claude/arbiter-poc/lambdas/compliance_reporter/)",
+      "Read(//Users/sridharpchome/Documents/Claude/arbiter-poc/lambdas/compliance_reporter/**)"
+    ]
+  }
+}
