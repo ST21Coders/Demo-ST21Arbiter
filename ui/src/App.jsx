@@ -13,6 +13,7 @@ import ActionCenter from './pages/ActionCenter'
 import Governance from './pages/Governance'
 import Reports from './pages/Reports'
 import DataPipeline from './pages/DataPipeline'
+import DataGrouping from './pages/DataGrouping'
 import AuditLogs from './pages/AuditLogs'
 import AnalystView from './pages/AnalystView'
 import WhatIf from './pages/WhatIf'
@@ -163,6 +164,7 @@ function Shell() {
             <Route path="/governance"  element={<Guarded path="/governance"><Governance /></Guarded>} />
             <Route path="/reports"     element={<Guarded path="/reports"><Reports /></Guarded>} />
             <Route path="/pipeline"    element={<Guarded path="/pipeline"><DataPipeline /></Guarded>} />
+            <Route path="/data-grouping" element={<Guarded path="/data-grouping"><DataGrouping /></Guarded>} />
             <Route path="/audit"       element={<Guarded path="/audit"><AuditLogs /></Guarded>} />
             <Route path="/analyst"     element={<Guarded path="/analyst"><AnalystView /></Guarded>} />
             <Route path="/whatif"      element={<Guarded path="/whatif"><WhatIf /></Guarded>} />

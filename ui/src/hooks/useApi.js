@@ -649,6 +649,38 @@ export async function listScanRuns(limit = 20) {
   return apiFetch('/scan-runs')
 }
 
+export async function listUploadedFiles(bucket = 'processed') {
+  if (USE_MOCK) {
+    const now = new Date().toISOString()
+    const invoiceFiles = [
+      ...Array.from({ length: 5 }, (_, idx) => ({
+        key: `users/mock/processed/AR_Invoice_${String(idx + 1).padStart(3, '0')}.csv`,
+        name: `AR_Invoice_${String(idx + 1).padStart(3, '0')}.csv`,
+        size: 1224 + idx * 117,
+        last_modified: now,
+      })),
+      ...Array.from({ length: 5 }, (_, idx) => ({
+        key: `users/mock/processed/AP_Invoice_${String(idx + 1).padStart(3, '0')}.csv`,
+        name: `AP_Invoice_${String(idx + 1).padStart(3, '0')}.csv`,
+        size: 1350 + idx * 91,
+        last_modified: now,
+      })),
+    ]
+    return {
+      bucket: 'mock-processed',
+      prefix: 'users/mock/',
+      files: [
+        ...invoiceFiles,
+        { key: 'users/mock/processed/vendor_contract.pdf', name: 'vendor_contract.pdf', size: 23890, last_modified: now },
+        { key: 'users/mock/processed/control_export.json', name: 'control_export.json', size: 4420, last_modified: now },
+      ],
+      truncated: false,
+    }
+  }
+  const qs = new URLSearchParams({ bucket }).toString()
+  return apiFetch(`/uploads/list?${qs}`)
+}
+
 // Create a real JIRA issue via the jira_specialist runtime. Routes through the
 // Lambda Function URL (CHAT_URL) like sendChat, since the runtime call (MCP
 // subprocess + create) can exceed API Gateway's 29s integration timeout.

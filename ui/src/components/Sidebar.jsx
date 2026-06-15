@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, ShieldAlert, Activity, Wrench, Scale,
   GitBranch, ScrollText, MessageSquare, Cpu, Terminal,
-  Settings, Wifi, WifiOff, Shield, Users, Coins, Plug, FlaskConical, Network, FileText,
+  Settings, Wifi, WifiOff, Shield, Users, Coins, Plug, FlaskConical, Network, FileText, FolderTree,
 } from 'lucide-react'
 import { CHAT_URL, USE_MOCK, APP_VERSION } from '../config'
 import { usePersona } from '../contexts/PersonaContext'
@@ -42,6 +42,7 @@ const NAV_GROUPS = [
     label: 'INFRASTRUCTURE',
     items: [
       { to: '/pipeline',     icon: GitBranch, label: 'Data Pipeline', adminOnly: true },
+      { to: '/data-grouping', icon: FolderTree, label: 'Data Grouping', adminOnly: true },
       { to: '/mcp-chat',     icon: Terminal,  label: 'MCP Admin',     adminOnly: true },
       { to: '/integrations', icon: Plug,      label: 'Integrations',  adminOnly: true },
     ],
@@ -61,6 +62,7 @@ const PAGE_TITLES = {
   '/whatif':     'What-If Scan',
   '/llm-control':'LLM Control',
   '/pipeline':   'Data Pipeline',
+  '/data-grouping': 'Data Grouping',
   '/mcp-chat':   'MCP Admin',
   '/integrations':'Integrations',
   '/token-usage':'Token Tracking',
