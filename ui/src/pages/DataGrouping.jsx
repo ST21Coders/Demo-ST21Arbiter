@@ -8,6 +8,7 @@ import { listUploadedFiles } from '../hooks/useApi'
 
 const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.projectMetadata'
 const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.savedGroups'
+const METADATA_LEDGER_STORAGE_KEY = 'arbiter.dataGrouping.metadataLedger'
 
 const GROUP_TYPE_OPTIONS = [
   { value: 'accounts_receivable_invoices', label: 'AR Invoices', suggestedName: 'AR_Invoices', summaryFile: 'SUM_AR_Invoices.csv' },
@@ -71,6 +72,11 @@ function fileKey(file) {
   return file?.key || file?.name || ''
 }
 
+function groupFileKeys(group) {
+  if (Array.isArray(group.fileKeys)) return group.fileKeys
+  return (group.files || []).map(file => fileKey(file)).filter(Boolean)
+}
+
 function csvEscape(value) {
   const text = String(value ?? '')
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
@@ -127,13 +133,35 @@ function amountTotal(rows) {
 
 function buildMetadata({ projectName, projectId, processedPrefix, groups, summaries }) {
   const createdAt = new Date().toISOString()
+  const metadataKey = `${processedPrefix}${projectId}/metadata/project.json`
   return {
     projectId,
     displayName: projectName,
     createdAt,
     sourcePrefix: processedPrefix,
     processedPrefix,
-    groupVersion: '0.2',
+    metadataKey,
+    metadataStorageMode: 'local_s3_simulation',
+    groupVersion: '0.3',
+    simulatedS3Writes: [
+      {
+        operation: 'put_object',
+        key: metadataKey,
+        contentType: 'application/json',
+        note: 'This simulates the project metadata object that will be written to S3 in the backend version.',
+      },
+      ...groups.flatMap(group => group.files.map(file => ({
+        operation: 'copy_object_with_metadata',
+        key: file.key,
+        metadataDirective: 'REPLACE',
+        simulatedMetadata: {
+          'arbiter-project-id': projectId,
+          'arbiter-group-id': group.id,
+          'arbiter-group-name': group.name,
+          'arbiter-group-type': group.type,
+        },
+      }))),
+    ],
     dataObjects: groups.map(group => ({
       id: group.id,
       name: group.name,
@@ -151,6 +179,33 @@ function buildMetadata({ projectName, projectId, processedPrefix, groups, summar
       recordCount: summaries[group.id]?.rows?.length || 0,
     })),
   }
+}
+
+function mergeMetadataLedger(ledger, metadata) {
+  const previousProject = ledger.projects?.[metadata.projectId] || {}
+  const revision = {
+    createdAt: metadata.createdAt,
+    metadataKey: metadata.metadataKey,
+    groupCount: metadata.dataObjects.length,
+    fileCount: metadata.dataObjects.reduce((sum, object) => sum + object.sourceFiles.length, 0),
+  }
+
+  return {
+    version: '0.1',
+    updatedAt: metadata.createdAt,
+    projects: {
+      ...(ledger.projects || {}),
+      [metadata.projectId]: {
+        ...previousProject,
+        ...metadata,
+        revisions: [...(previousProject.revisions || []), revision].slice(-10),
+      },
+    },
+  }
+}
+
+function persistGroups(groups) {
+  localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups))
 }
 
 function Stat({ label, value }) {
@@ -296,7 +351,10 @@ export default function DataGrouping() {
   const [error, setError] = useState('')
   const [summaries, setSummaries] = useState({})
   const [metadata, setMetadata] = useState(null)
+  const [metadataLedger, setMetadataLedger] = useState({ version: '0.1', projects: {} })
+  const [metadataWrite, setMetadataWrite] = useState(null)
   const [groups, setGroups] = useState([])
+  const [groupsLoaded, setGroupsLoaded] = useState(false)
   const [editingGroupId, setEditingGroupId] = useState(null)
   const [draftName, setDraftName] = useState('AR_Invoices')
   const [draftType, setDraftType] = useState('accounts_receivable_invoices')
@@ -304,12 +362,22 @@ export default function DataGrouping() {
 
   const projectId = slugify(projectName)
   const processedPrefix = 'processed/'
+  const fileMap = useMemo(() => new Map(files.map(file => [fileKey(file), file])), [files])
+  const hydratedGroups = useMemo(() => (
+    groups.map(group => ({
+      ...group,
+      fileKeys: groupFileKeys(group),
+      files: groupFileKeys(group)
+        .map(key => fileMap.get(key) || (group.files || []).find(file => fileKey(file) === key))
+        .filter(Boolean),
+    }))
+  ), [groups, fileMap])
   const assignedKeySet = useMemo(
-    () => new Set(groups.flatMap(group => group.files.map(file => fileKey(file)))),
-    [groups],
+    () => new Set(hydratedGroups.flatMap(group => group.fileKeys)),
+    [hydratedGroups],
   )
   const draftKeySet = useMemo(() => new Set(draftKeys), [draftKeys])
-  const editingGroup = groups.find(group => group.id === editingGroupId)
+  const editingGroup = hydratedGroups.find(group => group.id === editingGroupId)
   const availableFiles = useMemo(() => (
     files.filter(file => {
       const key = fileKey(file)
@@ -341,19 +409,23 @@ export default function DataGrouping() {
       if (Array.isArray(savedGroups)) setGroups(savedGroups)
       const savedMetadata = JSON.parse(localStorage.getItem(GROUPING_STORAGE_KEY) || 'null')
       if (savedMetadata) setMetadata(savedMetadata)
+      const savedLedger = JSON.parse(localStorage.getItem(METADATA_LEDGER_STORAGE_KEY) || 'null')
+      if (savedLedger?.projects) setMetadataLedger(savedLedger)
     } catch {
       /* ignore bad local grouping state */
+    } finally {
+      setGroupsLoaded(true)
     }
   }, [])
 
   useEffect(() => {
-    localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups))
-  }, [groups])
+    if (groupsLoaded) persistGroups(groups)
+  }, [groups, groupsLoaded])
 
   useEffect(() => {
-    const validGroupIds = new Set(groups.map(group => group.id))
+    const validGroupIds = new Set(hydratedGroups.map(group => group.id))
     setSummaries(prev => Object.fromEntries(Object.entries(prev).filter(([groupId]) => validGroupIds.has(groupId))))
-  }, [groups])
+  }, [hydratedGroups])
 
   function resetDraft(type = draftType) {
     const option = optionForType(type)
@@ -378,17 +450,21 @@ export default function DataGrouping() {
 
   function saveGroup() {
     if (!draftName.trim() || !selectedDraftFiles.length) return
+    const savedFileKeys = selectedDraftFiles.map(file => fileKey(file))
     const nextGroup = {
       id: editingGroupId || `${slugify(draftName)}-${Date.now()}`,
       name: draftName.trim().replace(/\s+/g, '_'),
       type: draftType,
+      fileKeys: savedFileKeys,
       files: selectedDraftFiles,
       updatedAt: new Date().toISOString(),
     }
     setMetadata(null)
     setGroups(prev => {
       const others = prev.filter(group => group.id !== nextGroup.id)
-      return [...others, nextGroup]
+      const nextGroups = [...others, nextGroup]
+      persistGroups(nextGroups)
+      return nextGroups
     })
     resetDraft(draftType)
   }
@@ -402,7 +478,11 @@ export default function DataGrouping() {
 
   function deleteGroup(groupId) {
     setMetadata(null)
-    setGroups(prev => prev.filter(group => group.id !== groupId))
+    setGroups(prev => {
+      const nextGroups = prev.filter(group => group.id !== groupId)
+      persistGroups(nextGroups)
+      return nextGroups
+    })
     setSummaries(prev => {
       const next = { ...prev }
       delete next[groupId]
@@ -423,13 +503,22 @@ export default function DataGrouping() {
   }
 
   function createMetadata() {
-    const next = buildMetadata({ projectName, projectId, processedPrefix, groups, summaries })
+    const next = buildMetadata({ projectName, projectId, processedPrefix, groups: hydratedGroups, summaries })
+    const nextLedger = mergeMetadataLedger(metadataLedger, next)
     setMetadata(next)
+    setMetadataLedger(nextLedger)
+    setMetadataWrite({
+      key: next.metadataKey,
+      at: next.createdAt,
+      groupCount: next.dataObjects.length,
+      fileMetadataUpdates: next.simulatedS3Writes.filter(write => write.operation === 'copy_object_with_metadata').length,
+    })
     localStorage.setItem(GROUPING_STORAGE_KEY, JSON.stringify(next, null, 2))
+    localStorage.setItem(METADATA_LEDGER_STORAGE_KEY, JSON.stringify(nextLedger, null, 2))
   }
 
   function downloadMetadata() {
-    const current = metadata || buildMetadata({ projectName, projectId, processedPrefix, groups, summaries })
+    const current = metadata || buildMetadata({ projectName, projectId, processedPrefix, groups: hydratedGroups, summaries })
     downloadText(`${projectId}-data-grouping-metadata.json`, JSON.stringify(current, null, 2), 'application/json')
   }
 
@@ -457,7 +546,7 @@ export default function DataGrouping() {
       <div className="grid gap-3 md:grid-cols-4">
         <Stat label="Processed files" value={files.length} />
         <Stat label="Available files" value={ungroupedFiles.length} />
-        <Stat label="Saved groups" value={groups.length} />
+        <Stat label="Saved groups" value={hydratedGroups.length} />
         <Stat label="Summaries" value={Object.keys(summaries).length} />
       </div>
 
@@ -494,7 +583,7 @@ export default function DataGrouping() {
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Project S3 plan</p>
             <div className="mt-2 space-y-1 font-mono text-xs text-slate-700">
               <p>{processedPrefix}{projectId}/</p>
-              {groups.length ? groups.map(group => (
+              {hydratedGroups.length ? hydratedGroups.map(group => (
                 <p key={group.id}>{processedPrefix}{projectId}/{group.name}/</p>
               )) : (
                 <>
@@ -588,13 +677,13 @@ export default function DataGrouping() {
             <button
               type="button"
               onClick={createMetadata}
-              disabled={!groups.length}
+              disabled={!hydratedGroups.length}
               className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
             >
               <Database size={13} /> Create metadata
             </button>
           </div>
-          {groups.map(group => (
+          {hydratedGroups.map(group => (
             <GroupCard
               key={group.id}
               group={group}
@@ -606,7 +695,7 @@ export default function DataGrouping() {
               onDelete={deleteGroup}
             />
           ))}
-          {!groups.length && (
+          {!hydratedGroups.length && (
             <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
               <FileSpreadsheet size={24} className="mx-auto text-slate-400" />
               <p className="mt-2 text-sm font-semibold text-slate-800">No project groups yet.</p>
@@ -646,6 +735,13 @@ export default function DataGrouping() {
               <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800">
                 <CheckCircle size={13} /> Metadata created for {metadata.dataObjects.length} data objects
               </p>
+              {metadataWrite && (
+                <div className="mt-3 rounded-lg border border-emerald-200 bg-white p-3 text-xs text-emerald-800">
+                  <p className="font-semibold">Simulated S3 metadata write</p>
+                  <p className="mt-1 break-all font-mono text-[10px]">{metadataWrite.key}</p>
+                  <p className="mt-1">{metadataWrite.groupCount} groups stored · {metadataWrite.fileMetadataUpdates} file metadata updates appended to local ledger</p>
+                </div>
+              )}
               <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-3 font-mono text-[10px] text-slate-700">
                 {JSON.stringify(metadata, null, 2)}
               </pre>
