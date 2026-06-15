@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  AlertTriangle, CheckCircle, Database, Download, FileSpreadsheet, FolderTree,
-  Loader2, RefreshCw, Wand2, XCircle,
+  AlertTriangle, CheckCircle, Database, Download, Edit3, FileSpreadsheet, FolderTree,
+  Loader2, Plus, RefreshCw, Save, Trash2, Wand2, XCircle,
 } from 'lucide-react'
+import { USE_MOCK } from '../config'
 import { listUploadedFiles } from '../hooks/useApi'
 
 const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.projectMetadata'
-const PROJECT_SELECTION_STORAGE_KEY = 'arbiter.dataGrouping.projectSelection'
+const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.savedGroups'
+
+const GROUP_TYPE_OPTIONS = [
+  { value: 'accounts_receivable_invoices', label: 'AR Invoices', suggestedName: 'AR_Invoices', summaryFile: 'SUM_AR_Invoices.csv' },
+  { value: 'accounts_payable_invoices', label: 'AP Invoices', suggestedName: 'AP_Invoices', summaryFile: 'SUM_AP_Invoices.csv' },
+  { value: 'spreadsheet_collection', label: 'Spreadsheet collection', suggestedName: 'Spreadsheet_Group', summaryFile: 'SUM_Spreadsheet_Group.csv' },
+  { value: 'project_supporting_files', label: 'Supporting files', suggestedName: 'Supporting_Files', summaryFile: '' },
+]
 
 const SAMPLE_ROWS = {
   'AR_Invoice_001.csv': [
@@ -44,25 +52,6 @@ const SAMPLE_ROWS = {
   ],
 }
 
-const GROUP_RULES = [
-  {
-    id: 'AR_Invoices',
-    label: 'AR_Invoices',
-    type: 'accounts_receivable_invoices',
-    matchPattern: 'AR_Invoice*',
-    summaryFile: 'SUM_AR_Invoices.csv',
-    test: (name) => /^AR_Invoice/i.test(name),
-  },
-  {
-    id: 'AP_Invoices',
-    label: 'AP_Invoices',
-    type: 'accounts_payable_invoices',
-    matchPattern: 'AP_Invoice*',
-    summaryFile: 'SUM_AP_Invoices.csv',
-    test: (name) => /^AP_Invoice/i.test(name),
-  },
-]
-
 function slugify(value) {
   return String(value || '')
     .trim()
@@ -76,6 +65,10 @@ function formatBytes(bytes) {
   if (value < 1024) return `${value} B`
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
   return `${(value / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function fileKey(file) {
+  return file?.key || file?.name || ''
 }
 
 function csvEscape(value) {
@@ -104,17 +97,14 @@ function downloadText(filename, text, type = 'text/plain') {
   URL.revokeObjectURL(url)
 }
 
-function detectGroups(files) {
-  const csvFiles = files.filter(file => /\.csv$/i.test(file.name || ''))
-  const groupedKeys = new Set()
-  const groups = GROUP_RULES.map(rule => {
-    const matches = csvFiles.filter(file => rule.test(file.name || ''))
-    matches.forEach(file => groupedKeys.add(file.key || file.name))
-    return { ...rule, files: matches }
-  }).filter(group => group.files.length > 0)
+function optionForType(type) {
+  return GROUP_TYPE_OPTIONS.find(option => option.value === type) || GROUP_TYPE_OPTIONS[2]
+}
 
-  const ungrouped = files.filter(file => !groupedKeys.has(file.key || file.name))
-  return { groups, ungrouped }
+function makeSummaryName(groupName, groupType) {
+  const option = optionForType(groupType)
+  if (option.summaryFile) return option.summaryFile
+  return `SUM_${String(groupName || 'Group').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '')}.csv`
 }
 
 function rowsForGroup(group) {
@@ -135,7 +125,7 @@ function amountTotal(rows) {
   return rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0)
 }
 
-function buildMetadata({ projectName, projectId, processedPrefix, projectFiles, groups, summaries }) {
+function buildMetadata({ projectName, projectId, processedPrefix, groups, summaries }) {
   const createdAt = new Date().toISOString()
   return {
     projectId,
@@ -143,27 +133,21 @@ function buildMetadata({ projectName, projectId, processedPrefix, projectFiles, 
     createdAt,
     sourcePrefix: processedPrefix,
     processedPrefix,
-    groupVersion: '0.1',
-    projectFiles: projectFiles.map(file => ({
-      name: file.name,
-      key: file.key,
-      size: file.size,
-      lastModified: file.last_modified,
-    })),
+    groupVersion: '0.2',
     dataObjects: groups.map(group => ({
       id: group.id,
+      name: group.name,
       type: group.type,
-      groupRule: 'filename_prefix',
-      matchPattern: group.matchPattern,
-      targetPrefix: `${processedPrefix}${projectId}/${group.id}/`,
+      groupRule: 'manual_file_selection',
+      targetPrefix: `${processedPrefix}${projectId}/${group.name}/`,
       sourceFiles: group.files.map(file => ({
         name: file.name,
         key: file.key,
         size: file.size,
         lastModified: file.last_modified,
       })),
-      summaryFile: group.files.length >= 2 ? group.summaryFile : null,
-      summaryStatus: summaries[group.id] ? 'generated' : group.files.length >= 2 ? 'ready' : 'not_required',
+      summaryFile: group.files.filter(file => /\.csv$/i.test(file.name || '')).length >= 2 ? makeSummaryName(group.name, group.type) : null,
+      summaryStatus: summaries[group.id] ? 'generated' : 'not_generated',
       recordCount: summaries[group.id]?.rows?.length || 0,
     })),
   }
@@ -178,20 +162,23 @@ function Stat({ label, value }) {
   )
 }
 
-function FileRow({ file }) {
+function FileRow({ file, action }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-slate-800" title={file.name}>{file.name}</p>
         <p className="truncate font-mono text-[10px] text-slate-400" title={file.key}>{file.key}</p>
       </div>
-      <span className="shrink-0 text-xs text-slate-500">{formatBytes(file.size)}</span>
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="text-xs text-slate-500">{formatBytes(file.size)}</span>
+        {action}
+      </div>
     </div>
   )
 }
 
-function SelectableFileRow({ file, checked, onChange }) {
-  const checkboxId = `processed-file-${file.key || file.name}`.replace(/[^a-zA-Z0-9_-]/g, '-')
+function AvailableFileRow({ file, checked, onChange }) {
+  const checkboxId = `processed-file-${fileKey(file)}`.replace(/[^a-zA-Z0-9_-]/g, '-')
 
   return (
     <label
@@ -214,10 +201,12 @@ function SelectableFileRow({ file, checked, onChange }) {
   )
 }
 
-function GroupCard({ group, projectId, processedPrefix, summary, onGenerateSummary }) {
+function GroupCard({ group, projectId, processedPrefix, summary, onGenerateSummary, onEdit, onDelete }) {
   const rows = summary?.rows || []
-  const canSummarize = group.files.length >= 2 && group.files.every(file => /\.csv$/i.test(file.name || ''))
-  const targetPrefix = `${processedPrefix}${projectId}/${group.id}/`
+  const csvFiles = group.files.filter(file => /\.csv$/i.test(file.name || ''))
+  const canSummarize = csvFiles.length >= 2
+  const summaryFile = makeSummaryName(group.name, group.type)
+  const targetPrefix = `${processedPrefix}${projectId}/${group.name}/`
 
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -225,38 +214,51 @@ function GroupCard({ group, projectId, processedPrefix, summary, onGenerateSumma
         <div>
           <div className="flex items-center gap-2">
             <FolderTree size={15} className="text-indigo-600" />
-            <h2 className="text-sm font-bold text-slate-900">{group.label}</h2>
+            <h2 className="text-sm font-bold text-slate-900">{group.name}</h2>
           </div>
-          <p className="mt-1 text-xs text-slate-500">{group.matchPattern} · {group.type}</p>
+          <p className="mt-1 text-xs text-slate-500">{optionForType(group.type).label} · {group.files.length} files · {csvFiles.length} CSV</p>
         </div>
-        <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
-          {group.files.length} files
-        </span>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => onEdit(group)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            <Edit3 size={13} /> Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(group.id)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
+          >
+            <Trash2 size={13} /> Delete
+          </button>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr]">
         <div>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Source files</p>
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Files in group</p>
           <div className="space-y-2">
-            {group.files.map(file => <FileRow key={file.key || file.name} file={file} />)}
+            {group.files.map(file => <FileRow key={fileKey(file)} file={file} />)}
           </div>
         </div>
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Target processed structure</p>
           <p className="mt-2 break-all font-mono text-xs text-slate-700">{targetPrefix}</p>
           <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
-            <p className="text-xs font-semibold text-slate-800">{group.summaryFile}</p>
+            <p className="text-xs font-semibold text-slate-800">{summaryFile}</p>
             <p className="mt-1 text-xs text-slate-500">
-              {canSummarize ? 'Summary CSV is generated when the grouped spreadsheet set is confirmed.' : 'Summary not required until the group has two or more CSV files.'}
+              {canSummarize ? 'Stage two can summarize this group because it has two or more CSV files.' : 'Add at least two CSV files before generating a spreadsheet summary.'}
             </p>
           </div>
           {summary && (
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-lg bg-white p-2 border border-slate-200">
+              <div className="rounded-lg border border-slate-200 bg-white p-2">
                 <p className="text-slate-400">Rows</p>
                 <p className="font-semibold text-slate-900">{rows.length}</p>
               </div>
-              <div className="rounded-lg bg-white p-2 border border-slate-200">
+              <div className="rounded-lg border border-slate-200 bg-white p-2">
                 <p className="text-slate-400">Amount total</p>
                 <p className="font-semibold text-slate-900">${amountTotal(rows).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
               </div>
@@ -277,7 +279,7 @@ function GroupCard({ group, projectId, processedPrefix, summary, onGenerateSumma
         <button
           type="button"
           disabled={!summary}
-          onClick={() => summary && downloadText(group.summaryFile, toCsv(summary.rows), 'text/csv')}
+          onClick={() => summary && downloadText(summaryFile, toCsv(summary.rows), 'text/csv')}
           className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
         >
           <Download size={13} /> Download summary
@@ -294,32 +296,37 @@ export default function DataGrouping() {
   const [error, setError] = useState('')
   const [summaries, setSummaries] = useState({})
   const [metadata, setMetadata] = useState(null)
-  const [selectedKeys, setSelectedKeys] = useState([])
+  const [groups, setGroups] = useState([])
+  const [editingGroupId, setEditingGroupId] = useState(null)
+  const [draftName, setDraftName] = useState('AR_Invoices')
+  const [draftType, setDraftType] = useState('accounts_receivable_invoices')
+  const [draftKeys, setDraftKeys] = useState([])
 
   const projectId = slugify(projectName)
   const processedPrefix = 'processed/'
-  const selectedKeySet = useMemo(() => new Set(selectedKeys), [selectedKeys])
-  const projectFiles = useMemo(
-    () => files.filter(file => selectedKeySet.has(file.key || file.name)),
-    [files, selectedKeySet],
+  const assignedKeySet = useMemo(
+    () => new Set(groups.flatMap(group => group.files.map(file => fileKey(file)))),
+    [groups],
   )
-  const { groups, ungrouped } = useMemo(() => detectGroups(projectFiles), [projectFiles])
+  const draftKeySet = useMemo(() => new Set(draftKeys), [draftKeys])
+  const editingGroup = groups.find(group => group.id === editingGroupId)
+  const availableFiles = useMemo(() => (
+    files.filter(file => {
+      const key = fileKey(file)
+      return !assignedKeySet.has(key) || editingGroup?.files.some(groupFile => fileKey(groupFile) === key)
+    })
+  ), [files, assignedKeySet, editingGroup])
+  const ungroupedFiles = useMemo(() => files.filter(file => !assignedKeySet.has(fileKey(file))), [files, assignedKeySet])
+  const selectedDraftFiles = useMemo(() => files.filter(file => draftKeySet.has(fileKey(file))), [files, draftKeySet])
   const csvCount = files.filter(file => /\.csv$/i.test(file.name || '')).length
+  const csvDraftCount = selectedDraftFiles.filter(file => /\.csv$/i.test(file.name || '')).length
 
   async function loadFiles() {
     setLoading(true)
     setError('')
     try {
       const data = await listUploadedFiles('processed')
-      const nextFiles = data.files || []
-      setFiles(nextFiles)
-      setSelectedKeys(prev => {
-        const availableKeys = nextFiles.map(file => file.key || file.name)
-        const availableSet = new Set(availableKeys)
-        const retained = prev.filter(key => availableSet.has(key))
-        if (retained.length) return retained
-        return availableKeys
-      })
+      setFiles(data.files || [])
     } catch (err) {
       setError(err.message || 'Unable to list processed files')
     } finally {
@@ -330,40 +337,78 @@ export default function DataGrouping() {
   useEffect(() => {
     loadFiles()
     try {
-      const saved = JSON.parse(localStorage.getItem(GROUPING_STORAGE_KEY) || 'null')
-      if (saved) setMetadata(saved)
-      const savedSelection = JSON.parse(localStorage.getItem(PROJECT_SELECTION_STORAGE_KEY) || 'null')
-      if (Array.isArray(savedSelection)) setSelectedKeys(savedSelection)
+      const savedGroups = JSON.parse(localStorage.getItem(GROUPS_STORAGE_KEY) || '[]')
+      if (Array.isArray(savedGroups)) setGroups(savedGroups)
+      const savedMetadata = JSON.parse(localStorage.getItem(GROUPING_STORAGE_KEY) || 'null')
+      if (savedMetadata) setMetadata(savedMetadata)
     } catch {
-      /* ignore bad local metadata */
+      /* ignore bad local grouping state */
     }
   }, [])
 
   useEffect(() => {
-    localStorage.setItem(PROJECT_SELECTION_STORAGE_KEY, JSON.stringify(selectedKeys))
-  }, [selectedKeys])
+    localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups))
+  }, [groups])
 
   useEffect(() => {
     const validGroupIds = new Set(groups.map(group => group.id))
     setSummaries(prev => Object.fromEntries(Object.entries(prev).filter(([groupId]) => validGroupIds.has(groupId))))
   }, [groups])
 
-  function toggleProjectFile(file) {
-    const key = file.key || file.name
+  function resetDraft(type = draftType) {
+    const option = optionForType(type)
+    setEditingGroupId(null)
+    setDraftType(type)
+    setDraftName(option.suggestedName)
+    setDraftKeys([])
+  }
+
+  function changeDraftType(type) {
+    setDraftType(type)
+    if (!editingGroupId) setDraftName(optionForType(type).suggestedName)
+  }
+
+  function toggleDraftFile(file) {
+    const key = fileKey(file)
     setMetadata(null)
-    setSelectedKeys(prev => (
+    setDraftKeys(prev => (
       prev.includes(key) ? prev.filter(item => item !== key) : [...prev, key]
     ))
   }
 
-  function selectAllFiles() {
+  function saveGroup() {
+    if (!draftName.trim() || !selectedDraftFiles.length) return
+    const nextGroup = {
+      id: editingGroupId || `${slugify(draftName)}-${Date.now()}`,
+      name: draftName.trim().replace(/\s+/g, '_'),
+      type: draftType,
+      files: selectedDraftFiles,
+      updatedAt: new Date().toISOString(),
+    }
     setMetadata(null)
-    setSelectedKeys(files.map(file => file.key || file.name))
+    setGroups(prev => {
+      const others = prev.filter(group => group.id !== nextGroup.id)
+      return [...others, nextGroup]
+    })
+    resetDraft(draftType)
   }
 
-  function clearSelectedFiles() {
+  function editGroup(group) {
+    setEditingGroupId(group.id)
+    setDraftName(group.name)
+    setDraftType(group.type)
+    setDraftKeys(group.files.map(file => fileKey(file)))
+  }
+
+  function deleteGroup(groupId) {
     setMetadata(null)
-    setSelectedKeys([])
+    setGroups(prev => prev.filter(group => group.id !== groupId))
+    setSummaries(prev => {
+      const next = { ...prev }
+      delete next[groupId]
+      return next
+    })
+    if (editingGroupId === groupId) resetDraft()
   }
 
   function generateSummary(group) {
@@ -378,13 +423,13 @@ export default function DataGrouping() {
   }
 
   function createMetadata() {
-    const next = buildMetadata({ projectName, projectId, processedPrefix, projectFiles, groups, summaries })
+    const next = buildMetadata({ projectName, projectId, processedPrefix, groups, summaries })
     setMetadata(next)
     localStorage.setItem(GROUPING_STORAGE_KEY, JSON.stringify(next, null, 2))
   }
 
   function downloadMetadata() {
-    const current = metadata || buildMetadata({ projectName, projectId, processedPrefix, projectFiles, groups, summaries })
+    const current = metadata || buildMetadata({ projectName, projectId, processedPrefix, groups, summaries })
     downloadText(`${projectId}-data-grouping-metadata.json`, JSON.stringify(current, null, 2), 'application/json')
   }
 
@@ -395,7 +440,7 @@ export default function DataGrouping() {
           <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Processed data intelligence</p>
           <h1 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Data Grouping</h1>
           <p className="mt-1 max-w-3xl text-xs text-slate-500">
-            Start from files that already cleared the Data Pipeline into /processed. Create a project, group related spreadsheets into logical data objects, write metadata, and generate summary CSVs.
+            Start from files that already cleared the Data Pipeline into /processed. Create editable project data groups first; later, groups with two or more CSV files can produce summary spreadsheets.
           </p>
         </div>
         <button
@@ -411,10 +456,16 @@ export default function DataGrouping() {
 
       <div className="grid gap-3 md:grid-cols-4">
         <Stat label="Processed files" value={files.length} />
-        <Stat label="Project files" value={projectFiles.length} />
-        <Stat label="Detected groups" value={groups.length} />
+        <Stat label="Available files" value={ungroupedFiles.length} />
+        <Stat label="Saved groups" value={groups.length} />
         <Stat label="Summaries" value={Object.keys(summaries).length} />
       </div>
+
+      {USE_MOCK && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          This local server is running in mock mode, so it will not show newly uploaded S3 files. Use the signed-in live app to see real /processed contents.
+        </div>
+      )}
 
       {error && (
         <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -443,73 +494,106 @@ export default function DataGrouping() {
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Project S3 plan</p>
             <div className="mt-2 space-y-1 font-mono text-xs text-slate-700">
               <p>{processedPrefix}{projectId}/</p>
-              <p>{processedPrefix}{projectId}/AR_Invoices/</p>
-              <p>{processedPrefix}{projectId}/AP_Invoices/</p>
+              {groups.length ? groups.map(group => (
+                <p key={group.id}>{processedPrefix}{projectId}/{group.name}/</p>
+              )) : (
+                <>
+                  <p>{processedPrefix}{projectId}/AR_Invoices/</p>
+                  <p>{processedPrefix}{projectId}/AP_Invoices/</p>
+                </>
+              )}
               <p>{processedPrefix}{projectId}/metadata/project.json</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">Choose processed files for this project</h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Selected files become the project working set. Grouping, ungrouped files, metadata, and summaries use only this selection.
-            </p>
+      <section className="grid gap-4 xl:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.1fr)]">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">{editingGroupId ? 'Edit group' : 'Create group'}</h2>
+              <p className="mt-1 text-xs text-slate-500">Choose files from /processed. Files already saved in another group are hidden.</p>
+            </div>
+            {editingGroupId && (
+              <button
+                type="button"
+                onClick={() => resetDraft()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <XCircle size={13} /> Cancel edit
+              </button>
+            )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={selectAllFiles}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              <CheckCircle size={13} /> Select all
-            </button>
-            <button
-              type="button"
-              onClick={clearSelectedFiles}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              <XCircle size={13} /> Clear
-            </button>
-          </div>
-        </div>
-        <div className="mt-3 grid gap-2 lg:grid-cols-2">
-          {files.map(file => (
-            <SelectableFileRow
-              key={file.key || file.name}
-              file={file}
-              checked={selectedKeySet.has(file.key || file.name)}
-              onChange={() => toggleProjectFile(file)}
-            />
-          ))}
-          {!files.length && (
-            <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No processed files found.</p>
-          )}
-        </div>
-        <p className="mt-3 text-xs text-slate-500">
-          {projectFiles.length} of {files.length} processed files selected for <span className="font-medium text-slate-700">{projectName}</span>.
-          {csvCount ? ` ${csvCount} processed CSV files are available.` : ''}
-        </p>
-      </section>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">Detected data objects</h2>
-            <p className="text-xs text-slate-500">Filename rules are the first signal; metadata becomes the durable truth.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400" htmlFor="group-name">Group name</label>
+              <input
+                id="group-name"
+                value={draftName}
+                onChange={(event) => setDraftName(event.target.value)}
+                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400" htmlFor="group-type">Group type</label>
+              <select
+                id="group-type"
+                value={draftType}
+                onChange={(event) => changeDraftType(event.target.value)}
+                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              >
+                {GROUP_TYPE_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={createMetadata}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-          >
-            <Database size={13} /> Create metadata
-          </button>
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">{draftKeys.length} selected · {csvDraftCount} CSV</p>
+            <button
+              type="button"
+              onClick={saveGroup}
+              disabled={!draftName.trim() || !draftKeys.length}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+            >
+              {editingGroupId ? <Save size={13} /> : <Plus size={13} />}
+              {editingGroupId ? 'Save group' : 'Create group'}
+            </button>
+          </div>
+
+          <div className="mt-3 max-h-[440px] space-y-2 overflow-auto pr-1">
+            {availableFiles.map(file => (
+              <AvailableFileRow
+                key={fileKey(file)}
+                file={file}
+                checked={draftKeySet.has(fileKey(file))}
+                onChange={() => toggleDraftFile(file)}
+              />
+            ))}
+            {!availableFiles.length && (
+              <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No available processed files. Existing group files can be changed by editing that group.</p>
+            )}
+          </div>
         </div>
-        <div className="grid gap-4">
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Saved project groups</h2>
+              <p className="text-xs text-slate-500">Each file can belong to one group in this version.</p>
+            </div>
+            <button
+              type="button"
+              onClick={createMetadata}
+              disabled={!groups.length}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+            >
+              <Database size={13} /> Create metadata
+            </button>
+          </div>
           {groups.map(group => (
             <GroupCard
               key={group.id}
@@ -518,13 +602,15 @@ export default function DataGrouping() {
               processedPrefix={processedPrefix}
               summary={summaries[group.id]}
               onGenerateSummary={generateSummary}
+              onEdit={editGroup}
+              onDelete={deleteGroup}
             />
           ))}
           {!groups.length && (
             <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
               <FileSpreadsheet size={24} className="mx-auto text-slate-400" />
-              <p className="mt-2 text-sm font-semibold text-slate-800">No AR/AP invoice groups detected yet.</p>
-              <p className="mt-1 text-xs text-slate-500">Upload processed files named AR_Invoice* or AP_Invoice* to see automatic grouping.</p>
+              <p className="mt-2 text-sm font-semibold text-slate-800">No project groups yet.</p>
+              <p className="mt-1 text-xs text-slate-500">Select processed files and create the first logical data group.</p>
             </div>
           )}
         </div>
@@ -532,10 +618,10 @@ export default function DataGrouping() {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-900">Ungrouped processed files</h2>
-          <p className="mt-1 text-xs text-slate-500">These remain in the project, but are not part of a spreadsheet data object yet.</p>
+          <h2 className="text-sm font-bold text-slate-900">Available ungrouped files</h2>
+          <p className="mt-1 text-xs text-slate-500">These files are still available for a new or edited group.</p>
           <div className="mt-3 space-y-2">
-            {ungrouped.length ? ungrouped.map(file => <FileRow key={file.key || file.name} file={file} />) : (
+            {ungroupedFiles.length ? ungroupedFiles.map(file => <FileRow key={fileKey(file)} file={file} />) : (
               <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No ungrouped files.</p>
             )}
           </div>
