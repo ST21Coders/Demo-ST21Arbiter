@@ -242,9 +242,12 @@ Resources:
         Fn::ImportValue: !Sub "${Environment}-${ProjectName}-AuditCognitoSubscriberRoleArn"
       Timeout: 10
       MemorySize: 256
-      VpcConfig:
-        SubnetIds: []
-        SecurityGroupIds: []
+      # Inherits Globals.Function.VpcConfig (PrivateSubnet1 + LambdaSG). An
+      # empty-array override here does NOT cleanly disable VPC (CFN treats it
+      # as "VPC attached, but empty"), so we let the global apply and grant
+      # AWSLambdaVPCAccessExecutionRole on the role in 02-security.yaml.
+      # The Lambda only calls DynamoDB and CloudWatch Logs; both reachable
+      # from inside the VPC.
       Environment:
         Variables:
           AUDIT_LOG_TABLE_NAME:
