@@ -43,33 +43,66 @@ def _extract_actor(detail: dict) -> str:
 
     CloudTrail often redacts the attempted username on failed auth. Try the
     documented fallback chain and end at the literal ``unknown``.
-    """
-    add = detail.get("additionalEventData") or {}
-    if add.get("userIdentifier"):
-        return str(add["userIdentifier"])
 
-    req = detail.get("requestParameters") or {}
-    if req.get("username"):
-        return str(req["username"])
-    # Some CloudTrail events nest the attempted username under authParameters.
-    auth_params = req.get("authParameters") or {}
-    if auth_params.get("USERNAME"):
-        return str(auth_params["USERNAME"])
+    Defensive against CloudTrail's redaction shapes: any field expected to be
+    a dict may instead be a literal string like
+    ``"HIDDEN_DUE_TO_SECURITY_REASONS"``. We type-check before calling
+    ``.get()`` so a redacted field doesn't crash the Lambda. Original bug
+    surfaced 2026-06-15: real failed InitiateAuth events carry
+    ``authParameters = "HIDDEN_DUE_TO_SECURITY_REASONS"`` (string) and the
+    Lambda was crashing on every retry.
+    """
+    add = detail.get("additionalEventData")
+    if isinstance(add, dict):
+        user_identifier = add.get("userIdentifier")
+        if user_identifier:
+            return str(user_identifier)
+
+    req = detail.get("requestParameters")
+    if isinstance(req, dict):
+        username = req.get("username")
+        if username:
+            return str(username)
+        # Some CloudTrail events nest the attempted username here. Cognito
+        # redacts this whole sub-object on failed auth, so guard the type.
+        auth_params = req.get("authParameters")
+        if isinstance(auth_params, dict):
+            username = auth_params.get("USERNAME")
+            if username:
+                return str(username)
 
     return "unknown"
 
 
 def handler(event, _context):
-    """EventBridge → audit-log writer. Always returns 200."""
+    """EventBridge → audit-log writer. Always returns 200.
+
+    Extraction is wrapped in a broad try/except so a CloudTrail event with an
+    unexpected shape (redacted field, missing key, etc.) never crashes the
+    Lambda. EventBridge retries a 5xx, and we never want a malformed event to
+    fan out into N retries.
+    """
     detail = (event or {}).get("detail") or {}
 
-    actor_id = _extract_actor(detail)
-    source_ip = detail.get("sourceIPAddress") or "unknown"
-    error_code = detail.get("errorCode") or "unknown"
-    user_agent = detail.get("userAgent") or "unknown"
-    event_id_cloudtrail = detail.get("eventID") or ""
-    event_time = detail.get("eventTime") or datetime.now(timezone.utc).isoformat()
-    event_name = detail.get("eventName") or ""
+    try:
+        actor_id = _extract_actor(detail)
+        source_ip = detail.get("sourceIPAddress") or "unknown"
+        error_code = detail.get("errorCode") or "unknown"
+        user_agent = detail.get("userAgent") or "unknown"
+        event_id_cloudtrail = detail.get("eventID") or ""
+        event_time = detail.get("eventTime") or datetime.now(timezone.utc).isoformat()
+        event_name = detail.get("eventName") or ""
+    except Exception:
+        logger.warning(
+            "AUTH_FAILED extraction failed for event %s",
+            (event or {}).get("id"),
+            exc_info=True,
+        )
+        return {
+            "statusCode": 200,
+            "body": json.dumps({"written": False, "action_type": "AUTH_FAILED",
+                                "reason": "extraction_failed"}),
+        }
 
     # The microsecond suffix keeps event_ids unique even when CloudTrail replays
     # the same eventID (extremely rare, but the DDB primary key is (event_id,
