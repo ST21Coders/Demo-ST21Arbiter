@@ -40,6 +40,7 @@ import json
 import logging
 import os
 import re
+import time
 from typing import Any
 from decimal import Decimal
 from datetime import datetime, timezone, timedelta
@@ -734,8 +735,52 @@ def _require_ciso(event):
     form (Cognito JWT) and the comma-separated form (API Gateway authorizer
     flattening). Frontend gating is insufficient — the API is reachable with
     any valid IdToken, so this is the actual security check.
+
+    On a non-CISO caller, a best-effort CROSS_PERSONA audit row is written
+    before the 403. The forged-`cognito:groups` scenario lands here too — we
+    cannot tell a forged token from a real one at the API layer (no JWT
+    signature verification on the Function URL path), so the canary value
+    appears in details.caller_groups and that is enough signal for an auditor.
     """
-    if "ciso" not in _caller_groups(event):
+    caller_groups = _caller_groups(event)
+    if "ciso" not in caller_groups:
+        # Best-effort audit write. Wrapped so any failure in claim extraction
+        # or in _audit itself never blocks the 403 response.
+        try:
+            claims = _caller_claims(event)
+            req_ctx = event.get("requestContext", {}) or {}
+            http_ctx = req_ctx.get("http", {}) or {}
+            path = (event.get("rawPath")
+                    or event.get("path")
+                    or http_ctx.get("path")
+                    or "unknown")
+            method = (event.get("httpMethod")
+                      or http_ctx.get("method")
+                      or "")
+            source_ip = (http_ctx.get("sourceIp")
+                         or (req_ctx.get("identity", {}) or {}).get("sourceIp")
+                         or "unknown")
+            user_label = (claims.get("email")
+                          or claims.get("cognito:username")
+                          or _caller_user_id(event)
+                          or "unknown")
+            _audit(
+                "CROSS_PERSONA",
+                path,
+                user_label,
+                "DENIED",
+                {
+                    "path": path,
+                    "method": method,
+                    "required_group": "ciso",
+                    "caller_groups": caller_groups,
+                    "caller_sub": claims.get("sub"),
+                    "source_ip": source_ip,
+                },
+                ttl_seconds=90 * 24 * 60 * 60,  # 90 days
+            )
+        except Exception as e:
+            logger.warning("audit CROSS_PERSONA write failed: %s", e)
         return _err(403, "Token Tracking is restricted to the CISO persona")
     return None
 
@@ -1893,11 +1938,11 @@ def _build_approver_chain(target_env: str, severity: str) -> list[dict]:
     return chain
 
 
-def _audit(action_type: str, resource: str, user: str, status: str, details: dict | None = None):
+def _audit(action_type: str, resource: str, user: str, status: str, details: dict | None = None, ttl_seconds: int | None = None):
     if not audit_table:
         return
     try:
-        audit_table.put_item(Item={
+        item = {
             "event_id": f"{action_type.lower()}-{resource}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "action_type": action_type,
@@ -1905,7 +1950,13 @@ def _audit(action_type: str, resource: str, user: str, status: str, details: dic
             "user": user,
             "status": status,
             "details": json.dumps(details or {}),
-        })
+        }
+        # Opt-in TTL: only the new security-event call sites (CROSS_PERSONA,
+        # AUTH_FAILED) pass ttl_seconds; existing callers keep their no-TTL
+        # behaviour so the back-compat contract is preserved.
+        if ttl_seconds is not None:
+            item["ttl"] = int(time.time()) + ttl_seconds
+        audit_table.put_item(Item=item)
     except Exception:
         logger.exception("audit write failed (%s)", action_type)
 
