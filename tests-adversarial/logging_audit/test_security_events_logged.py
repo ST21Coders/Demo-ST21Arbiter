@@ -121,10 +121,19 @@ def _scan_recent_audit_rows(
 
 
 def _now_iso() -> str:
-    """Current UTC ISO timestamp, second precision. Matches the audit-log
-    table's documented ``timestamp`` attribute shape.
+    """Current UTC ISO timestamp shaped to sort-compare correctly against the
+    rows the API handler writes.
+
+    The audit writer (api_handler.py::_audit and the cognito-subscriber
+    Lambda) writes ``datetime.now(timezone.utc).isoformat()`` which is shaped
+    ``2026-06-15T18:14:06.508043+00:00``. If we emitted the trailing ``Z``
+    convention here, the FilterExpression ``timestamp >= start_iso`` would
+    silently miss every row written in the same second as start_iso, because
+    ``.`` (ASCII 46) sorts before ``Z`` (ASCII 90). Returning a value with
+    the ``+00:00`` offset (no microseconds: a zero-microsecond row is still
+    >= this string) keeps the lexicographic compare honest.
     """
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
 
 def _record_and_assert(
