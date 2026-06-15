@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle, CheckCircle, Database, Download, FileSpreadsheet, FolderTree,
-  Loader2, RefreshCw, Wand2,
+  Loader2, RefreshCw, Wand2, XCircle,
 } from 'lucide-react'
 import { listUploadedFiles } from '../hooks/useApi'
 
 const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.projectMetadata'
+const PROJECT_SELECTION_STORAGE_KEY = 'arbiter.dataGrouping.projectSelection'
 
 const SAMPLE_ROWS = {
   'AR_Invoice_001.csv': [
@@ -134,7 +135,7 @@ function amountTotal(rows) {
   return rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0)
 }
 
-function buildMetadata({ projectName, projectId, processedPrefix, groups, summaries }) {
+function buildMetadata({ projectName, projectId, processedPrefix, projectFiles, groups, summaries }) {
   const createdAt = new Date().toISOString()
   return {
     projectId,
@@ -143,6 +144,12 @@ function buildMetadata({ projectName, projectId, processedPrefix, groups, summar
     sourcePrefix: processedPrefix,
     processedPrefix,
     groupVersion: '0.1',
+    projectFiles: projectFiles.map(file => ({
+      name: file.name,
+      key: file.key,
+      size: file.size,
+      lastModified: file.last_modified,
+    })),
     dataObjects: groups.map(group => ({
       id: group.id,
       type: group.type,
@@ -180,6 +187,30 @@ function FileRow({ file }) {
       </div>
       <span className="shrink-0 text-xs text-slate-500">{formatBytes(file.size)}</span>
     </div>
+  )
+}
+
+function SelectableFileRow({ file, checked, onChange }) {
+  const checkboxId = `processed-file-${file.key || file.name}`.replace(/[^a-zA-Z0-9_-]/g, '-')
+
+  return (
+    <label
+      htmlFor={checkboxId}
+      className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50"
+    >
+      <input
+        id={checkboxId}
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+      />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-slate-800" title={file.name}>{file.name}</p>
+        <p className="truncate font-mono text-[10px] text-slate-400" title={file.key}>{file.key}</p>
+      </div>
+      <span className="shrink-0 text-xs text-slate-500">{formatBytes(file.size)}</span>
+    </label>
   )
 }
 
@@ -263,10 +294,16 @@ export default function DataGrouping() {
   const [error, setError] = useState('')
   const [summaries, setSummaries] = useState({})
   const [metadata, setMetadata] = useState(null)
+  const [selectedKeys, setSelectedKeys] = useState([])
 
   const projectId = slugify(projectName)
   const processedPrefix = 'processed/'
-  const { groups, ungrouped } = useMemo(() => detectGroups(files), [files])
+  const selectedKeySet = useMemo(() => new Set(selectedKeys), [selectedKeys])
+  const projectFiles = useMemo(
+    () => files.filter(file => selectedKeySet.has(file.key || file.name)),
+    [files, selectedKeySet],
+  )
+  const { groups, ungrouped } = useMemo(() => detectGroups(projectFiles), [projectFiles])
   const csvCount = files.filter(file => /\.csv$/i.test(file.name || '')).length
 
   async function loadFiles() {
@@ -274,7 +311,15 @@ export default function DataGrouping() {
     setError('')
     try {
       const data = await listUploadedFiles('processed')
-      setFiles(data.files || [])
+      const nextFiles = data.files || []
+      setFiles(nextFiles)
+      setSelectedKeys(prev => {
+        const availableKeys = nextFiles.map(file => file.key || file.name)
+        const availableSet = new Set(availableKeys)
+        const retained = prev.filter(key => availableSet.has(key))
+        if (retained.length) return retained
+        return availableKeys
+      })
     } catch (err) {
       setError(err.message || 'Unable to list processed files')
     } finally {
@@ -287,12 +332,42 @@ export default function DataGrouping() {
     try {
       const saved = JSON.parse(localStorage.getItem(GROUPING_STORAGE_KEY) || 'null')
       if (saved) setMetadata(saved)
+      const savedSelection = JSON.parse(localStorage.getItem(PROJECT_SELECTION_STORAGE_KEY) || 'null')
+      if (Array.isArray(savedSelection)) setSelectedKeys(savedSelection)
     } catch {
       /* ignore bad local metadata */
     }
   }, [])
 
+  useEffect(() => {
+    localStorage.setItem(PROJECT_SELECTION_STORAGE_KEY, JSON.stringify(selectedKeys))
+  }, [selectedKeys])
+
+  useEffect(() => {
+    const validGroupIds = new Set(groups.map(group => group.id))
+    setSummaries(prev => Object.fromEntries(Object.entries(prev).filter(([groupId]) => validGroupIds.has(groupId))))
+  }, [groups])
+
+  function toggleProjectFile(file) {
+    const key = file.key || file.name
+    setMetadata(null)
+    setSelectedKeys(prev => (
+      prev.includes(key) ? prev.filter(item => item !== key) : [...prev, key]
+    ))
+  }
+
+  function selectAllFiles() {
+    setMetadata(null)
+    setSelectedKeys(files.map(file => file.key || file.name))
+  }
+
+  function clearSelectedFiles() {
+    setMetadata(null)
+    setSelectedKeys([])
+  }
+
   function generateSummary(group) {
+    setMetadata(null)
     setSummaries(prev => ({
       ...prev,
       [group.id]: {
@@ -303,13 +378,13 @@ export default function DataGrouping() {
   }
 
   function createMetadata() {
-    const next = buildMetadata({ projectName, projectId, processedPrefix, groups, summaries })
+    const next = buildMetadata({ projectName, projectId, processedPrefix, projectFiles, groups, summaries })
     setMetadata(next)
     localStorage.setItem(GROUPING_STORAGE_KEY, JSON.stringify(next, null, 2))
   }
 
   function downloadMetadata() {
-    const current = metadata || buildMetadata({ projectName, projectId, processedPrefix, groups, summaries })
+    const current = metadata || buildMetadata({ projectName, projectId, processedPrefix, projectFiles, groups, summaries })
     downloadText(`${projectId}-data-grouping-metadata.json`, JSON.stringify(current, null, 2), 'application/json')
   }
 
@@ -336,7 +411,7 @@ export default function DataGrouping() {
 
       <div className="grid gap-3 md:grid-cols-4">
         <Stat label="Processed files" value={files.length} />
-        <Stat label="CSV files" value={csvCount} />
+        <Stat label="Project files" value={projectFiles.length} />
         <Stat label="Detected groups" value={groups.length} />
         <Stat label="Summaries" value={Object.keys(summaries).length} />
       </div>
@@ -354,7 +429,10 @@ export default function DataGrouping() {
             <input
               id="project-name"
               value={projectName}
-              onChange={(event) => setProjectName(event.target.value)}
+              onChange={(event) => {
+                setMetadata(null)
+                setProjectName(event.target.value)
+              }}
               className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
             />
             <p className="mt-2 text-xs text-slate-500">
@@ -371,6 +449,50 @@ export default function DataGrouping() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">Choose processed files for this project</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Selected files become the project working set. Grouping, ungrouped files, metadata, and summaries use only this selection.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={selectAllFiles}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              <CheckCircle size={13} /> Select all
+            </button>
+            <button
+              type="button"
+              onClick={clearSelectedFiles}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              <XCircle size={13} /> Clear
+            </button>
+          </div>
+        </div>
+        <div className="mt-3 grid gap-2 lg:grid-cols-2">
+          {files.map(file => (
+            <SelectableFileRow
+              key={file.key || file.name}
+              file={file}
+              checked={selectedKeySet.has(file.key || file.name)}
+              onChange={() => toggleProjectFile(file)}
+            />
+          ))}
+          {!files.length && (
+            <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No processed files found.</p>
+          )}
+        </div>
+        <p className="mt-3 text-xs text-slate-500">
+          {projectFiles.length} of {files.length} processed files selected for <span className="font-medium text-slate-700">{projectName}</span>.
+          {csvCount ? ` ${csvCount} processed CSV files are available.` : ''}
+        </p>
       </section>
 
       <section className="space-y-3">
