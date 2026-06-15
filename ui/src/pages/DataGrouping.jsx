@@ -232,27 +232,41 @@ function FileRow({ file, action }) {
   )
 }
 
-function AvailableFileRow({ file, checked, onChange }) {
-  const checkboxId = `processed-file-${fileKey(file)}`.replace(/[^a-zA-Z0-9_-]/g, '-')
-
+function AvailableFileRow({ file, onAdd }) {
   return (
-    <label
-      htmlFor={checkboxId}
-      className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:bg-slate-50"
-    >
-      <input
-        id={checkboxId}
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-      />
+    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-slate-800" title={file.name}>{file.name}</p>
         <p className="truncate font-mono text-[10px] text-slate-400" title={file.key}>{file.key}</p>
       </div>
       <span className="shrink-0 text-xs text-slate-500">{formatBytes(file.size)}</span>
-    </label>
+      <button
+        type="button"
+        onClick={onAdd}
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
+      >
+        <Plus size={13} /> Add
+      </button>
+    </div>
+  )
+}
+
+function SelectedDraftFileRow({ file, onRemove }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-slate-800" title={file.name}>{file.name}</p>
+        <p className="truncate font-mono text-[10px] text-indigo-400" title={file.key}>{file.key}</p>
+      </div>
+      <span className="shrink-0 text-xs text-slate-500">{formatBytes(file.size)}</span>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
+      >
+        <Trash2 size={13} /> Remove
+      </button>
+    </div>
   )
 }
 
@@ -384,6 +398,10 @@ export default function DataGrouping() {
       return !assignedKeySet.has(key) || editingGroup?.files.some(groupFile => fileKey(groupFile) === key)
     })
   ), [files, assignedKeySet, editingGroup])
+  const addableFiles = useMemo(
+    () => availableFiles.filter(file => !draftKeySet.has(fileKey(file))),
+    [availableFiles, draftKeySet],
+  )
   const ungroupedFiles = useMemo(() => files.filter(file => !assignedKeySet.has(fileKey(file))), [files, assignedKeySet])
   const selectedDraftFiles = useMemo(() => files.filter(file => draftKeySet.has(fileKey(file))), [files, draftKeySet])
   const csvCount = files.filter(file => /\.csv$/i.test(file.name || '')).length
@@ -440,12 +458,16 @@ export default function DataGrouping() {
     if (!editingGroupId) setDraftName(optionForType(type).suggestedName)
   }
 
-  function toggleDraftFile(file) {
+  function addDraftFile(file) {
     const key = fileKey(file)
     setMetadata(null)
-    setDraftKeys(prev => (
-      prev.includes(key) ? prev.filter(item => item !== key) : [...prev, key]
-    ))
+    setDraftKeys(prev => (prev.includes(key) ? prev : [...prev, key]))
+  }
+
+  function removeDraftFile(file) {
+    const key = fileKey(file)
+    setMetadata(null)
+    setDraftKeys(prev => prev.filter(item => item !== key))
   }
 
   function saveGroup() {
@@ -653,17 +675,42 @@ export default function DataGrouping() {
             </button>
           </div>
 
-          <div className="mt-3 max-h-[440px] space-y-2 overflow-auto pr-1">
-            {availableFiles.map(file => (
-              <AvailableFileRow
-                key={fileKey(file)}
-                file={file}
-                checked={draftKeySet.has(fileKey(file))}
-                onChange={() => toggleDraftFile(file)}
-              />
-            ))}
-            {!availableFiles.length && (
-              <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No available processed files. Existing group files can be changed by editing that group.</p>
+          <div className="mt-4 grid gap-4">
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Files in this group</p>
+              <div className="space-y-2">
+                {selectedDraftFiles.map(file => (
+                  <SelectedDraftFileRow
+                    key={fileKey(file)}
+                    file={file}
+                    onRemove={() => removeDraftFile(file)}
+                  />
+                ))}
+                {!selectedDraftFiles.length && (
+                  <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-500">No files selected for this group yet.</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Available files to add</p>
+              <div className="max-h-[320px] space-y-2 overflow-auto pr-1">
+                {addableFiles.map(file => (
+                  <AvailableFileRow
+                    key={fileKey(file)}
+                    file={file}
+                    onAdd={() => addDraftFile(file)}
+                  />
+                ))}
+                {!addableFiles.length && (
+                  <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No available processed files. Files already saved in another group are hidden.</p>
+                )}
+              </div>
+            </div>
+            {editingGroupId && (
+              <p className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-700">
+                Editing this group releases its current files only inside this editor. Save group to keep changes, or cancel edit to leave the saved group unchanged.
+              </p>
             )}
           </div>
         </div>
