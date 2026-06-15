@@ -255,14 +255,20 @@ Resources:
       Tags:
         Name: !Sub "${Environment}-${ProjectName}-audit-cognito-subscriber"
 
-  # Filters CloudTrail's Cognito API calls to failed sign-ins on the dev user
-  # pool only. Scoping by userPoolId means this rule won't fire on any other
-  # Cognito pool that lands in this account later.
+  # Filters CloudTrail's Cognito API calls to failed sign-ins on the dev pool.
+  #
+  # We scope by clientId, NOT userPoolId. Cognito's public InitiateAuth events
+  # (the brute-force vector) carry only clientId in requestParameters; only
+  # AdminInitiateAuth carries userPoolId. Filtering by userPoolId would silently
+  # ignore every real failed sign-in from the browser path. (Verified live
+  # against CloudTrail: requestParameters = {authFlow, authParameters, clientId}.)
+  # Each Cognito app client is unique to one pool, so clientId is still narrowly
+  # scoped to the dev pool.
   AuditCognitoSubscriberRule:
     Type: AWS::Events::Rule
     Properties:
       Name: !Sub "${Environment}-${ProjectName}-cognito-auth-failed"
-      Description: "Failed Cognito sign-ins on the dev user pool → audit subscriber"
+      Description: "Failed Cognito sign-ins on the dev pool → audit subscriber"
       State: ENABLED
       EventPattern:
         source:
@@ -276,8 +282,8 @@ Resources:
             - UserNotConfirmedException
             - PasswordResetRequiredException
           requestParameters:
-            userPoolId:
-              - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-UserPoolId"
+            clientId:
+              - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-UserPoolClientId"
       Targets:
         - Arn: !GetAtt AuditCognitoSubscriberFunction.Arn
           Id: AuditCognitoSubscriber
