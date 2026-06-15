@@ -182,6 +182,54 @@ def test_missing_fields_fall_back_to_unknown(monkeypatch):
     assert details["event_id_cloudtrail"] == "evt-redacted"
 
 
+# ─────────────── 2b. CloudTrail-redacted authParameters (real shape) ──────
+# Regression for the 2026-06-15 outage: the original _extract_actor called
+# .get("USERNAME") on authParameters, which Cognito redacts to the literal
+# string "HIDDEN_DUE_TO_SECURITY_REASONS" on failed InitiateAuth. Strings have
+# no .get(), so the Lambda crashed on every real event and EventBridge retried
+# fruitlessly. This test pins the real CloudTrail shape so a regression brings
+# the test red before it brings prod red.
+def test_redacted_authparameters_does_not_crash(monkeypatch):
+    fake = _FakeTable()
+    handler = _import_handler(monkeypatch, fake_table=fake)
+
+    event = {
+        "id": "real-shape-1",
+        "detail-type": "AWS API Call via CloudTrail",
+        "source": "aws.cognito-idp",
+        "detail": {
+            "eventTime": "2026-06-15T18:48:00Z",
+            "eventName": "InitiateAuth",
+            "errorCode": "NotAuthorizedException",
+            "sourceIPAddress": "203.0.113.99",
+            "userAgent": "Boto3/1.43.12",
+            "requestParameters": {
+                "authFlow": "USER_PASSWORD_AUTH",
+                # The real shape: a string, not a dict.
+                "authParameters": "HIDDEN_DUE_TO_SECURITY_REASONS",
+                "clientId": "7jj2t2ng0nta408g0h302f39ks",
+            },
+            "eventID": "ct-12345",
+        },
+    }
+
+    result = handler.handler(event, None)
+
+    # Must not crash. Must still write the row. Username falls back to unknown
+    # because no extractable field was available.
+    assert result["statusCode"] == 200
+    body = json.loads(result["body"])
+    assert body["written"] is True
+    assert len(fake.items) == 1
+    item = fake.items[0]
+    assert item["user"] == "unknown"
+    assert item["action_type"] == "AUTH_FAILED"
+    assert item["status"] == "NotAuthorizedException"
+    # Source IP and other top-level fields survive.
+    details = json.loads(item["details"])
+    assert details["source_ip"] == "203.0.113.99"
+
+
 # ──────────────────────── 3. DDB raises ────────────────────────────────────
 def test_ddb_failure_does_not_raise(monkeypatch, caplog):
     err = ClientError(
