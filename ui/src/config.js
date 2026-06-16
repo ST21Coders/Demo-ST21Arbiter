@@ -106,5 +106,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.5.24'
-export const APP_VERSION_NOTE = 'Normalize summary CSV for agent briefing'
+export const APP_VERSION = '1.5.25'
+export const APP_VERSION_NOTE = 'Add vendor department summary dimension'

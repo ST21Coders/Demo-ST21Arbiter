@@ -238,25 +238,29 @@ function recordCountSummaryRows(group) {
   const fileRows = sourceFiles.map(file => ({
     summary_type: 'file',
     dimension: file.name,
+    dimension2: '',
     record_count: file.csvText ? parseCsv(file.csvText).length : 'not_loaded',
     invoice_amount: '',
   }))
   const total = fileRows.reduce((sum, row) => sum + (Number(row.record_count) || 0), 0)
   const loadedRows = loadedRowsForFiles(sourceFiles)
-  const aggregateRows = (summaryType, valueForRow) => {
+  const aggregateRows = (summaryType, valueForRow, secondValueForRow = null) => {
     const byDimension = new Map()
     loadedRows.forEach(row => {
       const dimension = valueForRow(row)
-      const current = byDimension.get(dimension) || { record_count: 0, invoice_amount: 0 }
+      const dimension2 = secondValueForRow ? secondValueForRow(row) : ''
+      const key = `${dimension}\u0000${dimension2}`
+      const current = byDimension.get(key) || { dimension, dimension2, record_count: 0, invoice_amount: 0 }
       current.record_count += 1
       current.invoice_amount += invoiceAmount(row)
-      byDimension.set(dimension, current)
+      byDimension.set(key, current)
     })
-    return [...byDimension.entries()]
-      .sort(([leftDimension], [rightDimension]) => leftDimension.localeCompare(rightDimension))
-      .map(([dimension, summary]) => ({
+    return [...byDimension.values()]
+      .sort((left, right) => left.dimension.localeCompare(right.dimension) || left.dimension2.localeCompare(right.dimension2))
+      .map(summary => ({
         summary_type: summaryType,
-        dimension,
+        dimension: summary.dimension,
+        dimension2: summary.dimension2,
         record_count: summary.record_count,
         invoice_amount: summary.invoice_amount.toFixed(2),
       }))
@@ -264,9 +268,8 @@ function recordCountSummaryRows(group) {
 
   return [
     ...fileRows,
-    { summary_type: 'total', dimension: 'TOTAL RECORDS', record_count: total, invoice_amount: '' },
-    ...aggregateRows('vendor', vendorName),
-    ...aggregateRows('department', departmentName),
+    { summary_type: 'total', dimension: 'TOTAL RECORDS', dimension2: '', record_count: total, invoice_amount: '' },
+    ...aggregateRows('vendor_department', vendorName, departmentName),
     ...aggregateRows('status', statusValue),
   ]
 }
