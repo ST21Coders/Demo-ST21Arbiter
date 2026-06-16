@@ -6,9 +6,9 @@ import {
 import { USE_MOCK } from '../config'
 import { listUploadedFiles } from '../hooks/useApi'
 
-const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.projectMetadata'
-const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.savedGroups'
-const METADATA_LEDGER_STORAGE_KEY = 'arbiter.dataGrouping.metadataLedger'
+const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.v2.projectMetadata'
+const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.v2.savedGroups'
+const METADATA_LEDGER_STORAGE_KEY = 'arbiter.dataGrouping.v2.metadataLedger'
 const ASSOCIATION_OPTIONS = ['A', 'B', 'C', 'D', 'E']
 
 const GROUP_TYPE_OPTIONS = [
@@ -1024,7 +1024,7 @@ export default function DataGrouping() {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-900">Add ungrouped files to current group</h2>
+          <h2 className="text-sm font-bold text-slate-900">Add files from /processed</h2>
           <p className="mt-1 text-xs text-slate-500">All processed files appear here. Available files can be added; selected or saved-group files are shown with status.</p>
           <div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">
             {files.length ? files.map(file => {
