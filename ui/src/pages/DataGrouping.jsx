@@ -192,6 +192,20 @@ function statusValue(row) {
   return normalizedStatus(row.Status ?? row.status)
 }
 
+function vendorName(row) {
+  return String(
+    row.Vendor_Name ??
+    row.vendor_name ??
+    row.Vendor ??
+    row.vendor ??
+    row.Client_Name ??
+    row.client_name ??
+    row.Customer_Name ??
+    row.customer_name ??
+    'Unknown'
+  ).trim() || 'Unknown'
+}
+
 function summarySourceFiles(group) {
   const csvFiles = group.files.filter(file => !file.summary && /\.csv$/i.test(file.name || ''))
   const associatedKeys = new Set((group.associations || []).flatMap(association => association.fileKeys))
@@ -214,10 +228,13 @@ function recordCountSummaryRows(group) {
     status: '',
     status_record_count: '',
     invoice_amount: '',
+    vendor_name: '',
+    vendor_record_count: '',
   }))
   const total = fileRows.reduce((sum, row) => sum + (Number(row.loaded_record_count) || 0), 0)
   const statusCounts = new Map()
-  loadedRowsForFiles(sourceFiles).forEach(row => {
+  const loadedRows = loadedRowsForFiles(sourceFiles)
+  loadedRows.forEach(row => {
     const status = statusValue(row)
     const current = statusCounts.get(status) || { count: 0, invoice_amount: 0 }
     current.count += 1
@@ -233,12 +250,35 @@ function recordCountSummaryRows(group) {
       status,
       status_record_count: summary.count,
       invoice_amount: summary.invoice_amount.toFixed(2),
+      vendor_name: '',
+      vendor_record_count: '',
+    }))
+  const vendorCounts = new Map()
+  loadedRows.forEach(row => {
+    const name = vendorName(row)
+    const current = vendorCounts.get(name) || { count: 0, invoice_amount: 0 }
+    current.count += 1
+    current.invoice_amount += invoiceAmount(row)
+    vendorCounts.set(name, current)
+  })
+  const vendorRows = [...vendorCounts.entries()]
+    .sort(([leftName], [rightName]) => leftName.localeCompare(rightName))
+    .map(([name, summary]) => ({
+      section: 'vendor_record_counts',
+      file_name: '',
+      loaded_record_count: '',
+      status: '',
+      status_record_count: '',
+      invoice_amount: summary.invoice_amount.toFixed(2),
+      vendor_name: name,
+      vendor_record_count: summary.count,
     }))
 
   return [
     ...fileRows,
-    { section: 'file_record_counts', file_name: 'TOTAL RECORDS', loaded_record_count: total, status: '', status_record_count: '', invoice_amount: '' },
+    { section: 'file_record_counts', file_name: 'TOTAL RECORDS', loaded_record_count: total, status: '', status_record_count: '', invoice_amount: '', vendor_name: '', vendor_record_count: '' },
     ...statusRows,
+    ...vendorRows,
   ]
 }
 
