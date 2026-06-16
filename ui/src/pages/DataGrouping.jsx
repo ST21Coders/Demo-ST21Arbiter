@@ -150,9 +150,16 @@ function makeSummaryName(groupName, groupType) {
   return `SUM_${String(groupName || 'Group').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '')}.csv`
 }
 
-function rowsForGroup(group) {
-  return group.files.filter(file => !file.summary).flatMap(file => {
-    const rows = file.csvText ? parseCsv(file.csvText) : (SAMPLE_ROWS[file.name] || [])
+function rowsForFile(file) {
+  const builtInMockKey = `users/mock/processed/${file.name}`
+  if (file.csvText) return parseCsv(file.csvText)
+  if (file.key === builtInMockKey) return SAMPLE_ROWS[file.name] || []
+  return []
+}
+
+function rowsForFiles(files) {
+  return files.filter(file => !file.summary).flatMap(file => {
+    const rows = rowsForFile(file)
     if (!rows.length) {
       return [{
         source_file: file.name,
@@ -162,6 +169,10 @@ function rowsForGroup(group) {
     }
     return rows.map(row => ({ source_file: file.name, ...row }))
   })
+}
+
+function rowsForGroup(group) {
+  return rowsForFiles(group.files)
 }
 
 function normalizedStatus(value) {
@@ -181,15 +192,23 @@ function statusValue(row) {
   return normalizedStatus(row.Status ?? row.status)
 }
 
+function summarySourceFiles(group) {
+  const csvFiles = group.files.filter(file => !file.summary && /\.csv$/i.test(file.name || ''))
+  const associatedKeys = new Set((group.associations || []).flatMap(association => association.fileKeys))
+  if (!associatedKeys.size) return csvFiles
+  return csvFiles.filter(file => associatedKeys.has(fileKey(file)))
+}
+
 function invoiceSummaryRows(group) {
-  const csvRows = rowsForGroup(group).filter(row => !row.note)
+  const sourceFiles = summarySourceFiles(group)
+  const csvRows = rowsForFiles(sourceFiles).filter(row => !row.note)
   if (!csvRows.length) {
     return [{
       status: 'No Loaded CSV Rows',
       invoice_count: 0,
       total_invoice_amount: '0.00',
       average_invoice_amount: '0.00',
-      source_file_count: 0,
+      source_file_count: sourceFiles.length,
     }]
   }
   const byStatus = new Map()
@@ -214,7 +233,7 @@ function invoiceSummaryRows(group) {
 }
 
 function columnsForCsv(file) {
-  const rows = file.csvText ? parseCsv(file.csvText) : (SAMPLE_ROWS[file.name] || [])
+  const rows = rowsForFile(file)
   if (rows[0]) return Object.keys(rows[0])
   return ['source_file', 'source_key', 'note']
 }
@@ -580,6 +599,8 @@ function GroupCard({
   const canSummarize = csvFiles.length >= 2
   const validation = validateGroup(group)
   const previewRows = rowsForGroup(group).slice(0, 5)
+  const summarySourceFileCount = summary?.sourceFileCount ?? summarySourceFiles(group).length
+  const summarySourceRowCount = summary?.sourceRowCount ?? rowsForFiles(summarySourceFiles(group)).filter(row => !row.note).length
   const summaryFile = makeSummaryName(group.name, group.type)
   const targetPrefix = `${processedPrefix}${projectId}/${group.name}/`
 
@@ -788,7 +809,7 @@ function GroupCard({
             {activeAction === 'summary' && (
               <div className="mt-3 rounded-lg border border-indigo-200 bg-white p-3">
                 <p className="text-xs font-bold text-indigo-800">{summary ? 'Summary CSV generated' : 'Generating summary CSV'}</p>
-                <p className="mt-1 text-xs text-slate-500">{summary ? `${summaryFile} contains ${rows.length} status summary rows from ${csvFiles.length} CSV files.` : 'Click Generate summary CSV to create a local status summary.'}</p>
+                <p className="mt-1 text-xs text-slate-500">{summary ? `${summaryFile} contains ${rows.length} status summary rows from ${summarySourceFileCount} CSV files and ${summarySourceRowCount} loaded source rows.` : 'Click Generate summary CSV to create a local status summary.'}</p>
               </div>
             )}
           </div>
@@ -1123,6 +1144,8 @@ export default function DataGrouping() {
   }
 
   function generateSummary(group) {
+    const sourceFiles = summarySourceFiles(group)
+    const sourceRows = rowsForFiles(sourceFiles).filter(row => !row.note)
     const rows = invoiceSummaryRows(group)
     const summaryFile = makeSummaryName(group.name, group.type)
     const summaryKey = `${processedPrefix}${projectId}/${group.name}/${summaryFile}`
@@ -1158,6 +1181,8 @@ export default function DataGrouping() {
         generatedAt: new Date().toISOString(),
         file: summaryObject,
         calculation: 'Combine CSV files, group by Status, count invoices, sum Invoice_Amount, average Invoice_Amount.',
+        sourceFileCount: sourceFiles.length,
+        sourceRowCount: sourceRows.length,
         rows,
       },
     }))
