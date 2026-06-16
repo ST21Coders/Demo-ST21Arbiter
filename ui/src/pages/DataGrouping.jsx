@@ -208,13 +208,32 @@ function loadedRowsForFiles(files) {
 function recordCountSummaryRows(group) {
   const sourceFiles = summarySourceFiles(group)
   const fileRows = sourceFiles.map(file => ({
+    section: 'file_record_counts',
     file_name: file.name,
     loaded_record_count: file.csvText ? parseCsv(file.csvText).length : 'not_loaded',
+    status: '',
+    status_record_count: '',
   }))
   const total = fileRows.reduce((sum, row) => sum + (Number(row.loaded_record_count) || 0), 0)
+  const statusCounts = new Map()
+  loadedRowsForFiles(sourceFiles).forEach(row => {
+    const status = statusValue(row)
+    statusCounts.set(status, (statusCounts.get(status) || 0) + 1)
+  })
+  const statusRows = [...statusCounts.entries()]
+    .sort(([leftStatus], [rightStatus]) => leftStatus.localeCompare(rightStatus))
+    .map(([status, count]) => ({
+      section: 'status_record_counts',
+      file_name: '',
+      loaded_record_count: '',
+      status,
+      status_record_count: count,
+    }))
+
   return [
     ...fileRows,
-    { file_name: 'TOTAL', loaded_record_count: total },
+    { section: 'file_record_counts', file_name: 'TOTAL RECORDS', loaded_record_count: total, status: '', status_record_count: '' },
+    ...statusRows,
   ]
 }
 
