@@ -676,12 +676,15 @@ function GroupCard({
   const loadedCsvCount = csvFiles.filter(file => file.csvText).length
   const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
   const usingInstructionGuide = instructionFiles.length > 0
-  const canSummarize = csvFiles.length >= 2
+  const canAssociate = csvFiles.length >= 2
   const validation = validateGroup(group)
   const previewRows = rowsForGroup(group).slice(0, 5)
-  const summarySourceFileCount = summary?.sourceFileCount ?? summarySourceFiles(group).length
-  const summarySourceRowCount = summary?.sourceRowCount ?? loadedRowsForFiles(summarySourceFiles(group)).length
-  const missingCsvFileCount = summary?.missingCsvFileCount ?? summarySourceFiles(group).filter(file => !file.csvText).length
+  const currentSummarySourceFiles = summarySourceFiles(group)
+  const currentMissingCsvFileCount = currentSummarySourceFiles.filter(file => !file.csvText).length
+  const summarySourceFileCount = summary?.sourceFileCount ?? currentSummarySourceFiles.length
+  const summarySourceRowCount = summary?.sourceRowCount ?? loadedRowsForFiles(currentSummarySourceFiles).length
+  const missingCsvFileCount = summary?.missingCsvFileCount ?? currentMissingCsvFileCount
+  const canGenerateSummary = currentSummarySourceFiles.length >= 2 && currentMissingCsvFileCount === 0
   const summaryFile = makeSummaryName(group.name, group.type)
   const targetPrefix = `${processedPrefix}${projectId}/${group.name}/`
 
@@ -757,8 +760,10 @@ function GroupCard({
               <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-xs font-semibold text-slate-800">{summaryFile}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {canSummarize
-                    ? 'Current summary counts loaded records per associated CSV and adds a TOTAL row.'
+                  {currentSummarySourceFiles.length >= 2
+                    ? canGenerateSummary
+                      ? 'Current summary uses loaded CSV rows to create file, total, vendor-department-status, and status totals.'
+                      : 'Load this group\'s CSV contents before generating a real summary.'
                     : 'Add at least two CSV files before generating a spreadsheet summary.'}
                 </p>
               </div>
@@ -826,7 +831,7 @@ function GroupCard({
               </button>
               <button
                 type="button"
-                disabled={!canSummarize}
+                disabled={!canGenerateSummary}
                 onClick={() => {
                   onGenerateSummary(group)
                   setActiveAction('summary')
@@ -926,7 +931,7 @@ function GroupCard({
             )}
           </div>
 
-          {canSummarize && (
+          {canAssociate && (
             <AssociationBuilder
               group={group}
               onSaveAssociation={onSaveAssociation}
@@ -1300,9 +1305,44 @@ export default function DataGrouping() {
     const missingCsvFiles = sourceFiles.filter(file => !file.csvText)
     const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
     const usingInstructionGuide = instructionFiles.length > 0
-    const rows = recordCountSummaryRows(group)
     const summaryFile = makeSummaryName(group.name, group.type)
     const summaryKey = `${processedPrefix}${projectId}/${group.name}/${summaryFile}`
+    if (sourceFiles.length < 2 || missingCsvFiles.length) {
+      setSummaries(prev => ({
+        ...prev,
+        [group.id]: {
+          file: summaryFile,
+          rows: [],
+          sourceFileCount: sourceFiles.length,
+          sourceRowCount: sourceRows.length,
+          missingCsvFileCount: missingCsvFiles.length,
+          generatedAt: new Date().toISOString(),
+          usingInstructionGuide,
+        },
+      }))
+      setGroups(prev => {
+        const nextGroups = prev.map(item => {
+          if (item.id !== group.id) return item
+          const filesWithoutOldSummary = (item.files || []).filter(file => !(file.summary && file.name === summaryFile))
+          const fileKeysWithoutOldSummary = groupFileKeys(item).filter(key => key !== summaryKey)
+          return {
+            ...item,
+            fileKeys: fileKeysWithoutOldSummary,
+            files: filesWithoutOldSummary,
+            updatedAt: new Date().toISOString(),
+          }
+        })
+        persistGroups(nextGroups)
+        return nextGroups
+      })
+      setUploadMessage(
+        sourceFiles.length < 2
+          ? 'Summary not generated: add or associate at least two CSV files first.'
+          : `Summary not generated: ${missingCsvFiles.length} CSV file${missingCsvFiles.length === 1 ? '' : 's'} need loaded row content first.`,
+      )
+      return
+    }
+    const rows = recordCountSummaryRows(group)
     const csvText = toCsv(rows)
     const summaryObject = {
       key: summaryKey,
