@@ -14,8 +14,8 @@ Routes:
                                                 users/<sub>/<ts>-<filename>.
                                                 Browser PUTs directly to S3.
   GET  /uploads/list?bucket=raw|processed     → list the caller's files in the
-                                                named bucket (scoped to
-                                                users/<sub>/ prefix).
+                                                named bucket. Processed also
+                                                includes structured Glue files.
   POST /data-grouping/materialize             → copy selected processed files
                                                 into a project prefix and write
                                                 project metadata.
@@ -402,7 +402,7 @@ def _handle_uploads_presign(event):
 
 
 def _handle_uploads_list(event):
-    """List the caller's files in the raw or processed bucket.
+    """List files in the raw or processed bucket.
 
     Query string: ?bucket=raw|processed
     Response: {"bucket", "prefix", "files": [{key, name, size, last_modified}], "truncated"}
@@ -421,32 +421,41 @@ def _handle_uploads_list(event):
     user_id = _caller_user_id(event)
     if not user_id:
         return _err(401, "Could not resolve caller identity")
-    prefix = f"{UPLOAD_PREFIX}{user_id}/"
+    user_prefix = f"{UPLOAD_PREFIX}{user_id}/"
+    prefixes = [user_prefix]
+    if which == "processed":
+        prefixes.append("structured/")
 
+    files_by_key: dict[str, dict[str, Any]] = {}
+    truncated = False
     try:
-        resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=MAX_LIST_KEYS)
+        for prefix in prefixes:
+            resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=MAX_LIST_KEYS)
+            truncated = truncated or bool(resp.get("IsTruncated"))
+            for obj in resp.get("Contents") or []:
+                key = obj["Key"]
+                if key.endswith("/"):
+                    continue  # folder marker
+                lm = obj.get("LastModified")
+                name = key[len(user_prefix):] if key.startswith(user_prefix) else key.rsplit("/", 1)[-1]
+                files_by_key[key] = {
+                    "key": key,
+                    "name": name,
+                    "size": int(obj.get("Size") or 0),
+                    "last_modified": lm.isoformat() if hasattr(lm, "isoformat") else str(lm or ""),
+                }
     except ClientError as e:
         logger.exception("list_objects_v2 failed")
         return _err(502, f"{type(e).__name__}: {e}")
 
-    files = []
-    for obj in resp.get("Contents") or []:
-        key = obj["Key"]
-        if key.endswith("/"):
-            continue  # folder marker
-        lm = obj.get("LastModified")
-        files.append({
-            "key": key,
-            "name": key[len(prefix):],   # strip the user-namespace prefix
-            "size": int(obj.get("Size") or 0),
-            "last_modified": lm.isoformat() if hasattr(lm, "isoformat") else str(lm or ""),
-        })
+    files = list(files_by_key.values())
     files.sort(key=lambda f: f["last_modified"], reverse=True)
     return _ok({
         "bucket": bucket,
-        "prefix": prefix,
+        "prefix": user_prefix,
+        "prefixes": prefixes,
         "files": files,
-        "truncated": bool(resp.get("IsTruncated")),
+        "truncated": truncated,
     })
 
 
