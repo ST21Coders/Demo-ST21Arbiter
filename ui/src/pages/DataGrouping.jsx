@@ -92,6 +92,42 @@ function toCsv(rows) {
   ].join('\n')
 }
 
+function parseCsv(text) {
+  const rows = []
+  let cell = ''
+  let row = []
+  let quoted = false
+
+  for (let index = 0; index < String(text || '').length; index += 1) {
+    const char = text[index]
+    const next = text[index + 1]
+    if (char === '"' && quoted && next === '"') {
+      cell += '"'
+      index += 1
+    } else if (char === '"') {
+      quoted = !quoted
+    } else if (char === ',' && !quoted) {
+      row.push(cell)
+      cell = ''
+    } else if ((char === '\n' || char === '\r') && !quoted) {
+      if (char === '\r' && next === '\n') index += 1
+      row.push(cell)
+      if (row.some(value => value.trim())) rows.push(row)
+      row = []
+      cell = ''
+    } else {
+      cell += char
+    }
+  }
+
+  row.push(cell)
+  if (row.some(value => value.trim())) rows.push(row)
+  if (rows.length < 2) return []
+
+  const headers = rows[0].map(header => header.trim())
+  return rows.slice(1).map(values => Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ''])))
+}
+
 function downloadText(filename, text, type = 'text/plain') {
   const blob = new Blob([text], { type })
   const url = URL.createObjectURL(blob)
@@ -116,7 +152,7 @@ function makeSummaryName(groupName, groupType) {
 
 function rowsForGroup(group) {
   return group.files.filter(file => !file.summary).flatMap(file => {
-    const rows = SAMPLE_ROWS[file.name] || []
+    const rows = file.csvText ? parseCsv(file.csvText) : (SAMPLE_ROWS[file.name] || [])
     if (!rows.length) {
       return [{
         source_file: file.name,
@@ -147,12 +183,22 @@ function statusValue(row) {
 
 function invoiceSummaryRows(group) {
   const csvRows = rowsForGroup(group).filter(row => !row.note)
+  if (!csvRows.length) {
+    return [{
+      status: 'No Loaded CSV Rows',
+      invoice_count: 0,
+      total_invoice_amount: '0.00',
+      average_invoice_amount: '0.00',
+      source_file_count: 0,
+    }]
+  }
   const byStatus = new Map()
   csvRows.forEach(row => {
     const status = statusValue(row)
-    const current = byStatus.get(status) || { status, invoice_count: 0, total_invoice_amount: 0 }
+    const current = byStatus.get(status) || { status, invoice_count: 0, total_invoice_amount: 0, sourceFiles: new Set() }
     current.invoice_count += 1
     current.total_invoice_amount += invoiceAmount(row)
+    if (row.source_file) current.sourceFiles.add(row.source_file)
     byStatus.set(status, current)
   })
 
@@ -163,11 +209,12 @@ function invoiceSummaryRows(group) {
       invoice_count: row.invoice_count,
       total_invoice_amount: row.total_invoice_amount.toFixed(2),
       average_invoice_amount: (row.total_invoice_amount / row.invoice_count).toFixed(2),
+      source_file_count: row.sourceFiles.size,
     }))
 }
 
 function columnsForCsv(file) {
-  const rows = SAMPLE_ROWS[file.name] || []
+  const rows = file.csvText ? parseCsv(file.csvText) : (SAMPLE_ROWS[file.name] || [])
   if (rows[0]) return Object.keys(rows[0])
   return ['source_file', 'source_key', 'note']
 }
@@ -865,11 +912,15 @@ export default function DataGrouping() {
     setUploadMessage('')
     try {
       if (USE_MOCK) {
-        const uploadedFiles = selectedFiles.map((file, index) => ({
-          key: `users/mock/processed/${Date.now()}-${index}-${file.name}`,
-          name: file.name,
-          size: file.size,
-          last_modified: new Date().toISOString(),
+        const uploadedFiles = await Promise.all(selectedFiles.map(async (file, index) => {
+          const isCsv = /\.csv$/i.test(file.name)
+          return {
+            key: `users/mock/processed/${Date.now()}-${index}-${file.name}`,
+            name: file.name,
+            size: file.size,
+            last_modified: new Date().toISOString(),
+            csvText: isCsv ? await file.text() : undefined,
+          }
         }))
         const previousLocalFiles = JSON.parse(localStorage.getItem(LOCAL_PROCESSED_UPLOADS_KEY) || '[]')
         const nextLocalFiles = mergeFiles(Array.isArray(previousLocalFiles) ? previousLocalFiles : [], uploadedFiles)
