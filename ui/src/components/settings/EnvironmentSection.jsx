@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Server, Globe, Tag, Link2, Copy, Check } from 'lucide-react'
 import { usePersona } from '../../contexts/PersonaContext'
-import { USE_MOCK, APP_VERSION, COGNITO, API_URL, CHAT_URL } from '../../config'
+import { USE_MOCK, APP_VERSION, APP_VERSION_NOTE, COGNITO, API_URL, CHAT_URL } from '../../config'
 import SettingRow from '../SettingRow'
 
 const cardStyle = { background: 'var(--surface)', border: '1px solid rgb(var(--c-slate-200))', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }
@@ -15,6 +15,7 @@ export default function EnvironmentSection() {
     // Deliberately excludes tokens and any secret material.
     const blob = {
       version: APP_VERSION,
+      latestChanges: APP_VERSION_NOTE,
       mode: USE_MOCK ? 'mock' : 'live',
       region: COGNITO.region,
       apiUrl: API_URL || null,
@@ -42,7 +43,10 @@ export default function EnvironmentSection() {
         </SettingRow>
 
         <SettingRow icon={Tag} label="App version">
-          <span className="text-xs font-mono text-slate-600">v{APP_VERSION}</span>
+          <div className="text-right">
+            <span className="text-xs font-mono text-slate-600">v{APP_VERSION}</span>
+            <p className="mt-0.5 text-[10px] text-slate-400">{APP_VERSION_NOTE}</p>
+          </div>
         </SettingRow>
 
         <SettingRow icon={Globe} label="Region" last={!showEndpoints}>
