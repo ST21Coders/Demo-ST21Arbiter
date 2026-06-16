@@ -957,21 +957,6 @@ export default function DataGrouping() {
               </div>
             </div>
 
-            <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Available files to add</p>
-              <div className="max-h-[320px] space-y-2 overflow-auto pr-1">
-                {addableFiles.map(file => (
-                  <AvailableFileRow
-                    key={fileKey(file)}
-                    file={file}
-                    onAdd={() => addDraftFile(file)}
-                  />
-                ))}
-                {!addableFiles.length && (
-                  <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No available processed files. Files already saved in another group are hidden.</p>
-                )}
-              </div>
-            </div>
             {editingGroupId && (
               <p className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-700">
                 Editing this group releases its current files only inside this editor. Save group to keep changes, or cancel edit to leave the saved group unchanged.
@@ -1026,11 +1011,17 @@ export default function DataGrouping() {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-900">Available ungrouped files</h2>
-          <p className="mt-1 text-xs text-slate-500">These files are still available for a new or edited group.</p>
-          <div className="mt-3 space-y-2">
-            {ungroupedFiles.length ? ungroupedFiles.map(file => <FileRow key={fileKey(file)} file={file} />) : (
-              <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No ungrouped files.</p>
+          <h2 className="text-sm font-bold text-slate-900">Add ungrouped files to current group</h2>
+          <p className="mt-1 text-xs text-slate-500">Only files not saved in another group appear here. Click Add to move a file into the current create/edit form.</p>
+          <div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">
+            {addableFiles.length ? addableFiles.map(file => (
+              <AvailableFileRow
+                key={fileKey(file)}
+                file={file}
+                onAdd={() => addDraftFile(file)}
+              />
+            )) : (
+              <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No files available to add. Files already saved in another group are hidden.</p>
             )}
           </div>
         </div>
