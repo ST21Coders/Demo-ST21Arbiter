@@ -696,7 +696,7 @@ function GroupCard({
   group, projectId, processedPrefix, summary, onGenerateSummary, onEdit, onDelete,
   onSaveAssociation, onDeleteAssociation, onDisassociateFile, onLoadCsvContents, collapsed, onToggleCollapse,
 }) {
-  const [activeAction, setActiveAction] = useState('validate')
+  const [activeAction, setActiveAction] = useState(USE_MOCK ? 'validate' : 'instructions')
   const [instructionPreviewFile, setInstructionPreviewFile] = useState(null)
   const groupCsvInputRef = useRef(null)
   const rows = summary?.rows || []
@@ -789,7 +789,7 @@ function GroupCard({
                 <p className="text-xs font-semibold text-slate-800">{summaryFile}</p>
                 <p className="mt-1 text-xs text-slate-500">
                   {!USE_MOCK
-                    ? 'Live S3 mode: structured CSVs are routed through Glue/Athena after upload. Browser-loaded CSV summaries remain available only when row content is loaded locally.'
+                    ? 'Live S3 mode: structured CSVs are routed through Glue/Athena after upload.'
                     : currentSummarySourceFiles.length >= 2
                     ? canGenerateSummary
                       ? 'Current summary uses loaded CSV rows to create file, total, vendor-department-status, and status totals.'
@@ -816,7 +816,11 @@ function GroupCard({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Group actions</p>
-                <p className="mt-1 text-xs text-slate-500">Review instructions, validate the group, preview combined rows, then generate a deterministic row-count summary CSV.</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {USE_MOCK
+                    ? 'Review instructions, validate the group, preview combined rows, then generate a deterministic row-count summary CSV.'
+                    : 'Review instructions and keep the group ready for Glue/Athena cataloging.'}
+                </p>
               </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -827,62 +831,65 @@ function GroupCard({
               >
                 <FileSpreadsheet size={13} /> Review instructions
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveAction('validate')}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${activeAction === 'validate' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
-              >
-                <CheckCircle size={13} /> Validate group
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveAction('preview')}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${activeAction === 'preview' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
-              >
-                <Database size={13} /> Preview combined CSV
-              </button>
-              <input
-                ref={groupCsvInputRef}
-                type="file"
-                multiple
-                accept=".csv"
-                className="hidden"
-                onChange={(event) => {
-                  onLoadCsvContents(group.id, event.target.files)
-                  event.target.value = ''
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => groupCsvInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
-              >
-                <Upload size={13} /> Load CSV contents
-              </button>
-              {!USE_MOCK && (
+              {USE_MOCK ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setActiveAction('validate')}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${activeAction === 'validate' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+                  >
+                    <CheckCircle size={13} /> Validate group
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveAction('preview')}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${activeAction === 'preview' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+                  >
+                    <Database size={13} /> Preview combined CSV
+                  </button>
+                  <input
+                    ref={groupCsvInputRef}
+                    type="file"
+                    multiple
+                    accept=".csv"
+                    className="hidden"
+                    onChange={(event) => {
+                      onLoadCsvContents(group.id, event.target.files)
+                      event.target.value = ''
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => groupCsvInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+                  >
+                    <Upload size={13} /> Load CSV contents
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canGenerateSummary}
+                    onClick={() => {
+                      onGenerateSummary(group)
+                      setActiveAction('summary')
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                  >
+                    <Wand2 size={13} /> Generate summary CSV
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!summary}
+                    onClick={() => summary && downloadText(summaryFile, toCsv(summary.rows), 'text/csv')}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                  >
+                    <Download size={13} /> Download summary
+                  </button>
+                </>
+              ) : (
                 <span className="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
                   Glue/Athena handles live S3 CSV cataloging after Data Pipeline upload
                 </span>
               )}
-              <button
-                type="button"
-                disabled={!canGenerateSummary}
-                onClick={() => {
-                  onGenerateSummary(group)
-                  setActiveAction('summary')
-                }}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-              >
-                <Wand2 size={13} /> Generate summary CSV
-              </button>
-              <button
-                type="button"
-                disabled={!summary}
-                onClick={() => summary && downloadText(summaryFile, toCsv(summary.rows), 'text/csv')}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
-              >
-                <Download size={13} /> Download summary
-              </button>
             </div>
 
             {activeAction === 'instructions' && (
@@ -912,7 +919,7 @@ function GroupCard({
               </div>
             )}
 
-            {activeAction === 'validate' && (
+            {USE_MOCK && activeAction === 'validate' && (
               <div className="mt-3 grid gap-2 md:grid-cols-2">
                 {validation.map(check => (
                   <div key={check.label} className={`rounded-lg border p-3 ${check.status === 'pass' ? 'border-emerald-200 bg-emerald-50' : check.status === 'fail' ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}>
@@ -923,7 +930,7 @@ function GroupCard({
               </div>
             )}
 
-            {activeAction === 'preview' && (
+            {USE_MOCK && activeAction === 'preview' && (
               <div className="mt-3 overflow-auto rounded-lg border border-slate-200 bg-white">
                 <table className="min-w-full text-left text-xs">
                   <thead className="bg-slate-50 text-slate-500">
@@ -947,7 +954,7 @@ function GroupCard({
               </div>
             )}
 
-            {activeAction === 'summary' && (
+            {USE_MOCK && activeAction === 'summary' && (
               <div className="mt-3 rounded-lg border border-indigo-200 bg-white p-3">
                 <p className="text-xs font-bold text-indigo-800">{summary ? 'Summary CSV generated' : 'Generating summary CSV'}</p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -959,7 +966,7 @@ function GroupCard({
                 </p>
               </div>
             )}
-            {loadedCsvCount < csvFiles.length && (
+            {USE_MOCK && loadedCsvCount < csvFiles.length && (
               <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
                 {loadedCsvCount} of {csvFiles.length} CSV files have loaded row content. Use Load CSV contents and select the CSV files in this group before generating a real record count.
               </div>
