@@ -276,11 +276,18 @@ function SelectedDraftFileRow({ file, onRemove }) {
   )
 }
 
-function AssociationBuilder({ group, onSaveAssociation, onDeleteAssociation }) {
+function AssociationBuilder({ group, onSaveAssociation, onDeleteAssociation, onDisassociateFile }) {
   const csvFiles = group.files.filter(file => /\.csv$/i.test(file.name || ''))
   const [label, setLabel] = useState('A')
   const [selectedKeys, setSelectedKeys] = useState([])
   const selectedKeySet = useMemo(() => new Set(selectedKeys), [selectedKeys])
+  const associatedByKey = useMemo(() => {
+    const entries = []
+    ;(group.associations || []).forEach(association => {
+      association.fileKeys.forEach(key => entries.push([key, association]))
+    })
+    return new Map(entries)
+  }, [group.associations])
   const selectedCount = selectedKeys.length
 
   useEffect(() => {
@@ -339,6 +346,30 @@ function AssociationBuilder({ group, onSaveAssociation, onDeleteAssociation }) {
       <div className="mt-3 grid gap-2 md:grid-cols-2">
         {csvFiles.map(file => {
           const key = fileKey(file)
+          const association = associatedByKey.get(key)
+          if (association) {
+            return (
+              <div key={key} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-slate-500">
+                <input
+                  type="checkbox"
+                  checked
+                  disabled
+                  className="h-4 w-4 rounded border-slate-300 text-slate-400"
+                />
+                <span className="rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                  {association.label}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs font-medium" title={file.name}>{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => onDisassociateFile(group.id, association.id, key)}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  <XCircle size={13} /> Disassociate
+                </button>
+              </div>
+            )
+          }
           return (
             <label key={key} className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
               <input
@@ -385,7 +416,7 @@ function AssociationBuilder({ group, onSaveAssociation, onDeleteAssociation }) {
 
 function GroupCard({
   group, projectId, processedPrefix, summary, onGenerateSummary, onEdit, onDelete,
-  onSaveAssociation, onDeleteAssociation,
+  onSaveAssociation, onDeleteAssociation, onDisassociateFile,
 }) {
   const rows = summary?.rows || []
   const csvFiles = group.files.filter(file => /\.csv$/i.test(file.name || ''))
@@ -474,6 +505,7 @@ function GroupCard({
         group={group}
         onSaveAssociation={onSaveAssociation}
         onDeleteAssociation={onDeleteAssociation}
+        onDisassociateFile={onDisassociateFile}
       />
     </article>
   )
@@ -646,7 +678,13 @@ export default function DataGrouping() {
       const nextGroups = prev.map(group => {
         if (group.id !== groupId) return group
         const associations = [
-          ...(group.associations || []).filter(item => item.label !== association.label),
+          ...(group.associations || [])
+            .filter(item => item.label !== association.label)
+            .map(item => ({
+              ...item,
+              fileKeys: item.fileKeys.filter(key => !association.fileKeys.includes(key)),
+            }))
+            .filter(item => item.fileKeys.length >= 2),
           association,
         ]
         return { ...group, associations, updatedAt: new Date().toISOString() }
@@ -664,6 +702,28 @@ export default function DataGrouping() {
         return {
           ...group,
           associations: (group.associations || []).filter(item => item.id !== associationId),
+          updatedAt: new Date().toISOString(),
+        }
+      })
+      persistGroups(nextGroups)
+      return nextGroups
+    })
+  }
+
+  function disassociateFile(groupId, associationId, keyToRemove) {
+    setMetadata(null)
+    setGroups(prev => {
+      const nextGroups = prev.map(group => {
+        if (group.id !== groupId) return group
+        return {
+          ...group,
+          associations: (group.associations || [])
+            .map(item => (
+              item.id === associationId
+                ? { ...item, fileKeys: item.fileKeys.filter(key => key !== keyToRemove) }
+                : item
+            ))
+            .filter(item => item.fileKeys.length >= 2),
           updatedAt: new Date().toISOString(),
         }
       })
@@ -901,6 +961,7 @@ export default function DataGrouping() {
               onDelete={deleteGroup}
               onSaveAssociation={saveAssociation}
               onDeleteAssociation={deleteAssociation}
+              onDisassociateFile={disassociateFile}
             />
           ))}
           {!hydratedGroups.length && (
