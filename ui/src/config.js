@@ -106,5 +106,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.5.5'
-export const APP_VERSION_NOTE = 'Simplified data group project type choices'
+export const APP_VERSION = '1.5.6'
+export const APP_VERSION_NOTE = 'Show complete processed file status list'

@@ -237,7 +237,19 @@ function FileRow({ file, action }) {
   )
 }
 
-function AvailableFileRow({ file, onAdd }) {
+function ProcessedFileRow({ file, status, groupName, onAdd }) {
+  const isAvailable = status === 'available'
+  const statusStyles = {
+    available: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    selected: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+    grouped: 'border-slate-200 bg-slate-100 text-slate-600',
+  }
+  const statusLabel = {
+    available: 'Available',
+    selected: 'Selected in current group',
+    grouped: `In ${groupName || 'saved group'}`,
+  }[status]
+
   return (
     <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
       <div className="min-w-0 flex-1">
@@ -245,13 +257,18 @@ function AvailableFileRow({ file, onAdd }) {
         <p className="truncate font-mono text-[10px] text-slate-400" title={file.key}>{file.key}</p>
       </div>
       <span className="shrink-0 text-xs text-slate-500">{formatBytes(file.size)}</span>
-      <button
-        type="button"
-        onClick={onAdd}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
-      >
-        <Plus size={13} /> Add
-      </button>
+      <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${statusStyles[status]}`}>
+        {statusLabel}
+      </span>
+      {isAvailable && (
+        <button
+          type="button"
+          onClick={onAdd}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
+        >
+          <Plus size={13} /> Add
+        </button>
+      )}
     </div>
   )
 }
@@ -561,18 +578,15 @@ export default function DataGrouping() {
     () => new Set(hydratedGroups.flatMap(group => group.fileKeys)),
     [hydratedGroups],
   )
+  const assignedGroupByKey = useMemo(() => {
+    const entries = []
+    hydratedGroups.forEach(group => {
+      group.fileKeys.forEach(key => entries.push([key, group]))
+    })
+    return new Map(entries)
+  }, [hydratedGroups])
   const draftKeySet = useMemo(() => new Set(draftKeys), [draftKeys])
   const editingGroup = hydratedGroups.find(group => group.id === editingGroupId)
-  const availableFiles = useMemo(() => (
-    files.filter(file => {
-      const key = fileKey(file)
-      return !assignedKeySet.has(key) || editingGroup?.files.some(groupFile => fileKey(groupFile) === key)
-    })
-  ), [files, assignedKeySet, editingGroup])
-  const addableFiles = useMemo(
-    () => availableFiles.filter(file => !draftKeySet.has(fileKey(file))),
-    [availableFiles, draftKeySet],
-  )
   const ungroupedFiles = useMemo(() => files.filter(file => !assignedKeySet.has(fileKey(file))), [files, assignedKeySet])
   const selectedDraftFiles = useMemo(() => files.filter(file => draftKeySet.has(fileKey(file))), [files, draftKeySet])
   const csvCount = files.filter(file => /\.csv$/i.test(file.name || '')).length
@@ -1011,16 +1025,23 @@ export default function DataGrouping() {
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-sm font-bold text-slate-900">Add ungrouped files to current group</h2>
-          <p className="mt-1 text-xs text-slate-500">Only files not saved in another group appear here. Click Add to move a file into the current create/edit form.</p>
+          <p className="mt-1 text-xs text-slate-500">All processed files appear here. Available files can be added; selected or saved-group files are shown with status.</p>
           <div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">
-            {addableFiles.length ? addableFiles.map(file => (
-              <AvailableFileRow
-                key={fileKey(file)}
-                file={file}
-                onAdd={() => addDraftFile(file)}
-              />
-            )) : (
-              <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No files available to add. Files already saved in another group are hidden.</p>
+            {files.length ? files.map(file => {
+              const key = fileKey(file)
+              const assignedGroup = assignedGroupByKey.get(key)
+              const status = draftKeySet.has(key) ? 'selected' : assignedGroup ? 'grouped' : 'available'
+              return (
+                <ProcessedFileRow
+                  key={key}
+                  file={file}
+                  status={status}
+                  groupName={assignedGroup?.name}
+                  onAdd={() => addDraftFile(file)}
+                />
+              )
+            }) : (
+              <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No processed files found.</p>
             )}
           </div>
         </div>
