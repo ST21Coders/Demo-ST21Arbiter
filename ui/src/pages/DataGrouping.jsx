@@ -244,8 +244,8 @@ function departmentName(row) {
       'business_unit',
       'Business Unit',
     ]) ??
-    'Unknown'
-  ).trim() || 'Unknown'
+    'No Department Found'
+  ).trim() || 'No Department Found'
 }
 
 function summarySourceFiles(group) {
