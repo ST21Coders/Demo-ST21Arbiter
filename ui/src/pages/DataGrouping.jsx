@@ -128,6 +128,44 @@ function rowsForGroup(group) {
   })
 }
 
+function normalizedStatus(value) {
+  return String(value || 'Unknown')
+    .trim()
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, letter => letter.toUpperCase()) || 'Unknown'
+}
+
+function invoiceAmount(row) {
+  const value = row.Invoice_Amount ?? row.invoice_amount ?? row.amount ?? row.Amount ?? 0
+  return Number(String(value).replace(/[$,]/g, '')) || 0
+}
+
+function statusValue(row) {
+  return normalizedStatus(row.Status ?? row.status)
+}
+
+function invoiceSummaryRows(group) {
+  const csvRows = rowsForGroup(group).filter(row => !row.note)
+  const byStatus = new Map()
+  csvRows.forEach(row => {
+    const status = statusValue(row)
+    const current = byStatus.get(status) || { status, invoice_count: 0, total_invoice_amount: 0 }
+    current.invoice_count += 1
+    current.total_invoice_amount += invoiceAmount(row)
+    byStatus.set(status, current)
+  })
+
+  return [...byStatus.values()]
+    .sort((left, right) => right.total_invoice_amount - left.total_invoice_amount || left.status.localeCompare(right.status))
+    .map(row => ({
+      status: row.status,
+      invoice_count: row.invoice_count,
+      total_invoice_amount: row.total_invoice_amount.toFixed(2),
+      average_invoice_amount: (row.total_invoice_amount / row.invoice_count).toFixed(2),
+    }))
+}
+
 function columnsForCsv(file) {
   const rows = SAMPLE_ROWS[file.name] || []
   if (rows[0]) return Object.keys(rows[0])
@@ -167,7 +205,7 @@ function validateGroup(group) {
 }
 
 function amountTotal(rows) {
-  return rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0)
+  return rows.reduce((sum, row) => sum + invoiceAmount(row) + (Number(row.total_invoice_amount) || 0), 0)
 }
 
 function buildMetadata({ projectName, projectId, processedPrefix, groups, summaries }) {
@@ -548,7 +586,7 @@ function GroupCard({
               <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-xs font-semibold text-slate-800">{summaryFile}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {canSummarize ? 'Group actions can create a local summary CSV from these files.' : 'Add at least two CSV files before generating a spreadsheet summary.'}
+                  {canSummarize ? 'Default summary combines CSV files, groups by Status, and totals Invoice Amount.' : 'Add at least two CSV files before generating a spreadsheet summary.'}
                 </p>
               </div>
               {summary && (
@@ -570,7 +608,7 @@ function GroupCard({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Group actions</p>
-                <p className="mt-1 text-xs text-slate-500">Review instructions, validate the group, preview combined rows, then generate a summary CSV.</p>
+                <p className="mt-1 text-xs text-slate-500">Review instructions, validate the group, preview combined rows, then generate a status-based financial summary CSV.</p>
               </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -662,14 +700,14 @@ function GroupCard({
                     ))}
                   </tbody>
                 </table>
-                <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">Previewing first {previewRows.length} combined rows. Generate summary CSV to create the downloadable file.</p>
+                <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">Previewing first {previewRows.length} combined source rows. Generate summary CSV to aggregate Invoice Amount by Status.</p>
               </div>
             )}
 
             {activeAction === 'summary' && (
               <div className="mt-3 rounded-lg border border-indigo-200 bg-white p-3">
                 <p className="text-xs font-bold text-indigo-800">{summary ? 'Summary CSV generated' : 'Generating summary CSV'}</p>
-                <p className="mt-1 text-xs text-slate-500">{summary ? `${summaryFile} contains ${rows.length} rows from ${csvFiles.length} CSV files.` : 'Click Generate summary CSV to create a local summary.'}</p>
+                <p className="mt-1 text-xs text-slate-500">{summary ? `${summaryFile} contains ${rows.length} status summary rows from ${csvFiles.length} CSV files.` : 'Click Generate summary CSV to create a local status summary.'}</p>
               </div>
             )}
           </div>
@@ -967,12 +1005,14 @@ export default function DataGrouping() {
   }
 
   function generateSummary(group) {
+    const rows = invoiceSummaryRows(group)
     setMetadata(null)
     setSummaries(prev => ({
       ...prev,
       [group.id]: {
         generatedAt: new Date().toISOString(),
-        rows: rowsForGroup(group),
+        calculation: 'Combine CSV files, group by Status, count invoices, sum Invoice_Amount, average Invoice_Amount.',
+        rows,
       },
     }))
   }
