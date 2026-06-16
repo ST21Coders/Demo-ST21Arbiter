@@ -106,5 +106,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.5.16'
-export const APP_VERSION_NOTE = 'Load group CSV contents before record counts'
+export const APP_VERSION = '1.5.17'
+export const APP_VERSION_NOTE = 'Copy loaded CSV files into groups'

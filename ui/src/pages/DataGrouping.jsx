@@ -1169,30 +1169,34 @@ export default function DataGrouping() {
     setMetadata(null)
     setError('')
     try {
-      const csvByName = new Map(await Promise.all(selectedFiles.map(async file => [
-        file.name,
-        {
-          csvText: await file.text(),
-          size: file.size,
-          last_modified: new Date().toISOString(),
-        },
-      ])))
+      const loadedCsvFiles = await Promise.all(selectedFiles.map(async file => ({
+        key: `users/mock/processed/${Date.now()}-${file.name}`,
+        name: file.name,
+        size: file.size,
+        last_modified: new Date().toISOString(),
+        csvText: await file.text(),
+      })))
+      const csvByName = new Map(loadedCsvFiles.map(file => [file.name, file]))
       setGroups(prev => {
         const nextGroups = prev.map(group => {
           if (group.id !== groupId) return group
+          const existingNames = new Set((group.files || []).map(file => file.name))
+          const filesWithLoadedContent = (group.files || []).map(file => {
+            const loaded = csvByName.get(file.name)
+            return loaded ? { ...file, ...loaded, key: file.key || loaded.key } : file
+          })
+          const newFiles = loadedCsvFiles.filter(file => !existingNames.has(file.name))
           return {
             ...group,
-            files: (group.files || []).map(file => {
-              const loaded = csvByName.get(file.name)
-              return loaded ? { ...file, ...loaded } : file
-            }),
+            fileKeys: [...groupFileKeys(group), ...newFiles.map(file => fileKey(file))],
+            files: [...filesWithLoadedContent, ...newFiles],
             updatedAt: new Date().toISOString(),
           }
         })
         persistGroups(nextGroups)
         return nextGroups
       })
-      setUploadMessage(`${selectedFiles.length} CSV file${selectedFiles.length === 1 ? '' : 's'} loaded into the group for real record counting.`)
+      setUploadMessage(`${selectedFiles.length} CSV file${selectedFiles.length === 1 ? '' : 's'} copied into the group with loaded row content.`)
     } catch (err) {
       setError(err.message || 'Unable to load CSV contents')
     }
