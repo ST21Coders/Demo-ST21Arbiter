@@ -352,6 +352,13 @@ def _is_structured(key: str) -> bool:
 def _structured_dataset(key: str) -> str:
     """Classify a structured export by FILENAME (uploads aren't source-prefixed)."""
     name = key.rsplit("/", 1)[-1].lower()
+    normalized = name.replace("-", "_").replace(" ", "_")
+    if normalized.startswith("ar_invoice") or normalized.startswith("ar_invoices"):
+        return "ar_invoices"
+    if normalized.startswith("ap_invoice") or normalized.startswith("ap_invoices"):
+        return "ap_invoices"
+    if "aws_config" in normalized or "awsconfig" in normalized:
+        return "aws_config"
     if "zscaler" in name:
         return "zscaler_rules"
     if "paloalto" in name or "pan-os" in name or "panos" in name:

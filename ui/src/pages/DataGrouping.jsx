@@ -788,7 +788,9 @@ function GroupCard({
               <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-xs font-semibold text-slate-800">{summaryFile}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {currentSummarySourceFiles.length >= 2
+                  {!USE_MOCK
+                    ? 'Live S3 mode: structured CSVs are routed through Glue/Athena after upload. Browser-loaded CSV summaries remain available only when row content is loaded locally.'
+                    : currentSummarySourceFiles.length >= 2
                     ? canGenerateSummary
                       ? 'Current summary uses loaded CSV rows to create file, total, vendor-department-status, and status totals.'
                       : 'Load this group\'s CSV contents before generating a real summary.'
@@ -857,6 +859,11 @@ function GroupCard({
               >
                 <Upload size={13} /> Load CSV contents
               </button>
+              {!USE_MOCK && (
+                <span className="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+                  Glue/Athena handles live S3 CSV cataloging after Data Pipeline upload
+                </span>
+              )}
               <button
                 type="button"
                 disabled={!canGenerateSummary}
