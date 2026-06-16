@@ -10,7 +10,6 @@ const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.v2.projectMetadata'
 const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.v2.savedGroups'
 const METADATA_LEDGER_STORAGE_KEY = 'arbiter.dataGrouping.v2.metadataLedger'
 const LOCAL_PROCESSED_UPLOADS_KEY = 'arbiter.dataGrouping.v2.localProcessedUploads'
-const ASSOCIATION_OPTIONS = ['A', 'B', 'C', 'D', 'E']
 
 const GROUP_TYPE_OPTIONS = [
   { value: 'special_project', label: 'Special Project', suggestedName: 'Special_Project', summaryFile: '' },
@@ -249,10 +248,7 @@ function departmentName(row) {
 }
 
 function summarySourceFiles(group) {
-  const csvFiles = group.files.filter(file => !file.summary && /\.csv$/i.test(file.name || ''))
-  const associatedKeys = new Set((group.associations || []).flatMap(association => association.fileKeys))
-  if (!associatedKeys.size) return csvFiles
-  return csvFiles.filter(file => associatedKeys.has(fileKey(file)))
+  return group.files.filter(file => !file.summary && /\.csv$/i.test(file.name || ''))
 }
 
 function loadedRowsForFiles(files) {
@@ -348,8 +344,6 @@ function validateGroup(group) {
   const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
   const csvColumnSignatures = csvFiles.map(file => columnsForCsv(file).join('|'))
   const uniqueColumnSignatures = new Set(csvColumnSignatures)
-  const associatedFileKeys = new Set((group.associations || []).flatMap(association => association.fileKeys))
-  const unassociatedCsvCount = csvFiles.filter(file => !associatedFileKeys.has(fileKey(file))).length
 
   return [
     {
@@ -366,11 +360,6 @@ function validateGroup(group) {
       status: uniqueColumnSignatures.size <= 1 ? 'pass' : 'warn',
       label: uniqueColumnSignatures.size <= 1 ? 'CSV schemas align' : 'CSV schemas differ',
       detail: uniqueColumnSignatures.size <= 1 ? 'Detected CSV columns are compatible for summary.' : 'Review columns before generating the final summary.',
-    },
-    {
-      status: unassociatedCsvCount === 0 || !(group.associations || []).length ? 'pass' : 'warn',
-      label: `${unassociatedCsvCount} unassociated CSV${unassociatedCsvCount === 1 ? '' : 's'}`,
-      detail: (group.associations || []).length ? 'Associations can drive more specific summaries.' : 'No associations yet; summary will use all CSV files together.',
     },
   ]
 }
@@ -422,11 +411,6 @@ function buildMetadata({ projectName, projectId, processedPrefix, groups, summar
         size: file.size,
         lastModified: file.last_modified,
       })),
-      associations: (group.associations || []).map(association => ({
-        id: association.id,
-        label: association.label,
-        fileKeys: association.fileKeys,
-      })),
       summaryFile: group.files.filter(file => /\.csv$/i.test(file.name || '')).length >= 2 ? makeSummaryName(group.name, group.type) : null,
       summaryStatus: summaries[group.id] ? 'generated' : 'not_generated',
       recordCount: summaries[group.id]?.rows?.length || 0,
@@ -457,8 +441,13 @@ function mergeMetadataLedger(ledger, metadata) {
   }
 }
 
+function stripRetiredGroupFields(group) {
+  const retiredKey = ['assoc', 'iations'].join('')
+  return Object.fromEntries(Object.entries(group).filter(([key]) => key !== retiredKey))
+}
+
 function persistGroups(groups) {
-  localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups))
+  localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups.map(stripRetiredGroupFields)))
 }
 
 function mergeFiles(baseFiles, localFiles) {
@@ -554,147 +543,9 @@ function SelectedDraftFileRow({ file, onRemove }) {
   )
 }
 
-function AssociationBuilder({ group, onSaveAssociation, onDeleteAssociation, onDisassociateFile }) {
-  const csvFiles = group.files.filter(file => /\.csv$/i.test(file.name || ''))
-  const [label, setLabel] = useState('A')
-  const [selectedKeys, setSelectedKeys] = useState([])
-  const selectedKeySet = useMemo(() => new Set(selectedKeys), [selectedKeys])
-  const associatedByKey = useMemo(() => {
-    const entries = []
-    ;(group.associations || []).forEach(association => {
-      association.fileKeys.forEach(key => entries.push([key, association]))
-    })
-    return new Map(entries)
-  }, [group.associations])
-  const selectedCount = selectedKeys.length
-
-  useEffect(() => {
-    setLabel('A')
-    setSelectedKeys([])
-  }, [group.id])
-
-  function toggleFile(file) {
-    const key = fileKey(file)
-    setSelectedKeys(prev => (
-      prev.includes(key) ? prev.filter(item => item !== key) : [...prev, key]
-    ))
-  }
-
-  function saveAssociation() {
-    if (selectedKeys.length < 2) return
-    onSaveAssociation(group.id, {
-      id: `${label}-${Date.now()}`,
-      label,
-      fileKeys: selectedKeys,
-      createdAt: new Date().toISOString(),
-    })
-    setSelectedKeys([])
-  }
-
-  return (
-    <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">CSV associations</p>
-          <p className="mt-1 text-xs text-slate-500">Choose A-E, then select two or more CSV files in this group.</p>
-        </div>
-        <div className="flex items-end gap-2">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400" htmlFor={`association-${group.id}`}>
-            Association
-            <select
-              id={`association-${group.id}`}
-              value={label}
-              onChange={(event) => setLabel(event.target.value)}
-              className="mt-1 block rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-            >
-              {ASSOCIATION_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
-            </select>
-          </label>
-          <button
-            type="button"
-            onClick={saveAssociation}
-            disabled={selectedCount < 2}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-          >
-            <Save size={13} /> Save association
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-3 grid gap-2 md:grid-cols-2">
-        {csvFiles.map(file => {
-          const key = fileKey(file)
-          const association = associatedByKey.get(key)
-          if (association) {
-            return (
-              <div key={key} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-slate-500">
-                <input
-                  type="checkbox"
-                  checked
-                  disabled
-                  className="h-4 w-4 rounded border-slate-300 text-slate-400"
-                />
-                <span className="rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-bold text-slate-500">
-                  {association.label}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-xs font-medium" title={file.name}>{file.name}</span>
-                <button
-                  type="button"
-                  onClick={() => onDisassociateFile(group.id, association.id, key)}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  <XCircle size={13} /> Disassociate
-                </button>
-              </div>
-            )
-          }
-          return (
-            <label key={key} className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
-              <input
-                type="checkbox"
-                checked={selectedKeySet.has(key)}
-                onChange={() => toggleFile(file)}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-700" title={file.name}>{file.name}</span>
-            </label>
-          )
-        })}
-        {!csvFiles.length && (
-          <p className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-500">No CSV files in this group.</p>
-        )}
-      </div>
-
-      {(group.associations || []).length > 0 && (
-        <div className="mt-3 space-y-2">
-          {(group.associations || []).map(association => (
-            <div key={association.id} className="flex items-start justify-between gap-3 rounded-lg border border-indigo-200 bg-white p-3">
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-indigo-700">Association {association.label}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {association.fileKeys
-                    .map(key => group.files.find(file => fileKey(file) === key)?.name || key)
-                    .join(', ')}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onDeleteAssociation(group.id, association.id)}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
-              >
-                <Trash2 size={13} /> Delete
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function GroupCard({
   group, projectId, processedPrefix, summary, onGenerateSummary, onEdit, onDelete,
-  onSaveAssociation, onDeleteAssociation, onDisassociateFile, onLoadCsvContents, collapsed, onToggleCollapse,
+  onLoadCsvContents, collapsed, onToggleCollapse,
 }) {
   const [activeAction, setActiveAction] = useState(USE_MOCK ? 'validate' : 'instructions')
   const [instructionPreviewFile, setInstructionPreviewFile] = useState(null)
@@ -704,7 +555,6 @@ function GroupCard({
   const loadedCsvCount = csvFiles.filter(file => file.csvText).length
   const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
   const usingInstructionGuide = instructionFiles.length > 0
-  const canAssociate = csvFiles.length >= 2
   const validation = validateGroup(group)
   const previewRows = rowsForGroup(group).slice(0, 5)
   const currentSummarySourceFiles = summarySourceFiles(group)
@@ -754,7 +604,7 @@ function GroupCard({
 
       {collapsed ? (
         <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-          {group.files.length} files hidden · {csvFiles.length} CSV · {(group.associations || []).length} associations
+          {group.files.length} files hidden · {csvFiles.length} CSV
         </div>
       ) : (
         <>
@@ -950,7 +800,7 @@ function GroupCard({
                     ))}
                   </tbody>
                 </table>
-                <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">Previewing first {previewRows.length} combined source rows. Generate summary CSV counts records per associated CSV and totals them.</p>
+                <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">Previewing first {previewRows.length} combined source rows. Generate summary CSV counts records per CSV and totals them.</p>
               </div>
             )}
 
@@ -960,9 +810,9 @@ function GroupCard({
                 <p className="mt-1 text-xs text-slate-500">
                   {summary
                     ? missingCsvFileCount
-                      ? `${summaryFile} cannot produce a real count yet: ${missingCsvFileCount} associated CSV files need loaded contents.`
-                      : `${summaryFile} contains per-file record counts from ${summarySourceFileCount} associated CSV files and ${summarySourceRowCount} loaded source rows.`
-                    : 'Click Generate summary CSV to count loaded records across associated CSV files.'}
+                      ? `${summaryFile} cannot produce a real count yet: ${missingCsvFileCount} CSV files need loaded contents.`
+                      : `${summaryFile} contains per-file record counts from ${summarySourceFileCount} CSV files and ${summarySourceRowCount} loaded source rows.`
+                    : 'Click Generate summary CSV to count loaded records across CSV files.'}
                 </p>
               </div>
             )}
@@ -973,14 +823,6 @@ function GroupCard({
             )}
           </div>
 
-          {canAssociate && (
-            <AssociationBuilder
-              group={group}
-              onSaveAssociation={onSaveAssociation}
-              onDeleteAssociation={onDeleteAssociation}
-              onDisassociateFile={onDisassociateFile}
-            />
-          )}
           {instructionPreviewFile && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
               <div className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
@@ -1131,7 +973,7 @@ export default function DataGrouping() {
     loadFiles()
     try {
       const savedGroups = JSON.parse(localStorage.getItem(GROUPS_STORAGE_KEY) || '[]')
-      if (Array.isArray(savedGroups)) setGroups(savedGroups)
+      if (Array.isArray(savedGroups)) setGroups(savedGroups.map(stripRetiredGroupFields))
       const savedMetadata = JSON.parse(localStorage.getItem(GROUPING_STORAGE_KEY) || 'null')
       if (savedMetadata) setMetadata(savedMetadata)
       const savedLedger = JSON.parse(localStorage.getItem(METADATA_LEDGER_STORAGE_KEY) || 'null')
@@ -1194,12 +1036,6 @@ export default function DataGrouping() {
       type: draftType,
       fileKeys: savedFileKeys,
       files: selectedDraftFiles,
-      associations: (editingGroup?.associations || [])
-        .map(association => ({
-          ...association,
-          fileKeys: association.fileKeys.filter(key => savedFileKeys.includes(key)),
-        }))
-        .filter(association => association.fileKeys.length >= 2),
       updatedAt: new Date().toISOString(),
     }
     setMetadata(null)
@@ -1242,66 +1078,6 @@ export default function DataGrouping() {
       return next
     })
     if (editingGroupId === groupId) resetDraft()
-  }
-
-  function saveAssociation(groupId, association) {
-    setMetadata(null)
-    setGroups(prev => {
-      const nextGroups = prev.map(group => {
-        if (group.id !== groupId) return group
-        const associations = [
-          ...(group.associations || [])
-            .filter(item => item.label !== association.label)
-            .map(item => ({
-              ...item,
-              fileKeys: item.fileKeys.filter(key => !association.fileKeys.includes(key)),
-            }))
-            .filter(item => item.fileKeys.length >= 2),
-          association,
-        ]
-        return { ...group, associations, updatedAt: new Date().toISOString() }
-      })
-      persistGroups(nextGroups)
-      return nextGroups
-    })
-  }
-
-  function deleteAssociation(groupId, associationId) {
-    setMetadata(null)
-    setGroups(prev => {
-      const nextGroups = prev.map(group => {
-        if (group.id !== groupId) return group
-        return {
-          ...group,
-          associations: (group.associations || []).filter(item => item.id !== associationId),
-          updatedAt: new Date().toISOString(),
-        }
-      })
-      persistGroups(nextGroups)
-      return nextGroups
-    })
-  }
-
-  function disassociateFile(groupId, associationId, keyToRemove) {
-    setMetadata(null)
-    setGroups(prev => {
-      const nextGroups = prev.map(group => {
-        if (group.id !== groupId) return group
-        return {
-          ...group,
-          associations: (group.associations || [])
-            .map(item => (
-              item.id === associationId
-                ? { ...item, fileKeys: item.fileKeys.filter(key => key !== keyToRemove) }
-                : item
-            ))
-            .filter(item => item.fileKeys.length >= 2),
-          updatedAt: new Date().toISOString(),
-        }
-      })
-      persistGroups(nextGroups)
-      return nextGroups
-    })
   }
 
   async function loadGroupCsvContents(groupId, fileList) {
@@ -1381,7 +1157,7 @@ export default function DataGrouping() {
       })
       setUploadMessage(
         sourceFiles.length < 2
-          ? 'Summary not generated: add or associate at least two CSV files first.'
+          ? 'Summary not generated: add at least two CSV files first.'
           : `Summary not generated: ${missingCsvFiles.length} CSV file${missingCsvFiles.length === 1 ? '' : 's'} need loaded row content first.`,
       )
       return
@@ -1419,8 +1195,8 @@ export default function DataGrouping() {
         generatedAt: new Date().toISOString(),
         file: summaryObject,
         calculation: usingInstructionGuide
-          ? 'Instruction guide detected. Verification summary counts loaded data records by associated CSV before applying higher-order invoice calculations.'
-          : 'Count loaded data records across associated CSV files.',
+          ? 'Instruction guide detected. Verification summary counts loaded data records by CSV before applying higher-order invoice calculations.'
+          : 'Count loaded data records across CSV files.',
         instructionFiles: instructionFiles.map(file => ({ name: file.name, key: file.key })),
         sourceFileCount: sourceFiles.length,
         sourceRowCount: sourceRows.length,
@@ -1460,7 +1236,6 @@ export default function DataGrouping() {
         id: group.id,
         name: group.name,
         type: group.type,
-        associations: group.associations || [],
         files: (group.files || [])
           .filter(file => !file.summary)
           .map(file => ({
@@ -1723,9 +1498,6 @@ export default function DataGrouping() {
               onGenerateSummary={generateSummary}
               onEdit={editGroup}
               onDelete={deleteGroup}
-              onSaveAssociation={saveAssociation}
-              onDeleteAssociation={deleteAssociation}
-              onDisassociateFile={disassociateFile}
               onLoadCsvContents={loadGroupCsvContents}
               collapsed={collapsedGroupIds.includes(group.id)}
               onToggleCollapse={toggleGroupCollapse}

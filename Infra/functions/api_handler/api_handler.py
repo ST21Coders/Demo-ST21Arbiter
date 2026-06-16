@@ -472,8 +472,7 @@ def _handle_data_grouping_materialize(event):
         "projectName": "Vendor Audit June 2026",
         "groups": [
           {"id": "...", "name": "AR_Invoices", "type": "audit",
-           "files": [{"key": "users/<sub>/...", "name": "AR_...csv"}],
-           "associations": [...]}
+           "files": [{"key": "users/<sub>/...", "name": "AR_...csv"}]}
         ],
         "move": true
       }
@@ -569,7 +568,6 @@ def _handle_data_grouping_materialize(event):
             "targetPrefix": f"projects/{project_id}/{group_name}/",
             "structuredTableHint": table_name,
             "files": materialized_files,
-            "associations": group.get("associations") or [],
         })
 
     metadata_key = f"projects/{project_id}/metadata/project.json"
