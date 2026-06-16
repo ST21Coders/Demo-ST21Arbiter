@@ -62,6 +62,7 @@ GLUE_CRAWLER_NAME = os.environ.get("GLUE_CRAWLER_NAME", "").strip()
 # finishes a 5-doc KB in ~30-60s; 3min is a comfortable ceiling).
 INGEST_POLL_TIMEOUT_S = int(os.environ.get("INGEST_POLL_TIMEOUT_S", "180"))
 INGEST_POLL_INTERVAL_S = int(os.environ.get("INGEST_POLL_INTERVAL_S", "5"))
+INGEST_START_MAX_ATTEMPTS = int(os.environ.get("INGEST_START_MAX_ATTEMPTS", "18"))
 
 s3 = boto3.client("s3", region_name=REGION)
 bedrock_agent = boto3.client("bedrock-agent", region_name=REGION)
@@ -278,18 +279,30 @@ def _handle_single_object_event(event: dict) -> dict:
 
 
 def _start_kb_ingestion() -> str | None:
-    try:
-        resp = bedrock_agent.start_ingestion_job(
-            knowledgeBaseId=KB_ID,
-            dataSourceId=KB_DATA_SOURCE_ID,
-            description=f"auto-trigger {_now_iso()}",
-        )
-        job_id = resp["ingestionJob"]["ingestionJobId"]
-        logger.info("KB ingestion job started: %s (kb=%s ds=%s)", job_id, KB_ID, KB_DATA_SOURCE_ID)
-        return job_id
-    except ClientError as e:
-        logger.exception("StartIngestionJob failed (kb=%s ds=%s)", KB_ID, KB_DATA_SOURCE_ID)
-        return None
+    for attempt in range(1, INGEST_START_MAX_ATTEMPTS + 1):
+        try:
+            resp = bedrock_agent.start_ingestion_job(
+                knowledgeBaseId=KB_ID,
+                dataSourceId=KB_DATA_SOURCE_ID,
+                description=f"auto-trigger {_now_iso()}",
+            )
+            job_id = resp["ingestionJob"]["ingestionJobId"]
+            logger.info("KB ingestion job started: %s (kb=%s ds=%s)", job_id, KB_ID, KB_DATA_SOURCE_ID)
+            return job_id
+        except ClientError as e:
+            code = e.response.get("Error", {}).get("Code", "")
+            if code == "ConflictException" and attempt < INGEST_START_MAX_ATTEMPTS:
+                logger.info(
+                    "KB ingestion already running; retrying start attempt %d/%d in %ds",
+                    attempt,
+                    INGEST_START_MAX_ATTEMPTS,
+                    INGEST_POLL_INTERVAL_S,
+                )
+                time.sleep(INGEST_POLL_INTERVAL_S)
+                continue
+            logger.exception("StartIngestionJob failed (kb=%s ds=%s)", KB_ID, KB_DATA_SOURCE_ID)
+            return None
+    return None
 
 
 def _wait_for_ingestion(job_id: str) -> str:
