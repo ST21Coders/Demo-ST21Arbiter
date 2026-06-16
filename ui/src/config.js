@@ -106,5 +106,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.5.29'
-export const APP_VERSION_NOTE = 'Clarify missing department summaries'
+export const APP_VERSION = '1.5.30'
+export const APP_VERSION_NOTE = 'Add manual AWS config drift workflow'
