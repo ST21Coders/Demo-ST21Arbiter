@@ -582,7 +582,24 @@ function GroupCard({
             <div>
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Files in group</p>
               <div className="space-y-2">
-                {group.files.map(file => <FileRow key={fileKey(file)} file={file} />)}
+                {group.files.map(file => {
+                  const summaryCsvText = file.summary ? (file.csvText || (summary ? toCsv(summary.rows) : '')) : ''
+                  return (
+                    <FileRow
+                      key={fileKey(file)}
+                      file={file}
+                      action={file.summary && summaryCsvText ? (
+                        <button
+                          type="button"
+                          onClick={() => downloadText(file.name, summaryCsvText, 'text/csv')}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+                        >
+                          <Download size={13} /> Download
+                        </button>
+                      ) : null}
+                    />
+                  )
+                })}
               </div>
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -1058,12 +1075,14 @@ export default function DataGrouping() {
     const rows = invoiceSummaryRows(group)
     const summaryFile = makeSummaryName(group.name, group.type)
     const summaryKey = `${processedPrefix}${projectId}/${group.name}/${summaryFile}`
+    const csvText = toCsv(rows)
     const summaryObject = {
       key: summaryKey,
       name: summaryFile,
-      size: toCsv(rows).length,
+      size: csvText.length,
       last_modified: new Date().toISOString(),
       summary: true,
+      csvText,
       generatedFromGroupId: group.id,
     }
     setMetadata(null)
