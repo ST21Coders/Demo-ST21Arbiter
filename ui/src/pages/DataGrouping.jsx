@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle, CheckCircle, ChevronDown, ChevronRight, Database, Download, Edit3,
-  FileSpreadsheet, FolderTree, Loader2, Plus, RefreshCw, Save, Trash2, Upload, Wand2, XCircle,
+  Eye, FileSpreadsheet, FolderTree, Loader2, Plus, RefreshCw, Save, Trash2, Upload, Wand2, XCircle,
 } from 'lucide-react'
 import { USE_MOCK } from '../config'
 import { listUploadedFiles, presignUpload, uploadToPresignedUrl } from '../hooks/useApi'
@@ -115,7 +115,7 @@ function makeSummaryName(groupName, groupType) {
 }
 
 function rowsForGroup(group) {
-  return group.files.flatMap(file => {
+  return group.files.filter(file => !file.summary).flatMap(file => {
     const rows = SAMPLE_ROWS[file.name] || []
     if (!rows.length) {
       return [{
@@ -173,7 +173,7 @@ function columnsForCsv(file) {
 }
 
 function validateGroup(group) {
-  const csvFiles = group.files.filter(file => /\.csv$/i.test(file.name || ''))
+  const csvFiles = group.files.filter(file => !file.summary && /\.csv$/i.test(file.name || ''))
   const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
   const csvColumnSignatures = csvFiles.map(file => columnsForCsv(file).join('|'))
   const uniqueColumnSignatures = new Set(csvColumnSignatures)
@@ -310,10 +310,14 @@ function Stat({ label, value }) {
 }
 
 function FileRow({ file, action }) {
+  const isSummary = Boolean(file.summary)
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+    <div className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${isSummary ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-slate-50'}`}>
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-slate-800" title={file.name}>{file.name}</p>
+        <p className="truncate text-sm font-medium text-slate-800" title={file.name}>
+          {file.name}
+          {isSummary && <span className="ml-2 rounded-full border border-indigo-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-indigo-700">Summary</span>}
+        </p>
         <p className="truncate font-mono text-[10px] text-slate-400" title={file.key}>{file.key}</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -522,8 +526,9 @@ function GroupCard({
   onSaveAssociation, onDeleteAssociation, onDisassociateFile, collapsed, onToggleCollapse,
 }) {
   const [activeAction, setActiveAction] = useState('validate')
+  const [instructionPreviewFile, setInstructionPreviewFile] = useState(null)
   const rows = summary?.rows || []
-  const csvFiles = group.files.filter(file => /\.csv$/i.test(file.name || ''))
+  const csvFiles = group.files.filter(file => !file.summary && /\.csv$/i.test(file.name || ''))
   const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
   const canSummarize = csvFiles.length >= 2
   const validation = validateGroup(group)
@@ -659,7 +664,19 @@ function GroupCard({
                 <p className="text-xs font-bold text-slate-800">Attached instructions</p>
                 <div className="mt-2 space-y-2">
                   {instructionFiles.map(file => (
-                    <FileRow key={fileKey(file)} file={file} />
+                    <FileRow
+                      key={fileKey(file)}
+                      file={file}
+                      action={(
+                        <button
+                          type="button"
+                          onClick={() => setInstructionPreviewFile(file)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          <Eye size={13} /> Quick view
+                        </button>
+                      )}
+                    />
                   ))}
                   {!instructionFiles.length && (
                     <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-500">No instruction file attached to this group yet.</p>
@@ -719,6 +736,39 @@ function GroupCard({
               onDeleteAssociation={onDeleteAssociation}
               onDisassociateFile={onDisassociateFile}
             />
+          )}
+          {instructionPreviewFile && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+              <div className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                <div className="flex items-start justify-between gap-3 border-b border-slate-200 p-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900">Instruction quick view</p>
+                    <p className="mt-1 truncate font-mono text-xs text-slate-500" title={instructionPreviewFile.key}>{instructionPreviewFile.name}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setInstructionPreviewFile(null)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    <XCircle size={13} /> Close
+                  </button>
+                </div>
+                <div className="overflow-auto p-4">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-xs font-semibold text-slate-700">PDF preview placeholder</p>
+                    <p className="mt-2 text-xs text-slate-500">
+                      Local quick view is ready to host the PDF renderer. In the real S3-backed version, this modal will load the guide with a signed URL and render it inline.
+                    </p>
+                    <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-xs">
+                      <p className="font-semibold text-slate-800">File</p>
+                      <p className="mt-1 break-all font-mono text-slate-500">{instructionPreviewFile.key}</p>
+                      <p className="mt-3 font-semibold text-slate-800">Expected Arbiter instruction</p>
+                      <p className="mt-1 text-slate-600">Combine all CSV files, group by Status, then calculate invoice count, total Invoice Amount, and average Invoice Amount.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </>
       )}
@@ -1006,11 +1056,37 @@ export default function DataGrouping() {
 
   function generateSummary(group) {
     const rows = invoiceSummaryRows(group)
+    const summaryFile = makeSummaryName(group.name, group.type)
+    const summaryKey = `${processedPrefix}${projectId}/${group.name}/${summaryFile}`
+    const summaryObject = {
+      key: summaryKey,
+      name: summaryFile,
+      size: toCsv(rows).length,
+      last_modified: new Date().toISOString(),
+      summary: true,
+      generatedFromGroupId: group.id,
+    }
     setMetadata(null)
+    setGroups(prev => {
+      const nextGroups = prev.map(item => {
+        if (item.id !== group.id) return item
+        const filesWithoutOldSummary = (item.files || []).filter(file => !(file.summary && file.name === summaryFile))
+        const fileKeysWithoutOldSummary = groupFileKeys(item).filter(key => key !== summaryKey)
+        return {
+          ...item,
+          fileKeys: [...fileKeysWithoutOldSummary, summaryKey],
+          files: [...filesWithoutOldSummary, summaryObject],
+          updatedAt: new Date().toISOString(),
+        }
+      })
+      persistGroups(nextGroups)
+      return nextGroups
+    })
     setSummaries(prev => ({
       ...prev,
       [group.id]: {
         generatedAt: new Date().toISOString(),
+        file: summaryObject,
         calculation: 'Combine CSV files, group by Status, count invoices, sum Invoice_Amount, average Invoice_Amount.',
         rows,
       },

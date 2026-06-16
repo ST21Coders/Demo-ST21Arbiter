@@ -106,5 +106,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.5.10'
-export const APP_VERSION_NOTE = 'Summarize invoice groups by status and amount'
+export const APP_VERSION = '1.5.11'
+export const APP_VERSION_NOTE = 'Preview instructions and attach summary files'
