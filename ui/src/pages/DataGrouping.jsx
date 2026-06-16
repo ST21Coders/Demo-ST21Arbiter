@@ -128,6 +128,44 @@ function rowsForGroup(group) {
   })
 }
 
+function columnsForCsv(file) {
+  const rows = SAMPLE_ROWS[file.name] || []
+  if (rows[0]) return Object.keys(rows[0])
+  return ['source_file', 'source_key', 'note']
+}
+
+function validateGroup(group) {
+  const csvFiles = group.files.filter(file => /\.csv$/i.test(file.name || ''))
+  const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
+  const csvColumnSignatures = csvFiles.map(file => columnsForCsv(file).join('|'))
+  const uniqueColumnSignatures = new Set(csvColumnSignatures)
+  const associatedFileKeys = new Set((group.associations || []).flatMap(association => association.fileKeys))
+  const unassociatedCsvCount = csvFiles.filter(file => !associatedFileKeys.has(fileKey(file))).length
+
+  return [
+    {
+      status: csvFiles.length >= 2 ? 'pass' : 'fail',
+      label: `${csvFiles.length} CSV files`,
+      detail: csvFiles.length >= 2 ? 'Ready for grouped CSV summary.' : 'Add at least two CSV files before summarizing.',
+    },
+    {
+      status: instructionFiles.length ? 'pass' : 'warn',
+      label: `${instructionFiles.length} instruction file${instructionFiles.length === 1 ? '' : 's'}`,
+      detail: instructionFiles.length ? 'Instructions are attached to this group.' : 'Attach a PDF, DOCX, TXT, or MD guide when available.',
+    },
+    {
+      status: uniqueColumnSignatures.size <= 1 ? 'pass' : 'warn',
+      label: uniqueColumnSignatures.size <= 1 ? 'CSV schemas align' : 'CSV schemas differ',
+      detail: uniqueColumnSignatures.size <= 1 ? 'Detected CSV columns are compatible for summary.' : 'Review columns before generating the final summary.',
+    },
+    {
+      status: unassociatedCsvCount === 0 || !(group.associations || []).length ? 'pass' : 'warn',
+      label: `${unassociatedCsvCount} unassociated CSV${unassociatedCsvCount === 1 ? '' : 's'}`,
+      detail: (group.associations || []).length ? 'Associations can drive more specific summaries.' : 'No associations yet; summary will use all CSV files together.',
+    },
+  ]
+}
+
 function amountTotal(rows) {
   return rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0)
 }
@@ -445,9 +483,13 @@ function GroupCard({
   group, projectId, processedPrefix, summary, onGenerateSummary, onEdit, onDelete,
   onSaveAssociation, onDeleteAssociation, onDisassociateFile, collapsed, onToggleCollapse,
 }) {
+  const [activeAction, setActiveAction] = useState('validate')
   const rows = summary?.rows || []
   const csvFiles = group.files.filter(file => /\.csv$/i.test(file.name || ''))
+  const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
   const canSummarize = csvFiles.length >= 2
+  const validation = validateGroup(group)
+  const previewRows = rowsForGroup(group).slice(0, 5)
   const summaryFile = makeSummaryName(group.name, group.type)
   const targetPrefix = `${processedPrefix}${projectId}/${group.name}/`
 
@@ -506,7 +548,7 @@ function GroupCard({
               <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-xs font-semibold text-slate-800">{summaryFile}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {canSummarize ? 'Stage two can summarize this group because it has two or more CSV files.' : 'Add at least two CSV files before generating a spreadsheet summary.'}
+                  {canSummarize ? 'Group actions can create a local summary CSV from these files.' : 'Add at least two CSV files before generating a spreadsheet summary.'}
                 </p>
               </div>
               {summary && (
@@ -524,24 +566,114 @@ function GroupCard({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={!canSummarize}
-              onClick={() => onGenerateSummary(group)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-            >
-              <Wand2 size={13} /> Generate summary
-            </button>
-            <button
-              type="button"
-              disabled={!summary}
-              onClick={() => summary && downloadText(summaryFile, toCsv(summary.rows), 'text/csv')}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
-            >
-              <Download size={13} /> Download summary
-            </button>
+          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Group actions</p>
+                <p className="mt-1 text-xs text-slate-500">Review instructions, validate the group, preview combined rows, then generate a summary CSV.</p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveAction('instructions')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${activeAction === 'instructions' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+              >
+                <FileSpreadsheet size={13} /> Review instructions
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveAction('validate')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${activeAction === 'validate' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+              >
+                <CheckCircle size={13} /> Validate group
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveAction('preview')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${activeAction === 'preview' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+              >
+                <Database size={13} /> Preview combined CSV
+              </button>
+              <button
+                type="button"
+                disabled={!canSummarize}
+                onClick={() => {
+                  onGenerateSummary(group)
+                  setActiveAction('summary')
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+              >
+                <Wand2 size={13} /> Generate summary CSV
+              </button>
+              <button
+                type="button"
+                disabled={!summary}
+                onClick={() => summary && downloadText(summaryFile, toCsv(summary.rows), 'text/csv')}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+              >
+                <Download size={13} /> Download summary
+              </button>
+            </div>
+
+            {activeAction === 'instructions' && (
+              <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+                <p className="text-xs font-bold text-slate-800">Attached instructions</p>
+                <div className="mt-2 space-y-2">
+                  {instructionFiles.map(file => (
+                    <FileRow key={fileKey(file)} file={file} />
+                  ))}
+                  {!instructionFiles.length && (
+                    <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-500">No instruction file attached to this group yet.</p>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-slate-500">Next backend step: extract the PDF guide text and use it as context for summary generation.</p>
+              </div>
+            )}
+
+            {activeAction === 'validate' && (
+              <div className="mt-3 grid gap-2 md:grid-cols-2">
+                {validation.map(check => (
+                  <div key={check.label} className={`rounded-lg border p-3 ${check.status === 'pass' ? 'border-emerald-200 bg-emerald-50' : check.status === 'fail' ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}>
+                    <p className={`text-xs font-bold ${check.status === 'pass' ? 'text-emerald-800' : check.status === 'fail' ? 'text-red-800' : 'text-amber-800'}`}>{check.label}</p>
+                    <p className={`mt-1 text-xs ${check.status === 'pass' ? 'text-emerald-700' : check.status === 'fail' ? 'text-red-700' : 'text-amber-700'}`}>{check.detail}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeAction === 'preview' && (
+              <div className="mt-3 overflow-auto rounded-lg border border-slate-200 bg-white">
+                <table className="min-w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500">
+                    <tr>
+                      {Object.keys(previewRows[0] || { note: '' }).map(header => (
+                        <th key={header} className="px-3 py-2 font-semibold">{header}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewRows.map((row, index) => (
+                      <tr key={`${row.source_file || 'row'}-${index}`} className="border-t border-slate-100">
+                        {Object.keys(previewRows[0] || { note: '' }).map(header => (
+                          <td key={header} className="max-w-[220px] truncate px-3 py-2 text-slate-700" title={String(row[header] ?? '')}>{row[header] ?? ''}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">Previewing first {previewRows.length} combined rows. Generate summary CSV to create the downloadable file.</p>
+              </div>
+            )}
+
+            {activeAction === 'summary' && (
+              <div className="mt-3 rounded-lg border border-indigo-200 bg-white p-3">
+                <p className="text-xs font-bold text-indigo-800">{summary ? 'Summary CSV generated' : 'Generating summary CSV'}</p>
+                <p className="mt-1 text-xs text-slate-500">{summary ? `${summaryFile} contains ${rows.length} rows from ${csvFiles.length} CSV files.` : 'Click Generate summary CSV to create a local summary.'}</p>
+              </div>
+            )}
           </div>
+
           {canSummarize && (
             <AssociationBuilder
               group={group}
