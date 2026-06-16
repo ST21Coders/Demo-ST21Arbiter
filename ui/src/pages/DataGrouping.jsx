@@ -199,37 +199,18 @@ function summarySourceFiles(group) {
   return csvFiles.filter(file => associatedKeys.has(fileKey(file)))
 }
 
-function invoiceSummaryRows(group) {
-  const sourceFiles = summarySourceFiles(group)
-  const csvRows = rowsForFiles(sourceFiles).filter(row => !row.note)
-  if (!csvRows.length) {
-    return [{
-      status: 'No Loaded CSV Rows',
-      invoice_count: 0,
-      total_invoice_amount: '0.00',
-      average_invoice_amount: '0.00',
-      source_file_count: sourceFiles.length,
-    }]
-  }
-  const byStatus = new Map()
-  csvRows.forEach(row => {
-    const status = statusValue(row)
-    const current = byStatus.get(status) || { status, invoice_count: 0, total_invoice_amount: 0, sourceFiles: new Set() }
-    current.invoice_count += 1
-    current.total_invoice_amount += invoiceAmount(row)
-    if (row.source_file) current.sourceFiles.add(row.source_file)
-    byStatus.set(status, current)
-  })
+function loadedRowsForFiles(files) {
+  return files.flatMap(file => (
+    file.csvText ? parseCsv(file.csvText).map(row => ({ source_file: file.name, ...row })) : []
+  ))
+}
 
-  return [...byStatus.values()]
-    .sort((left, right) => right.total_invoice_amount - left.total_invoice_amount || left.status.localeCompare(right.status))
-    .map(row => ({
-      status: row.status,
-      invoice_count: row.invoice_count,
-      total_invoice_amount: row.total_invoice_amount.toFixed(2),
-      average_invoice_amount: (row.total_invoice_amount / row.invoice_count).toFixed(2),
-      source_file_count: row.sourceFiles.size,
-    }))
+function recordCountSummaryRows(group) {
+  const sourceFiles = summarySourceFiles(group)
+  return [{
+    metric: 'combined_record_count',
+    value: loadedRowsForFiles(sourceFiles).length,
+  }]
 }
 
 function columnsForCsv(file) {
@@ -600,7 +581,7 @@ function GroupCard({
   const validation = validateGroup(group)
   const previewRows = rowsForGroup(group).slice(0, 5)
   const summarySourceFileCount = summary?.sourceFileCount ?? summarySourceFiles(group).length
-  const summarySourceRowCount = summary?.sourceRowCount ?? rowsForFiles(summarySourceFiles(group)).filter(row => !row.note).length
+  const summarySourceRowCount = summary?.sourceRowCount ?? loadedRowsForFiles(summarySourceFiles(group)).length
   const summaryFile = makeSummaryName(group.name, group.type)
   const targetPrefix = `${processedPrefix}${projectId}/${group.name}/`
 
@@ -676,7 +657,7 @@ function GroupCard({
               <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-xs font-semibold text-slate-800">{summaryFile}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {canSummarize ? 'Default summary combines CSV files, groups by Status, and totals Invoice Amount.' : 'Add at least two CSV files before generating a spreadsheet summary.'}
+                  {canSummarize ? 'Current summary counts loaded records across associated CSV files.' : 'Add at least two CSV files before generating a spreadsheet summary.'}
                 </p>
               </div>
               {summary && (
@@ -686,8 +667,8 @@ function GroupCard({
                     <p className="font-semibold text-slate-900">{rows.length}</p>
                   </div>
                   <div className="rounded-lg border border-slate-200 bg-white p-2">
-                    <p className="text-slate-400">Amount total</p>
-                    <p className="font-semibold text-slate-900">${amountTotal(rows).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                    <p className="text-slate-400">Loaded records</p>
+                    <p className="font-semibold text-slate-900">{summarySourceRowCount}</p>
                   </div>
                 </div>
               )}
@@ -698,7 +679,7 @@ function GroupCard({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Group actions</p>
-                <p className="mt-1 text-xs text-slate-500">Review instructions, validate the group, preview combined rows, then generate a status-based financial summary CSV.</p>
+                <p className="mt-1 text-xs text-slate-500">Review instructions, validate the group, preview combined rows, then generate a basic associated-record count CSV.</p>
               </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -802,14 +783,14 @@ function GroupCard({
                     ))}
                   </tbody>
                 </table>
-                <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">Previewing first {previewRows.length} combined source rows. Generate summary CSV to aggregate Invoice Amount by Status.</p>
+                <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">Previewing first {previewRows.length} combined source rows. Generate summary CSV to count loaded records across associated CSVs.</p>
               </div>
             )}
 
             {activeAction === 'summary' && (
               <div className="mt-3 rounded-lg border border-indigo-200 bg-white p-3">
                 <p className="text-xs font-bold text-indigo-800">{summary ? 'Summary CSV generated' : 'Generating summary CSV'}</p>
-                <p className="mt-1 text-xs text-slate-500">{summary ? `${summaryFile} contains ${rows.length} status summary rows from ${summarySourceFileCount} CSV files and ${summarySourceRowCount} loaded source rows.` : 'Click Generate summary CSV to create a local status summary.'}</p>
+                <p className="mt-1 text-xs text-slate-500">{summary ? `${summaryFile} contains combined_record_count from ${summarySourceFileCount} associated CSV files and ${summarySourceRowCount} loaded source rows.` : 'Click Generate summary CSV to count loaded records across associated CSV files.'}</p>
               </div>
             )}
           </div>
@@ -1145,8 +1126,8 @@ export default function DataGrouping() {
 
   function generateSummary(group) {
     const sourceFiles = summarySourceFiles(group)
-    const sourceRows = rowsForFiles(sourceFiles).filter(row => !row.note)
-    const rows = invoiceSummaryRows(group)
+    const sourceRows = loadedRowsForFiles(sourceFiles)
+    const rows = recordCountSummaryRows(group)
     const summaryFile = makeSummaryName(group.name, group.type)
     const summaryKey = `${processedPrefix}${projectId}/${group.name}/${summaryFile}`
     const csvText = toCsv(rows)
@@ -1180,7 +1161,7 @@ export default function DataGrouping() {
       [group.id]: {
         generatedAt: new Date().toISOString(),
         file: summaryObject,
-        calculation: 'Combine CSV files, group by Status, count invoices, sum Invoice_Amount, average Invoice_Amount.',
+        calculation: 'Count loaded data records across associated CSV files.',
         sourceFileCount: sourceFiles.length,
         sourceRowCount: sourceRows.length,
         rows,
