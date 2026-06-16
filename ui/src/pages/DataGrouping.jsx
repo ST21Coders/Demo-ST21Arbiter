@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle, CheckCircle, ChevronDown, ChevronRight, Database, Download, Edit3,
-  FileSpreadsheet, FolderTree, Loader2, Plus, RefreshCw, Save, Trash2, Wand2, XCircle,
+  FileSpreadsheet, FolderTree, Loader2, Plus, RefreshCw, Save, Trash2, Upload, Wand2, XCircle,
 } from 'lucide-react'
 import { USE_MOCK } from '../config'
-import { listUploadedFiles } from '../hooks/useApi'
+import { listUploadedFiles, presignUpload, uploadToPresignedUrl } from '../hooks/useApi'
 
 const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.v2.projectMetadata'
 const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.v2.savedGroups'
 const METADATA_LEDGER_STORAGE_KEY = 'arbiter.dataGrouping.v2.metadataLedger'
+const LOCAL_PROCESSED_UPLOADS_KEY = 'arbiter.dataGrouping.v2.localProcessedUploads'
 const ASSOCIATION_OPTIONS = ['A', 'B', 'C', 'D', 'E']
 
 const GROUP_TYPE_OPTIONS = [
@@ -211,6 +212,16 @@ function mergeMetadataLedger(ledger, metadata) {
 
 function persistGroups(groups) {
   localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups))
+}
+
+function mergeFiles(baseFiles, localFiles) {
+  const seen = new Set()
+  return [...baseFiles, ...localFiles].filter(file => {
+    const key = fileKey(file)
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 function Stat({ label, value }) {
@@ -556,11 +567,14 @@ export default function DataGrouping() {
   const [metadataWrite, setMetadataWrite] = useState(null)
   const [groups, setGroups] = useState([])
   const [groupsLoaded, setGroupsLoaded] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState('')
   const [editingGroupId, setEditingGroupId] = useState(null)
   const [draftName, setDraftName] = useState('')
   const [draftType, setDraftType] = useState('special_project')
   const [draftKeys, setDraftKeys] = useState([])
   const [collapsedGroupIds, setCollapsedGroupIds] = useState([])
+  const uploadInputRef = useRef(null)
 
   const projectId = slugify(projectName)
   const processedPrefix = 'processed/'
@@ -597,11 +611,49 @@ export default function DataGrouping() {
     setError('')
     try {
       const data = await listUploadedFiles('processed')
-      setFiles(data.files || [])
+      const localFiles = JSON.parse(localStorage.getItem(LOCAL_PROCESSED_UPLOADS_KEY) || '[]')
+      setFiles(mergeFiles(data.files || [], Array.isArray(localFiles) ? localFiles : []))
     } catch (err) {
       setError(err.message || 'Unable to list processed files')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleProcessedUpload(fileList) {
+    const selectedFiles = Array.from(fileList || [])
+    if (!selectedFiles.length) return
+    setUploading(true)
+    setError('')
+    setUploadMessage('')
+    try {
+      if (USE_MOCK) {
+        const uploadedFiles = selectedFiles.map((file, index) => ({
+          key: `users/mock/processed/${Date.now()}-${index}-${file.name}`,
+          name: file.name,
+          size: file.size,
+          last_modified: new Date().toISOString(),
+        }))
+        const previousLocalFiles = JSON.parse(localStorage.getItem(LOCAL_PROCESSED_UPLOADS_KEY) || '[]')
+        const nextLocalFiles = mergeFiles(Array.isArray(previousLocalFiles) ? previousLocalFiles : [], uploadedFiles)
+        localStorage.setItem(LOCAL_PROCESSED_UPLOADS_KEY, JSON.stringify(nextLocalFiles))
+        setFiles(prev => mergeFiles(prev, uploadedFiles))
+        setUploadMessage(`${selectedFiles.length} file${selectedFiles.length === 1 ? '' : 's'} added to local /processed.`)
+        return
+      }
+
+      for (const file of selectedFiles) {
+        const pre = await presignUpload({ filename: file.name, contentType: file.type })
+        const res = await uploadToPresignedUrl(pre.url, pre.headers, file)
+        if (!res.ok) throw new Error(`${file.name}: upload returned ${res.status}`)
+      }
+      setUploadMessage(`${selectedFiles.length} file${selectedFiles.length === 1 ? '' : 's'} uploaded to the pipeline. Refresh after processing completes.`)
+      await loadFiles()
+    } catch (err) {
+      setError(err.message || 'Unable to upload file')
+    } finally {
+      setUploading(false)
+      if (uploadInputRef.current) uploadInputRef.current.value = ''
     }
   }
 
@@ -823,15 +875,34 @@ export default function DataGrouping() {
             Start from files that already cleared the Data Pipeline into /processed. Create editable project data groups first; later, groups with two or more CSV files can produce summary spreadsheets.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={loadFiles}
-          disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60"
-        >
-          {loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-          Refresh processed files
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={uploadInputRef}
+            type="file"
+            multiple
+            accept=".md,.pdf,.docx,.json,.txt,.csv"
+            className="hidden"
+            onChange={(event) => handleProcessedUpload(event.target.files)}
+          />
+          <button
+            type="button"
+            onClick={() => uploadInputRef.current?.click()}
+            disabled={uploading}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
+          >
+            {uploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+            Upload file
+          </button>
+          <button
+            type="button"
+            onClick={loadFiles}
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60"
+          >
+            {loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+            Refresh processed files
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
@@ -843,7 +914,13 @@ export default function DataGrouping() {
 
       {USE_MOCK && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          This local server is running in mock mode, so it will not show newly uploaded S3 files. Use the signed-in live app to see real /processed contents.
+          This local server is running in mock mode. Uploaded files are added to a local /processed list for this demo.
+        </div>
+      )}
+
+      {uploadMessage && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+          {uploadMessage}
         </div>
       )}
 
