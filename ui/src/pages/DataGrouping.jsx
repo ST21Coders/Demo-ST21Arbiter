@@ -236,92 +236,38 @@ function loadedRowsForFiles(files) {
 function recordCountSummaryRows(group) {
   const sourceFiles = summarySourceFiles(group)
   const fileRows = sourceFiles.map(file => ({
-    section: 'file_record_counts',
-    file_name: file.name,
-    loaded_record_count: file.csvText ? parseCsv(file.csvText).length : 'not_loaded',
-    status: '',
-    status_record_count: '',
+    summary_type: 'file',
+    dimension: file.name,
+    record_count: file.csvText ? parseCsv(file.csvText).length : 'not_loaded',
     invoice_amount: '',
-    vendor_name: '',
-    vendor_record_count: '',
-    department_name: '',
-    department_record_count: '',
   }))
-  const total = fileRows.reduce((sum, row) => sum + (Number(row.loaded_record_count) || 0), 0)
-  const statusCounts = new Map()
+  const total = fileRows.reduce((sum, row) => sum + (Number(row.record_count) || 0), 0)
   const loadedRows = loadedRowsForFiles(sourceFiles)
-  loadedRows.forEach(row => {
-    const status = statusValue(row)
-    const current = statusCounts.get(status) || { count: 0, invoice_amount: 0 }
-    current.count += 1
-    current.invoice_amount += invoiceAmount(row)
-    statusCounts.set(status, current)
-  })
-  const statusRows = [...statusCounts.entries()]
-    .sort(([leftStatus], [rightStatus]) => leftStatus.localeCompare(rightStatus))
-    .map(([status, summary]) => ({
-      section: 'status_record_counts',
-      file_name: '',
-      loaded_record_count: '',
-      status,
-      status_record_count: summary.count,
-      invoice_amount: summary.invoice_amount.toFixed(2),
-      vendor_name: '',
-      vendor_record_count: '',
-      department_name: '',
-      department_record_count: '',
-    }))
-  const vendorCounts = new Map()
-  loadedRows.forEach(row => {
-    const name = vendorName(row)
-    const current = vendorCounts.get(name) || { count: 0, invoice_amount: 0 }
-    current.count += 1
-    current.invoice_amount += invoiceAmount(row)
-    vendorCounts.set(name, current)
-  })
-  const vendorRows = [...vendorCounts.entries()]
-    .sort(([leftName], [rightName]) => leftName.localeCompare(rightName))
-    .map(([name, summary]) => ({
-      section: 'vendor_record_counts',
-      file_name: '',
-      loaded_record_count: '',
-      status: '',
-      status_record_count: '',
-      invoice_amount: summary.invoice_amount.toFixed(2),
-      vendor_name: name,
-      vendor_record_count: summary.count,
-      department_name: '',
-      department_record_count: '',
-    }))
-  const departmentCounts = new Map()
-  loadedRows.forEach(row => {
-    const name = departmentName(row)
-    const current = departmentCounts.get(name) || { count: 0, invoice_amount: 0 }
-    current.count += 1
-    current.invoice_amount += invoiceAmount(row)
-    departmentCounts.set(name, current)
-  })
-  const departmentRows = [...departmentCounts.entries()]
-    .sort(([leftName], [rightName]) => leftName.localeCompare(rightName))
-    .map(([name, summary]) => ({
-      section: 'department_record_counts',
-      file_name: '',
-      loaded_record_count: '',
-      status: '',
-      status_record_count: '',
-      invoice_amount: summary.invoice_amount.toFixed(2),
-      vendor_name: '',
-      vendor_record_count: '',
-      department_name: name,
-      department_record_count: summary.count,
-    }))
+  const aggregateRows = (summaryType, valueForRow) => {
+    const byDimension = new Map()
+    loadedRows.forEach(row => {
+      const dimension = valueForRow(row)
+      const current = byDimension.get(dimension) || { record_count: 0, invoice_amount: 0 }
+      current.record_count += 1
+      current.invoice_amount += invoiceAmount(row)
+      byDimension.set(dimension, current)
+    })
+    return [...byDimension.entries()]
+      .sort(([leftDimension], [rightDimension]) => leftDimension.localeCompare(rightDimension))
+      .map(([dimension, summary]) => ({
+        summary_type: summaryType,
+        dimension,
+        record_count: summary.record_count,
+        invoice_amount: summary.invoice_amount.toFixed(2),
+      }))
+  }
 
   return [
     ...fileRows,
-    { section: 'file_record_counts', file_name: 'TOTAL RECORDS', loaded_record_count: total, status: '', status_record_count: '', invoice_amount: '', vendor_name: '', vendor_record_count: '', department_name: '', department_record_count: '' },
-    ...vendorRows,
-    ...departmentRows,
-    ...statusRows,
+    { summary_type: 'total', dimension: 'TOTAL RECORDS', record_count: total, invoice_amount: '' },
+    ...aggregateRows('vendor', vendorName),
+    ...aggregateRows('department', departmentName),
+    ...aggregateRows('status', statusValue),
   ]
 }
 
