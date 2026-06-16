@@ -207,17 +207,15 @@ function loadedRowsForFiles(files) {
 
 function recordCountSummaryRows(group) {
   const sourceFiles = summarySourceFiles(group)
-  const missingFiles = sourceFiles.filter(file => !file.csvText)
-  if (missingFiles.length) {
-    return [
-      { metric: 'combined_record_count', value: 'not_available' },
-      { metric: 'missing_loaded_csv_files', value: missingFiles.length },
-    ]
-  }
-  return [{
-    metric: 'combined_record_count',
-    value: loadedRowsForFiles(sourceFiles).length,
-  }]
+  const fileRows = sourceFiles.map(file => ({
+    file_name: file.name,
+    loaded_record_count: file.csvText ? parseCsv(file.csvText).length : 'not_loaded',
+  }))
+  const total = fileRows.reduce((sum, row) => sum + (Number(row.loaded_record_count) || 0), 0)
+  return [
+    ...fileRows,
+    { file_name: 'TOTAL', loaded_record_count: total },
+  ]
 }
 
 function invoiceGuideSummaryRows(group) {
@@ -697,9 +695,7 @@ function GroupCard({
                 <p className="text-xs font-semibold text-slate-800">{summaryFile}</p>
                 <p className="mt-1 text-xs text-slate-500">
                   {canSummarize
-                    ? usingInstructionGuide
-                      ? 'Instruction-guided summary groups loaded associated CSV rows by Status and Invoice Amount.'
-                      : 'Current summary counts loaded records across associated CSV files.'
+                    ? 'Current summary counts loaded records per associated CSV and adds a TOTAL row.'
                     : 'Add at least two CSV files before generating a spreadsheet summary.'}
                 </p>
               </div>
@@ -722,7 +718,7 @@ function GroupCard({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Group actions</p>
-                <p className="mt-1 text-xs text-slate-500">Review instructions, validate the group, preview combined rows, then generate the matching deterministic summary CSV.</p>
+                <p className="mt-1 text-xs text-slate-500">Review instructions, validate the group, preview combined rows, then generate a deterministic row-count summary CSV.</p>
               </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -844,7 +840,7 @@ function GroupCard({
                     ))}
                   </tbody>
                 </table>
-                <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">Previewing first {previewRows.length} combined source rows. Generate summary CSV will follow the attached instruction guide when present.</p>
+                <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">Previewing first {previewRows.length} combined source rows. Generate summary CSV counts records per associated CSV and totals them.</p>
               </div>
             )}
 
@@ -855,7 +851,7 @@ function GroupCard({
                   {summary
                     ? missingCsvFileCount
                       ? `${summaryFile} cannot produce a real count yet: ${missingCsvFileCount} associated CSV files need loaded contents.`
-                      : `${summaryFile} contains ${usingInstructionGuide ? 'an instruction-guided invoice summary' : 'combined_record_count'} from ${summarySourceFileCount} associated CSV files and ${summarySourceRowCount} loaded source rows.`
+                      : `${summaryFile} contains per-file record counts from ${summarySourceFileCount} associated CSV files and ${summarySourceRowCount} loaded source rows.`
                     : 'Click Generate summary CSV to count loaded records across associated CSV files.'}
                 </p>
               </div>
@@ -1241,7 +1237,7 @@ export default function DataGrouping() {
     const missingCsvFiles = sourceFiles.filter(file => !file.csvText)
     const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
     const usingInstructionGuide = instructionFiles.length > 0
-    const rows = usingInstructionGuide ? invoiceGuideSummaryRows(group) : recordCountSummaryRows(group)
+    const rows = recordCountSummaryRows(group)
     const summaryFile = makeSummaryName(group.name, group.type)
     const summaryKey = `${processedPrefix}${projectId}/${group.name}/${summaryFile}`
     const csvText = toCsv(rows)
@@ -1276,7 +1272,7 @@ export default function DataGrouping() {
         generatedAt: new Date().toISOString(),
         file: summaryObject,
         calculation: usingInstructionGuide
-          ? 'Instruction-guided invoice summary: group loaded associated CSV rows by Status, count invoices, sum Invoice_Amount, average Invoice_Amount.'
+          ? 'Instruction guide detected. Verification summary counts loaded data records by associated CSV before applying higher-order invoice calculations.'
           : 'Count loaded data records across associated CSV files.',
         instructionFiles: instructionFiles.map(file => ({ name: file.name, key: file.key })),
         sourceFileCount: sourceFiles.length,
