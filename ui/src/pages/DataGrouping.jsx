@@ -206,6 +206,20 @@ function vendorName(row) {
   ).trim() || 'Unknown'
 }
 
+function departmentName(row) {
+  return String(
+    row.Department ??
+    row.department ??
+    row.Department_Name ??
+    row.department_name ??
+    row.Cost_Center ??
+    row.cost_center ??
+    row.Business_Unit ??
+    row.business_unit ??
+    'Unknown'
+  ).trim() || 'Unknown'
+}
+
 function summarySourceFiles(group) {
   const csvFiles = group.files.filter(file => !file.summary && /\.csv$/i.test(file.name || ''))
   const associatedKeys = new Set((group.associations || []).flatMap(association => association.fileKeys))
@@ -230,6 +244,8 @@ function recordCountSummaryRows(group) {
     invoice_amount: '',
     vendor_name: '',
     vendor_record_count: '',
+    department_name: '',
+    department_record_count: '',
   }))
   const total = fileRows.reduce((sum, row) => sum + (Number(row.loaded_record_count) || 0), 0)
   const statusCounts = new Map()
@@ -252,6 +268,8 @@ function recordCountSummaryRows(group) {
       invoice_amount: summary.invoice_amount.toFixed(2),
       vendor_name: '',
       vendor_record_count: '',
+      department_name: '',
+      department_record_count: '',
     }))
   const vendorCounts = new Map()
   loadedRows.forEach(row => {
@@ -272,13 +290,38 @@ function recordCountSummaryRows(group) {
       invoice_amount: summary.invoice_amount.toFixed(2),
       vendor_name: name,
       vendor_record_count: summary.count,
+      department_name: '',
+      department_record_count: '',
+    }))
+  const departmentCounts = new Map()
+  loadedRows.forEach(row => {
+    const name = departmentName(row)
+    const current = departmentCounts.get(name) || { count: 0, invoice_amount: 0 }
+    current.count += 1
+    current.invoice_amount += invoiceAmount(row)
+    departmentCounts.set(name, current)
+  })
+  const departmentRows = [...departmentCounts.entries()]
+    .sort(([leftName], [rightName]) => leftName.localeCompare(rightName))
+    .map(([name, summary]) => ({
+      section: 'department_record_counts',
+      file_name: '',
+      loaded_record_count: '',
+      status: '',
+      status_record_count: '',
+      invoice_amount: summary.invoice_amount.toFixed(2),
+      vendor_name: '',
+      vendor_record_count: '',
+      department_name: name,
+      department_record_count: summary.count,
     }))
 
   return [
     ...fileRows,
-    { section: 'file_record_counts', file_name: 'TOTAL RECORDS', loaded_record_count: total, status: '', status_record_count: '', invoice_amount: '', vendor_name: '', vendor_record_count: '' },
-    ...statusRows,
+    { section: 'file_record_counts', file_name: 'TOTAL RECORDS', loaded_record_count: total, status: '', status_record_count: '', invoice_amount: '', vendor_name: '', vendor_record_count: '', department_name: '', department_record_count: '' },
     ...vendorRows,
+    ...departmentRows,
+    ...statusRows,
   ]
 }
 
