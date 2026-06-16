@@ -12,10 +12,9 @@ const METADATA_LEDGER_STORAGE_KEY = 'arbiter.dataGrouping.metadataLedger'
 const ASSOCIATION_OPTIONS = ['A', 'B', 'C', 'D', 'E']
 
 const GROUP_TYPE_OPTIONS = [
-  { value: 'accounts_receivable_invoices', label: 'AR Invoices', suggestedName: 'AR_Invoices', summaryFile: 'SUM_AR_Invoices.csv' },
-  { value: 'accounts_payable_invoices', label: 'AP Invoices', suggestedName: 'AP_Invoices', summaryFile: 'SUM_AP_Invoices.csv' },
-  { value: 'spreadsheet_collection', label: 'Spreadsheet collection', suggestedName: 'Spreadsheet_Group', summaryFile: 'SUM_Spreadsheet_Group.csv' },
-  { value: 'project_supporting_files', label: 'Supporting files', suggestedName: 'Supporting_Files', summaryFile: '' },
+  { value: 'special_project', label: 'Special Project', suggestedName: 'Special_Project', summaryFile: '' },
+  { value: 'recurring_project', label: 'Recurring Project', suggestedName: 'Recurring_Project', summaryFile: '' },
+  { value: 'audit', label: 'Audit', suggestedName: 'Audit', summaryFile: '' },
 ]
 
 const SAMPLE_ROWS = {
@@ -105,7 +104,7 @@ function downloadText(filename, text, type = 'text/plain') {
 }
 
 function optionForType(type) {
-  return GROUP_TYPE_OPTIONS.find(option => option.value === type) || GROUP_TYPE_OPTIONS[2]
+  return GROUP_TYPE_OPTIONS.find(option => option.value === type) || GROUP_TYPE_OPTIONS[0]
 }
 
 function makeSummaryName(groupName, groupType) {
@@ -542,7 +541,7 @@ export default function DataGrouping() {
   const [groupsLoaded, setGroupsLoaded] = useState(false)
   const [editingGroupId, setEditingGroupId] = useState(null)
   const [draftName, setDraftName] = useState('')
-  const [draftType, setDraftType] = useState('accounts_receivable_invoices')
+  const [draftType, setDraftType] = useState('special_project')
   const [draftKeys, setDraftKeys] = useState([])
   const [collapsedGroupIds, setCollapsedGroupIds] = useState([])
 
@@ -619,7 +618,7 @@ export default function DataGrouping() {
 
   function nextGroupType(groupsToCheck = hydratedGroups) {
     const usedTypes = new Set(groupsToCheck.map(group => group.type))
-    return GROUP_TYPE_OPTIONS.find(option => !usedTypes.has(option.value))?.value || 'spreadsheet_collection'
+    return GROUP_TYPE_OPTIONS.find(option => !usedTypes.has(option.value))?.value || 'special_project'
   }
 
   function resetDraft(type = draftType, name = '') {
@@ -682,7 +681,7 @@ export default function DataGrouping() {
     setCollapsedGroupIds(prev => prev.filter(groupId => groupId !== group.id))
     setEditingGroupId(group.id)
     setDraftName(group.name)
-    setDraftType(group.type)
+    setDraftType(optionForType(group.type).value)
     setDraftKeys(group.files.map(file => fileKey(file)))
   }
 
