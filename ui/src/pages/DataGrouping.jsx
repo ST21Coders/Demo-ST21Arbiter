@@ -207,6 +207,13 @@ function loadedRowsForFiles(files) {
 
 function recordCountSummaryRows(group) {
   const sourceFiles = summarySourceFiles(group)
+  const missingFiles = sourceFiles.filter(file => !file.csvText)
+  if (missingFiles.length) {
+    return [
+      { metric: 'combined_record_count', value: 'not_available' },
+      { metric: 'missing_loaded_csv_files', value: missingFiles.length },
+    ]
+  }
   return [{
     metric: 'combined_record_count',
     value: loadedRowsForFiles(sourceFiles).length,
@@ -570,18 +577,21 @@ function AssociationBuilder({ group, onSaveAssociation, onDeleteAssociation, onD
 
 function GroupCard({
   group, projectId, processedPrefix, summary, onGenerateSummary, onEdit, onDelete,
-  onSaveAssociation, onDeleteAssociation, onDisassociateFile, collapsed, onToggleCollapse,
+  onSaveAssociation, onDeleteAssociation, onDisassociateFile, onLoadCsvContents, collapsed, onToggleCollapse,
 }) {
   const [activeAction, setActiveAction] = useState('validate')
   const [instructionPreviewFile, setInstructionPreviewFile] = useState(null)
+  const groupCsvInputRef = useRef(null)
   const rows = summary?.rows || []
   const csvFiles = group.files.filter(file => !file.summary && /\.csv$/i.test(file.name || ''))
+  const loadedCsvCount = csvFiles.filter(file => file.csvText).length
   const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
   const canSummarize = csvFiles.length >= 2
   const validation = validateGroup(group)
   const previewRows = rowsForGroup(group).slice(0, 5)
   const summarySourceFileCount = summary?.sourceFileCount ?? summarySourceFiles(group).length
   const summarySourceRowCount = summary?.sourceRowCount ?? loadedRowsForFiles(summarySourceFiles(group)).length
+  const missingCsvFileCount = summary?.missingCsvFileCount ?? summarySourceFiles(group).filter(file => !file.csvText).length
   const summaryFile = makeSummaryName(group.name, group.type)
   const targetPrefix = `${processedPrefix}${projectId}/${group.name}/`
 
@@ -704,6 +714,24 @@ function GroupCard({
               >
                 <Database size={13} /> Preview combined CSV
               </button>
+              <input
+                ref={groupCsvInputRef}
+                type="file"
+                multiple
+                accept=".csv"
+                className="hidden"
+                onChange={(event) => {
+                  onLoadCsvContents(group.id, event.target.files)
+                  event.target.value = ''
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => groupCsvInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+              >
+                <Upload size={13} /> Load CSV contents
+              </button>
               <button
                 type="button"
                 disabled={!canSummarize}
@@ -790,7 +818,18 @@ function GroupCard({
             {activeAction === 'summary' && (
               <div className="mt-3 rounded-lg border border-indigo-200 bg-white p-3">
                 <p className="text-xs font-bold text-indigo-800">{summary ? 'Summary CSV generated' : 'Generating summary CSV'}</p>
-                <p className="mt-1 text-xs text-slate-500">{summary ? `${summaryFile} contains combined_record_count from ${summarySourceFileCount} associated CSV files and ${summarySourceRowCount} loaded source rows.` : 'Click Generate summary CSV to count loaded records across associated CSV files.'}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {summary
+                    ? missingCsvFileCount
+                      ? `${summaryFile} cannot produce a real count yet: ${missingCsvFileCount} associated CSV files need loaded contents.`
+                      : `${summaryFile} contains combined_record_count from ${summarySourceFileCount} associated CSV files and ${summarySourceRowCount} loaded source rows.`
+                    : 'Click Generate summary CSV to count loaded records across associated CSV files.'}
+                </p>
+              </div>
+            )}
+            {loadedCsvCount < csvFiles.length && (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                {loadedCsvCount} of {csvFiles.length} CSV files have loaded row content. Use Load CSV contents and select the CSV files in this group before generating a real record count.
               </div>
             )}
           </div>
@@ -1124,9 +1163,45 @@ export default function DataGrouping() {
     })
   }
 
+  async function loadGroupCsvContents(groupId, fileList) {
+    const selectedFiles = Array.from(fileList || []).filter(file => /\.csv$/i.test(file.name))
+    if (!selectedFiles.length) return
+    setMetadata(null)
+    setError('')
+    try {
+      const csvByName = new Map(await Promise.all(selectedFiles.map(async file => [
+        file.name,
+        {
+          csvText: await file.text(),
+          size: file.size,
+          last_modified: new Date().toISOString(),
+        },
+      ])))
+      setGroups(prev => {
+        const nextGroups = prev.map(group => {
+          if (group.id !== groupId) return group
+          return {
+            ...group,
+            files: (group.files || []).map(file => {
+              const loaded = csvByName.get(file.name)
+              return loaded ? { ...file, ...loaded } : file
+            }),
+            updatedAt: new Date().toISOString(),
+          }
+        })
+        persistGroups(nextGroups)
+        return nextGroups
+      })
+      setUploadMessage(`${selectedFiles.length} CSV file${selectedFiles.length === 1 ? '' : 's'} loaded into the group for real record counting.`)
+    } catch (err) {
+      setError(err.message || 'Unable to load CSV contents')
+    }
+  }
+
   function generateSummary(group) {
     const sourceFiles = summarySourceFiles(group)
     const sourceRows = loadedRowsForFiles(sourceFiles)
+    const missingCsvFiles = sourceFiles.filter(file => !file.csvText)
     const rows = recordCountSummaryRows(group)
     const summaryFile = makeSummaryName(group.name, group.type)
     const summaryKey = `${processedPrefix}${projectId}/${group.name}/${summaryFile}`
@@ -1164,6 +1239,7 @@ export default function DataGrouping() {
         calculation: 'Count loaded data records across associated CSV files.',
         sourceFileCount: sourceFiles.length,
         sourceRowCount: sourceRows.length,
+        missingCsvFileCount: missingCsvFiles.length,
         rows,
       },
     }))
@@ -1409,6 +1485,7 @@ export default function DataGrouping() {
               onSaveAssociation={saveAssociation}
               onDeleteAssociation={deleteAssociation}
               onDisassociateFile={disassociateFile}
+              onLoadCsvContents={loadGroupCsvContents}
               collapsed={collapsedGroupIds.includes(group.id)}
               onToggleCollapse={toggleGroupCollapse}
             />
