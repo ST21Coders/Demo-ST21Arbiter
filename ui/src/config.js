@@ -106,5 +106,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.5.20'
-export const APP_VERSION_NOTE = 'Add status record counts to summary CSV'
+export const APP_VERSION = '1.5.21'
+export const APP_VERSION_NOTE = 'Add invoice amount totals by status'

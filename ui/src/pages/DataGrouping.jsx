@@ -213,26 +213,31 @@ function recordCountSummaryRows(group) {
     loaded_record_count: file.csvText ? parseCsv(file.csvText).length : 'not_loaded',
     status: '',
     status_record_count: '',
+    invoice_amount: '',
   }))
   const total = fileRows.reduce((sum, row) => sum + (Number(row.loaded_record_count) || 0), 0)
   const statusCounts = new Map()
   loadedRowsForFiles(sourceFiles).forEach(row => {
     const status = statusValue(row)
-    statusCounts.set(status, (statusCounts.get(status) || 0) + 1)
+    const current = statusCounts.get(status) || { count: 0, invoice_amount: 0 }
+    current.count += 1
+    current.invoice_amount += invoiceAmount(row)
+    statusCounts.set(status, current)
   })
   const statusRows = [...statusCounts.entries()]
     .sort(([leftStatus], [rightStatus]) => leftStatus.localeCompare(rightStatus))
-    .map(([status, count]) => ({
+    .map(([status, summary]) => ({
       section: 'status_record_counts',
       file_name: '',
       loaded_record_count: '',
       status,
-      status_record_count: count,
+      status_record_count: summary.count,
+      invoice_amount: summary.invoice_amount.toFixed(2),
     }))
 
   return [
     ...fileRows,
-    { section: 'file_record_counts', file_name: 'TOTAL RECORDS', loaded_record_count: total, status: '', status_record_count: '' },
+    { section: 'file_record_counts', file_name: 'TOTAL RECORDS', loaded_record_count: total, status: '', status_record_count: '', invoice_amount: '' },
     ...statusRows,
   ]
 }
