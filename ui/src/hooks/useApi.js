@@ -681,6 +681,29 @@ export async function listUploadedFiles(bucket = 'processed') {
   return apiFetch(`/uploads/list?${qs}`)
 }
 
+export async function materializeDataGroupingProject({ projectName, projectId, groups, move = true }) {
+  if (USE_MOCK) {
+    await sleep(400)
+    return {
+      bucket: 'mock-processed',
+      projectPrefix: `projects/${projectId}/`,
+      metadataKey: `projects/${projectId}/metadata/project.json`,
+      copied: groups.flatMap(group => (group.files || []).map(file => ({
+        sourceKey: file.key,
+        destinationKey: `projects/${projectId}/${group.name}/${file.name}`,
+      }))),
+      structuredCopies: [],
+      deletedSources: [],
+      crawlerStarted: false,
+      crawlerMessage: 'mock',
+    }
+  }
+  return apiFetch('/data-grouping/materialize', {
+    method: 'POST',
+    body: JSON.stringify({ projectName, projectId, groups, move }),
+  })
+}
+
 // Create a real JIRA issue via the jira_specialist runtime. Routes through the
 // Lambda Function URL (CHAT_URL) like sendChat, since the runtime call (MCP
 // subprocess + create) can exceed API Gateway's 29s integration timeout.

@@ -4,7 +4,7 @@ import {
   Eye, FileSpreadsheet, FolderTree, Loader2, Plus, RefreshCw, Save, Trash2, Upload, Wand2, XCircle,
 } from 'lucide-react'
 import { USE_MOCK } from '../config'
-import { listUploadedFiles, presignUpload, uploadToPresignedUrl } from '../hooks/useApi'
+import { listUploadedFiles, materializeDataGroupingProject, presignUpload, uploadToPresignedUrl } from '../hooks/useApi'
 
 const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.v2.projectMetadata'
 const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.v2.savedGroups'
@@ -1029,9 +1029,11 @@ export default function DataGrouping() {
   const [metadata, setMetadata] = useState(null)
   const [metadataLedger, setMetadataLedger] = useState({ version: '0.1', projects: {} })
   const [metadataWrite, setMetadataWrite] = useState(null)
+  const [s3Materialize, setS3Materialize] = useState(null)
   const [groups, setGroups] = useState([])
   const [groupsLoaded, setGroupsLoaded] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [materializing, setMaterializing] = useState(false)
   const [uploadMessage, setUploadMessage] = useState('')
   const [editingGroupId, setEditingGroupId] = useState(null)
   const [draftName, setDraftName] = useState('')
@@ -1041,7 +1043,7 @@ export default function DataGrouping() {
   const uploadInputRef = useRef(null)
 
   const projectId = slugify(projectName)
-  const processedPrefix = 'processed/'
+  const processedPrefix = 'projects/'
   const fileMap = useMemo(() => new Map(files.map(file => [fileKey(file), file])), [files])
   const hydratedGroups = useMemo(() => (
     groups.map(group => ({
@@ -1448,6 +1450,42 @@ export default function DataGrouping() {
     downloadText(`${projectId}-data-grouping-metadata.json`, JSON.stringify(current, null, 2), 'application/json')
   }
 
+  async function writeProjectToS3() {
+    if (!hydratedGroups.length) return
+    setMaterializing(true)
+    setError('')
+    setS3Materialize(null)
+    try {
+      const payloadGroups = hydratedGroups.map(group => ({
+        id: group.id,
+        name: group.name,
+        type: group.type,
+        associations: group.associations || [],
+        files: (group.files || [])
+          .filter(file => !file.summary)
+          .map(file => ({
+            key: file.key,
+            name: file.name,
+            size: file.size,
+            last_modified: file.last_modified,
+          })),
+      }))
+      const result = await materializeDataGroupingProject({
+        projectName,
+        projectId,
+        groups: payloadGroups,
+        move: true,
+      })
+      setS3Materialize(result)
+      setUploadMessage(`Project written to S3 at ${result.projectPrefix}. ${result.structuredCopies?.length || 0} CSV file${result.structuredCopies?.length === 1 ? '' : 's'} mirrored for Glue.`)
+      await loadFiles()
+    } catch (err) {
+      setError(err.message || 'Unable to write project to S3')
+    } finally {
+      setMaterializing(false)
+    }
+  }
+
   return (
     <div className="page-container space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1485,6 +1523,15 @@ export default function DataGrouping() {
             {loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
             Refresh processed files
           </button>
+          <button
+            type="button"
+            onClick={writeProjectToS3}
+            disabled={materializing || !hydratedGroups.length}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+          >
+            {materializing ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+            Write project to S3
+          </button>
         </div>
       </div>
 
@@ -1504,6 +1551,17 @@ export default function DataGrouping() {
       {uploadMessage && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
           {uploadMessage}
+        </div>
+      )}
+
+      {s3Materialize && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900">
+          <p className="font-semibold">S3 project materialized</p>
+          <div className="mt-2 space-y-1 font-mono text-xs">
+            <p>s3://{s3Materialize.bucket}/{s3Materialize.projectPrefix}</p>
+            <p>s3://{s3Materialize.bucket}/{s3Materialize.metadataKey}</p>
+            {s3Materialize.crawlerStarted && <p>Glue crawler: {s3Materialize.crawlerMessage || 'started'}</p>}
+          </div>
         </div>
       )}
 

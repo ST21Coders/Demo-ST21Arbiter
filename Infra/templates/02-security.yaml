@@ -166,11 +166,21 @@ Resources:
                   - s3:PutObject
                   - s3:ListBucket
                   - s3:GetObject
+                  - s3:DeleteObject
                 Resource:
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-raw"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-raw/*"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/*"
+              # Data Grouping materializes project folders and starts the same
+              # structured crawler used by the processing pipeline.
+              - Sid: DataGroupingCrawlerStart
+                Effect: Allow
+                Action:
+                  - glue:StartCrawler
+                  - glue:GetCrawler
+                Resource:
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:crawler/${Environment}-${ProjectName}-structured-crawler"
               # Synchronous report generation: api_handler PUTs generated reports
               # into the reports bucket (SSE-S3, no KMS) and signs presigned GET
               # URLs the browser downloads. GetObject must be allowed on the role

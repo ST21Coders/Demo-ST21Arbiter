@@ -16,6 +16,9 @@ Routes:
   GET  /uploads/list?bucket=raw|processed     → list the caller's files in the
                                                 named bucket (scoped to
                                                 users/<sub>/ prefix).
+  POST /data-grouping/materialize             → copy selected processed files
+                                                into a project prefix and write
+                                                project metadata.
   GET  /health                                → unauth health check
 
 Note: POST /conversations and POST /conversations/{id}/messages were removed —
@@ -30,6 +33,8 @@ Env vars:
   MEMORY_ID                  AgentCore Memory ID (for message history reads).
   RAW_BUCKET                 S3 bucket for browser uploads (raw zone).
   PROCESSED_BUCKET           S3 bucket for processed files (read-only list).
+  GLUE_CRAWLER_NAME          Optional structured crawler to start after project
+                             files are materialized.
   S3_KMS_KEY_ARN             Optional. CMK ARN that encrypts both buckets;
                              when set, the presigned PUT includes the SSE-KMS
                              headers so the browser PUT succeeds.
@@ -82,6 +87,7 @@ MEMORY_ID = os.environ.get("MEMORY_ID", "").strip()
 RAW_BUCKET = os.environ.get("RAW_BUCKET", "").strip()
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "").strip()
 REPORTS_BUCKET = os.environ.get("REPORTS_BUCKET", "").strip()
+GLUE_CRAWLER_NAME = os.environ.get("GLUE_CRAWLER_NAME", "").strip()
 REPORT_URL_EXPIRES_SECONDS = int(os.environ.get("REPORT_URL_EXPIRES_SECONDS", "86400"))
 ORG_NAME = os.environ.get("ORG_NAME", "Meridian Insurance Group")
 S3_KMS_KEY_ARN = os.environ.get("S3_KMS_KEY_ARN", "").strip()
@@ -125,6 +131,7 @@ s3 = boto3.client(
     region_name=REGION,
     config=BotoConfig(signature_version="s3v4", s3={"addressing_style": "virtual"}),
 )
+glue = boto3.client("glue", region_name=REGION)
 
 # Anything outside this character class is replaced with '_' in upload keys.
 # S3 accepts a wider set but browsers + presigned URLs handle this subset cleanly.
@@ -180,6 +187,9 @@ def handler(event, context):
 
     if path == "/uploads/list" and method == "GET":
         return _handle_uploads_list(event)
+
+    if path == "/data-grouping/materialize" and method == "POST":
+        return _handle_data_grouping_materialize(event)
 
     # Path param routes under /conversations/{session_id}
     if path.startswith("/conversations/"):
@@ -437,6 +447,189 @@ def _handle_uploads_list(event):
         "prefix": prefix,
         "files": files,
         "truncated": bool(resp.get("IsTruncated")),
+    })
+
+
+# ──────────────────────────── /data-grouping ────────────────────
+def _s3_segment(value: str, default: str = "item") -> str:
+    """S3-prefix-safe path segment for project/group/table names."""
+    cleaned = _SAFE_FILENAME_RE.sub("_", (value or "").strip()).strip("._-")
+    return cleaned[:160] or default
+
+
+def _table_segment(value: str, default: str = "dataset") -> str:
+    """Glue/Athena-friendly lowercase identifier segment."""
+    cleaned = re.sub(r"[^A-Za-z0-9_]+", "_", (value or "").strip()).strip("_").lower()
+    return cleaned[:120] or default
+
+
+def _handle_data_grouping_materialize(event):
+    """Materialize locally-defined project groups into S3.
+
+    Body:
+      {
+        "projectId": "vendor-audit-june-2026",
+        "projectName": "Vendor Audit June 2026",
+        "groups": [
+          {"id": "...", "name": "AR_Invoices", "type": "audit",
+           "files": [{"key": "users/<sub>/...", "name": "AR_...csv"}],
+           "associations": [...]}
+        ],
+        "move": true
+      }
+
+    Copies each selected processed object to:
+      projects/<projectId>/<groupName>/<filename>
+    and copies CSVs to:
+      structured/<projectId>_<groupName>/<filename>
+    then writes:
+      projects/<projectId>/metadata/project.json
+    """
+    if not PROCESSED_BUCKET:
+        return _err(500, "PROCESSED_BUCKET not configured")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+
+    project_id = _s3_segment(body.get("projectId") or body.get("projectName"), "project")
+    project_name = (body.get("projectName") or project_id).strip()[:200]
+    groups = body.get("groups") or []
+    if not isinstance(groups, list) or not groups:
+        return _err(400, "At least one group is required")
+
+    caller_prefix = f"{UPLOAD_PREFIX}{user_id}/"
+    copied: list[dict[str, Any]] = []
+    structured_copies: list[dict[str, Any]] = []
+    moved_sources: set[str] = set()
+    materialized_groups: list[dict[str, Any]] = []
+    move_sources = bool(body.get("move", True))
+
+    for index, group in enumerate(groups):
+        group_name = _s3_segment(group.get("name") or f"group_{index + 1}", f"group_{index + 1}")
+        table_name = _table_segment(f"{project_id}_{group_name}", f"{project_id}_group_{index + 1}")
+        files = [f for f in (group.get("files") or []) if isinstance(f, dict) and f.get("key")]
+        materialized_files: list[dict[str, Any]] = []
+        for file in files:
+            source_key = str(file.get("key") or "")
+            if not source_key.startswith(caller_prefix) and not source_key.startswith("structured/"):
+                return _err(403, f"Source key is outside allowed processed prefixes: {source_key}")
+            filename = _s3_segment(file.get("name") or source_key.rsplit("/", 1)[-1], "file")
+            project_key = f"projects/{project_id}/{group_name}/{filename}"
+            copy_source = {"Bucket": PROCESSED_BUCKET, "Key": source_key}
+            try:
+                s3.copy_object(
+                    Bucket=PROCESSED_BUCKET,
+                    Key=project_key,
+                    CopySource=copy_source,
+                    MetadataDirective="COPY",
+                )
+            except ClientError as e:
+                logger.exception("project materialize copy failed")
+                return _err(502, f"copy {source_key}: {type(e).__name__}: {e}")
+            copied.append({"sourceKey": source_key, "destinationKey": project_key})
+            file_entry = {
+                "name": filename,
+                "sourceKey": source_key,
+                "projectKey": project_key,
+                "type": "csv" if filename.lower().endswith(".csv") else "file",
+            }
+
+            if filename.lower().endswith(".csv"):
+                structured_key = f"structured/{table_name}/{filename}"
+                try:
+                    s3.copy_object(
+                        Bucket=PROCESSED_BUCKET,
+                        Key=structured_key,
+                        CopySource=copy_source,
+                        MetadataDirective="COPY",
+                    )
+                except ClientError as e:
+                    logger.exception("structured materialize copy failed")
+                    return _err(502, f"copy {source_key} to structured: {type(e).__name__}: {e}")
+                structured_copies.append({
+                    "sourceKey": source_key,
+                    "destinationKey": structured_key,
+                    "glueTableHint": table_name,
+                })
+                file_entry["structuredKey"] = structured_key
+                file_entry["glueTableHint"] = table_name
+
+            materialized_files.append(file_entry)
+            if move_sources and source_key.startswith(caller_prefix):
+                moved_sources.add(source_key)
+
+        materialized_groups.append({
+            "id": group.get("id") or group_name,
+            "name": group_name,
+            "type": group.get("type") or "",
+            "targetPrefix": f"projects/{project_id}/{group_name}/",
+            "structuredTableHint": table_name,
+            "files": materialized_files,
+            "associations": group.get("associations") or [],
+        })
+
+    metadata_key = f"projects/{project_id}/metadata/project.json"
+    metadata = {
+        "projectId": project_id,
+        "projectName": project_name,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "createdBy": user_id,
+        "bucket": PROCESSED_BUCKET,
+        "projectPrefix": f"projects/{project_id}/",
+        "metadataKey": metadata_key,
+        "groups": materialized_groups,
+        "glue": {
+            "crawlerName": GLUE_CRAWLER_NAME or None,
+            "structuredCopies": structured_copies,
+        },
+    }
+    try:
+        s3.put_object(
+            Bucket=PROCESSED_BUCKET,
+            Key=metadata_key,
+            Body=json.dumps(metadata, default=str, indent=2).encode("utf-8"),
+            ContentType="application/json",
+        )
+    except ClientError as e:
+        logger.exception("metadata write failed")
+        return _err(502, f"metadata write: {type(e).__name__}: {e}")
+
+    deleted: list[str] = []
+    for source_key in sorted(moved_sources):
+        try:
+            s3.delete_object(Bucket=PROCESSED_BUCKET, Key=source_key)
+            deleted.append(source_key)
+        except ClientError:
+            logger.exception("source delete failed after materialize: %s", source_key)
+
+    crawler_started = False
+    crawler_message = ""
+    if GLUE_CRAWLER_NAME and structured_copies:
+        try:
+            glue.start_crawler(Name=GLUE_CRAWLER_NAME)
+            crawler_started = True
+            crawler_message = "started"
+        except glue.exceptions.CrawlerRunningException:
+            crawler_started = True
+            crawler_message = "already_running"
+        except ClientError as e:
+            logger.exception("Glue crawler start failed")
+            crawler_message = f"{type(e).__name__}: {e}"
+
+    return _ok({
+        "bucket": PROCESSED_BUCKET,
+        "projectPrefix": f"projects/{project_id}/",
+        "metadataKey": metadata_key,
+        "copied": copied,
+        "structuredCopies": structured_copies,
+        "deletedSources": deleted,
+        "crawlerStarted": crawler_started,
+        "crawlerMessage": crawler_message,
+        "metadata": metadata,
     })
 
 
