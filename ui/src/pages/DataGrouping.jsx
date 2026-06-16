@@ -183,39 +183,67 @@ function normalizedStatus(value) {
     .replace(/\b\w/g, letter => letter.toUpperCase()) || 'Unknown'
 }
 
+function normalizedFieldName(name) {
+  return String(name || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function rowValue(row, candidates) {
+  for (const candidate of candidates) {
+    if (row[candidate] !== undefined && row[candidate] !== '') return row[candidate]
+  }
+  const normalizedCandidates = new Set(candidates.map(normalizedFieldName))
+  const matchedKey = Object.keys(row).find(key => normalizedCandidates.has(normalizedFieldName(key)))
+  return matchedKey ? row[matchedKey] : undefined
+}
+
 function invoiceAmount(row) {
-  const value = row.Invoice_Amount ?? row.invoice_amount ?? row.amount ?? row.Amount ?? 0
+  const value = rowValue(row, ['Invoice_Amount', 'invoice_amount', 'Invoice Amount', 'amount', 'Amount']) ?? 0
   return Number(String(value).replace(/[$,]/g, '')) || 0
 }
 
 function statusValue(row) {
-  return normalizedStatus(row.Status ?? row.status)
+  return normalizedStatus(rowValue(row, ['Status', 'status']))
 }
 
 function vendorName(row) {
   return String(
-    row.Vendor_Name ??
-    row.vendor_name ??
-    row.Vendor ??
-    row.vendor ??
-    row.Client_Name ??
-    row.client_name ??
-    row.Customer_Name ??
-    row.customer_name ??
+    rowValue(row, [
+      'Vendor_Name',
+      'vendor_name',
+      'Vendor Name',
+      'Vendor',
+      'vendor',
+      'Client_Name',
+      'client_name',
+      'Client Name',
+      'Customer_Name',
+      'customer_name',
+      'Customer Name',
+    ]) ??
     'Unknown'
   ).trim() || 'Unknown'
 }
 
 function departmentName(row) {
   return String(
-    row.Department ??
-    row.department ??
-    row.Department_Name ??
-    row.department_name ??
-    row.Cost_Center ??
-    row.cost_center ??
-    row.Business_Unit ??
-    row.business_unit ??
+    rowValue(row, [
+      'Department',
+      'department',
+      'Department_Name',
+      'department_name',
+      'Department Name',
+      'Dept',
+      'dept',
+      'Dept_Name',
+      'dept_name',
+      'Dept Name',
+      'Cost_Center',
+      'cost_center',
+      'Cost Center',
+      'Business_Unit',
+      'business_unit',
+      'Business Unit',
+    ]) ??
     'Unknown'
   ).trim() || 'Unknown'
 }

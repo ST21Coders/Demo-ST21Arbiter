@@ -106,5 +106,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.5.27'
-export const APP_VERSION_NOTE = 'Require loaded CSV rows for summaries'
+export const APP_VERSION = '1.5.28'
+export const APP_VERSION_NOTE = 'Normalize summary field names'
