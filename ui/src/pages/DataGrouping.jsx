@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  AlertTriangle, CheckCircle, Database, Download, Edit3, FileSpreadsheet, FolderTree,
-  Loader2, Plus, RefreshCw, Save, Trash2, Wand2, XCircle,
+  AlertTriangle, CheckCircle, ChevronDown, ChevronRight, Database, Download, Edit3,
+  FileSpreadsheet, FolderTree, Loader2, Plus, RefreshCw, Save, Trash2, Wand2, XCircle,
 } from 'lucide-react'
 import { USE_MOCK } from '../config'
 import { listUploadedFiles } from '../hooks/useApi'
@@ -416,7 +416,7 @@ function AssociationBuilder({ group, onSaveAssociation, onDeleteAssociation, onD
 
 function GroupCard({
   group, projectId, processedPrefix, summary, onGenerateSummary, onEdit, onDelete,
-  onSaveAssociation, onDeleteAssociation, onDisassociateFile,
+  onSaveAssociation, onDeleteAssociation, onDisassociateFile, collapsed, onToggleCollapse,
 }) {
   const rows = summary?.rows || []
   const csvFiles = group.files.filter(file => /\.csv$/i.test(file.name || ''))
@@ -437,6 +437,14 @@ function GroupCard({
         <div className="flex gap-2">
           <button
             type="button"
+            onClick={() => onToggleCollapse(group.id)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            {collapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+            {collapsed ? 'Expand' : 'Collapse'}
+          </button>
+          <button
+            type="button"
             onClick={() => onEdit(group)}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
@@ -452,61 +460,71 @@ function GroupCard({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr]">
-        <div>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Files in group</p>
-          <div className="space-y-2">
-            {group.files.map(file => <FileRow key={fileKey(file)} file={file} />)}
-          </div>
+      {collapsed ? (
+        <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+          {group.files.length} files hidden · {csvFiles.length} CSV · {(group.associations || []).length} associations
         </div>
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Target processed structure</p>
-          <p className="mt-2 break-all font-mono text-xs text-slate-700">{targetPrefix}</p>
-          <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
-            <p className="text-xs font-semibold text-slate-800">{summaryFile}</p>
-            <p className="mt-1 text-xs text-slate-500">
-              {canSummarize ? 'Stage two can summarize this group because it has two or more CSV files.' : 'Add at least two CSV files before generating a spreadsheet summary.'}
-            </p>
-          </div>
-          {summary && (
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-lg border border-slate-200 bg-white p-2">
-                <p className="text-slate-400">Rows</p>
-                <p className="font-semibold text-slate-900">{rows.length}</p>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-2">
-                <p className="text-slate-400">Amount total</p>
-                <p className="font-semibold text-slate-900">${amountTotal(rows).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+      ) : (
+        <>
+          <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr]">
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Files in group</p>
+              <div className="space-y-2">
+                {group.files.map(file => <FileRow key={fileKey(file)} file={file} />)}
               </div>
             </div>
-          )}
-        </div>
-      </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Target processed structure</p>
+              <p className="mt-2 break-all font-mono text-xs text-slate-700">{targetPrefix}</p>
+              <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+                <p className="text-xs font-semibold text-slate-800">{summaryFile}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {canSummarize ? 'Stage two can summarize this group because it has two or more CSV files.' : 'Add at least two CSV files before generating a spreadsheet summary.'}
+                </p>
+              </div>
+              {summary && (
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-lg border border-slate-200 bg-white p-2">
+                    <p className="text-slate-400">Rows</p>
+                    <p className="font-semibold text-slate-900">{rows.length}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white p-2">
+                    <p className="text-slate-400">Amount total</p>
+                    <p className="font-semibold text-slate-900">${amountTotal(rows).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={!canSummarize}
-          onClick={() => onGenerateSummary(group)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-        >
-          <Wand2 size={13} /> Generate summary
-        </button>
-        <button
-          type="button"
-          disabled={!summary}
-          onClick={() => summary && downloadText(summaryFile, toCsv(summary.rows), 'text/csv')}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
-        >
-          <Download size={13} /> Download summary
-        </button>
-      </div>
-      <AssociationBuilder
-        group={group}
-        onSaveAssociation={onSaveAssociation}
-        onDeleteAssociation={onDeleteAssociation}
-        onDisassociateFile={onDisassociateFile}
-      />
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={!canSummarize}
+              onClick={() => onGenerateSummary(group)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+            >
+              <Wand2 size={13} /> Generate summary
+            </button>
+            <button
+              type="button"
+              disabled={!summary}
+              onClick={() => summary && downloadText(summaryFile, toCsv(summary.rows), 'text/csv')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+            >
+              <Download size={13} /> Download summary
+            </button>
+          </div>
+          {canSummarize && (
+            <AssociationBuilder
+              group={group}
+              onSaveAssociation={onSaveAssociation}
+              onDeleteAssociation={onDeleteAssociation}
+              onDisassociateFile={onDisassociateFile}
+            />
+          )}
+        </>
+      )}
     </article>
   )
 }
@@ -523,9 +541,10 @@ export default function DataGrouping() {
   const [groups, setGroups] = useState([])
   const [groupsLoaded, setGroupsLoaded] = useState(false)
   const [editingGroupId, setEditingGroupId] = useState(null)
-  const [draftName, setDraftName] = useState('AR_Invoices')
+  const [draftName, setDraftName] = useState('')
   const [draftType, setDraftType] = useState('accounts_receivable_invoices')
   const [draftKeys, setDraftKeys] = useState([])
+  const [collapsedGroupIds, setCollapsedGroupIds] = useState([])
 
   const projectId = slugify(projectName)
   const processedPrefix = 'processed/'
@@ -603,11 +622,10 @@ export default function DataGrouping() {
     return GROUP_TYPE_OPTIONS.find(option => !usedTypes.has(option.value))?.value || 'spreadsheet_collection'
   }
 
-  function resetDraft(type = draftType) {
-    const option = optionForType(type)
+  function resetDraft(type = draftType, name = '') {
     setEditingGroupId(null)
     setDraftType(type)
-    setDraftName(option.suggestedName)
+    setDraftName(name)
     setDraftKeys([])
   }
 
@@ -618,7 +636,6 @@ export default function DataGrouping() {
 
   function changeDraftType(type) {
     setDraftType(type)
-    if (!editingGroupId) setDraftName(optionForType(type).suggestedName)
   }
 
   function addDraftFile(file) {
@@ -658,14 +675,23 @@ export default function DataGrouping() {
       persistGroups(nextGroups)
       return nextGroups
     })
-    resetDraft(nextGroupType(previewGroups))
+    startNewGroup(nextGroupType(previewGroups))
   }
 
   function editGroup(group) {
+    setCollapsedGroupIds(prev => prev.filter(groupId => groupId !== group.id))
     setEditingGroupId(group.id)
     setDraftName(group.name)
     setDraftType(group.type)
     setDraftKeys(group.files.map(file => fileKey(file)))
+  }
+
+  function toggleGroupCollapse(groupId) {
+    setCollapsedGroupIds(prev => (
+      prev.includes(groupId)
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
+    ))
   }
 
   function deleteGroup(groupId) {
@@ -854,7 +880,7 @@ export default function DataGrouping() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-slate-900">{editingGroupId ? 'Edit group' : 'Create group'}</h2>
-              <p className="mt-1 text-xs text-slate-500">Choose files from /processed. Files already saved in another group are hidden.</p>
+              <p className="mt-1 text-xs text-slate-500">Click New group, name it, choose a type, then add files not already in another group.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
@@ -963,13 +989,6 @@ export default function DataGrouping() {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => startNewGroup()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                <Plus size={13} /> New group
-              </button>
-              <button
-                type="button"
                 onClick={createMetadata}
                 disabled={!hydratedGroups.length}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
@@ -991,6 +1010,8 @@ export default function DataGrouping() {
               onSaveAssociation={saveAssociation}
               onDeleteAssociation={deleteAssociation}
               onDisassociateFile={disassociateFile}
+              collapsed={collapsedGroupIds.includes(group.id)}
+              onToggleCollapse={toggleGroupCollapse}
             />
           ))}
           {!hydratedGroups.length && (
