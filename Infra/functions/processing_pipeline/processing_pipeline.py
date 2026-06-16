@@ -51,10 +51,10 @@ ALLOWED_GROUPS = {g.strip() for g in os.environ.get("ALLOWED_GROUPS", "").split(
 KB_ID = os.environ.get("KB_ID", "").strip()
 KB_DATA_SOURCE_ID = os.environ.get("KB_DATA_SOURCE_ID", "").strip()
 SCANNER_LAMBDA_NAME = os.environ.get("SCANNER_LAMBDA_NAME", "").strip()
-# Structured ingestion: .csv exports route to processed/<STRUCTURED_PREFIX><dataset>/
-# and trigger a Glue crawler (Athena-queryable) instead of KB ingestion. Empty
-# crawler name = catalog refresh skipped (file still moved). The re-scan is NOT
-# inline — Glue crawls take minutes; it runs via "Run AI Scan" or the future
+# Structured ingestion: .csv exports are preserved under their original
+# processed key for Data Grouping, then mirrored to processed/<STRUCTURED_PREFIX>
+# for Glue/Athena. Empty crawler name = catalog refresh skipped. The re-scan is
+# NOT inline — Glue crawls take minutes; it runs via "Run AI Scan" or the future
 # crawler-completed Step Functions rule (see Documents/policy_scan_flow.md).
 STRUCTURED_PREFIX = os.environ.get("STRUCTURED_PREFIX", "structured/")
 GLUE_CRAWLER_NAME = os.environ.get("GLUE_CRAWLER_NAME", "").strip()
@@ -383,7 +383,7 @@ def _start_crawler() -> bool:
 
 
 def _handle_structured_object(bucket: str, key: str) -> dict:
-    """Copy a .csv export to processed/structured/<dataset>/ and kick the crawler.
+    """Preserve a .csv export in processed and mirror it for Glue.
 
     Re-scan is intentionally NOT inline: Glue crawls take minutes, and a Lambda
     poll would be the wait-billing anti-pattern. The scan runs via "Run AI Scan"
@@ -395,6 +395,11 @@ def _handle_structured_object(bucket: str, key: str) -> dict:
     # prefix and Athena reads them all together (stale + new rows → wrong results).
     dest_key = f"{STRUCTURED_PREFIX}{dataset}/{dataset}.csv"
     try:
+        s3.copy_object(
+            Bucket=PROCESSED_BUCKET, Key=key,
+            CopySource={"Bucket": bucket, "Key": key},
+            ServerSideEncryption="aws:kms", MetadataDirective="COPY",
+        )
         s3.copy_object(
             Bucket=PROCESSED_BUCKET, Key=dest_key,
             CopySource={"Bucket": bucket, "Key": key},
@@ -412,6 +417,7 @@ def _handle_structured_object(bucket: str, key: str) -> dict:
         "key": key,
         "structured": True,
         "dataset": dataset,
+        "processed_key": key,
         "dest_key": dest_key,
         "crawler_started": started,
         "note": "Run a scan after the crawler completes to pick up the new data.",

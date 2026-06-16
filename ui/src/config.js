@@ -106,5 +106,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.5.35'
-export const APP_VERSION_NOTE = 'Show structured processed files in grouping'
+export const APP_VERSION = '1.5.36'
+export const APP_VERSION_NOTE = 'Preserve CSV uploads for grouping'
