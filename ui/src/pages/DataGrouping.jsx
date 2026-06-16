@@ -598,12 +598,22 @@ export default function DataGrouping() {
     setSummaries(prev => Object.fromEntries(Object.entries(prev).filter(([groupId]) => validGroupIds.has(groupId))))
   }, [hydratedGroups])
 
+  function nextGroupType(groupsToCheck = hydratedGroups) {
+    const usedTypes = new Set(groupsToCheck.map(group => group.type))
+    return GROUP_TYPE_OPTIONS.find(option => !usedTypes.has(option.value))?.value || 'spreadsheet_collection'
+  }
+
   function resetDraft(type = draftType) {
     const option = optionForType(type)
     setEditingGroupId(null)
     setDraftType(type)
     setDraftName(option.suggestedName)
     setDraftKeys([])
+  }
+
+  function startNewGroup(type = nextGroupType()) {
+    setMetadata(null)
+    resetDraft(type)
   }
 
   function changeDraftType(type) {
@@ -641,13 +651,14 @@ export default function DataGrouping() {
       updatedAt: new Date().toISOString(),
     }
     setMetadata(null)
+    const previewGroups = [...hydratedGroups.filter(group => group.id !== nextGroup.id), nextGroup]
     setGroups(prev => {
       const others = prev.filter(group => group.id !== nextGroup.id)
       const nextGroups = [...others, nextGroup]
       persistGroups(nextGroups)
       return nextGroups
     })
-    resetDraft(draftType)
+    resetDraft(nextGroupType(previewGroups))
   }
 
   function editGroup(group) {
@@ -845,7 +856,15 @@ export default function DataGrouping() {
               <h2 className="text-sm font-bold text-slate-900">{editingGroupId ? 'Edit group' : 'Create group'}</h2>
               <p className="mt-1 text-xs text-slate-500">Choose files from /processed. Files already saved in another group are hidden.</p>
             </div>
-            {editingGroupId && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => startNewGroup()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
+              >
+                <Plus size={13} /> New group
+              </button>
+              {editingGroupId && (
               <button
                 type="button"
                 onClick={() => resetDraft()}
@@ -853,7 +872,8 @@ export default function DataGrouping() {
               >
                 <XCircle size={13} /> Cancel edit
               </button>
-            )}
+              )}
+            </div>
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -940,14 +960,23 @@ export default function DataGrouping() {
               <h2 className="text-sm font-bold text-slate-900">Saved project groups</h2>
               <p className="text-xs text-slate-500">Each file can belong to one group in this version.</p>
             </div>
-            <button
-              type="button"
-              onClick={createMetadata}
-              disabled={!hydratedGroups.length}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-            >
-              <Database size={13} /> Create metadata
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => startNewGroup()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <Plus size={13} /> New group
+              </button>
+              <button
+                type="button"
+                onClick={createMetadata}
+                disabled={!hydratedGroups.length}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+              >
+                <Database size={13} /> Create metadata
+              </button>
+            </div>
           </div>
           {hydratedGroups.map(group => (
             <GroupCard
