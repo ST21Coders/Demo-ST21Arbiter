@@ -549,7 +549,7 @@ function SelectedDraftFileRow({ file, onRemove }) {
 
 function GroupCard({
   group, projectId, processedPrefix, summary, onGenerateSummary, onEdit, onDelete,
-  onLoadCsvContents, analysis, analyzing, onAnalyzeDocuments, collapsed, onToggleCollapse,
+  onLoadCsvContents, analysis, analysisError, analyzing, onAnalyzeDocuments, collapsed, onToggleCollapse,
 }) {
   const [activeAction, setActiveAction] = useState(USE_MOCK ? 'validate' : 'instructions')
   const [instructionPreviewFile, setInstructionPreviewFile] = useState(null)
@@ -850,9 +850,11 @@ function GroupCard({
                     <p className="mt-1 text-xs text-slate-500">
                       {analysis
                         ? `${analysis.documentCount} document${analysis.documentCount === 1 ? '' : 's'} analyzed.`
+                        : analyzing
+                        ? `Analyzing ${documentFiles.length} project document${documentFiles.length === 1 ? '' : 's'} now.`
                         : documentFiles.length
                         ? 'Click Analyze project documents to create a deterministic portfolio report.'
-                        : 'No .txt, .md, or .json files are available in this group.'}
+                        : 'No .txt, .md, .json, or .pdf files are available in this group.'}
                     </p>
                   </div>
                   {analysis?.markdown && (
@@ -865,6 +867,16 @@ function GroupCard({
                     </button>
                   )}
                 </div>
+                {analysisError && (
+                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                    {analysisError}
+                  </div>
+                )}
+                {analyzing && (
+                  <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+                    <Loader2 size={13} className="animate-spin" /> Reading documents from S3 and building the deterministic report.
+                  </div>
+                )}
                 {analysis && (
                   <div className="mt-3 space-y-3">
                     <div className="grid gap-2 md:grid-cols-3">
@@ -975,6 +987,7 @@ export default function DataGrouping() {
   const [uploading, setUploading] = useState(false)
   const [materializing, setMaterializing] = useState(false)
   const [analyzingGroupIds, setAnalyzingGroupIds] = useState([])
+  const [analysisErrors, setAnalysisErrors] = useState({})
   const [uploadMessage, setUploadMessage] = useState('')
   const [editingGroupId, setEditingGroupId] = useState(null)
   const [draftName, setDraftName] = useState('')
@@ -1096,6 +1109,7 @@ export default function DataGrouping() {
     const validGroupIds = new Set(hydratedGroups.map(group => group.id))
     setSummaries(prev => Object.fromEntries(Object.entries(prev).filter(([groupId]) => validGroupIds.has(groupId))))
     setDocumentAnalyses(prev => Object.fromEntries(Object.entries(prev).filter(([groupId]) => validGroupIds.has(groupId))))
+    setAnalysisErrors(prev => Object.fromEntries(Object.entries(prev).filter(([groupId]) => validGroupIds.has(groupId))))
   }, [hydratedGroups])
 
   function nextGroupType(groupsToCheck = hydratedGroups) {
@@ -1189,6 +1203,11 @@ export default function DataGrouping() {
       delete next[groupId]
       return next
     })
+    setAnalysisErrors(prev => {
+      const next = { ...prev }
+      delete next[groupId]
+      return next
+    })
     if (editingGroupId === groupId) resetDraft()
   }
 
@@ -1203,6 +1222,12 @@ export default function DataGrouping() {
       }))
     if (!filesForAnalysis.length) return
     setError('')
+    setUploadMessage(`Analyzing ${filesForAnalysis.length} project document${filesForAnalysis.length === 1 ? '' : 's'} in ${group.name}...`)
+    setAnalysisErrors(prev => {
+      const next = { ...prev }
+      delete next[group.id]
+      return next
+    })
     setAnalyzingGroupIds(prev => (prev.includes(group.id) ? prev : [...prev, group.id]))
     try {
       const result = await analyzeDataGroupingDocuments({
@@ -1212,7 +1237,9 @@ export default function DataGrouping() {
       setDocumentAnalyses(prev => ({ ...prev, [group.id]: result }))
       setUploadMessage(`Portfolio analysis created for ${result.documentCount} document${result.documentCount === 1 ? '' : 's'} in ${group.name}.`)
     } catch (err) {
-      setError(err.message || 'Unable to analyze project documents')
+      const message = err.message || 'Unable to analyze project documents'
+      setError(message)
+      setAnalysisErrors(prev => ({ ...prev, [group.id]: message }))
     } finally {
       setAnalyzingGroupIds(prev => prev.filter(groupId => groupId !== group.id))
     }
@@ -1638,6 +1665,7 @@ export default function DataGrouping() {
               onDelete={deleteGroup}
               onLoadCsvContents={loadGroupCsvContents}
               analysis={documentAnalyses[group.id]}
+              analysisError={analysisErrors[group.id]}
               analyzing={analyzingGroupIds.includes(group.id)}
               onAnalyzeDocuments={analyzeProjectDocuments}
               collapsed={collapsedGroupIds.includes(group.id)}

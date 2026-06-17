@@ -24,8 +24,20 @@ async function apiFetch(path, options = {}) {
     if (!newToken) { signIn(); throw new Error('Auth expired') }
     res = await doFetch({ Authorization: `Bearer ${newToken}` })
   }
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-  return res.json()
+  const responseText = await res.text()
+  let payload = null
+  if (responseText) {
+    try {
+      payload = JSON.parse(responseText)
+    } catch {
+      payload = null
+    }
+  }
+  if (!res.ok) {
+    const detail = payload?.error || payload?.message || responseText || res.statusText
+    throw new Error(`${res.status} ${detail}`)
+  }
+  return payload || {}
 }
 
 // Simulated scan delay for mock mode
