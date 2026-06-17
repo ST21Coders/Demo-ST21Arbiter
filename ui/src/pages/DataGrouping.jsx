@@ -1072,7 +1072,11 @@ export default function DataGrouping() {
     loadFiles()
     try {
       const savedGroups = JSON.parse(localStorage.getItem(GROUPS_STORAGE_KEY) || '[]')
-      if (Array.isArray(savedGroups)) setGroups(savedGroups.map(stripRetiredGroupFields))
+      if (Array.isArray(savedGroups)) {
+        const restoredGroups = savedGroups.map(stripRetiredGroupFields)
+        setGroups(restoredGroups)
+        setCollapsedGroupIds(restoredGroups.map(group => group.id).filter(Boolean))
+      }
       const savedMetadata = JSON.parse(localStorage.getItem(GROUPING_STORAGE_KEY) || 'null')
       if (savedMetadata) setMetadata(savedMetadata)
       const savedLedger = JSON.parse(localStorage.getItem(METADATA_LEDGER_STORAGE_KEY) || 'null')
@@ -1146,6 +1150,9 @@ export default function DataGrouping() {
       persistGroups(nextGroups)
       return nextGroups
     })
+    if (!editingGroupId) {
+      setCollapsedGroupIds(prev => (prev.includes(nextGroup.id) ? prev : [...prev, nextGroup.id]))
+    }
     startNewGroup(nextGroupType(previewGroups))
   }
 
