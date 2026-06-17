@@ -2696,6 +2696,8 @@ def _err(status, message):
 def _json_default(o):
     if isinstance(o, Decimal):
         return int(o) if o == o.to_integral_value() else float(o)
+    if isinstance(o, datetime):
+        return o.isoformat()
     raise TypeError(f"not serializable: {type(o)}")
 
 

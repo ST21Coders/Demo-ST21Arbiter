@@ -106,5 +106,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.5.46'
-export const APP_VERSION_NOTE = 'Clarify Data Pipeline grouping workflow'
+export const APP_VERSION = '1.5.47'
+export const APP_VERSION_NOTE = 'Fix Glue crawler start permissions'
