@@ -73,6 +73,7 @@ SPECIALIST_RUNTIME_ARNS = {
     "awsconfig":  os.environ.get("AWSCONFIG_RUNTIME_ARN", "").strip(),
     "zscaler":    os.environ.get("ZSCALER_RUNTIME_ARN", "").strip(),
     "paloalto":   os.environ.get("PALOALTO_RUNTIME_ARN", "").strip(),
+    "structured": os.environ.get("STRUCTURED_RUNTIME_ARN", "").strip(),
     "jira":       os.environ.get("JIRA_RUNTIME_ARN", "").strip(),
     "servicenow": os.environ.get("SERVICENOW_RUNTIME_ARN", "").strip(),
 }

@@ -353,9 +353,9 @@ def _structured_dataset(key: str) -> str:
     """Classify a structured export by FILENAME (uploads aren't source-prefixed)."""
     name = key.rsplit("/", 1)[-1].lower()
     normalized = name.replace("-", "_").replace(" ", "_")
-    if normalized.startswith("ar_invoice") or normalized.startswith("ar_invoices"):
+    if "ar_invoice" in normalized or "ar_invoices" in normalized:
         return "ar_invoices"
-    if normalized.startswith("ap_invoice") or normalized.startswith("ap_invoices"):
+    if "ap_invoice" in normalized or "ap_invoices" in normalized:
         return "ap_invoices"
     if "aws_config" in normalized or "awsconfig" in normalized:
         return "aws_config"

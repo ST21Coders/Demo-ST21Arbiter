@@ -56,6 +56,15 @@ const MCP_SERVERS = [
     ],
   },
   {
+    id: 'structured',
+    name: 'Structured Data Specialist',
+    host: 'agentcore · structured_specialist',
+    description: 'Runs SELECT-only Athena queries over Glue-catalogued CSV datasets such as invoice batches and control exports.',
+    tools: [
+      { name: 'run_athena_query', desc: 'Read-only SELECT queries against the structured Glue catalog' },
+    ],
+  },
+  {
     id: 'paloalto',
     name: 'Palo Alto NGFW Specialist',
     host: 'agentcore · paloalto_specialist',
@@ -191,6 +200,7 @@ const SUGGESTED = {
   zscaler: ['Is dropbox.com allowed?', 'What URL categories are blocked?', 'Check the TeamViewer category'],
   paloalto: ['Is outbound tor traffic allowed at the perimeter?', 'Show the egress security rules', 'What does PAN-SEC-EGRESS-ANYANY-ALLOW-001 permit?'],
   awsconfig: ['List non-compliant resources', 'Which Config rules are failing?', 'Show S3 encryption compliance'],
+  structured: ['Show available invoice tables', 'Summarize AR invoices by status', 'Count rows in the latest invoice dataset'],
   jira: ['List my open issues', 'Show issues in the MIG project', 'What is the status of MIG-123?'],
   servicenow: [],
 }

@@ -66,6 +66,7 @@ _missing = [
         ("AWSCONFIG_RUNTIME_ARN", AWSCONFIG_RUNTIME_ARN),
         ("ZSCALER_RUNTIME_ARN", ZSCALER_RUNTIME_ARN),
         ("PALOALTO_RUNTIME_ARN", PALOALTO_RUNTIME_ARN),
+        ("STRUCTURED_RUNTIME_ARN", STRUCTURED_RUNTIME_ARN),
         ("JIRA_RUNTIME_ARN", JIRA_RUNTIME_ARN),
         ("SERVICENOW_RUNTIME_ARN", SERVICENOW_RUNTIME_ARN),
     ] if not val
@@ -85,7 +86,8 @@ firewall rules, and report results to enterprise security analysts.
 
 WORKFLOW
 1. Call the relevant specialist tools (sharepoint_lookup, awsconfig_lookup,
-   zscaler_lookup, paloalto_lookup, jira_lookup, servicenow_lookup) to gather
+   zscaler_lookup, paloalto_lookup, structured_lookup, jira_lookup,
+   servicenow_lookup) to gather
    evidence. Run them in parallel when the query spans multiple domains. Skip a
    tool if the query clearly does not touch that source. Use paloalto_lookup for
    perimeter firewall / App-ID / egress questions, jira_lookup for Atlassian
@@ -93,7 +95,9 @@ WORKFLOW
    pages (search/read, or publish a page — e.g. a summary or resource report),
    and servicenow_lookup for IT-asset change-impact analysis — which CIs a change
    affects, which team owns the work, and which team must approve it (CMDB +
-   Change Management).
+   Change Management). Use structured_lookup for questions about uploaded CSV
+   data, Glue-catalogued tables, Athena queries, invoice batches, or aggregate
+   calculations over structured datasets. The structured specialist is SELECT-only.
 2. When the user asks about LIVE findings, the latest scan, or current
    compliance posture (rather than what a policy *says*), prefer the
    conflicts/scan-history tools (query_conflicts, query_scan_runs) so the
@@ -253,6 +257,18 @@ def servicenow_lookup(query: str) -> str:
             change to the prod claims ALB?".
     """
     return _invoke_runtime(SERVICENOW_RUNTIME_ARN, query)
+
+
+@tool
+def structured_lookup(query: str) -> str:
+    """Query Glue-catalogued structured CSV data through Athena.
+
+    Args:
+        query: Natural-language request or a SELECT-only Athena SQL question,
+            e.g. "summarize AR invoices by status" or
+            "SELECT status, count(*) FROM ar_invoices GROUP BY status".
+    """
+    return _invoke_runtime(STRUCTURED_RUNTIME_ARN, query)
 
 
 # ──────────────────────────── Memory helpers ──────────────────────
@@ -421,7 +437,7 @@ def build_agent() -> Agent:
         model=BedrockModel(**model_kwargs),
         system_prompt=SYSTEM_PROMPT,
         tools=[sharepoint_lookup, awsconfig_lookup, zscaler_lookup, paloalto_lookup,
-               jira_lookup, servicenow_lookup],
+               structured_lookup, jira_lookup, servicenow_lookup],
     )
 
 

@@ -522,6 +522,7 @@ def _patch_api_handler_lambda(runtime_arns: dict[str, str]) -> None:
         "awsconfig-specialist":  "AWSCONFIG_RUNTIME_ARN",
         "zscaler-specialist":    "ZSCALER_RUNTIME_ARN",
         "paloalto-specialist":   "PALOALTO_RUNTIME_ARN",
+        "structured-specialist": "STRUCTURED_RUNTIME_ARN",
         "jira-specialist":       "JIRA_RUNTIME_ARN",
         "servicenow-specialist": "SERVICENOW_RUNTIME_ARN",
     }
