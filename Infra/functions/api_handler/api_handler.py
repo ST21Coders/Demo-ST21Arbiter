@@ -19,6 +19,8 @@ Routes:
   POST /data-grouping/materialize             → copy selected processed files
                                                 into a project prefix and write
                                                 project metadata.
+  POST /data-grouping/analyze-documents       → deterministic portfolio analysis
+                                                for text-like files in a group.
   GET  /health                                → unauth health check
 
 Note: POST /conversations and POST /conversations/{id}/messages were removed —
@@ -191,6 +193,9 @@ def handler(event, context):
 
     if path == "/data-grouping/materialize" and method == "POST":
         return _handle_data_grouping_materialize(event)
+
+    if path == "/data-grouping/analyze-documents" and method == "POST":
+        return _handle_data_grouping_analyze_documents(event)
 
     # Path param routes under /conversations/{session_id}
     if path.startswith("/conversations/"):
@@ -629,6 +634,195 @@ def _handle_data_grouping_materialize(event):
         "crawlerStarted": crawler_started,
         "crawlerMessage": crawler_message,
         "metadata": metadata,
+    })
+
+
+_TEXT_ANALYSIS_EXTENSIONS = (".txt", ".md", ".json")
+_ANALYSIS_STOPWORDS = {
+    "about", "across", "after", "against", "also", "and", "are", "because",
+    "been", "between", "both", "business", "can", "data", "each", "engineering",
+    "from", "goal", "goals", "has", "have", "into", "its", "may", "more",
+    "must", "need", "needs", "objective", "objectives", "only", "other",
+    "problem", "problems", "project", "projects", "risk", "risks", "should",
+    "system", "team", "that", "the", "their", "this", "through", "with",
+}
+
+
+def _sentences(text: str) -> list[str]:
+    chunks = re.split(r"(?<=[.!?])\s+|\n+", text or "")
+    return [re.sub(r"\s+", " ", chunk).strip(" -\t") for chunk in chunks if chunk.strip()]
+
+
+def _matching_sentences(sentences: list[str], terms: tuple[str, ...], limit: int = 3) -> list[str]:
+    matches = []
+    for sentence in sentences:
+        lowered = sentence.lower()
+        if any(term in lowered for term in terms):
+            matches.append(sentence[:320])
+        if len(matches) >= limit:
+            break
+    return matches
+
+
+def _keyword_list(text: str, limit: int = 8) -> list[str]:
+    counts: dict[str, int] = {}
+    for raw in re.findall(r"[A-Za-z][A-Za-z0-9_-]{3,}", text or ""):
+        word = raw.lower().strip("_-")
+        if word in _ANALYSIS_STOPWORDS:
+            continue
+        counts[word] = counts.get(word, 0) + 1
+    return [word for word, _ in sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:limit]]
+
+
+def _project_title(name: str, text: str) -> str:
+    for line in (text or "").splitlines():
+        cleaned = line.strip().strip("#").strip()
+        if cleaned and len(cleaned) <= 120:
+            return cleaned
+    return re.sub(r"[_-]+", " ", name.rsplit(".", 1)[0]).strip() or name
+
+
+def _document_analysis(name: str, key: str, text: str) -> dict[str, Any]:
+    sentences = _sentences(text)
+    goals = _matching_sentences(sentences, ("goal", "objective", "aim", "deliver", "build", "modernize", "improve"))
+    problems = _matching_sentences(sentences, ("problem", "issue", "pain", "challenge", "gap", "failure", "bottleneck"))
+    risks = _matching_sentences(sentences, ("risk", "blocked", "blocker", "constraint", "dependency", "delay", "security", "compliance"))
+    dependencies = _matching_sentences(sentences, ("depend", "requires", "integration", "upstream", "downstream", "vendor", "team", "api"))
+    metrics = _matching_sentences(sentences, ("success", "metric", "kpi", "measure", "target", "outcome"))
+    missing = []
+    if not goals:
+        missing.append("goal/objective")
+    if not problems:
+        missing.append("problem statement")
+    if not dependencies:
+        missing.append("dependencies")
+    if not metrics:
+        missing.append("success metrics")
+    if not risks:
+        missing.append("risks")
+    return {
+        "name": name,
+        "key": key,
+        "title": _project_title(name, text),
+        "keywords": _keyword_list(text),
+        "goals": goals,
+        "problems": problems,
+        "risks": risks,
+        "dependencies": dependencies,
+        "successSignals": metrics,
+        "missingInformation": missing,
+        "riskLevel": "high" if len(risks) >= 3 or any("security" in item.lower() or "compliance" in item.lower() for item in risks) else "medium" if risks else "low",
+        "recommendedAction": (
+            "Clarify scope, owner, dependencies, and success metrics before sequencing."
+            if missing else "Ready for portfolio sequencing and dependency review."
+        ),
+    }
+
+
+def _portfolio_overlap(projects: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    overlaps = []
+    for left_index, left in enumerate(projects):
+        left_words = set(left.get("keywords") or [])
+        for right in projects[left_index + 1:]:
+            shared = sorted(left_words.intersection(set(right.get("keywords") or [])))
+            if len(shared) >= 2:
+                overlaps.append({
+                    "projects": [left["title"], right["title"]],
+                    "sharedKeywords": shared[:6],
+                    "note": "Potential overlap or shared dependency; review for consolidation or sequencing.",
+                })
+    return overlaps[:12]
+
+
+def _portfolio_action_plan(projects: list[dict[str, Any]], overlaps: list[dict[str, Any]]) -> list[str]:
+    high_risk = [p["title"] for p in projects if p.get("riskLevel") == "high"]
+    unclear = [p["title"] for p in projects if p.get("missingInformation")]
+    plan = []
+    if high_risk:
+        plan.append(f"Review high-risk projects first: {', '.join(high_risk[:5])}.")
+    if overlaps:
+        plan.append("Resolve overlap before funding parallel workstreams.")
+    if unclear:
+        plan.append(f"Request missing project details for: {', '.join(unclear[:5])}.")
+    plan.append("Sequence projects after dependencies and success metrics are documented.")
+    return plan
+
+
+def _portfolio_markdown(group_name: str, projects: list[dict[str, Any]], overlaps: list[dict[str, Any]], action_plan: list[str]) -> str:
+    lines = [f"# Portfolio Analysis: {group_name}", "", f"Documents analyzed: {len(projects)}", ""]
+    lines.extend(["## Project Inventory", ""])
+    for project in projects:
+        lines.extend([
+            f"### {project['title']}",
+            f"- File: {project['name']}",
+            f"- Risk level: {project['riskLevel']}",
+            f"- Keywords: {', '.join(project['keywords']) or 'None detected'}",
+            f"- Goal/objective: {project['goals'][0] if project['goals'] else 'Not stated'}",
+            f"- Problem: {project['problems'][0] if project['problems'] else 'Not stated'}",
+            f"- Dependencies: {project['dependencies'][0] if project['dependencies'] else 'Not stated'}",
+            f"- Missing: {', '.join(project['missingInformation']) or 'None detected'}",
+            f"- Recommended action: {project['recommendedAction']}",
+            "",
+        ])
+    lines.extend(["## Overlap And Conflict Scan", ""])
+    if overlaps:
+        for item in overlaps:
+            lines.append(f"- {' / '.join(item['projects'])}: shared {', '.join(item['sharedKeywords'])}. {item['note']}")
+    else:
+        lines.append("- No strong keyword overlap detected.")
+    lines.extend(["", "## Recommended Action Plan", ""])
+    lines.extend([f"- {item}" for item in action_plan])
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _handle_data_grouping_analyze_documents(event):
+    if not PROCESSED_BUCKET:
+        return _err(500, "PROCESSED_BUCKET not configured")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+
+    group_name = (body.get("groupName") or "Project group").strip()[:200]
+    files = [f for f in (body.get("files") or []) if isinstance(f, dict) and f.get("key")]
+    caller_prefix = f"{UPLOAD_PREFIX}{user_id}/"
+    documents = []
+    skipped = []
+    for file in files[:25]:
+        key = str(file.get("key") or "")
+        name = str(file.get("name") or key.rsplit("/", 1)[-1])
+        if not key.startswith(caller_prefix) and not key.startswith("projects/"):
+            return _err(403, f"Source key is outside allowed processed prefixes: {key}")
+        if not name.lower().endswith(_TEXT_ANALYSIS_EXTENSIONS):
+            skipped.append({"name": name, "key": key, "reason": "unsupported_file_type"})
+            continue
+        try:
+            obj = s3.get_object(Bucket=PROCESSED_BUCKET, Key=key)
+            raw = obj["Body"].read(250_000)
+            text = raw.decode("utf-8", errors="replace")
+        except ClientError as e:
+            logger.exception("document analysis read failed")
+            skipped.append({"name": name, "key": key, "reason": f"{type(e).__name__}: {e}"})
+            continue
+        documents.append(_document_analysis(name, key, text))
+
+    if not documents:
+        return _err(400, "No readable .txt, .md, or .json files were found in this group")
+    overlaps = _portfolio_overlap(documents)
+    action_plan = _portfolio_action_plan(documents, overlaps)
+    return _ok({
+        "groupName": group_name,
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "documentCount": len(documents),
+        "skipped": skipped,
+        "projects": documents,
+        "overlaps": overlaps,
+        "actionPlan": action_plan,
+        "markdown": _portfolio_markdown(group_name, documents, overlaps, action_plan),
     })
 
 

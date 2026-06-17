@@ -704,6 +704,39 @@ export async function materializeDataGroupingProject({ projectName, projectId, g
   })
 }
 
+export async function analyzeDataGroupingDocuments({ groupName, files }) {
+  if (USE_MOCK) {
+    await sleep(300)
+    return {
+      groupName,
+      generatedAt: new Date().toISOString(),
+      documentCount: files.length,
+      skipped: [],
+      projects: files.map((file, index) => ({
+        name: file.name,
+        key: file.key,
+        title: file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '),
+        keywords: ['delivery', 'dependency', 'risk'].slice(0, 2 + (index % 2)),
+        goals: ['Mock goal detected from local project document.'],
+        problems: ['Mock problem statement detected from local project document.'],
+        risks: index % 3 === 0 ? ['Mock risk: dependency or timeline uncertainty.'] : [],
+        dependencies: ['Mock dependency: engineering team coordination.'],
+        successSignals: [],
+        missingInformation: ['success metrics'],
+        riskLevel: index % 3 === 0 ? 'medium' : 'low',
+        recommendedAction: 'Clarify owner, timeline, dependencies, and success metrics.',
+      })),
+      overlaps: [],
+      actionPlan: ['Request missing project details.', 'Sequence projects after dependency review.'],
+      markdown: `# Portfolio Analysis: ${groupName}\n\nMock document analysis for ${files.length} files.\n`,
+    }
+  }
+  return apiFetch('/data-grouping/analyze-documents', {
+    method: 'POST',
+    body: JSON.stringify({ groupName, files }),
+  })
+}
+
 // Create a real JIRA issue via the jira_specialist runtime. Routes through the
 // Lambda Function URL (CHAT_URL) like sendChat, since the runtime call (MCP
 // subprocess + create) can exceed API Gateway's 29s integration timeout.

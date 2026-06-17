@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  AlertTriangle, CheckCircle, ChevronDown, ChevronRight, Database, Download, Edit3,
+  AlertTriangle, CheckCircle, ChevronDown, ChevronRight, ClipboardList, Database, Download, Edit3,
   Eye, FileSpreadsheet, FolderTree, Loader2, Plus, RefreshCw, Save, Trash2, Upload, Wand2, XCircle,
 } from 'lucide-react'
 import { USE_MOCK } from '../config'
-import { listUploadedFiles, materializeDataGroupingProject, presignUpload, uploadToPresignedUrl } from '../hooks/useApi'
+import { analyzeDataGroupingDocuments, listUploadedFiles, materializeDataGroupingProject, presignUpload, uploadToPresignedUrl } from '../hooks/useApi'
 
 const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.v2.projectMetadata'
 const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.v2.savedGroups'
@@ -75,6 +75,10 @@ function fileKey(file) {
 function groupFileKeys(group) {
   if (Array.isArray(group.fileKeys)) return group.fileKeys
   return (group.files || []).map(file => fileKey(file)).filter(Boolean)
+}
+
+function isTextAnalysisFile(file) {
+  return /\.(txt|md|json)$/i.test(file?.name || '')
 }
 
 function csvEscape(value) {
@@ -545,13 +549,14 @@ function SelectedDraftFileRow({ file, onRemove }) {
 
 function GroupCard({
   group, projectId, processedPrefix, summary, onGenerateSummary, onEdit, onDelete,
-  onLoadCsvContents, collapsed, onToggleCollapse,
+  onLoadCsvContents, analysis, analyzing, onAnalyzeDocuments, collapsed, onToggleCollapse,
 }) {
   const [activeAction, setActiveAction] = useState(USE_MOCK ? 'validate' : 'instructions')
   const [instructionPreviewFile, setInstructionPreviewFile] = useState(null)
   const groupCsvInputRef = useRef(null)
   const rows = summary?.rows || []
   const csvFiles = group.files.filter(file => !file.summary && /\.csv$/i.test(file.name || ''))
+  const textFiles = group.files.filter(file => !file.summary && isTextAnalysisFile(file))
   const loadedCsvCount = csvFiles.filter(file => file.csvText).length
   const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
   const usingInstructionGuide = instructionFiles.length > 0
@@ -574,7 +579,7 @@ function GroupCard({
             <FolderTree size={15} className="text-indigo-600" />
             <h2 className="text-sm font-bold text-slate-900">{group.name}</h2>
           </div>
-          <p className="mt-1 text-xs text-slate-500">{optionForType(group.type).label} · {group.files.length} files · {csvFiles.length} CSV</p>
+          <p className="mt-1 text-xs text-slate-500">{optionForType(group.type).label} · {group.files.length} files · {csvFiles.length} CSV · {textFiles.length} text</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -604,7 +609,7 @@ function GroupCard({
 
       {collapsed ? (
         <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-          {group.files.length} files hidden · {csvFiles.length} CSV
+          {group.files.length} files hidden · {csvFiles.length} CSV · {textFiles.length} text
         </div>
       ) : (
         <>
@@ -740,6 +745,27 @@ function GroupCard({
                   Glue/Athena handles live S3 CSV cataloging after Data Pipeline upload
                 </span>
               )}
+              <button
+                type="button"
+                disabled={!textFiles.length || analyzing}
+                onClick={() => {
+                  onAnalyzeDocuments(group)
+                  setActiveAction('portfolio')
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+              >
+                {analyzing ? <Loader2 size={13} className="animate-spin" /> : <ClipboardList size={13} />}
+                Analyze project documents
+              </button>
+              {analysis && (
+                <button
+                  type="button"
+                  onClick={() => setActiveAction('portfolio')}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${activeAction === 'portfolio' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+                >
+                  <Eye size={13} /> View portfolio analysis
+                </button>
+              )}
             </div>
 
             {activeAction === 'instructions' && (
@@ -816,6 +842,77 @@ function GroupCard({
                 </p>
               </div>
             )}
+            {activeAction === 'portfolio' && (
+              <div className="mt-3 rounded-lg border border-emerald-200 bg-white p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold text-emerald-800">Project portfolio analysis</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {analysis
+                        ? `${analysis.documentCount} document${analysis.documentCount === 1 ? '' : 's'} analyzed.`
+                        : textFiles.length
+                        ? 'Click Analyze project documents to create a deterministic portfolio report.'
+                        : 'No .txt, .md, or .json files are available in this group.'}
+                    </p>
+                  </div>
+                  {analysis?.markdown && (
+                    <button
+                      type="button"
+                      onClick={() => downloadText(`${group.name}-portfolio-analysis.md`, analysis.markdown, 'text/markdown')}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                    >
+                      <Download size={13} /> Markdown
+                    </button>
+                  )}
+                </div>
+                {analysis && (
+                  <div className="mt-3 space-y-3">
+                    <div className="grid gap-2 md:grid-cols-3">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs">
+                        <p className="text-slate-400">Documents</p>
+                        <p className="font-semibold text-slate-900">{analysis.documentCount}</p>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs">
+                        <p className="text-slate-400">Potential overlaps</p>
+                        <p className="font-semibold text-slate-900">{analysis.overlaps?.length || 0}</p>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs">
+                        <p className="text-slate-400">Skipped files</p>
+                        <p className="font-semibold text-slate-900">{analysis.skipped?.length || 0}</p>
+                      </div>
+                    </div>
+                    <div className="overflow-auto rounded-lg border border-slate-200">
+                      <table className="min-w-full text-left text-xs">
+                        <thead className="bg-slate-50 text-slate-500">
+                          <tr>
+                            <th className="px-3 py-2 font-semibold">Project</th>
+                            <th className="px-3 py-2 font-semibold">Risk</th>
+                            <th className="px-3 py-2 font-semibold">Goal</th>
+                            <th className="px-3 py-2 font-semibold">Missing</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(analysis.projects || []).map(project => (
+                            <tr key={project.key} className="border-t border-slate-100">
+                              <td className="max-w-[220px] px-3 py-2 font-medium text-slate-800">{project.title}</td>
+                              <td className="px-3 py-2 capitalize text-slate-700">{project.riskLevel}</td>
+                              <td className="max-w-[320px] truncate px-3 py-2 text-slate-600" title={project.goals?.[0] || ''}>{project.goals?.[0] || 'Not stated'}</td>
+                              <td className="max-w-[240px] truncate px-3 py-2 text-slate-600" title={(project.missingInformation || []).join(', ')}>{(project.missingInformation || []).join(', ') || 'None'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                      <p className="font-semibold text-slate-900">Recommended action plan</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-4">
+                        {(analysis.actionPlan || []).map(item => <li key={item}>{item}</li>)}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {USE_MOCK && loadedCsvCount < csvFiles.length && (
               <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
                 {loadedCsvCount} of {csvFiles.length} CSV files have loaded row content. Use Load CSV contents and select the CSV files in this group before generating a real record count.
@@ -868,6 +965,7 @@ export default function DataGrouping() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [summaries, setSummaries] = useState({})
+  const [documentAnalyses, setDocumentAnalyses] = useState({})
   const [metadata, setMetadata] = useState(null)
   const [metadataLedger, setMetadataLedger] = useState({ version: '0.1', projects: {} })
   const [metadataWrite, setMetadataWrite] = useState(null)
@@ -876,6 +974,7 @@ export default function DataGrouping() {
   const [groupsLoaded, setGroupsLoaded] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [materializing, setMaterializing] = useState(false)
+  const [analyzingGroupIds, setAnalyzingGroupIds] = useState([])
   const [uploadMessage, setUploadMessage] = useState('')
   const [editingGroupId, setEditingGroupId] = useState(null)
   const [draftName, setDraftName] = useState('')
@@ -992,6 +1091,7 @@ export default function DataGrouping() {
   useEffect(() => {
     const validGroupIds = new Set(hydratedGroups.map(group => group.id))
     setSummaries(prev => Object.fromEntries(Object.entries(prev).filter(([groupId]) => validGroupIds.has(groupId))))
+    setDocumentAnalyses(prev => Object.fromEntries(Object.entries(prev).filter(([groupId]) => validGroupIds.has(groupId))))
   }, [hydratedGroups])
 
   function nextGroupType(groupsToCheck = hydratedGroups) {
@@ -1077,7 +1177,38 @@ export default function DataGrouping() {
       delete next[groupId]
       return next
     })
+    setDocumentAnalyses(prev => {
+      const next = { ...prev }
+      delete next[groupId]
+      return next
+    })
     if (editingGroupId === groupId) resetDraft()
+  }
+
+  async function analyzeProjectDocuments(group) {
+    const filesForAnalysis = (group.files || [])
+      .filter(file => !file.summary && isTextAnalysisFile(file))
+      .map(file => ({
+        key: file.key,
+        name: file.name,
+        size: file.size,
+        last_modified: file.last_modified,
+      }))
+    if (!filesForAnalysis.length) return
+    setError('')
+    setAnalyzingGroupIds(prev => (prev.includes(group.id) ? prev : [...prev, group.id]))
+    try {
+      const result = await analyzeDataGroupingDocuments({
+        groupName: group.name,
+        files: filesForAnalysis,
+      })
+      setDocumentAnalyses(prev => ({ ...prev, [group.id]: result }))
+      setUploadMessage(`Portfolio analysis created for ${result.documentCount} document${result.documentCount === 1 ? '' : 's'} in ${group.name}.`)
+    } catch (err) {
+      setError(err.message || 'Unable to analyze project documents')
+    } finally {
+      setAnalyzingGroupIds(prev => prev.filter(groupId => groupId !== group.id))
+    }
   }
 
   async function loadGroupCsvContents(groupId, fileList) {
@@ -1499,6 +1630,9 @@ export default function DataGrouping() {
               onEdit={editGroup}
               onDelete={deleteGroup}
               onLoadCsvContents={loadGroupCsvContents}
+              analysis={documentAnalyses[group.id]}
+              analyzing={analyzingGroupIds.includes(group.id)}
+              onAnalyzeDocuments={analyzeProjectDocuments}
               collapsed={collapsedGroupIds.includes(group.id)}
               onToggleCollapse={toggleGroupCollapse}
             />
