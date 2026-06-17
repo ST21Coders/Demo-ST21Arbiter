@@ -1,8 +1,50 @@
-import { Fragment, useEffect, useState } from 'react'
-import { Loader2, Download, Shield, ChevronDown, ChevronRight } from 'lucide-react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Loader2, Download, Shield, ChevronDown, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { useAudit } from '../hooks/useApi'
 import { StatusBadge } from '../components/SeverityBadge'
 import { format } from 'date-fns'
+
+// Map of sortable column field names to their default direction on first activation.
+// Keys are the actual row field names so they can be used directly to index into a row.
+// Local to this file; Task 3 will swap headers to consume this map.
+const SORTABLE_COLUMNS = {
+  timestamp: 'desc',
+  action_type: 'asc',
+  resource: 'asc',
+  user: 'asc',
+  status: 'asc',
+}
+
+// Stable sort over `rows` by the given `key` and `dir` ('asc' | 'desc').
+// - Returns a new array; does not mutate the input.
+// - Empty / null / undefined / whitespace-only values sink to the bottom
+//   regardless of `dir` (invariant).
+// - `timestamp` is compared lexicographically on the raw ISO-8601 string;
+//   the four text columns use case-insensitive locale compare.
+// - Relies on Array.prototype.sort stability (ES2019+) for tie-preservation.
+function sortRows(rows, key, dir) {
+  if (!(key in SORTABLE_COLUMNS)) return [...rows]
+  const sign = dir === 'asc' ? 1 : -1
+  const getVal = (r) => {
+    const raw = r?.[key]
+    if (raw == null) return ''
+    return String(raw).trim()
+  }
+  return [...rows].sort((a, b) => {
+    const va = getVal(a)
+    const vb = getVal(b)
+    const aEmpty = va === ''
+    const bEmpty = vb === ''
+    if (aEmpty && bEmpty) return 0
+    if (aEmpty) return 1   // a sinks to bottom
+    if (bEmpty) return -1  // b sinks to bottom
+    if (key === 'timestamp') {
+      if (va === vb) return 0
+      return (va < vb ? -1 : 1) * sign
+    }
+    return va.toLowerCase().localeCompare(vb.toLowerCase()) * sign
+  })
+}
 
 const ACTION_COLORS = {
   SCAN_TRIGGERED: 'text-indigo-700',
@@ -81,22 +123,48 @@ function ExpandedDetail({ log }) {
   )
 }
 
+function SortableTh({ columnKey, label, sortKey, sortDir, onSort }) {
+  const isActive = sortKey === columnKey
+  const ariaSort = isActive ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'
+  const Icon = isActive ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+  return (
+    <th
+      aria-sort={ariaSort}
+      className="text-left px-4 py-3 text-slate-500 font-medium tracking-wide"
+    >
+      <button
+        type="button"
+        onClick={() => onSort(columnKey)}
+        className="inline-flex items-center gap-1.5 bg-transparent border-0 p-0 text-slate-500 font-medium tracking-wide hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-1 rounded-sm"
+      >
+        <span>{label}</span>
+        <Icon size={12} className={isActive ? 'opacity-100' : 'opacity-40'} aria-hidden="true" />
+      </button>
+    </th>
+  )
+}
+
 export default function AuditLogs() {
   const { logs, loading, load } = useAudit()
-  const [filter, setFilter] = useState('')
   const [expanded, setExpanded] = useState({})
+  // Sort state. Initial values reproduce today's hardcoded behavior
+  // (Timestamp desc / newest first). Task 3 wires headers to update these.
+  const [sortKey, setSortKey] = useState('timestamp')
+  const [sortDir, setSortDir] = useState('desc')
 
   useEffect(() => { load() }, [load])
 
-  const filtered = filter
-    ? logs.filter(l => l.action_type?.toLowerCase().includes(filter.toLowerCase())
-      || l.resource?.toLowerCase().includes(filter.toLowerCase())
-      || l.user?.toLowerCase().includes(filter.toLowerCase())
-      || (l.details || '').toLowerCase().includes(filter.toLowerCase()))
-    : logs
+  // Re-sort only when inputs change.
+  const sorted = useMemo(() => sortRows(logs, sortKey, sortDir), [logs, sortKey, sortDir])
 
-  // Newest first — DDB scan order isn't guaranteed.
-  const sorted = [...filtered].sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''))
+  function handleSortClick(columnKey) {
+    if (columnKey === sortKey) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(columnKey)
+      setSortDir(SORTABLE_COLUMNS[columnKey])
+    }
+  }
 
   function toggle(id) {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
@@ -132,14 +200,8 @@ export default function AuditLogs() {
         </p>
       </div>
 
-      <div className="flex gap-3">
-        <input
-          value={filter}
-          onChange={e => setFilter(e.target.value)}
-          placeholder="Search by action, resource, user, or details…"
-          className="input flex-1 text-xs"
-        />
-        <p className="text-[11px] text-slate-500 self-center flex-shrink-0">{sorted.length} row{sorted.length !== 1 ? 's' : ''}</p>
+      <div className="flex justify-end">
+        <p className="text-[11px] text-slate-500">{sorted.length} row{sorted.length !== 1 ? 's' : ''}</p>
       </div>
 
       {loading ? (
@@ -153,11 +215,11 @@ export default function AuditLogs() {
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
                 <th className="w-8 px-2 py-3"></th>
-                <th className="text-left px-4 py-3 text-slate-500 font-medium tracking-wide">Timestamp</th>
-                <th className="text-left px-4 py-3 text-slate-500 font-medium tracking-wide">Action</th>
-                <th className="text-left px-4 py-3 text-slate-500 font-medium tracking-wide">Resource</th>
-                <th className="text-left px-4 py-3 text-slate-500 font-medium tracking-wide">User</th>
-                <th className="text-left px-4 py-3 text-slate-500 font-medium tracking-wide">Status</th>
+                <SortableTh columnKey="timestamp" label="Timestamp" sortKey={sortKey} sortDir={sortDir} onSort={handleSortClick} />
+                <SortableTh columnKey="action_type" label="Action" sortKey={sortKey} sortDir={sortDir} onSort={handleSortClick} />
+                <SortableTh columnKey="resource" label="Resource" sortKey={sortKey} sortDir={sortDir} onSort={handleSortClick} />
+                <SortableTh columnKey="user" label="User" sortKey={sortKey} sortDir={sortDir} onSort={handleSortClick} />
+                <SortableTh columnKey="status" label="Status" sortKey={sortKey} sortDir={sortDir} onSort={handleSortClick} />
                 <th className="text-left px-4 py-3 text-slate-500 font-medium tracking-wide">Details</th>
               </tr>
             </thead>
