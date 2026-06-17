@@ -459,6 +459,18 @@ Resources:
             RestApiId: !Ref ArbiterApi
             Path: /uploads/list
             Method: GET
+        DataGroupingMaterialize:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /data-grouping/materialize
+            Method: POST
+        DataGroupingAnalyzeDocuments:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /data-grouping/analyze-documents
+            Method: POST
       Tags:
         Name: !Sub "${Environment}-${ProjectName}-api-handler"
 
