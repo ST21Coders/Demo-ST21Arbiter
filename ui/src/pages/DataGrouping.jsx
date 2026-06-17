@@ -77,8 +77,8 @@ function groupFileKeys(group) {
   return (group.files || []).map(file => fileKey(file)).filter(Boolean)
 }
 
-function isTextAnalysisFile(file) {
-  return /\.(txt|md|json)$/i.test(file?.name || '')
+function isDocumentAnalysisFile(file) {
+  return /\.(txt|md|json|pdf)$/i.test(file?.name || '')
 }
 
 function csvEscape(value) {
@@ -556,7 +556,7 @@ function GroupCard({
   const groupCsvInputRef = useRef(null)
   const rows = summary?.rows || []
   const csvFiles = group.files.filter(file => !file.summary && /\.csv$/i.test(file.name || ''))
-  const textFiles = group.files.filter(file => !file.summary && isTextAnalysisFile(file))
+  const documentFiles = group.files.filter(file => !file.summary && isDocumentAnalysisFile(file))
   const loadedCsvCount = csvFiles.filter(file => file.csvText).length
   const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
   const usingInstructionGuide = instructionFiles.length > 0
@@ -579,7 +579,7 @@ function GroupCard({
             <FolderTree size={15} className="text-indigo-600" />
             <h2 className="text-sm font-bold text-slate-900">{group.name}</h2>
           </div>
-          <p className="mt-1 text-xs text-slate-500">{optionForType(group.type).label} · {group.files.length} files · {csvFiles.length} CSV · {textFiles.length} text</p>
+          <p className="mt-1 text-xs text-slate-500">{optionForType(group.type).label} · {group.files.length} files · {csvFiles.length} CSV · {documentFiles.length} documents</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -609,7 +609,7 @@ function GroupCard({
 
       {collapsed ? (
         <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-          {group.files.length} files hidden · {csvFiles.length} CSV · {textFiles.length} text
+          {group.files.length} files hidden · {csvFiles.length} CSV · {documentFiles.length} documents
         </div>
       ) : (
         <>
@@ -747,7 +747,7 @@ function GroupCard({
               )}
               <button
                 type="button"
-                disabled={!textFiles.length || analyzing}
+                disabled={!documentFiles.length || analyzing}
                 onClick={() => {
                   onAnalyzeDocuments(group)
                   setActiveAction('portfolio')
@@ -850,7 +850,7 @@ function GroupCard({
                     <p className="mt-1 text-xs text-slate-500">
                       {analysis
                         ? `${analysis.documentCount} document${analysis.documentCount === 1 ? '' : 's'} analyzed.`
-                        : textFiles.length
+                        : documentFiles.length
                         ? 'Click Analyze project documents to create a deterministic portfolio report.'
                         : 'No .txt, .md, or .json files are available in this group.'}
                     </p>
@@ -1187,7 +1187,7 @@ export default function DataGrouping() {
 
   async function analyzeProjectDocuments(group) {
     const filesForAnalysis = (group.files || [])
-      .filter(file => !file.summary && isTextAnalysisFile(file))
+      .filter(file => !file.summary && isDocumentAnalysisFile(file))
       .map(file => ({
         key: file.key,
         name: file.name,

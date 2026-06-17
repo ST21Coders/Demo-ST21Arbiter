@@ -20,7 +20,7 @@ Routes:
                                                 into a project prefix and write
                                                 project metadata.
   POST /data-grouping/analyze-documents       → deterministic portfolio analysis
-                                                for text-like files in a group.
+                                                for project documents in a group.
   GET  /health                                → unauth health check
 
 Note: POST /conversations and POST /conversations/{id}/messages were removed —
@@ -47,6 +47,7 @@ import json
 import logging
 import os
 import re
+import zlib
 from typing import Any
 from decimal import Decimal
 from datetime import datetime, timezone, timedelta
@@ -637,7 +638,7 @@ def _handle_data_grouping_materialize(event):
     })
 
 
-_TEXT_ANALYSIS_EXTENSIONS = (".txt", ".md", ".json")
+_DOCUMENT_ANALYSIS_EXTENSIONS = (".txt", ".md", ".json", ".pdf")
 _ANALYSIS_STOPWORDS = {
     "about", "across", "after", "against", "also", "and", "are", "because",
     "been", "between", "both", "business", "can", "data", "each", "engineering",
@@ -651,6 +652,56 @@ _ANALYSIS_STOPWORDS = {
 def _sentences(text: str) -> list[str]:
     chunks = re.split(r"(?<=[.!?])\s+|\n+", text or "")
     return [re.sub(r"\s+", " ", chunk).strip(" -\t") for chunk in chunks if chunk.strip()]
+
+
+def _pdf_stream_text(raw: bytes) -> str:
+    """Best-effort PDF text extraction without adding Lambda dependencies.
+
+    This is intentionally deterministic and modest: it handles the small,
+    text-based project PDFs used in the demo by reading stream objects, inflating
+    Flate streams when present, and extracting literal/string-array text tokens.
+    """
+    chunks: list[bytes] = []
+    for match in re.finditer(rb"stream\r?\n(.*?)endstream", raw, flags=re.DOTALL):
+        stream = match.group(1).strip(b"\r\n")
+        candidates = [stream]
+        if stream.endswith(b"~>"):
+            try:
+                candidates.insert(0, base64.a85decode(stream, adobe=True))
+            except ValueError:
+                pass
+        for candidate in candidates:
+            try:
+                chunks.append(zlib.decompress(candidate))
+                break
+            except zlib.error:
+                if candidate is stream:
+                    chunks.append(candidate)
+    if not chunks:
+        chunks = [raw]
+
+    text_parts: list[str] = []
+    for chunk in chunks:
+        text = chunk.decode("latin-1", errors="ignore")
+        for value in re.findall(r"\(([^()]*)\)", text):
+            cleaned = (
+                value
+                .replace(r"\(", "(")
+                .replace(r"\)", ")")
+                .replace(r"\\", "\\")
+            )
+            if cleaned.strip():
+                text_parts.append(cleaned)
+    extracted = " ".join(text_parts)
+    extracted = re.sub(r"\\[nrbtf]", " ", extracted)
+    extracted = re.sub(r"\s+", " ", extracted).strip()
+    return extracted
+
+
+def _document_text_from_bytes(name: str, raw: bytes) -> str:
+    if name.lower().endswith(".pdf"):
+        return _pdf_stream_text(raw)
+    return raw.decode("utf-8", errors="replace")
 
 
 def _matching_sentences(sentences: list[str], terms: tuple[str, ...], limit: int = 3) -> list[str]:
@@ -797,21 +848,24 @@ def _handle_data_grouping_analyze_documents(event):
         name = str(file.get("name") or key.rsplit("/", 1)[-1])
         if not key.startswith(caller_prefix) and not key.startswith("projects/"):
             return _err(403, f"Source key is outside allowed processed prefixes: {key}")
-        if not name.lower().endswith(_TEXT_ANALYSIS_EXTENSIONS):
+        if not name.lower().endswith(_DOCUMENT_ANALYSIS_EXTENSIONS):
             skipped.append({"name": name, "key": key, "reason": "unsupported_file_type"})
             continue
         try:
             obj = s3.get_object(Bucket=PROCESSED_BUCKET, Key=key)
             raw = obj["Body"].read(250_000)
-            text = raw.decode("utf-8", errors="replace")
+            text = _document_text_from_bytes(name, raw)
         except ClientError as e:
             logger.exception("document analysis read failed")
             skipped.append({"name": name, "key": key, "reason": f"{type(e).__name__}: {e}"})
             continue
+        if not text.strip():
+            skipped.append({"name": name, "key": key, "reason": "no_extractable_text"})
+            continue
         documents.append(_document_analysis(name, key, text))
 
     if not documents:
-        return _err(400, "No readable .txt, .md, or .json files were found in this group")
+        return _err(400, "No readable .txt, .md, .json, or .pdf files were found in this group")
     overlaps = _portfolio_overlap(documents)
     action_plan = _portfolio_action_plan(documents, overlaps)
     return _ok({
