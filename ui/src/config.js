@@ -106,5 +106,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.5.49'
-export const APP_VERSION_NOTE = 'Stabilize structured Athena queries'
+export const APP_VERSION = '1.5.50'
+export const APP_VERSION_NOTE = 'Auto-publish edited data groups'

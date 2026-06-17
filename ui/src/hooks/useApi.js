@@ -693,7 +693,7 @@ export async function listUploadedFiles(bucket = 'processed') {
   return apiFetch(`/uploads/list?${qs}`)
 }
 
-export async function materializeDataGroupingProject({ projectName, projectId, groups, move = true }) {
+export async function materializeDataGroupingProject({ projectName, projectId, groups = [], deleteGroups = [], move = true }) {
   if (USE_MOCK) {
     await sleep(400)
     return {
@@ -712,7 +712,7 @@ export async function materializeDataGroupingProject({ projectName, projectId, g
   }
   return apiFetch('/data-grouping/materialize', {
     method: 'POST',
-    body: JSON.stringify({ projectName, projectId, groups, move }),
+    body: JSON.stringify({ projectName, projectId, groups, deleteGroups, move }),
   })
 }
 

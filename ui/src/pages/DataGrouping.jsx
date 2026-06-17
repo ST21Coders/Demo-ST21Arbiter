@@ -538,7 +538,7 @@ function SelectedDraftFileRow({ file, onRemove }) {
 
 function GroupCard({
   group, projectId, processedPrefix, summary, onGenerateSummary, onEdit, onDelete,
-  onLoadCsvContents, analysis, analysisError, analyzing, onAnalyzeDocuments, collapsed, onToggleCollapse,
+  onLoadCsvContents, analysis, analysisError, analyzing, publishing, onAnalyzeDocuments, collapsed, onToggleCollapse,
 }) {
   const [activeAction, setActiveAction] = useState(USE_MOCK ? 'validate' : 'instructions')
   const [instructionPreviewFile, setInstructionPreviewFile] = useState(null)
@@ -569,6 +569,11 @@ function GroupCard({
             <h2 className="text-sm font-bold text-slate-900">{group.name}</h2>
           </div>
           <p className="mt-1 text-xs text-slate-500">{optionForType(group.type).label} · {group.files.length} files · {csvFiles.length} CSV · {documentFiles.length} documents</p>
+          {publishing && (
+            <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700">
+              <Loader2 size={12} className="animate-spin" /> Publishing to S3
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <button
@@ -582,6 +587,7 @@ function GroupCard({
           <button
             type="button"
             onClick={() => onEdit(group)}
+            disabled={publishing}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
             <Edit3 size={13} /> Edit
@@ -589,6 +595,7 @@ function GroupCard({
           <button
             type="button"
             onClick={() => onDelete(group.id)}
+            disabled={publishing}
             className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
           >
             <Trash2 size={13} /> Delete
@@ -633,7 +640,7 @@ function GroupCard({
                 <p className="text-xs font-semibold text-slate-800">{summaryFile}</p>
                 <p className="mt-1 text-xs text-slate-500">
                   {!USE_MOCK
-                    ? 'Live S3 mode: structured CSVs are routed through Glue/Athena after upload.'
+                    ? 'Live S3 mode: saving this group publishes it to S3 and routes CSVs through Glue/Athena.'
                     : currentSummarySourceFiles.length >= 2
                     ? canGenerateSummary
                       ? 'Current summary uses loaded CSV rows to create file, total, vendor-department-status, and status totals.'
@@ -731,7 +738,7 @@ function GroupCard({
                 </>
               ) : (
                 <span className="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-                  Glue/Athena handles live S3 CSV cataloging after Data Pipeline upload
+                  Saving this group publishes its current files to S3
                 </span>
               )}
               <button
@@ -975,6 +982,7 @@ export default function DataGrouping() {
   const [groupsLoaded, setGroupsLoaded] = useState(false)
   const [materializing, setMaterializing] = useState(false)
   const [crawling, setCrawling] = useState(false)
+  const [publishingGroupIds, setPublishingGroupIds] = useState([])
   const [analyzingGroupIds, setAnalyzingGroupIds] = useState([])
   const [analysisErrors, setAnalysisErrors] = useState({})
   const [uploadMessage, setUploadMessage] = useState('')
@@ -1091,6 +1099,62 @@ export default function DataGrouping() {
     setDraftKeys(prev => prev.filter(item => item !== key))
   }
 
+  function groupPublishPayload(group) {
+    return {
+      id: group.id,
+      name: group.name,
+      type: group.type,
+      files: (group.files || [])
+        .filter(file => !file.summary)
+        .map(file => ({
+          key: file.key,
+          name: file.name,
+          size: file.size,
+          last_modified: file.last_modified,
+        })),
+    }
+  }
+
+  async function publishGroupToS3(group) {
+    if (!group?.id) return
+    setPublishingGroupIds(prev => (prev.includes(group.id) ? prev : [...prev, group.id]))
+    setError('')
+    try {
+      const result = await materializeDataGroupingProject({
+        projectName,
+        projectId,
+        groups: [groupPublishPayload(group)],
+        move: false,
+      })
+      setS3Materialize(result)
+      setUploadMessage(`${group.name} published to S3. ${result.structuredCopies?.length || 0} CSV file${result.structuredCopies?.length === 1 ? '' : 's'} mirrored for Glue${result.crawlerStarted ? `; crawler ${result.crawlerMessage || 'started'}.` : '.'}`)
+    } catch (err) {
+      setError(err.message || `Unable to publish ${group.name}`)
+    } finally {
+      setPublishingGroupIds(prev => prev.filter(groupId => groupId !== group.id))
+    }
+  }
+
+  async function removeGroupFromS3(group) {
+    if (!group?.id) return
+    setPublishingGroupIds(prev => (prev.includes(group.id) ? prev : [...prev, group.id]))
+    setError('')
+    try {
+      const result = await materializeDataGroupingProject({
+        projectName,
+        projectId,
+        deleteGroups: [groupPublishPayload(group)],
+        move: false,
+      })
+      setS3Materialize(result)
+      setUploadMessage(`${group.name} removed from S3 project storage${result.crawlerStarted ? `; crawler ${result.crawlerMessage || 'started'}.` : '.'}`)
+    } catch (err) {
+      setError(err.message || `Unable to remove ${group.name} from S3`)
+    } finally {
+      setPublishingGroupIds(prev => prev.filter(groupId => groupId !== group.id))
+    }
+  }
+
   function saveGroup() {
     if (!draftName.trim() || !selectedDraftFiles.length) return
     const savedFileKeys = selectedDraftFiles.map(file => fileKey(file))
@@ -1113,6 +1177,7 @@ export default function DataGrouping() {
     if (!editingGroupId) {
       setCollapsedGroupIds(prev => (prev.includes(nextGroup.id) ? prev : [...prev, nextGroup.id]))
     }
+    publishGroupToS3(nextGroup)
     startNewGroup(nextGroupType(previewGroups))
   }
 
@@ -1133,6 +1198,7 @@ export default function DataGrouping() {
   }
 
   function deleteGroup(groupId) {
+    const groupToDelete = hydratedGroups.find(group => group.id === groupId)
     setMetadata(null)
     setGroups(prev => {
       const nextGroups = prev.filter(group => group.id !== groupId)
@@ -1155,6 +1221,7 @@ export default function DataGrouping() {
       return next
     })
     if (editingGroupId === groupId) resetDraft()
+    removeGroupFromS3(groupToDelete)
   }
 
   async function analyzeProjectDocuments(group) {
@@ -1360,13 +1427,12 @@ export default function DataGrouping() {
         projectName,
         projectId,
         groups: payloadGroups,
-        move: true,
+        move: false,
       })
       setS3Materialize(result)
-      setUploadMessage(`Project written to S3 at ${result.projectPrefix}. ${result.structuredCopies?.length || 0} CSV file${result.structuredCopies?.length === 1 ? '' : 's'} mirrored for Glue.`)
-      await loadFiles()
+      setUploadMessage(`All groups republished to S3 at ${result.projectPrefix}. ${result.structuredCopies?.length || 0} CSV file${result.structuredCopies?.length === 1 ? '' : 's'} mirrored for Glue.`)
     } catch (err) {
-      setError(err.message || 'Unable to write project to S3')
+      setError(err.message || 'Unable to republish groups to S3')
     } finally {
       setMaterializing(false)
     }
@@ -1393,12 +1459,12 @@ export default function DataGrouping() {
           <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Processed data intelligence</p>
           <h1 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Data Grouping</h1>
           <p className="mt-1 max-w-3xl text-xs text-slate-500">
-            Start from files uploaded through Data Pipeline and cleared into /processed. Create editable project groups, publish them to S3, then crawl them for Athena.
+            Start from files uploaded through Data Pipeline and cleared into /processed. Saving a group publishes just that group to S3 and routes its CSVs through Glue/Athena.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-            <span className="px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Group publishing steps</span>
+            <span className="px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Automatic publishing</span>
             <button
               type="button"
               onClick={loadFiles}
@@ -1406,7 +1472,7 @@ export default function DataGrouping() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
             >
               {loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-              1. Refresh /processed files
+              Refresh /processed files
             </button>
             <button
               type="button"
@@ -1415,7 +1481,7 @@ export default function DataGrouping() {
               className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
             >
               {materializing ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-              2. Write groups to S3
+              Republish all groups
             </button>
             <button
               type="button"
@@ -1424,7 +1490,7 @@ export default function DataGrouping() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
             >
               {crawling ? <Loader2 size={13} className="animate-spin" /> : <Database size={13} />}
-              3. Crawl for Athena
+              Re-index Athena
             </button>
           </div>
         </div>
@@ -1622,6 +1688,7 @@ export default function DataGrouping() {
               analysis={documentAnalyses[group.id]}
               analysisError={analysisErrors[group.id]}
               analyzing={analyzingGroupIds.includes(group.id)}
+              publishing={publishingGroupIds.includes(group.id)}
               onAnalyzeDocuments={analyzeProjectDocuments}
               collapsed={collapsedGroupIds.includes(group.id)}
               onToggleCollapse={toggleGroupCollapse}

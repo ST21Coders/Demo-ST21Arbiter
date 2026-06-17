@@ -477,6 +477,45 @@ def _table_segment(value: str, default: str = "dataset") -> str:
     return cleaned[:120] or default
 
 
+def _delete_s3_prefix(bucket: str, prefix: str) -> list[str]:
+    deleted: list[str] = []
+    token = None
+    while True:
+        params = {"Bucket": bucket, "Prefix": prefix}
+        if token:
+            params["ContinuationToken"] = token
+        resp = s3.list_objects_v2(**params)
+        keys = [obj["Key"] for obj in resp.get("Contents") or [] if obj.get("Key")]
+        for start in range(0, len(keys), 1000):
+            batch = keys[start:start + 1000]
+            if not batch:
+                continue
+            s3.delete_objects(
+                Bucket=bucket,
+                Delete={"Objects": [{"Key": key} for key in batch], "Quiet": True},
+            )
+            deleted.extend(batch)
+        if not resp.get("IsTruncated"):
+            break
+        token = resp.get("NextContinuationToken")
+    return deleted
+
+
+def _load_data_grouping_metadata(bucket: str, metadata_key: str) -> dict[str, Any] | None:
+    try:
+        obj = s3.get_object(Bucket=bucket, Key=metadata_key)
+        return json.loads(obj.get("Body").read().decode("utf-8"))
+    except s3.exceptions.NoSuchKey:
+        return None
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+            return None
+        raise
+    except Exception:
+        logger.exception("data grouping metadata read failed")
+        return None
+
+
 def _handle_data_grouping_materialize(event):
     """Materialize locally-defined project groups into S3.
 
@@ -511,8 +550,13 @@ def _handle_data_grouping_materialize(event):
     project_id = _s3_segment(body.get("projectId") or body.get("projectName"), "project")
     project_name = (body.get("projectName") or project_id).strip()[:200]
     groups = body.get("groups") or []
-    if not isinstance(groups, list) or not groups:
-        return _err(400, "At least one group is required")
+    delete_groups = body.get("deleteGroups") or []
+    if not isinstance(groups, list):
+        return _err(400, "groups must be a list")
+    if not isinstance(delete_groups, list):
+        return _err(400, "deleteGroups must be a list")
+    if not groups and not delete_groups:
+        return _err(400, "At least one group or deleteGroups entry is required")
 
     caller_prefix = f"{UPLOAD_PREFIX}{user_id}/"
     copied: list[dict[str, Any]] = []
@@ -520,10 +564,72 @@ def _handle_data_grouping_materialize(event):
     moved_sources: set[str] = set()
     materialized_groups: list[dict[str, Any]] = []
     move_sources = bool(body.get("move", True))
+    deleted: list[str] = []
+
+    metadata_key = f"projects/{project_id}/metadata/project.json"
+    existing_metadata = _load_data_grouping_metadata(PROCESSED_BUCKET, metadata_key) or {}
+    existing_groups = [
+        group for group in existing_metadata.get("groups", [])
+        if isinstance(group, dict)
+    ]
+    groups_to_remove = []
+    incoming_ids = {str(group.get("id") or "") for group in groups if isinstance(group, dict)}
+    incoming_names = {
+        _s3_segment(group.get("name") or "", "")
+        for group in groups
+        if isinstance(group, dict) and group.get("name")
+    }
+    delete_ids = {str(group.get("id") or "") for group in delete_groups if isinstance(group, dict)}
+    delete_names = {
+        _s3_segment(group.get("name") or "", "")
+        for group in delete_groups
+        if isinstance(group, dict) and group.get("name")
+    }
+    for existing in existing_groups:
+        existing_id = str(existing.get("id") or "")
+        existing_name = _s3_segment(existing.get("name") or "", "")
+        if (
+            existing_id in incoming_ids
+            or existing_name in incoming_names
+            or existing_id in delete_ids
+            or existing_name in delete_names
+        ):
+            groups_to_remove.append(existing)
+
+    removed_table_hints = {
+        str(group.get("structuredTableHint") or "")
+        for group in groups_to_remove
+        if group.get("structuredTableHint")
+    }
+    structured_deleted = False
+    for existing in groups_to_remove:
+        for prefix in (existing.get("targetPrefix"), f"structured/{existing.get('structuredTableHint')}/" if existing.get("structuredTableHint") else None):
+            if not prefix:
+                continue
+            try:
+                deleted.extend(_delete_s3_prefix(PROCESSED_BUCKET, str(prefix)))
+                if str(prefix).startswith("structured/"):
+                    structured_deleted = True
+            except ClientError as e:
+                logger.exception("group prefix cleanup failed")
+                return _err(502, f"delete {prefix}: {type(e).__name__}: {e}")
+
+    retained_groups = [
+        group for group in existing_groups
+        if group not in groups_to_remove
+    ]
 
     for index, group in enumerate(groups):
         group_name = _s3_segment(group.get("name") or f"group_{index + 1}", f"group_{index + 1}")
         table_name = _table_segment(f"{project_id}_{group_name}", f"{project_id}_group_{index + 1}")
+        for prefix in (f"projects/{project_id}/{group_name}/", f"structured/{table_name}/"):
+            try:
+                deleted.extend(_delete_s3_prefix(PROCESSED_BUCKET, prefix))
+                if prefix.startswith("structured/"):
+                    structured_deleted = True
+            except ClientError as e:
+                logger.exception("group prefix cleanup failed")
+                return _err(502, f"delete {prefix}: {type(e).__name__}: {e}")
         files = [f for f in (group.get("files") or []) if isinstance(f, dict) and f.get("key")]
         materialized_files: list[dict[str, Any]] = []
         for file in files:
@@ -584,19 +690,25 @@ def _handle_data_grouping_materialize(event):
             "files": materialized_files,
         })
 
-    metadata_key = f"projects/{project_id}/metadata/project.json"
     metadata = {
         "projectId": project_id,
         "projectName": project_name,
-        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "createdAt": existing_metadata.get("createdAt") or datetime.now(timezone.utc).isoformat(),
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
         "createdBy": user_id,
         "bucket": PROCESSED_BUCKET,
         "projectPrefix": f"projects/{project_id}/",
         "metadataKey": metadata_key,
-        "groups": materialized_groups,
+        "groups": [*retained_groups, *materialized_groups],
         "glue": {
             "crawlerName": GLUE_CRAWLER_NAME or None,
-            "structuredCopies": structured_copies,
+            "structuredCopies": [
+                *[
+                    copy for copy in existing_metadata.get("glue", {}).get("structuredCopies", [])
+                    if copy.get("glueTableHint") not in removed_table_hints
+                ],
+                *structured_copies,
+            ],
         },
     }
     try:
@@ -610,7 +722,6 @@ def _handle_data_grouping_materialize(event):
         logger.exception("metadata write failed")
         return _err(502, f"metadata write: {type(e).__name__}: {e}")
 
-    deleted: list[str] = []
     for source_key in sorted(moved_sources):
         try:
             s3.delete_object(Bucket=PROCESSED_BUCKET, Key=source_key)
@@ -620,7 +731,7 @@ def _handle_data_grouping_materialize(event):
 
     crawler_started = False
     crawler_message = ""
-    if GLUE_CRAWLER_NAME and structured_copies:
+    if GLUE_CRAWLER_NAME and (structured_copies or structured_deleted):
         try:
             glue.start_crawler(Name=GLUE_CRAWLER_NAME)
             crawler_started = True
