@@ -203,8 +203,11 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
         return {"error": "Missing 'prompt'"}
     stripped_prompt = prompt.strip().rstrip(";").lstrip("(").strip()
     if stripped_prompt.lower().startswith(("select", "with")):
-        rows = _athena_rows(prompt)
-        return {"result": json.dumps(rows[:ATHENA_MAX_ROWS], indent=2)}
+        try:
+            rows = _athena_rows(prompt)
+            return {"result": json.dumps(rows[:ATHENA_MAX_ROWS], indent=2)}
+        except Exception as e:
+            return {"result": f"(query error: {e})"}
     actor_id   = (payload.get("actor_id")   or "anonymous")[:128]
     persona    = (payload.get("persona")    or "employee")[:16]
     session_id = (payload.get("session_id") or "adhoc")[:128]
