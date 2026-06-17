@@ -49,18 +49,22 @@ GUARDRAIL_VERSION = os.environ.get("GUARDRAIL_VERSION", "DRAFT")
 
 ATHENA_TIMEOUT_S = int(os.environ.get("ATHENA_TIMEOUT_S", "45"))
 ATHENA_MAX_ROWS = int(os.environ.get("ATHENA_MAX_ROWS", "500"))
+CHAT_TOOL_MAX_ROWS = int(os.environ.get("CHAT_TOOL_MAX_ROWS", "20"))
 
 SYSTEM_PROMPT = """You are the Structured Data specialist for ARBITER. You answer
-questions about technical-control exports (e.g. Zscaler rule tables) that have been
-catalogued in AWS Glue and are queryable through Amazon Athena.
+questions about technical-control exports, invoice batches, sales datasets, and
+other CSV data that has been catalogued in AWS Glue and is queryable through
+Amazon Athena.
 
-Use run_athena_query with a single SELECT statement to fetch evidence. Never issue
-anything but SELECT. Return concise findings naming the table and the rows. Do not
-fabricate rows.
+When the user gives a friendly or partial dataset name such as "daily sales zone 1",
+first call list_glue_tables to find the exact table name. Then use run_athena_query
+with a single SELECT statement to fetch evidence. Never issue anything but SELECT.
+Return concise findings naming the table and the rows. Do not fabricate rows.
 """
 
 app = BedrockAgentCoreApp()
 athena = boto3.client("athena", region_name=REGION)
+glue = boto3.client("glue", region_name=REGION)
 
 
 # ── Athena helpers ────────────────────────────────────────────────────────────
@@ -126,6 +130,34 @@ def produce_observations(source: str) -> list[dict[str, Any]]:
 # ── Chat tool ─────────────────────────────────────────────────────────────────
 
 @tool
+def list_glue_tables(name_contains: str = "") -> str:
+    """List Glue tables available to the structured-data specialist.
+
+    Args:
+        name_contains: Optional lowercase/partial filter, e.g. "daily_sales".
+    """
+    try:
+        paginator = glue.get_paginator("get_tables")
+        tables = []
+        needle = (name_contains or "").strip().lower()
+        for page in paginator.paginate(DatabaseName=GLUE_DATABASE):
+            for table in page.get("TableList", []):
+                name = table.get("Name", "")
+                if needle and needle not in name.lower():
+                    continue
+                columns = [
+                    column.get("Name", "")
+                    for column in table.get("StorageDescriptor", {}).get("Columns", [])
+                ]
+                tables.append({"name": name, "columns": columns})
+        if not tables:
+            return "No matching Glue tables."
+        return json.dumps(tables[:50], indent=2)
+    except Exception as e:
+        return f"(catalog error: {e})"
+
+
+@tool
 def run_athena_query(sql: str) -> str:
     """Run a single read-only SELECT against the structured-data catalog (Athena).
 
@@ -138,7 +170,7 @@ def run_athena_query(sql: str) -> str:
         return f"(query error: {e})"
     if not rows:
         return "No rows."
-    head = rows[:50]
+    head = rows[:CHAT_TOOL_MAX_ROWS]
     return json.dumps(head, indent=2)
 
 
@@ -150,7 +182,7 @@ def build_agent() -> Agent:
     return Agent(
         model=BedrockModel(**model_kwargs),
         system_prompt=SYSTEM_PROMPT,
-        tools=[run_athena_query],
+        tools=[list_glue_tables, run_athena_query],
     )
 
 
@@ -169,6 +201,10 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     prompt = payload.get("prompt") or payload.get("input") or ""
     if not prompt:
         return {"error": "Missing 'prompt'"}
+    stripped_prompt = prompt.strip().rstrip(";").lstrip("(").strip()
+    if stripped_prompt.lower().startswith(("select", "with")):
+        rows = _athena_rows(prompt)
+        return {"result": json.dumps(rows[:ATHENA_MAX_ROWS], indent=2)}
     actor_id   = (payload.get("actor_id")   or "anonymous")[:128]
     persona    = (payload.get("persona")    or "employee")[:16]
     session_id = (payload.get("session_id") or "adhoc")[:128]
