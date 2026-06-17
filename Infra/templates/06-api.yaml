@@ -465,6 +465,12 @@ Resources:
             RestApiId: !Ref ArbiterApi
             Path: /data-grouping/materialize
             Method: POST
+        DataGroupingStartCrawler:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /data-grouping/start-crawler
+            Method: POST
         DataGroupingAnalyzeDocuments:
           Type: Api
           Properties:

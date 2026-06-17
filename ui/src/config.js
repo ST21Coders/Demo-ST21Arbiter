@@ -106,5 +106,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.5.44'
-export const APP_VERSION_NOTE = 'Expose portfolio analysis API route'
+export const APP_VERSION = '1.5.45'
+export const APP_VERSION_NOTE = 'Add ordered S3 indexing workflow'

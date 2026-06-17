@@ -716,6 +716,22 @@ export async function materializeDataGroupingProject({ projectName, projectId, g
   })
 }
 
+export async function startDataGroupingCrawler() {
+  if (USE_MOCK) {
+    await sleep(300)
+    return {
+      crawlerName: 'mock-structured-crawler',
+      crawlerStarted: true,
+      crawlerMessage: 'mock_started',
+      state: 'RUNNING',
+    }
+  }
+  return apiFetch('/data-grouping/start-crawler', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+}
+
 export async function analyzeDataGroupingDocuments({ groupName, files }) {
   if (USE_MOCK) {
     await sleep(300)

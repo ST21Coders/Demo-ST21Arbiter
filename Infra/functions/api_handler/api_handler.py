@@ -19,6 +19,7 @@ Routes:
   POST /data-grouping/materialize             → copy selected processed files
                                                 into a project prefix and write
                                                 project metadata.
+  POST /data-grouping/start-crawler           → start Glue crawler for structured data
   POST /data-grouping/analyze-documents       → deterministic portfolio analysis
                                                 for project documents in a group.
   GET  /health                                → unauth health check
@@ -91,7 +92,10 @@ MEMORY_ID = os.environ.get("MEMORY_ID", "").strip()
 RAW_BUCKET = os.environ.get("RAW_BUCKET", "").strip()
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "").strip()
 REPORTS_BUCKET = os.environ.get("REPORTS_BUCKET", "").strip()
-GLUE_CRAWLER_NAME = os.environ.get("GLUE_CRAWLER_NAME", "").strip()
+GLUE_CRAWLER_NAME = (
+    os.environ.get("GLUE_CRAWLER_NAME", "").strip()
+    or f"{os.environ.get('ENVIRONMENT', 'dev')}-{os.environ.get('PROJECT_NAME', 'st21arbiter-poc')}-structured-crawler"
+)
 REPORT_URL_EXPIRES_SECONDS = int(os.environ.get("REPORT_URL_EXPIRES_SECONDS", "86400"))
 ORG_NAME = os.environ.get("ORG_NAME", "Meridian Insurance Group")
 S3_KMS_KEY_ARN = os.environ.get("S3_KMS_KEY_ARN", "").strip()
@@ -194,6 +198,9 @@ def handler(event, context):
 
     if path == "/data-grouping/materialize" and method == "POST":
         return _handle_data_grouping_materialize(event)
+
+    if path == "/data-grouping/start-crawler" and method == "POST":
+        return _handle_data_grouping_start_crawler(event)
 
     if path == "/data-grouping/analyze-documents" and method == "POST":
         return _handle_data_grouping_analyze_documents(event)
@@ -878,6 +885,42 @@ def _handle_data_grouping_analyze_documents(event):
         "actionPlan": action_plan,
         "markdown": _portfolio_markdown(group_name, documents, overlaps, action_plan),
     })
+
+
+def _handle_data_grouping_start_crawler(event):
+    if not _caller_user_id(event):
+        return _err(401, "Could not resolve caller identity")
+    if not GLUE_CRAWLER_NAME:
+        return _err(500, "GLUE_CRAWLER_NAME not configured")
+    try:
+        crawler = glue.get_crawler(Name=GLUE_CRAWLER_NAME).get("Crawler", {})
+        state = crawler.get("State") or "UNKNOWN"
+        if state == "RUNNING":
+            return _ok({
+                "crawlerName": GLUE_CRAWLER_NAME,
+                "crawlerStarted": True,
+                "crawlerMessage": "already_running",
+                "state": state,
+                "lastCrawl": crawler.get("LastCrawl"),
+            })
+        glue.start_crawler(Name=GLUE_CRAWLER_NAME)
+        return _ok({
+            "crawlerName": GLUE_CRAWLER_NAME,
+            "crawlerStarted": True,
+            "crawlerMessage": "started",
+            "state": "RUNNING",
+            "lastCrawl": crawler.get("LastCrawl"),
+        })
+    except glue.exceptions.CrawlerRunningException:
+        return _ok({
+            "crawlerName": GLUE_CRAWLER_NAME,
+            "crawlerStarted": True,
+            "crawlerMessage": "already_running",
+            "state": "RUNNING",
+        })
+    except ClientError as e:
+        logger.exception("Glue crawler start failed")
+        return _err(502, f"{type(e).__name__}: {e}")
 
 
 # ──────────────────────────── /findings ─────────────────────────
