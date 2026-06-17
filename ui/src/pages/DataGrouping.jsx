@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle, CheckCircle, ChevronDown, ChevronRight, ClipboardList, Database, Download, Edit3,
-  Eye, FileSpreadsheet, FolderTree, Loader2, Plus, RefreshCw, Save, Trash2, Upload, Wand2, XCircle,
+  Eye, FileSpreadsheet, FolderTree, Loader2, Plus, RefreshCw, Save, Trash2, Wand2, XCircle,
 } from 'lucide-react'
 import { USE_MOCK } from '../config'
-import { analyzeDataGroupingDocuments, listUploadedFiles, materializeDataGroupingProject, presignUpload, startDataGroupingCrawler, uploadToPresignedUrl } from '../hooks/useApi'
+import { analyzeDataGroupingDocuments, listUploadedFiles, materializeDataGroupingProject, startDataGroupingCrawler } from '../hooks/useApi'
 
 const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.v2.projectMetadata'
 const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.v2.savedGroups'
 const METADATA_LEDGER_STORAGE_KEY = 'arbiter.dataGrouping.v2.metadataLedger'
-const LOCAL_PROCESSED_UPLOADS_KEY = 'arbiter.dataGrouping.v2.localProcessedUploads'
 
 const GROUP_TYPE_OPTIONS = [
   { value: 'special_project', label: 'Special Project', suggestedName: 'Special_Project', summaryFile: '' },
@@ -452,16 +451,6 @@ function stripRetiredGroupFields(group) {
 
 function persistGroups(groups) {
   localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups.map(stripRetiredGroupFields)))
-}
-
-function mergeFiles(baseFiles, localFiles) {
-  const seen = new Set()
-  return [...baseFiles, ...localFiles].filter(file => {
-    const key = fileKey(file)
-    if (!key || seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
 }
 
 function Stat({ label, value }) {
@@ -984,7 +973,6 @@ export default function DataGrouping() {
   const [s3Materialize, setS3Materialize] = useState(null)
   const [groups, setGroups] = useState([])
   const [groupsLoaded, setGroupsLoaded] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [materializing, setMaterializing] = useState(false)
   const [crawling, setCrawling] = useState(false)
   const [analyzingGroupIds, setAnalyzingGroupIds] = useState([])
@@ -995,7 +983,6 @@ export default function DataGrouping() {
   const [draftType, setDraftType] = useState('special_project')
   const [draftKeys, setDraftKeys] = useState([])
   const [collapsedGroupIds, setCollapsedGroupIds] = useState([])
-  const uploadInputRef = useRef(null)
 
   const projectId = slugify(projectName)
   const processedPrefix = 'projects/'
@@ -1032,53 +1019,11 @@ export default function DataGrouping() {
     setError('')
     try {
       const data = await listUploadedFiles('processed')
-      const localFiles = JSON.parse(localStorage.getItem(LOCAL_PROCESSED_UPLOADS_KEY) || '[]')
-      setFiles(mergeFiles(data.files || [], Array.isArray(localFiles) ? localFiles : []))
+      setFiles(data.files || [])
     } catch (err) {
       setError(err.message || 'Unable to list processed files')
     } finally {
       setLoading(false)
-    }
-  }
-
-  async function handleProcessedUpload(fileList) {
-    const selectedFiles = Array.from(fileList || [])
-    if (!selectedFiles.length) return
-    setUploading(true)
-    setError('')
-    setUploadMessage('')
-    try {
-      if (USE_MOCK) {
-        const uploadedFiles = await Promise.all(selectedFiles.map(async (file, index) => {
-          const isCsv = /\.csv$/i.test(file.name)
-          return {
-            key: `users/mock/processed/${Date.now()}-${index}-${file.name}`,
-            name: file.name,
-            size: file.size,
-            last_modified: new Date().toISOString(),
-            csvText: isCsv ? await file.text() : undefined,
-          }
-        }))
-        const previousLocalFiles = JSON.parse(localStorage.getItem(LOCAL_PROCESSED_UPLOADS_KEY) || '[]')
-        const nextLocalFiles = mergeFiles(Array.isArray(previousLocalFiles) ? previousLocalFiles : [], uploadedFiles)
-        localStorage.setItem(LOCAL_PROCESSED_UPLOADS_KEY, JSON.stringify(nextLocalFiles))
-        setFiles(prev => mergeFiles(prev, uploadedFiles))
-        setUploadMessage(`${selectedFiles.length} file${selectedFiles.length === 1 ? '' : 's'} added to local /processed.`)
-        return
-      }
-
-      for (const file of selectedFiles) {
-        const pre = await presignUpload({ filename: file.name, contentType: file.type })
-        const res = await uploadToPresignedUrl(pre.url, pre.headers, file)
-        if (!res.ok) throw new Error(`${file.name}: upload returned ${res.status}`)
-      }
-      setUploadMessage(`${selectedFiles.length} file${selectedFiles.length === 1 ? '' : 's'} uploaded to the pipeline. Refresh after processing completes.`)
-      await loadFiles()
-    } catch (err) {
-      setError(err.message || 'Unable to upload file')
-    } finally {
-      setUploading(false)
-      if (uploadInputRef.current) uploadInputRef.current.value = ''
     }
   }
 
@@ -1448,29 +1393,12 @@ export default function DataGrouping() {
           <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Processed data intelligence</p>
           <h1 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Data Grouping</h1>
           <p className="mt-1 max-w-3xl text-xs text-slate-500">
-            Start from files that already cleared the Data Pipeline into /processed. Create editable project data groups first; later, groups with two or more CSV files can produce summary spreadsheets.
+            Start from files uploaded through Data Pipeline and cleared into /processed. Create editable project groups, publish them to S3, then crawl them for Athena.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <input
-            ref={uploadInputRef}
-            type="file"
-            multiple
-            accept=".md,.pdf,.docx,.json,.txt,.csv"
-            className="hidden"
-            onChange={(event) => handleProcessedUpload(event.target.files)}
-          />
-          <button
-            type="button"
-            onClick={() => uploadInputRef.current?.click()}
-            disabled={uploading}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
-          >
-            {uploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-            Upload file
-          </button>
           <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-            <span className="px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">After files are added</span>
+            <span className="px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Group publishing steps</span>
             <button
               type="button"
               onClick={loadFiles}
@@ -1478,7 +1406,7 @@ export default function DataGrouping() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
             >
               {loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-              1. Refresh files
+              1. Refresh /processed files
             </button>
             <button
               type="button"
@@ -1487,7 +1415,7 @@ export default function DataGrouping() {
               className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
             >
               {materializing ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-              2. Write project to S3
+              2. Write groups to S3
             </button>
             <button
               type="button"
