@@ -407,6 +407,134 @@ def test_bulk_delete_no_sessions_table_returns_500(api_handler, monkeypatch):
     assert _body(resp) == {"error": "sessions table not configured"}
 
 
+# ──────────────────────────── POST /conversations/bulk-delete (scope) ──
+def _seed_session_at(table, session_id, created_at, user_id=FAKE_USER_SUB):
+    table.put_item(Item={
+        "session_id": session_id,
+        "user_id": user_id,
+        "title": session_id,
+        "created_at": created_at,
+        "last_message_at": created_at,
+        "message_count": 1,
+        "chat_type": "analyst",
+    })
+
+
+def test_bulk_delete_scope_all_deletes_only_callers_rows(api_handler, ddb_tables):
+    table = ddb_tables.Table(SESSIONS_TABLE)
+    _seed_session_at(table, "mine-a", "2026-06-01T00:00:00Z")
+    _seed_session_at(table, "mine-b", "2026-06-02T00:00:00Z")
+    _seed_session_at(table, "theirs", "2026-06-03T00:00:00Z", user_id="other-user")
+
+    resp = api_handler.handler(
+        lambda_event("POST", "/conversations/bulk-delete", body={"scope": "all"}),
+        None,
+    )
+    assert resp["statusCode"] == 200
+    body = _body(resp)
+    assert sorted(body["deleted"]) == ["mine-a", "mine-b"]
+    assert body["failed"] == []
+    assert body["truncated"] is False
+
+    remaining = {i["session_id"] for i in table.scan()["Items"]}
+    assert remaining == {"theirs"}
+
+
+def test_bulk_delete_scope_harness_matches_documented_prefixes(api_handler, ddb_tables):
+    table = ddb_tables.Table(SESSIONS_TABLE)
+    _seed_session_at(table, "harness-1", "2026-06-01T00:00:00Z")
+    _seed_session_at(table, "features-2", "2026-06-01T00:00:00Z")
+    _seed_session_at(table, "logic-race-3", "2026-06-01T00:00:00Z")
+    _seed_session_at(table, "analyst-4", "2026-06-01T00:00:00Z")
+    _seed_session_at(table, "mcp-5", "2026-06-01T00:00:00Z")
+
+    resp = api_handler.handler(
+        lambda_event("POST", "/conversations/bulk-delete", body={"scope": "harness"}),
+        None,
+    )
+    assert resp["statusCode"] == 200
+    body = _body(resp)
+    assert sorted(body["deleted"]) == ["features-2", "harness-1", "logic-race-3"]
+
+    remaining = {i["session_id"] for i in table.scan()["Items"]}
+    assert remaining == {"analyst-4", "mcp-5"}
+
+
+def test_bulk_delete_scope_older_than_days_uses_cutoff(api_handler, ddb_tables):
+    from datetime import datetime, timezone, timedelta
+    table = ddb_tables.Table(SESSIONS_TABLE)
+    now = datetime.now(timezone.utc)
+    _seed_session_at(table, "ancient",
+                     (now - timedelta(days=120)).isoformat())
+    _seed_session_at(table, "border",
+                     (now - timedelta(days=29)).isoformat())  # inside the 30-day window
+    _seed_session_at(table, "fresh", now.isoformat())
+
+    resp = api_handler.handler(
+        lambda_event("POST", "/conversations/bulk-delete",
+                     body={"scope": "older_than_days", "days": 30}),
+        None,
+    )
+    assert resp["statusCode"] == 200
+    body = _body(resp)
+    assert body["deleted"] == ["ancient"]
+
+    remaining = {i["session_id"] for i in table.scan()["Items"]}
+    assert remaining == {"border", "fresh"}
+
+
+def test_bulk_delete_scope_invalid_returns_400(api_handler, ddb_tables):
+    resp = api_handler.handler(
+        lambda_event("POST", "/conversations/bulk-delete", body={"scope": "nope"}),
+        None,
+    )
+    assert resp["statusCode"] == 400
+    assert _body(resp) == {"error": "invalid scope"}
+
+
+def test_bulk_delete_scope_older_than_days_missing_days_returns_400(api_handler, ddb_tables):
+    resp = api_handler.handler(
+        lambda_event("POST", "/conversations/bulk-delete",
+                     body={"scope": "older_than_days"}),
+        None,
+    )
+    assert resp["statusCode"] == 400
+
+
+def test_bulk_delete_scope_unauthenticated_returns_401(api_handler):
+    resp = api_handler.handler(
+        lambda_event("POST", "/conversations/bulk-delete",
+                     body={"scope": "all"}, auth_sub=None),
+        None,
+    )
+    assert resp["statusCode"] == 401
+
+
+def test_bulk_delete_scope_truncates_at_cap(api_handler, ddb_tables, monkeypatch):
+    monkeypatch.setattr(api_handler, "BULK_DELETE_SCOPE_CAP", 3)
+    table = ddb_tables.Table(SESSIONS_TABLE)
+    for i in range(5):
+        _seed_session_at(table, f"row-{i}", f"2026-06-0{i+1}T00:00:00Z")
+
+    resp = api_handler.handler(
+        lambda_event("POST", "/conversations/bulk-delete", body={"scope": "all"}),
+        None,
+    )
+    body = _body(resp)
+    assert resp["statusCode"] == 200
+    assert len(body["deleted"]) == 3
+    assert body["truncated"] is True
+    # Second call drains the remaining 2 and reports truncated=false.
+    resp2 = api_handler.handler(
+        lambda_event("POST", "/conversations/bulk-delete", body={"scope": "all"}),
+        None,
+    )
+    body2 = _body(resp2)
+    assert len(body2["deleted"]) == 2
+    assert body2["truncated"] is False
+    assert table.scan()["Items"] == []
+
+
 # ──────────────────────────── auth resolution ──────────────────
 def test_caller_user_id_prefers_authorizer_claims_over_header(api_handler):
     event = lambda_event("GET", "/conversations", use_authorizer_claims=True)

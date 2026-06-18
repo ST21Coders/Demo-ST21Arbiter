@@ -193,3 +193,60 @@ describe('useConversations.bulkDeleteSessions — mock mode (USE_MOCK=true)', ()
     expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 })
+
+describe('useConversations.bulkDeleteByScope — live mode (USE_MOCK=false)', () => {
+  it('POSTs {scope:"all"} for the "all" scope', async () => {
+    const { result } = renderHook(() => useConversations())
+    await act(async () => { await result.current.bulkDeleteByScope('all') })
+    const body = parseFetchBody(globalThis.fetch.mock.calls[0])
+    expect(body).toEqual({ scope: 'all' })
+  })
+
+  it('POSTs {scope:"harness"} for the "harness" scope', async () => {
+    const { result } = renderHook(() => useConversations())
+    await act(async () => { await result.current.bulkDeleteByScope('harness') })
+    expect(parseFetchBody(globalThis.fetch.mock.calls[0])).toEqual({ scope: 'harness' })
+  })
+
+  it('POSTs {scope:"older_than_days", days:30} for the "older_than_days" scope', async () => {
+    const { result } = renderHook(() => useConversations())
+    await act(async () => {
+      await result.current.bulkDeleteByScope('older_than_days', { scope: 'older_than_days', days: 30 })
+    })
+    expect(parseFetchBody(globalThis.fetch.mock.calls[0])).toEqual({ scope: 'older_than_days', days: 30 })
+  })
+
+  it('returns the parsed {deleted, failed, truncated} response shape', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true, status: 200, statusText: 'OK',
+      json: async () => ({ deleted: ['a', 'b'], failed: [], truncated: true }),
+    })
+    const { result } = renderHook(() => useConversations())
+    let res
+    await act(async () => { res = await result.current.bulkDeleteByScope('all') })
+    expect(res).toEqual({ deleted: ['a', 'b'], failed: [], truncated: true })
+  })
+})
+
+describe('useConversations.bulkDeleteByScope — mock mode (USE_MOCK=true)', () => {
+  let useConversationsMock
+  beforeEach(async () => {
+    vi.resetModules()
+    vi.doMock('../config', () => ({
+      API_URL: '', CHAT_URL: '', USE_MOCK: true,
+    }))
+    vi.doMock('../hooks/useAuth', () => ({
+      authHeaders: () => ({}), refresh: vi.fn(), signIn: vi.fn(),
+    }))
+    ;({ useConversations: useConversationsMock } = await import('../hooks/useApi'))
+    globalThis.fetch = vi.fn()
+  })
+
+  it('returns truncated:false (mock has no pagination) and never calls fetch', async () => {
+    const { result } = renderHook(() => useConversationsMock())
+    let res
+    await act(async () => { res = await result.current.bulkDeleteByScope('all') })
+    expect(res.truncated).toBe(false)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+})
