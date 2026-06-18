@@ -271,3 +271,23 @@ describe('AuditLogs — sort state resets on remount', () => {
     expect(rowResources()).toEqual(['r-d', 'r-b', 'r-c', 'r-a'])
   })
 })
+
+// Regression: the audit DDB table has a composite PK (event_id + timestamp),
+// so the API legitimately returns rows that share an event_id across different
+// timestamps. The row key must combine both so React reconciliation works after
+// a sort reorders them. Without this, duplicate keys silently break the UI:
+// rows appear not to reorder even though state updates correctly.
+describe('AuditLogs — duplicate event_id across timestamps', () => {
+  it('renders every row and reorders correctly when toggling sort', async () => {
+    const user = userEvent.setup()
+    state.logs = [
+      { event_id: '1', timestamp: '2026-01-01T10:00:00Z', action_type: 'A', resource: 'r-1a', user: 'u1', status: 'OK', details: '{}' },
+      { event_id: '1', timestamp: '2026-01-02T10:00:00Z', action_type: 'A', resource: 'r-1b', user: 'u2', status: 'OK', details: '{}' },
+      { event_id: '1', timestamp: '2026-01-03T10:00:00Z', action_type: 'A', resource: 'r-1c', user: 'u3', status: 'OK', details: '{}' },
+    ]
+    await renderPage()
+    expect(rowResources()).toEqual(['r-1c', 'r-1b', 'r-1a'])
+    await user.click(screen.getByRole('button', { name: /^Timestamp$/ }))
+    expect(rowResources()).toEqual(['r-1a', 'r-1b', 'r-1c'])
+  })
+})

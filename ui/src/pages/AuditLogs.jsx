@@ -229,7 +229,8 @@ export default function AuditLogs() {
                   <td colSpan={7} className="text-center text-slate-500 py-12">No audit entries found.</td>
                 </tr>
               ) : sorted.map((log, i) => {
-                const id = log.event_id || log.log_id || `row-${i}`
+                // Audit table PK is composite (event_id + timestamp), so event_id alone is not unique.
+                const id = `${log.event_id || log.log_id || 'row'}@${log.timestamp || i}`
                 const isOpen = !!expanded[id]
                 return (
                   <Fragment key={id}>
