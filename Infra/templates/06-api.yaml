@@ -175,6 +175,15 @@ Resources:
 
   ApiHandlerFunction:
     Type: AWS::Serverless::Function
+    # Custom build step (autonomous-agent-layer feature). The default
+    # Python builder zips only the CodeUri folder and `pip install`s
+    # requirements.txt. We also need the repo-root `autonomy/` and
+    # `autonomy_bindings/` Python packages in the zip so api_handler can
+    # `import autonomy` and `import autonomy_bindings` at boot. The
+    # Makefile next to api_handler.py runs the stock Python build and
+    # then copies the two sibling packages into the artifact dir.
+    Metadata:
+      BuildMethod: makefile
     Properties:
       FunctionName: !Sub "${Environment}-${ProjectName}-api-handler"
       Handler: api_handler.handler
@@ -392,6 +401,12 @@ Resources:
             RestApiId: !Ref ArbiterApi
             Path: /conversations/{session_id}
             Method: DELETE
+        ConversationsBulkDelete:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /conversations/bulk-delete
+            Method: POST
         ConversationMessages:
           Type: Api
           Properties:
