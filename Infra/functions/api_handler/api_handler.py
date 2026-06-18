@@ -1122,18 +1122,73 @@ def _handle_delete_conversation(event, session_id: str):
     return _ok({"deleted": True, "session_id": session_id})
 
 
+# Prefixes the adversarial harness uses when minting session ids — must mirror
+# HARNESS_PREFIXES in ui/src/components/ClearChatsButton.jsx so the "harness"
+# scope deletes server-side exactly what the UI counts client-side.
+HARNESS_SESSION_PREFIXES = ("harness-", "features-", "logic-race-")
+
+# Upper bound on how many of the caller's sessions one scope call may sweep.
+# A user with more than this in a single scope must clear in batches; the
+# response sets truncated=true so the UI knows to re-invoke.
+BULK_DELETE_SCOPE_CAP = 1000
+
+
+def _iter_user_sessions(user_id: str):
+    """Yield every session item for `user_id`, paginating the GSI query."""
+    last_key = None
+    while True:
+        kwargs = {
+            "IndexName": "user-sessions-index",
+            "KeyConditionExpression": Key("user_id").eq(user_id),
+            "ScanIndexForward": False,
+        }
+        if last_key:
+            kwargs["ExclusiveStartKey"] = last_key
+        resp = sessions_table.query(**kwargs)
+        for item in resp.get("Items", []):
+            yield item
+        last_key = resp.get("LastEvaluatedKey")
+        if not last_key:
+            return
+
+
+def _session_matches_scope(item: dict, scope: str, cutoff_ms: int | None) -> bool:
+    sid = item.get("session_id") or ""
+    if scope == "all":
+        return True
+    if scope == "harness":
+        return any(sid.startswith(p) for p in HARNESS_SESSION_PREFIXES)
+    if scope == "older_than_days":
+        raw = item.get("created_at")
+        if not raw:
+            return False
+        try:
+            # tolerate trailing Z by replacing with +00:00 for fromisoformat
+            ts_ms = int(datetime.fromisoformat(str(raw).replace("Z", "+00:00")).timestamp() * 1000)
+        except (TypeError, ValueError):
+            return False
+        return cutoff_ms is not None and ts_ms < cutoff_ms
+    return False
+
+
 # ──────────────────────────── POST /conversations/bulk-delete ───
 def _handle_bulk_delete_conversations(event):
-    """Hard-delete multiple of the caller's conversations in one round trip.
+    """Hard-delete the caller's conversations in one round trip.
 
-    Body: {"session_ids": [<str>, ...]} with 1 <= len <= 100.
+    Two request shapes are accepted:
 
-    Each id is processed independently — per-id ownership check (get_item +
-    user_id == caller), then delete_item. Per-id outcomes route into either
-    `deleted` or `failed[{session_id, reason}]` (`not_found` / `forbidden` /
-    `error`). The whole call returns 200 with the summary even when some ids
-    fail; only malformed body / oversized list / missing caller / missing
-    table return a non-200.
+    1. Explicit ids — Body: {"session_ids": [<str>, ...]} with 1 <= len <= 100.
+       Per-id ownership check + delete_item. Per-id outcomes route into
+       `deleted` or `failed[{session_id, reason}]` (`not_found` / `forbidden`
+       / `error`).
+
+    2. Server-side scope — Body: {"scope": "all" | "harness" | "older_than_days",
+       "days": N}. Paginates the user-sessions GSI, filters to rows matching
+       the scope, deletes each. Up to BULK_DELETE_SCOPE_CAP rows per call;
+       any beyond that come back as `truncated=true` and the UI re-invokes.
+
+    Returns 200 with the summary even when some ids fail; only malformed
+    body / oversized list / missing caller / missing table return a non-200.
     """
     if not sessions_table:
         return _err(500, "sessions table not configured")
@@ -1144,15 +1199,22 @@ def _handle_bulk_delete_conversations(event):
         return _err(400, "missing session_ids")
     if not isinstance(body, dict):
         return _err(400, "missing session_ids")
-    session_ids = body.get("session_ids")
-    if not isinstance(session_ids, list) or not session_ids:
-        return _err(400, "missing session_ids")
-    if len(session_ids) > 100:
-        return _err(400, "too many ids")
 
     user_id = _caller_user_id(event)
     if not user_id:
         return _err(401, "unauthorized")
+
+    scope = body.get("scope")
+    if scope is not None:
+        return _bulk_delete_by_scope(user_id, body, scope)
+    return _bulk_delete_by_ids(user_id, body.get("session_ids"))
+
+
+def _bulk_delete_by_ids(user_id: str, session_ids):
+    if not isinstance(session_ids, list) or not session_ids:
+        return _err(400, "missing session_ids")
+    if len(session_ids) > 100:
+        return _err(400, "too many ids")
 
     deleted: list[str] = []
     failed: list[dict] = []
@@ -1176,6 +1238,49 @@ def _handle_bulk_delete_conversations(event):
             failed.append({"session_id": sid, "reason": "error"})
 
     return _ok({"deleted": deleted, "failed": failed})
+
+
+def _bulk_delete_by_scope(user_id: str, body: dict, scope):
+    if scope not in ("all", "harness", "older_than_days"):
+        return _err(400, "invalid scope")
+    cutoff_ms = None
+    if scope == "older_than_days":
+        raw_days = body.get("days")
+        try:
+            days = int(raw_days)
+        except (TypeError, ValueError):
+            return _err(400, "days must be a positive integer")
+        if days <= 0:
+            return _err(400, "days must be a positive integer")
+        cutoff_ms = int((datetime.now(timezone.utc).timestamp() - days * 86400) * 1000)
+
+    deleted: list[str] = []
+    failed: list[dict] = []
+    truncated = False
+    try:
+        for item in _iter_user_sessions(user_id):
+            if not _session_matches_scope(item, scope, cutoff_ms):
+                continue
+            if len(deleted) + len(failed) >= BULK_DELETE_SCOPE_CAP:
+                truncated = True
+                break
+            sid = item.get("session_id")
+            if not sid:
+                continue
+            try:
+                sessions_table.delete_item(Key={"session_id": sid})
+                deleted.append(sid)
+            except ClientError:
+                logger.exception("Bulk delete by scope: DDB error on session_id=%s", sid)
+                failed.append({"session_id": sid, "reason": "error"})
+            except Exception:
+                logger.exception("Bulk delete by scope: unexpected error on session_id=%s", sid)
+                failed.append({"session_id": sid, "reason": "error"})
+    except ClientError as e:
+        logger.exception("Bulk delete by scope: query failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+
+    return _ok({"deleted": deleted, "failed": failed, "truncated": truncated})
 
 
 # ──────────────────────────── /conversations/{id}/messages ──────

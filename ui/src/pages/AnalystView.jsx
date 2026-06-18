@@ -454,7 +454,7 @@ export default function AnalystView() {
   // Analyst-only session list (server-side filtered by chat_type='analyst').
   const {
     sessions, list: listSessions, loadMessages,
-    addLocalSession, bumpLocalSession, deleteSession, bulkDeleteSessions,
+    addLocalSession, bumpLocalSession, deleteSession, bulkDeleteByScope,
   } = useConversations({ type: 'analyst' })
 
   // session_id → cr_id linkage for auto-archive. Persisted to localStorage so
@@ -671,7 +671,7 @@ export default function AnalystView() {
             </button>
             <ClearChatsButton
               sessions={sessions}
-              onBulkDelete={bulkDeleteSessions}
+              onBulkDelete={bulkDeleteByScope}
               onAfter={listSessions}
               activeSessionId={activeSessionId}
               onActiveDeleted={() => {

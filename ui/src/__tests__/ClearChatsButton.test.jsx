@@ -122,13 +122,13 @@ function mixedSessions() {
 }
 
 describe('ClearChatsButton — render', () => {
-  it('disables the main button when sessions is empty', () => {
+  it('stays enabled even when sessions is empty (server may still hold off-screen rows)', () => {
     render(<ClearChatsButton sessions={[]} onBulkDelete={vi.fn()} onAfter={vi.fn()} />)
     const btn = screen.getByRole('button', { name: /Clear/i })
-    expect(btn).toBeDisabled()
+    expect(btn).not.toBeDisabled()
   })
 
-  it('enables the main button when there is at least one session', () => {
+  it('is enabled when there is at least one session', () => {
     render(<ClearChatsButton sessions={mixedSessions()} onBulkDelete={vi.fn()} onAfter={vi.fn()} />)
     const btn = screen.getByRole('button', { name: /Clear/i })
     expect(btn).not.toBeDisabled()
@@ -136,17 +136,17 @@ describe('ClearChatsButton — render', () => {
 })
 
 describe('ClearChatsButton — dropdown', () => {
-  it('opens on click and shows three scope items with correct counts', () => {
+  it('opens on click and shows three scope items with sidebar-derived counts', () => {
     render(<ClearChatsButton sessions={mixedSessions()} onBulkDelete={vi.fn()} onAfter={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: /Clear/i }))
 
     expect(screen.getByRole('button', { name: /All chats \(4\)/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Harness chats only \(2\)/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Harness chats \(2\)/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Older than 30 days \(2\)/ })).toBeInTheDocument()
   })
 
-  it('disables a scope item whose count is zero', () => {
-    // Only fresh analyst rows → harness=0, old=0
+  it('keeps scope items enabled even at count 0 (server-side sweep may still match rows)', () => {
+    // Only fresh analyst rows → harness=0, old=0 in the sidebar slice.
     const sessions = [
       { session_id: 'analyst-1', created_at: FRESH },
       { session_id: 'analyst-2', created_at: FRESH },
@@ -154,14 +154,15 @@ describe('ClearChatsButton — dropdown', () => {
     render(<ClearChatsButton sessions={sessions} onBulkDelete={vi.fn()} onAfter={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: /Clear/i }))
 
-    const all = screen.getByRole('button', { name: /All chats \(2\)/ })
-    const harness = screen.getByRole('button', { name: /Harness chats only \(0\)/ })
-    const old = screen.getByRole('button', { name: /Older than 30 days \(0\)/ })
+    expect(screen.getByRole('button', { name: /All chats \(2\)/ })).not.toBeDisabled()
+    expect(screen.getByRole('button', { name: /Harness chats \(0\)/ })).not.toBeDisabled()
+    expect(screen.getByRole('button', { name: /Older than 30 days \(0\)/ })).not.toBeDisabled()
+  })
 
-    expect(all).not.toBeDisabled()
-    expect(harness).toBeDisabled()
-    expect(harness).toHaveAttribute('aria-disabled', 'true')
-    expect(old).toBeDisabled()
+  it('shows a note clarifying that counts are sidebar-only', () => {
+    render(<ClearChatsButton sessions={mixedSessions()} onBulkDelete={vi.fn()} onAfter={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: /Clear/i }))
+    expect(screen.getByText(/Counts reflect the sidebar/i)).toBeInTheDocument()
   })
 
   it('closes the dropdown on Escape', () => {
@@ -174,41 +175,88 @@ describe('ClearChatsButton — dropdown', () => {
 })
 
 describe('ClearChatsButton — confirm + dispatch', () => {
-  it('window.confirm includes the count and scope name', async () => {
+  it('confirm message warns about off-screen sweep and names the scope', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     const onBulkDelete = vi.fn()
     render(<ClearChatsButton sessions={mixedSessions()} onBulkDelete={onBulkDelete} onAfter={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: /Clear/i }))
-    fireEvent.click(screen.getByRole('button', { name: /Harness chats only \(2\)/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Harness chats \(2\)/ }))
 
     expect(confirmSpy).toHaveBeenCalledTimes(1)
     const msg = confirmSpy.mock.calls[0][0]
-    expect(msg).toMatch(/2/)
     expect(msg).toMatch(/harness/i)
-    // Cancel path → no call.
+    expect(msg).toMatch(/not currently loaded/i)
     expect(onBulkDelete).not.toHaveBeenCalled()
   })
 
-  it('on confirm, calls onBulkDelete with the ids for the chosen scope', async () => {
+  it('on confirm of "All chats", calls onBulkDelete with the {scope:"all"} payload', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
-    const onBulkDelete = vi.fn().mockResolvedValue({ deleted: ['harness-2', 'features-3'], failed: [] })
+    const onBulkDelete = vi.fn().mockResolvedValue({ deleted: [], failed: [], truncated: false })
     const onAfter = vi.fn()
     render(<ClearChatsButton sessions={mixedSessions()} onBulkDelete={onBulkDelete} onAfter={onAfter} />)
 
     fireEvent.click(screen.getByRole('button', { name: /Clear/i }))
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Harness chats only \(2\)/ }))
+      fireEvent.click(screen.getByRole('button', { name: /All chats \(4\)/ }))
     })
 
     expect(onBulkDelete).toHaveBeenCalledTimes(1)
-    expect(onBulkDelete.mock.calls[0][0]).toEqual(['harness-2', 'features-3'])
+    expect(onBulkDelete.mock.calls[0][0]).toBe('all')
+    expect(onBulkDelete.mock.calls[0][1]).toEqual({ scope: 'all' })
   })
 
-  it('calls onAfter exactly once on a happy response (failed: [])', async () => {
+  it('on confirm of "Harness chats", calls onBulkDelete with {scope:"harness"}', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const onBulkDelete = vi.fn().mockResolvedValue({ deleted: ['harness-2'], failed: [], truncated: false })
+    render(<ClearChatsButton sessions={mixedSessions()} onBulkDelete={onBulkDelete} onAfter={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Clear/i }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Harness chats \(2\)/ }))
+    })
+
+    expect(onBulkDelete.mock.calls[0][0]).toBe('harness')
+    expect(onBulkDelete.mock.calls[0][1]).toEqual({ scope: 'harness' })
+  })
+
+  it('on confirm of "Older than 30 days", calls onBulkDelete with {scope:"older_than_days", days:30}', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const onBulkDelete = vi.fn().mockResolvedValue({ deleted: [], failed: [], truncated: false })
+    render(<ClearChatsButton sessions={mixedSessions()} onBulkDelete={onBulkDelete} onAfter={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Clear/i }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Older than 30 days \(2\)/ }))
+    })
+
+    expect(onBulkDelete.mock.calls[0][0]).toBe('older_than_days')
+    expect(onBulkDelete.mock.calls[0][1]).toEqual({ scope: 'older_than_days', days: 30 })
+  })
+
+  it('drains across rounds while truncated=true', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const onBulkDelete = vi.fn()
+      .mockResolvedValueOnce({ deleted: ['a-1', 'a-2'], failed: [], truncated: true })
+      .mockResolvedValueOnce({ deleted: ['a-3'], failed: [], truncated: true })
+      .mockResolvedValueOnce({ deleted: ['a-4'], failed: [], truncated: false })
+    const onAfter = vi.fn()
+    render(<ClearChatsButton sessions={mixedSessions()} onBulkDelete={onBulkDelete} onAfter={onAfter} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Clear/i }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /All chats \(4\)/ }))
+    })
+
+    expect(onBulkDelete).toHaveBeenCalledTimes(3)
+    expect(onAfter).toHaveBeenCalledTimes(1)
+  })
+
+  it('calls onAfter exactly once on a happy single-round response', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const onBulkDelete = vi.fn().mockResolvedValue({
       deleted: ['analyst-1', 'harness-2', 'features-3', 'analyst-4'],
       failed: [],
+      truncated: false,
     })
     const onAfter = vi.fn()
     render(<ClearChatsButton sessions={mixedSessions()} onBulkDelete={onBulkDelete} onAfter={onAfter} />)
@@ -219,7 +267,6 @@ describe('ClearChatsButton — confirm + dispatch', () => {
     })
 
     expect(onAfter).toHaveBeenCalledTimes(1)
-    // No toast on a clean response.
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
@@ -228,12 +275,13 @@ describe('ClearChatsButton — confirm + dispatch', () => {
     const onBulkDelete = vi.fn().mockResolvedValue({
       deleted: ['harness-2'],
       failed: [{ session_id: 'features-3', reason: 'not_found' }],
+      truncated: false,
     })
     render(<ClearChatsButton sessions={mixedSessions()} onBulkDelete={onBulkDelete} onAfter={vi.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: /Clear/i }))
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Harness chats only \(2\)/ }))
+      fireEvent.click(screen.getByRole('button', { name: /Harness chats \(2\)/ }))
     })
 
     const toast = await screen.findByRole('status')
@@ -246,6 +294,7 @@ describe('ClearChatsButton — confirm + dispatch', () => {
     const onBulkDelete = vi.fn().mockResolvedValue({
       deleted: ['analyst-1', 'harness-2', 'features-3', 'analyst-4'],
       failed: [],
+      truncated: false,
     })
     const onActiveDeleted = vi.fn()
     render(
@@ -271,6 +320,7 @@ describe('ClearChatsButton — confirm + dispatch', () => {
     const onBulkDelete = vi.fn().mockResolvedValue({
       deleted: ['harness-2', 'features-3'],
       failed: [],
+      truncated: false,
     })
     const onActiveDeleted = vi.fn()
     render(
@@ -285,13 +335,13 @@ describe('ClearChatsButton — confirm + dispatch', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Clear/i }))
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Harness chats only \(2\)/ }))
+      fireEvent.click(screen.getByRole('button', { name: /Harness chats \(2\)/ }))
     })
 
     expect(onActiveDeleted).not.toHaveBeenCalled()
   })
 
-  it('on a thrown onBulkDelete, alerts the user and still re-enables the button', async () => {
+  it('on a thrown onBulkDelete, alerts the user and re-enables the button', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
     const onBulkDelete = vi.fn().mockRejectedValue(new Error('boom'))
@@ -304,8 +354,6 @@ describe('ClearChatsButton — confirm + dispatch', () => {
     })
 
     expect(alertSpy).toHaveBeenCalledTimes(1)
-    // Spec-locked alert wording: `Bulk delete failed: <detail>` where <detail>
-    // is the underlying error message (here "boom").
     expect(alertSpy.mock.calls[0][0]).toBe('Bulk delete failed: boom')
     expect(onAfter).not.toHaveBeenCalled()
     await waitFor(() =>
