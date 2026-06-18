@@ -305,10 +305,30 @@ export function useConversations(opts = {}) {
     }
   }, [])
 
+  // Bulk-delete N sessions in a single server round-trip. Unlike deleteSession,
+  // this is NOT optimistic: the server returns a {deleted, failed} summary with
+  // per-id partial-failure outcomes, so the caller should refresh via list()
+  // after the promise resolves to reconcile the sidebar with the truth. In mock
+  // mode, splice the ids out of MOCK_SESSIONS and return {deleted: ids, failed: []}.
+  const bulkDeleteSessions = useCallback(async (ids) => {
+    if (USE_MOCK) {
+      await sleep(150)
+      for (const id of ids || []) {
+        const idx = MOCK_SESSIONS.findIndex(s => s.session_id === id)
+        if (idx >= 0) MOCK_SESSIONS.splice(idx, 1)
+      }
+      return { deleted: [...(ids || [])], failed: [] }
+    }
+    return apiFetch('/conversations/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ session_ids: ids }),
+    })
+  }, [])
+
   return {
     sessions, activeMessages, loading,
     list, loadMessages, clearActive,
-    addLocalSession, bumpLocalSession, deleteSession
+    addLocalSession, bumpLocalSession, deleteSession, bulkDeleteSessions
   }
 }
 

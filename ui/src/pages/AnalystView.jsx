@@ -8,6 +8,7 @@ import { useFindings, useChangeRequests, useConversations } from '../hooks/useAp
 import { SeverityBadge } from '../components/SeverityBadge'
 import ActionRequestModal from '../components/ActionRequestModal'
 import CreateTicketButton from '../components/CreateTicketButton'
+import ClearChatsButton from '../components/ClearChatsButton'
 import { detectProblem } from '../detectProblem'
 import { CHAT_URL, AGENT_MODELS, modelLabel } from '../config'
 import { sendChat, createJiraTicket } from '../hooks/useApi'
@@ -453,7 +454,7 @@ export default function AnalystView() {
   // Analyst-only session list (server-side filtered by chat_type='analyst').
   const {
     sessions, list: listSessions, loadMessages,
-    addLocalSession, bumpLocalSession, deleteSession,
+    addLocalSession, bumpLocalSession, deleteSession, bulkDeleteSessions,
   } = useConversations({ type: 'analyst' })
 
   // session_id → cr_id linkage for auto-archive. Persisted to localStorage so
@@ -660,13 +661,26 @@ export default function AnalystView() {
             <MessageSquare size={11} className="text-slate-500" />
             <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Conversations</p>
           </div>
-          <button
-            onClick={newChat}
-            title="Start a new chat"
-            className="flex items-center gap-0.5 text-[10px] text-indigo-600 hover:text-indigo-800"
-          >
-            <Plus size={10} /> New
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={newChat}
+              title="Start a new chat"
+              className="flex items-center gap-0.5 text-[10px] text-indigo-600 hover:text-indigo-800"
+            >
+              <Plus size={10} /> New
+            </button>
+            <ClearChatsButton
+              sessions={sessions}
+              onBulkDelete={bulkDeleteSessions}
+              onAfter={listSessions}
+              activeSessionId={activeSessionId}
+              onActiveDeleted={() => {
+                sessionIdRef.current = null
+                setActiveSessionId(null)
+                setMessages(initialGreeting())
+              }}
+            />
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {sessions.length === 0 ? (
