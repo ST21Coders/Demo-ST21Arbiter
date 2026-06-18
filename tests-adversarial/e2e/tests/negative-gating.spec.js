@@ -64,7 +64,7 @@
 // manifest (analyst, personas, settings, signin) — those are universally
 // accessible to all four authenticated personas.
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 import path from 'node:path'
 import fs from 'node:fs'
 import { pages, personaIds } from '../lib/manifest.js'

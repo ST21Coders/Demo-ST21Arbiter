@@ -115,6 +115,15 @@
       "blocked_for": ["employee"]
     },
     {
+      "id": "reports",
+      "file": "ui/src/pages/Reports.jsx",
+      "route": "/reports",
+      "label": "Reports",
+      "accessible_to": ["ciso", "soc", "grc"],
+      "blocked_for": ["employee"],
+      "note": "ROUTE_ACCESS['/reports'] = 'reports'. CISO, SOC, GRC carry 'reports' in PersonaContext.jsx; Employee does not."
+    },
+    {
       "id": "analyst",
       "file": "ui/src/pages/AnalystView.jsx",
       "route": "/analyst",
@@ -259,6 +268,42 @@
       "accessible_to": ["ciso", "soc", "grc", "employee"]
     },
     {
+      "id": "get-reports-catalog",
+      "method": "GET",
+      "path": "/reports/catalog",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 237,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "post-reports-generate",
+      "method": "POST",
+      "path": "/reports/generate",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 240,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "get-compliance-scores",
+      "method": "GET",
+      "path": "/compliance/scores",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 243,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "post-compliance-report",
+      "method": "POST",
+      "path": "/compliance/report",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 246,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
       "id": "post-scan",
       "method": "POST",
       "path": "/scan",
@@ -312,6 +357,16 @@
       "line": 172,
       "auth_required": true,
       "accessible_to": ["ciso", "soc", "grc", "employee"]
+    },
+    {
+      "id": "post-conversations-bulk-delete",
+      "method": "POST",
+      "path": "/conversations/bulk-delete",
+      "file": "Infra/functions/api_handler/api_handler.py",
+      "line": 187,
+      "auth_required": true,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "note": "Handler _handle_bulk_delete_conversations. Exact-match route placed before /conversations/{id} branch."
     },
     {
       "id": "get-conversation-messages",
@@ -513,6 +568,50 @@
       "accessible_to": ["ciso", "soc", "grc", "employee"],
       "synthetic": true,
       "note": "Synthetic route id for Cognito's InitiateAuth endpoint, used by auth/test_brute_force.py. Not an API Gateway route."
+    },
+    {
+      "id": "cognito-hosted-ui-login",
+      "method": "GET",
+      "path": "https://<cognito-domain>.auth.us-east-1.amazoncognito.com/login",
+      "file": null,
+      "line": null,
+      "auth_required": false,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "synthetic": true,
+      "note": "Synthetic route id for the Cognito Hosted UI /login redirect endpoint, used by fuzz/test_open_redirects.py."
+    },
+    {
+      "id": "cognito-describe-user-pool",
+      "method": "POST",
+      "path": "https://cognito-idp.us-east-1.amazonaws.com/",
+      "file": null,
+      "line": null,
+      "auth_required": false,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "synthetic": true,
+      "note": "Synthetic route id for Cognito's DescribeUserPool API, used by auth/test_pool_config.py."
+    },
+    {
+      "id": "cognito-forgot-password",
+      "method": "POST",
+      "path": "https://cognito-idp.us-east-1.amazonaws.com/",
+      "file": null,
+      "line": null,
+      "auth_required": false,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "synthetic": true,
+      "note": "Synthetic route id for Cognito's ForgotPassword API, used by auth/test_password_reset.py."
+    },
+    {
+      "id": "forced-browsing-probes",
+      "method": "GET",
+      "path": "<wordlist>",
+      "file": null,
+      "line": null,
+      "auth_required": false,
+      "accessible_to": ["ciso", "soc", "grc", "employee"],
+      "synthetic": true,
+      "note": "Synthetic catch-all for auth/test_forced_browsing.py::_PATHS. Each row carries target_path with the probed path."
     }
   ],
   "agent_tools": [
@@ -584,6 +683,15 @@
       "note": "Reached transitively from the master via sharepoint_lookup. No direct fan-out path from /chat."
     },
     {
+      "id": "awsconfig.account_identity",
+      "agent": "awsconfig_specialist",
+      "tool_name": "account_identity",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 258,
+      "callable_via": "chat",
+      "probe": "Which AWS account and region are you reporting on?"
+    },
+    {
       "id": "awsconfig.describe_cognito",
       "agent": "awsconfig_specialist",
       "tool_name": "describe_cognito",
@@ -591,6 +699,24 @@
       "line": 563,
       "callable_via": "chat",
       "probe": "Describe the Cognito user pool used by ARBITER."
+    },
+    {
+      "id": "awsconfig.describe_dynamodb_tables",
+      "agent": "awsconfig_specialist",
+      "tool_name": "describe_dynamodb_tables",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 681,
+      "callable_via": "chat",
+      "probe": "List the DynamoDB tables in this account and their encryption settings."
+    },
+    {
+      "id": "awsconfig.describe_glue",
+      "agent": "awsconfig_specialist",
+      "tool_name": "describe_glue",
+      "file": "agents/awsconfig_specialist/agent.py",
+      "line": 635,
+      "callable_via": "chat",
+      "probe": "Describe the AWS Glue databases and crawlers in this account."
     },
     {
       "id": "awsconfig.describe_ec2_instances",

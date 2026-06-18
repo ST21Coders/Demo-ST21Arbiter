@@ -16,7 +16,7 @@
 //
 // Test ids: features.primary-page-renders.<persona>.
 
-import { test } from '@playwright/test'
+import { test } from '../fixtures.js'
 import path from 'node:path'
 import fs from 'node:fs'
 import { personaIds } from '../lib/manifest.js'

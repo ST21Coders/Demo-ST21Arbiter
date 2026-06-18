@@ -14,7 +14,7 @@
 // duplicate the per-persona coverage that task 9 implements. The `no-auth`
 // project is not selected here because there's no storageState to verify.
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 
 test.describe.configure({ mode: 'parallel' })
 

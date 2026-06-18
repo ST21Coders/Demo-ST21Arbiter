@@ -434,7 +434,7 @@ def test_brute_force_attempts_are_audited(
                 "status": "skipped",
                 "layer": "logging_audit",
                 "target_kind": "api_route",
-                "target_id": "post-cognito-initiate-auth",
+                "target_id": "cognito-initiate-auth",
                 "skipped_reason": f"cognito client unavailable: {exc}",
             }
         )
@@ -476,7 +476,7 @@ def test_brute_force_attempts_are_audited(
     )
     _record_and_assert(
         test_id=test_id,
-        target_id="post-cognito-initiate-auth",
+        target_id="cognito-initiate-auth",
         matches=matches,
         scenario_id=scenario_id,
         results_writer=results_writer,
