@@ -182,6 +182,11 @@ def handler(event, context):
     if path == "/uploads/list" and method == "GET":
         return _handle_uploads_list(event)
 
+    # Exact-match bulk-delete must precede the /conversations/{id} path-param
+    # branch below, otherwise "bulk-delete" would be parsed as a session_id.
+    if path == "/conversations/bulk-delete" and method == "POST":
+        return _handle_bulk_delete_conversations(event)
+
     # Path param routes under /conversations/{session_id}
     if path.startswith("/conversations/"):
         tail = path[len("/conversations/"):].split("/", 1)
@@ -1117,6 +1122,62 @@ def _handle_delete_conversation(event, session_id: str):
     return _ok({"deleted": True, "session_id": session_id})
 
 
+# ──────────────────────────── POST /conversations/bulk-delete ───
+def _handle_bulk_delete_conversations(event):
+    """Hard-delete multiple of the caller's conversations in one round trip.
+
+    Body: {"session_ids": [<str>, ...]} with 1 <= len <= 100.
+
+    Each id is processed independently — per-id ownership check (get_item +
+    user_id == caller), then delete_item. Per-id outcomes route into either
+    `deleted` or `failed[{session_id, reason}]` (`not_found` / `forbidden` /
+    `error`). The whole call returns 200 with the summary even when some ids
+    fail; only malformed body / oversized list / missing caller / missing
+    table return a non-200.
+    """
+    if not sessions_table:
+        return _err(500, "sessions table not configured")
+
+    try:
+        body = json.loads(event.get("body") or "")
+    except (ValueError, TypeError):
+        return _err(400, "missing session_ids")
+    if not isinstance(body, dict):
+        return _err(400, "missing session_ids")
+    session_ids = body.get("session_ids")
+    if not isinstance(session_ids, list) or not session_ids:
+        return _err(400, "missing session_ids")
+    if len(session_ids) > 100:
+        return _err(400, "too many ids")
+
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "unauthorized")
+
+    deleted: list[str] = []
+    failed: list[dict] = []
+    for sid in session_ids:
+        try:
+            resp = sessions_table.get_item(Key={"session_id": sid})
+            item = resp.get("Item")
+            if not item:
+                failed.append({"session_id": sid, "reason": "not_found"})
+                continue
+            if item.get("user_id") != user_id:
+                failed.append({"session_id": sid, "reason": "forbidden"})
+                continue
+            sessions_table.delete_item(Key={"session_id": sid})
+            deleted.append(sid)
+        except ClientError:
+            logger.exception("Bulk delete: DDB error on session_id=%s", sid)
+            failed.append({"session_id": sid, "reason": "error"})
+        except Exception:
+            logger.exception("Bulk delete: unexpected error on session_id=%s", sid)
+            failed.append({"session_id": sid, "reason": "error"})
+
+    return _ok({"deleted": deleted, "failed": failed})
+
+
 # ──────────────────────────── /conversations/{id}/messages ──────
 def _handle_get_messages(event, session_id: str):
     """Stream messages from AgentCore Memory in chronological order.
@@ -1961,14 +2022,39 @@ def _audit(action_type: str, resource: str, user: str, status: str, details: dic
         logger.exception("audit write failed (%s)", action_type)
 
 
-def _handle_create_action(event):
-    if not crs_table:
-        return _err(500, "CHANGE_REQUESTS_TABLE not configured")
-    try:
-        body = json.loads(event.get("body") or "{}")
-    except json.JSONDecodeError:
-        return _err(400, "Invalid JSON body")
-    user_id = _caller_user_id(event) or "anonymous"
+# Note on the split below: _handle_create_action used to be a single
+# function. It was split into a pure builder + a persister + a thin REST
+# shim so the autonomy layer's create_change_request action can call
+# _persist_cr(_build_cr_item(...)) directly without going through HTTP.
+# The split is purely structural — the REST response is byte-identical
+# to the pre-refactor behaviour.
+def _build_cr_item(
+    body: dict,
+    user_id: str,
+    user_email: str | None = None,
+    persona: str | None = None,
+    claims: dict | None = None,
+    ownership: dict | None = None,
+    routing: dict | None = None,
+) -> dict:
+    """Build the DDB CR item from a request body and caller identity.
+
+    Pure with respect to the CR and audit tables — no put_item, no audit
+    write. The function denormalizes the linked finding's team ownership
+    onto the CR row. Callers may pass `ownership` and `routing` to skip
+    the DDB lookup (the autonomy binding does this because its
+    `read_finding` step has already loaded the row); when omitted, the
+    function looks them up via `_finding_ownership` + `_route_for_team`.
+
+    The `user_email`, `persona`, and `claims` arguments are placeholders
+    that the autonomy binding caller (Task 2) can populate from the
+    AgentCore execution context. The REST shim does not pass them today
+    and the CR shape does not depend on them, so adding them is a no-op
+    for the existing /actions caller.
+    """
+    # Unused for now; reserved for future identity-aware fields on the CR.
+    del user_email, persona, claims
+
     requested_by = (body.get("requested_by") or user_id)
     conflict_id = (body.get("conflict_id") or "").strip()
     target_env = (body.get("target_environment") or "PROD").strip().upper()
@@ -1984,9 +2070,12 @@ def _handle_create_action(event):
 
     # Denormalize the linked finding's team ownership onto the CR so the Action
     # Center can show where the work routes. Server-derived — owner_team is never
-    # taken from the request body.
-    ownership = _finding_ownership(conflict_id)
-    routing = _route_for_team(ownership["owner_team"])
+    # taken from the request body. The autonomy binding can pass a pre-resolved
+    # ownership dict to avoid a second DDB lookup on the same finding.
+    if ownership is None:
+        ownership = _finding_ownership(conflict_id)
+    if routing is None:
+        routing = _route_for_team(ownership["owner_team"])
 
     cr_id = f"CR-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{(conflict_id or 'NEW')[-6:].upper()}"
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -2018,15 +2107,54 @@ def _handle_create_action(event):
     }
     if routing.get("component"):
         item["jira_component"] = routing["component"]
+    return item
+
+
+def _persist_cr(item: dict, user_id: str) -> dict:
+    """Persist the built CR item to DDB and write the CR_CREATED audit row.
+
+    Returns the same `item` dict so the REST shim can hand it to `_ok`
+    without re-reading from DDB. Raises the original boto3 exception on
+    put_item failure so the caller (REST or autonomy binding) decides
+    how to surface it.
+    """
+    if not crs_table:
+        raise RuntimeError("CHANGE_REQUESTS_TABLE not configured")
+    crs_table.put_item(Item=item)
+    _audit(
+        "CR_CREATED",
+        item.get("target_resource") or item["cr_id"],
+        user_id,
+        item["status"],
+        {
+            "cr_id": item["cr_id"],
+            "conflict_id": item.get("conflict_id", ""),
+            "target_environment": item.get("target_environment", ""),
+            "severity": item.get("severity", ""),
+        },
+    )
+    return item
+
+
+def _handle_create_action(event):
+    """REST shim — parse the request, build the CR, persist it.
+
+    Response shape is identical to the pre-refactor handler so the UI
+    and any existing curl callers see no change.
+    """
+    if not crs_table:
+        return _err(500, "CHANGE_REQUESTS_TABLE not configured")
     try:
-        crs_table.put_item(Item=item)
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+    user_id = _caller_user_id(event) or "anonymous"
+    item = _build_cr_item(body, user_id)
+    try:
+        _persist_cr(item, user_id)
     except Exception as e:
         logger.exception("CR PutItem failed")
         return _err(502, f"{type(e).__name__}: {e}")
-
-    _audit("CR_CREATED", target_resource or cr_id, user_id, status,
-           {"cr_id": cr_id, "conflict_id": conflict_id, "target_environment": target_env, "severity": severity})
-
     return _ok(item)
 
 

@@ -8,6 +8,7 @@ import { CHAT_URL } from '../config'
 import { useConversations, sendChat, useAgentStatus } from '../hooks/useApi'
 import { detectProblem } from '../detectProblem'
 import CreateTicketButton from '../components/CreateTicketButton'
+import ClearChatsButton from '../components/ClearChatsButton'
 
 /* ─── MCP server registry ────────────────────────────────────────────
    Each entry maps to a real ARBITER AgentCore runtime. `id` is the routing
@@ -208,7 +209,8 @@ export default function MCPChat() {
   const statusById = useAgentStatus()
   const {
     sessions, list: listSessions, loadMessages,
-    addLocalSession, bumpLocalSession, loading: sessionsLoading,
+    addLocalSession, bumpLocalSession, bulkDeleteSessions,
+    loading: sessionsLoading,
   } = useConversations({ type: 'mcp' })
 
   // Decorate a registry entry with its live status bucket/label/chat-enabled.
@@ -348,13 +350,26 @@ export default function MCPChat() {
               <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
                 <MessageSquare size={10} /> Recent Conversations
               </p>
-              <button
-                onClick={newChat}
-                title="Start a new chat"
-                className="text-[10px] text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5"
-              >
-                <Plus size={10} /> New
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={newChat}
+                  title="Start a new chat"
+                  className="text-[10px] text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5"
+                >
+                  <Plus size={10} /> New
+                </button>
+                <ClearChatsButton
+                  sessions={sessions}
+                  onBulkDelete={bulkDeleteSessions}
+                  onAfter={listSessions}
+                  activeSessionId={activeSessionId}
+                  onActiveDeleted={() => {
+                    setActiveSessionId(null)
+                    setActiveSessionTitle(null)
+                    setMessages([introMessage(selectedServer)])
+                  }}
+                />
+              </div>
             </div>
             {sessionsLoading && (
               <div className="text-[10px] text-slate-400 px-2 py-1 flex items-center gap-1">
