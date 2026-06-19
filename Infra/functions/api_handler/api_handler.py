@@ -1103,7 +1103,8 @@ def _handle_delete_conversation(event, session_id: str):
     if not session_id:
         return _err(400, "Missing session_id")
 
-    # Ownership check — the row must exist and belong to the caller.
+    # Fast-path ownership lookup — gives a clean 404 for legitimately-missing
+    # rows without burning a conditional write. Race safety is enforced below.
     try:
         resp = sessions_table.get_item(Key={"session_id": session_id})
     except Exception as e:
@@ -1113,8 +1114,22 @@ def _handle_delete_conversation(event, session_id: str):
     if not item or item.get("user_id") != user_id:
         return _err(404, f"Session {session_id} not found")
 
+    # Conditional delete. DDB DeleteItem is otherwise idempotent — three
+    # concurrent callers that all passed the check above would otherwise all
+    # get 200 (TOCTOU race). The ConditionExpression makes DDB serialize
+    # contenders: the first wins (200), the rest get ConditionalCheckFailed
+    # → 404, matching the "already gone" semantics.
     try:
-        sessions_table.delete_item(Key={"session_id": session_id})
+        sessions_table.delete_item(
+            Key={"session_id": session_id},
+            ConditionExpression="attribute_exists(session_id) AND user_id = :uid",
+            ExpressionAttributeValues={":uid": user_id},
+        )
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+            return _err(404, f"Session {session_id} not found")
+        logger.exception("DeleteItem failed")
+        return _err(502, f"{type(e).__name__}: {e}")
     except Exception as e:
         logger.exception("DeleteItem failed")
         return _err(502, f"{type(e).__name__}: {e}")
@@ -1158,6 +1173,12 @@ def _handle_bulk_delete_conversations(event):
     failed: list[dict] = []
     for sid in session_ids:
         try:
+            # Fast-path get distinguishes not_found from forbidden in the
+            # response shape (the API contract callers rely on). Race safety
+            # comes from the conditional delete below — without it, two
+            # parallel bulk-delete calls overlapping on the same ids would
+            # both report "deleted" for each shared id (DDB DeleteItem is
+            # idempotent, TOCTOU race).
             resp = sessions_table.get_item(Key={"session_id": sid})
             item = resp.get("Item")
             if not item:
@@ -1166,7 +1187,19 @@ def _handle_bulk_delete_conversations(event):
             if item.get("user_id") != user_id:
                 failed.append({"session_id": sid, "reason": "forbidden"})
                 continue
-            sessions_table.delete_item(Key={"session_id": sid})
+            try:
+                sessions_table.delete_item(
+                    Key={"session_id": sid},
+                    ConditionExpression="attribute_exists(session_id) AND user_id = :uid",
+                    ExpressionAttributeValues={":uid": user_id},
+                )
+            except ClientError as ce:
+                if ce.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+                    # Lost the race to a concurrent caller — the row is gone
+                    # from someone else's delete. Report not_found, not error.
+                    failed.append({"session_id": sid, "reason": "not_found"})
+                    continue
+                raise
             deleted.append(sid)
         except ClientError:
             logger.exception("Bulk delete: DDB error on session_id=%s", sid)
@@ -2183,6 +2216,15 @@ def _handle_action_transition(event, cr_id: str, action: str):
     prior_status = cr.get("status")
     approvers = list(cr.get("approvers") or [])
     transitions = list(cr.get("state_transitions") or [])
+    # Optimistic-locking version. Snapshot the prior value here; the
+    # ConditionExpression on put_item below requires the row to still match
+    # this value at write time. Two concurrent transitions on the same CR
+    # would otherwise be last-writer-wins on the full Item — silently
+    # dropping one approver flip OR moving the CR to two different statuses
+    # depending on read order. Existing rows without `version` are treated
+    # as version 0, and the first write through this path adds the field.
+    prior_version = int(cr.get("version") or 0)
+    cr["version"] = prior_version + 1
     now_iso = datetime.now(timezone.utc).isoformat()
 
     new_status = prior_status
@@ -2276,8 +2318,25 @@ def _handle_action_transition(event, cr_id: str, action: str):
     cr["state_transitions"] = transitions
     cr["status"] = new_status
 
+    # Conditional write. The CR must still exist AND its version must match
+    # what we read above. Rows without a version field yet (first transition
+    # since this patch shipped) are treated as version 0 — `attribute_not_
+    # exists(version) OR version = :pv` covers both the migration case and
+    # the steady state.
     try:
-        crs_table.put_item(Item=cr)
+        crs_table.put_item(
+            Item=cr,
+            ConditionExpression=(
+                "attribute_exists(cr_id) AND "
+                "(attribute_not_exists(version) OR version = :pv)"
+            ),
+            ExpressionAttributeValues={":pv": prior_version},
+        )
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+            return _err(409, f"CR {cr_id} was modified concurrently; please retry")
+        logger.exception("CR transition write failed")
+        return _err(502, f"{type(e).__name__}: {e}")
     except Exception as e:
         logger.exception("CR transition write failed")
         return _err(502, f"{type(e).__name__}: {e}")
