@@ -43,25 +43,38 @@ export function computeScopes(sessions, nowMs) {
   return { all, harness, old }
 }
 
-// Confirm-message strings are spec-locked (see docs/specs/analyst-chat-delete-all.md
-// "Confirmation"). Keep these in sync if the spec changes.
-function confirmMessage(scopeKey, count) {
+// Confirm-message wording reflects that delete is now server-scoped: it sweeps
+// every matching session the user owns, including ones the sidebar (Limit=50)
+// hasn't loaded. Visible counts may understate what's actually deleted.
+function confirmMessage(scopeKey) {
   if (scopeKey === 'all') {
-    return `Delete all ${count} chats on this page? This cannot be undone.`
+    return 'Delete all of your chats? This includes chats not currently loaded in the sidebar. This cannot be undone.'
   }
   if (scopeKey === 'harness') {
-    return `Delete ${count} harness chats on this page? This cannot be undone.`
+    return 'Delete all of your harness chats? This includes harness chats not currently loaded in the sidebar. This cannot be undone.'
   }
-  return `Delete ${count} chats older than 30 days on this page? This cannot be undone.`
+  return 'Delete all of your chats older than 30 days? This includes chats not currently loaded in the sidebar. This cannot be undone.'
 }
 
-// Split-button + dropdown that bulk-deletes the signed-in user's sidebar chats
-// on the page that hosts it. Pure UI: scope filtering, count math, confirm step,
-// and post-call refresh trigger live here; the network call itself is the
-// `onBulkDelete` prop (from useConversations.bulkDeleteSessions in useApi.js).
+// Map a scope key to the API call payload — { scope, days? }.
+function scopePayload(scopeKey) {
+  if (scopeKey === 'old') return { scope: 'older_than_days', days: 30 }
+  if (scopeKey === 'harness') return { scope: 'harness' }
+  return { scope: 'all' }
+}
+
+// Split-button + dropdown that bulk-deletes the signed-in user's chats. The
+// dropdown's counts come from `sessions` (the sidebar's loaded slice) and are
+// informational — actual deletion is server-scoped through onBulkDelete and
+// hits every session the user owns matching that scope, including rows the
+// sidebar hasn't loaded.
 //
-// Sessions are passed in already filtered by chat_type, so this component never
-// crosses the analyst/mcp boundary — that isolation lives in the parent.
+// `onBulkDelete(scopeKey, opts)` is wired by the parent to
+// useConversations.bulkDeleteByScope; the parent picks the analyst/mcp slice,
+// so this component never crosses the chat-type boundary.
+//
+// `onBulkDelete` is invoked in a loop until the server's `truncated` field
+// goes false, draining users with more than BULK_DELETE_SCOPE_CAP matches.
 export default function ClearChatsButton({
   sessions,
   onBulkDelete,
@@ -81,8 +94,10 @@ export default function ClearChatsButton({
   // 30 days" count stale as time advances.
   const scopes = computeScopes(sessions, Date.now())
 
-  const totalCount = scopes.all.length
-  const buttonDisabled = totalCount === 0 || busy
+  // The button stays enabled even when the sidebar shows 0 sessions: a server
+  // sweep may still find off-screen rows the sidebar didn't load. The confirm
+  // dialog gates intent.
+  const buttonDisabled = busy
 
   // Click-outside closes the dropdown. Mouse-down (not click) so a click that
   // started inside but released outside is still treated as inside, matching
@@ -114,29 +129,32 @@ export default function ClearChatsButton({
   }, [])
 
   const runScope = useCallback(async (scopeKey) => {
-    const rows = scopes[scopeKey] || []
-    const count = rows.length
     setOpen(false)
-    if (count === 0) return
-    const ok = window.confirm(confirmMessage(scopeKey, count))
+    // We allow the click through even when the visible count is 0: the server
+    // may still have older off-screen rows. The confirm dialog gates intent.
+    const ok = window.confirm(confirmMessage(scopeKey))
     if (!ok) return
 
-    const ids = rows.map(r => r && r.session_id).filter(Boolean)
+    const payload = scopePayload(scopeKey)
     setBusy(true)
-    let result
+    // Drain in rounds until the server stops reporting truncated=true. The cap
+    // is BULK_DELETE_SCOPE_CAP per call; users with more matches get cleared
+    // across multiple round-trips here so the caller sees one logical action.
+    const deleted = []
+    const failed = []
     try {
-      result = await onBulkDelete(ids)
+      for (let round = 0; round < 50; round++) {
+        const r = await onBulkDelete(payload.scope, payload)
+        if (Array.isArray(r && r.deleted)) deleted.push(...r.deleted)
+        if (Array.isArray(r && r.failed)) failed.push(...r.failed)
+        if (!(r && r.truncated)) break
+      }
     } catch (err) {
-      // Total failure (network/HTTP). Sidebar untouched per spec. Alert wording
-      // is spec-locked (docs/specs/analyst-chat-delete-all.md "Total failure"):
-      // `Bulk delete failed: <detail>`.
+      // Total failure (network/HTTP). Sidebar untouched.
       window.alert('Bulk delete failed: ' + (err && err.message ? err.message : 'unknown error'))
       setBusy(false)
       return
     }
-
-    const deleted = Array.isArray(result && result.deleted) ? result.deleted : []
-    const failed = Array.isArray(result && result.failed) ? result.failed : []
 
     // Partial-failure toast: small inline div, auto-dismiss. The full sidebar
     // reconciliation happens through onAfter() below — we never show a "fake"
@@ -178,7 +196,7 @@ export default function ClearChatsButton({
         disabled={buttonDisabled}
         aria-haspopup="menu"
         aria-expanded={open}
-        title={totalCount === 0 ? 'No chats to clear' : 'Clear chats'}
+        title="Clear chats"
         className={
           'flex items-center gap-0.5 text-[10px] transition-colors ' +
           (buttonDisabled
@@ -209,7 +227,7 @@ export default function ClearChatsButton({
             onPick={() => runScope('all')}
           />
           <ScopeItem
-            label="Harness chats only"
+            label="Harness chats"
             count={scopes.harness.length}
             onPick={() => runScope('harness')}
           />
@@ -218,6 +236,9 @@ export default function ClearChatsButton({
             count={scopes.old.length}
             onPick={() => runScope('old')}
           />
+          <p className="px-2 pt-1 text-[9px] text-slate-400 border-t border-slate-100 mt-0.5">
+            Counts reflect the sidebar; delete sweeps everything on the server.
+          </p>
         </div>
       )}
 
@@ -233,12 +254,14 @@ export default function ClearChatsButton({
   )
 }
 
+// `count` is shown only as a hint of what's currently in the sidebar — the
+// item stays enabled even at 0 because the server may still hold matching rows.
 function ScopeItem({ label, count, onPick }) {
-  const disabled = count === 0
+  const disabled = false
   return (
     <button
       type="button"
-      onClick={disabled ? undefined : onPick}
+      onClick={onPick}
       disabled={disabled}
       aria-disabled={disabled}
       title={disabled ? 'No chats match' : undefined}

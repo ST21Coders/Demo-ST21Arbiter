@@ -209,7 +209,7 @@ export default function MCPChat() {
   const statusById = useAgentStatus()
   const {
     sessions, list: listSessions, loadMessages,
-    addLocalSession, bumpLocalSession, bulkDeleteSessions,
+    addLocalSession, bumpLocalSession, bulkDeleteByScope,
     loading: sessionsLoading,
   } = useConversations({ type: 'mcp' })
 
@@ -360,7 +360,7 @@ export default function MCPChat() {
                 </button>
                 <ClearChatsButton
                   sessions={sessions}
-                  onBulkDelete={bulkDeleteSessions}
+                  onBulkDelete={bulkDeleteByScope}
                   onAfter={listSessions}
                   activeSessionId={activeSessionId}
                   onActiveDeleted={() => {
