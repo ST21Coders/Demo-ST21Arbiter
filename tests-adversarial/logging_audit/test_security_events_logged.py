@@ -320,9 +320,16 @@ def test_legitimate_ciso_approve_is_audited(
     scenario_id = "legitimate-approve"
     ciso_username = identities[Persona.CISO].username
 
-    # Pick the first action we can find. The state-machine layer's probe
-    # uses the same helper; we duplicate the body here to keep the layers
-    # independent.
+    # Pick an APPROVABLE action. Previously this grabbed the first row
+    # in /actions blindly — that picked AUTO_APPROVED CRs (empty approver
+    # chain) or fully-approved CRs, which _handle_action_transition rejects
+    # with a silent 403 ("Caller not an approver for this CR"). No audit
+    # row gets written, the test scans an empty window, and reports the
+    # event as "not logged" — a false-positive on a healthy system.
+    #
+    # Filter for status == PENDING_APPROVAL AND at least one PENDING
+    # human (non-NOTIFICATION) approver so the CISO override actually has
+    # something to flip.
     try:
         resp = http_session.get(f"{api_base_url}/actions", headers=ciso_auth_header)
     except requests.RequestException:
@@ -331,11 +338,23 @@ def test_legitimate_ciso_approve_is_audited(
     if resp is not None and resp.status_code == 200:
         try:
             for action in resp.json().get("change_requests") or []:
-                if isinstance(action, dict):
-                    cid = action.get("cr_id") or action.get("id")
-                    if cid:
-                        cr_id = str(cid)
-                        break
+                if not isinstance(action, dict):
+                    continue
+                if action.get("status") != "PENDING_APPROVAL":
+                    continue
+                approvers = action.get("approvers") or []
+                has_pending_human = any(
+                    isinstance(a, dict)
+                    and a.get("type") != "NOTIFICATION"
+                    and a.get("status") == "PENDING"
+                    for a in approvers
+                )
+                if not has_pending_human:
+                    continue
+                cid = action.get("cr_id") or action.get("id")
+                if cid:
+                    cr_id = str(cid)
+                    break
         except (ValueError, KeyError):
             cr_id = None
     if not cr_id:
@@ -346,14 +365,19 @@ def test_legitimate_ciso_approve_is_audited(
                 "layer": "logging_audit",
                 "target_kind": "api_route",
                 "target_id": "post-action-approve",
-                "skipped_reason": "no actions available to approve",
+                "skipped_reason": "no approvable CR (status=PENDING_APPROVAL with a PENDING approver) available",
             }
         )
-        pytest.skip("no actions to approve")
+        pytest.skip("no approvable CR available")
 
     start_iso = _now_iso()
+    # Track the approve response code so a 4xx/5xx surfaces as a clear
+    # skip rather than masquerading as "audit missing". The handler returns
+    # 200 on a successful CISO override; anything else means the approve
+    # didn't actually happen and there's nothing for the audit scan to find.
+    approve_status: int | None = None
     try:
-        http_session.post(
+        approve_resp = http_session.post(
             f"{api_base_url}/actions/{cr_id}/approve",
             headers={**ciso_auth_header, "Content-Type": "application/json"},
             json={
@@ -362,8 +386,22 @@ def test_legitimate_ciso_approve_is_audited(
                 "comment": test_id,
             },
         )
+        approve_status = approve_resp.status_code
     except requests.RequestException:
-        pass
+        approve_status = None
+
+    if approve_status is None or approve_status >= 300:
+        results_writer.record(
+            {
+                "test_id": test_id,
+                "status": "skipped",
+                "layer": "logging_audit",
+                "target_kind": "api_route",
+                "target_id": "post-action-approve",
+                "skipped_reason": f"approve trigger failed (status={approve_status}); cannot assert audit landed",
+            }
+        )
+        pytest.skip(f"approve POST returned {approve_status}")
 
     time.sleep(_PROPAGATION_SLEEP_SECONDS)
 
