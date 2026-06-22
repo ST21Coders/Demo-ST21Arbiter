@@ -32,7 +32,7 @@
 // rows per persona, but the static-asset probes are persona-agnostic so
 // duplicating them four times would only add noise.
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 import {
   scanForHardcodedKeys,
   scanForSensitiveComments,

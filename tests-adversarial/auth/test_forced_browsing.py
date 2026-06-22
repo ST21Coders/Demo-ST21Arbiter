@@ -253,7 +253,8 @@ def test_unauthenticated_forced_browsing(
                 "status": "skipped",
                 "layer": "auth",
                 "target_kind": "api_route",
-                "target_id": path,
+                "target_id": "forced-browsing-probes",
+                "target_path": path,
                 "skipped_reason": f"request error: {exc}",
                 "duration_seconds": duration,
             }
@@ -277,7 +278,8 @@ def test_unauthenticated_forced_browsing(
         "status": status,
         "layer": "auth",
         "target_kind": "api_route",
-        "target_id": path,
+        "target_id": "forced-browsing-probes",
+        "target_path": path,
         "duration_seconds": duration,
     }
     if severity is not None:

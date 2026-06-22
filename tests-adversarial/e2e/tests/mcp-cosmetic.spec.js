@@ -82,7 +82,7 @@
 //
 // Module system: ESM-style imports (matches other spec files).
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 import path from 'node:path'
 import fs from 'node:fs'
 
@@ -103,11 +103,16 @@ const FIXED_PROMPT = '[harness] What is the current compliance status?'
 // by text — the buttons render the name inside the truncated span. Using
 // `getByRole('button', {name: /.../})` matches the accessible name (which
 // includes the server name text).
-const SERVER_1_NAME = 'Policy Scanner MCP'    // default (no click needed)
-const SERVER_2_NAME = 'Conflict Detector MCP' // we click this for pass 2
+const SERVER_1_NAME = 'SharePoint Specialist'    // MCP_SERVERS[0] — default on mount
+const SERVER_2_NAME = 'Zscaler ZIA Specialist'   // MCP_SERVERS[1] — clicked for pass 2
 
-// Fields stripped from each payload before comparison. Documented above.
-const STRIPPED_KEYS = ['session_id']
+// Fields stripped from each payload before comparison.
+//   * session_id  — regenerated per send; fresh id per pass is expected.
+//   * target      — added when sidebar became functional (CLAUDE.md: sends
+//                   target: <id> to sendChat for per-agent routing). The
+//                   sidebar is no longer cosmetic; the intent now is to
+//                   verify everything ELSE in the payload stays identical.
+const STRIPPED_KEYS = ['session_id', 'target']
 
 function normalizePayload(payload) {
   const copy = { ...payload }

@@ -44,7 +44,7 @@
 // from path/line. Keep the title stable across runs (spec §7.3, the diff
 // section breaks if ids change).
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 import path from 'node:path'
 import fs from 'node:fs'
 import { pages, personaIds } from '../lib/manifest.js'

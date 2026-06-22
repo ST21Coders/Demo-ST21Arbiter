@@ -132,6 +132,17 @@ const PAGE_ASSERTIONS = {
       ).toBeVisible({ timeout: HEADING_TIMEOUT })
     },
   },
+  reports: {
+    label: 'Reports',
+    assert: async (page) => {
+      // Reports.jsx renders <h1>Reports</h1>. Catalog data mounts via
+      // useReports().loadCatalog() — we don't await it here, only the
+      // header, so slow /reports/catalog responses don't make this flaky.
+      await expect(
+        page.getByRole('heading', { name: /^reports$/i }),
+      ).toBeVisible({ timeout: HEADING_TIMEOUT })
+    },
+  },
   analyst: {
     label: 'Analyst View (input placeholder)',
     assert: async (page) => {
