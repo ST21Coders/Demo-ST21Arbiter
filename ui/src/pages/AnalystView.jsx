@@ -57,16 +57,16 @@ const SUGGESTED = [
 // ── Action type config ────────────────────────────────────────────────────────
 
 const ACTION_META = {
-  CREATE_CR:        { icon: ShieldAlert, label: 'Create Change Request', color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200', btn: 'btn-primary' },
-  SERVICENOW_INC:   { icon: AlertTriangle, label: 'Open Incident (INC)',  color: 'text-red-700',    bg: 'bg-red-50 border-red-200',     btn: 'btn-danger'  },
-  SERVICENOW_RITM:  { icon: Ticket,        label: 'ServiceNow Request',   color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', btn: 'bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors' },
-  SERVICENOW_CHG:   { icon: FileText,      label: 'ServiceNow Change',    color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200', btn: 'bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors' },
-  NOTIFY_LEGAL:     { icon: Bell,          label: 'Notify Legal',         color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', btn: 'bg-orange-600 hover:bg-orange-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors' },
-  ARCHIVE_DOC:      { icon: Archive,       label: 'Archive Document',     color: 'text-slate-600',   bg: 'bg-slate-50 border-slate-200',       btn: 'btn-ghost'   },
+  CREATE_CR: { icon: ShieldAlert, label: 'Create Change Request', color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200', btn: 'btn-primary' },
+  SERVICENOW_INC: { icon: AlertTriangle, label: 'Open Incident (INC)', color: 'text-red-700', bg: 'bg-red-50 border-red-200', btn: 'btn-danger' },
+  SERVICENOW_RITM: { icon: Ticket, label: 'ServiceNow Request', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', btn: 'bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors' },
+  SERVICENOW_CHG: { icon: FileText, label: 'ServiceNow Change', color: 'text-indigo-700', bg: 'bg-indigo-50 border-indigo-200', btn: 'bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors' },
+  NOTIFY_LEGAL: { icon: Bell, label: 'Notify Legal', color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', btn: 'bg-orange-600 hover:bg-orange-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors' },
+  ARCHIVE_DOC: { icon: Archive, label: 'Archive Document', color: 'text-slate-600', bg: 'bg-slate-50 border-slate-200', btn: 'btn-ghost' },
 }
 
 const PRIORITY_LABEL = { 1: 'Immediate', 2: 'Same Day', 3: 'This Week' }
-const PRIORITY_COLOR  = { 1: 'text-red-700', 2: 'text-amber-700', 3: 'text-indigo-700' }
+const PRIORITY_COLOR = { 1: 'text-red-700', 2: 'text-amber-700', 3: 'text-indigo-700' }
 
 // ── ServiceNow mock modal ─────────────────────────────────────────────────────
 
@@ -309,9 +309,9 @@ function ActionCards({ actions, responseText, onCreateCR }) {
         <p className="text-xs text-amber-700 font-semibold uppercase tracking-wider">Recommended Actions — Pending Your Approval</p>
       </div>
       {actions.map((action, i) => {
-        const meta  = ACTION_META[action.type] || ACTION_META.CREATE_CR
-        const Icon  = meta.icon
-        const prio  = action.priority || 2
+        const meta = ACTION_META[action.type] || ACTION_META.CREATE_CR
+        const Icon = meta.icon
+        const prio = action.priority || 2
         return (
           <div key={i} className={`rounded-xl border p-3.5 ${meta.bg}`}>
             <div className="flex items-start gap-3">
@@ -401,6 +401,50 @@ function ActionCards({ actions, responseText, onCreateCR }) {
   )
 }
 
+// ── In-chat action bar ────────────────────────────────────────────────────────
+// The 3 actions the analyst sees on a detected problem. This is the surface that
+// actually renders (driven by detectProblem) — the agent rarely returns the
+// structured `msg.actions` that ActionCards needs. Create CR opens the CR modal
+// IN-PLACE (no navigation away from the chat); JIRA + Confluence open their own
+// modals, all prefilled with this answer.
+function ChatActions({ detected, responseText, onCreateCR }) {
+  const [jiraOpen, setJiraOpen] = useState(false)
+  const [confluenceOpen, setConfluenceOpen] = useState(false)
+  const actionLike = {
+    label: detected.title,
+    description: detected.description,
+    target_resource: detected.target_resource,
+    target_environment: detected.target_environment,
+    severity: detected.severity,
+    action_type: detected.action_type,
+    justification: detected.description,
+    conflict_id: detected.target_resource || '',
+    approval_chain: [],
+    blocking_policies: [],
+  }
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button onClick={() => onCreateCR(actionLike)}
+          className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5">
+          <ShieldAlert size={12} /> Create CR
+        </button>
+        <button onClick={() => setJiraOpen(true)}
+          className="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1.5">
+          <Ticket size={12} /> Open JIRA Ticket
+        </button>
+        <button onClick={() => setConfluenceOpen(true)}
+          className="bg-violet-600 hover:bg-violet-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1.5">
+          <FileText size={12} /> Create Confluence
+        </button>
+      </div>
+      <p className="text-[10px] text-slate-500 mt-1 ml-0.5">Resolve in-chat — each opens prefilled with this answer; you stay in the conversation.</p>
+      {jiraOpen && <JiraModal action={actionLike} responseText={responseText} onClose={() => setJiraOpen(false)} />}
+      {confluenceOpen && <ConfluenceModal action={actionLike} responseText={responseText} onClose={() => setConfluenceOpen(false)} />}
+    </>
+  )
+}
+
 // ── Message bubble ────────────────────────────────────────────────────────────
 
 function Message({ msg, onCreateCR }) {
@@ -411,9 +455,8 @@ function Message({ msg, onCreateCR }) {
         {isUser ? <User size={13} /> : <Bot size={13} />}
       </div>
       <div className={`max-w-[80%] ${isUser ? '' : 'flex-1'}`}>
-        <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-          isUser ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm'
-        }`}>
+        <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm'
+          }`}>
           {msg.content}
         </div>
         {!isUser && msg.actions?.length > 0 && (
@@ -607,12 +650,12 @@ export default function AnalystView() {
 
   function handleCreateCR(action) {
     setPendingCR({
-      action_type:        action.action_type || 'SECURITY_FIX',
-      target_resource:    action.target_resource || '',
+      action_type: action.action_type || 'SECURITY_FIX',
+      target_resource: action.target_resource || '',
       target_environment: action.target_environment || 'PROD',
-      severity:           action.severity || 'HIGH',
-      justification:      action.justification || action.description || '',
-      requesting_team:    action.requesting_team || '',
+      severity: action.severity || 'HIGH',
+      justification: action.justification || action.description || '',
+      requesting_team: action.requesting_team || '',
     })
   }
 
@@ -691,9 +734,8 @@ export default function AnalystView() {
               <div
                 key={s.session_id}
                 onClick={() => openSession(s.session_id)}
-                className={`group flex items-start gap-1 w-full text-left px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-slate-100 transition-colors ${
-                  activeSessionId === s.session_id ? 'bg-indigo-50 border border-indigo-200' : ''
-                }`}
+                className={`group flex items-start gap-1 w-full text-left px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-slate-100 transition-colors ${activeSessionId === s.session_id ? 'bg-indigo-50 border border-indigo-200' : ''
+                  }`}
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-slate-800 truncate">{s.title || s.session_id}</p>
@@ -757,7 +799,7 @@ export default function AnalystView() {
                 <Message msg={m} onCreateCR={handleCreateCR} />
                 {detected?.hasProblem && (
                   <div className="ml-10 mt-1">
-                    <CreateTicketButton detected={detected} />
+                    <ChatActions detected={detected} responseText={m.content} onCreateCR={handleCreateCR} />
                   </div>
                 )}
               </div>
@@ -835,10 +877,10 @@ export default function AnalystView() {
           <div className="space-y-1 text-xs text-slate-500">
             {[
               { label: 'sharepoint_lookup — KB retrieval over MIG-POL docs', planned: false },
-              { label: 'awsconfig_lookup — AWS Config compliance lookup',     planned: false },
-              { label: 'zscaler_lookup — Zscaler policy retrieval',           planned: false },
-              { label: 'query_conflicts — live findings from conflicts-v2',   planned: true },
-              { label: 'query_scan_runs — recent scan history + totals',     planned: true },
+              { label: 'awsconfig_lookup — AWS Config compliance lookup', planned: false },
+              { label: 'zscaler_lookup — Zscaler policy retrieval', planned: false },
+              { label: 'query_conflicts — live findings from conflicts-v2', planned: true },
+              { label: 'query_scan_runs — recent scan history + totals', planned: true },
             ].map(t => (
               <div key={t.label} className="flex items-start gap-1.5">
                 <span className={t.planned ? 'text-slate-300 mt-0.5' : 'text-indigo-500 mt-0.5'}>›</span>
@@ -857,14 +899,14 @@ export default function AnalystView() {
           {findings.filter(f => f.severity === 'CRITICAL' && f.status === 'OPEN').length === 0
             ? <p className="text-xs text-slate-400">None</p>
             : findings.filter(f => f.severity === 'CRITICAL' && f.status === 'OPEN').map(f => (
-                <div key={f.conflict_id} className="mb-2 pb-2 border-b border-slate-100 last:border-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <SeverityBadge severity={f.severity} />
-                    <span className="text-xs font-mono text-slate-500">{f.conflict_id}</span>
-                  </div>
-                  <p className="text-xs text-slate-700 leading-snug">{f.title}</p>
+              <div key={f.conflict_id} className="mb-2 pb-2 border-b border-slate-100 last:border-0">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <SeverityBadge severity={f.severity} />
+                  <span className="text-xs font-mono text-slate-500">{f.conflict_id}</span>
                 </div>
-              ))
+                <p className="text-xs text-slate-700 leading-snug">{f.title}</p>
+              </div>
+            ))
           }
         </div>
       </div>
