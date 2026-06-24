@@ -40,6 +40,7 @@ import json
 import logging
 import os
 import re
+import time
 from typing import Any
 from decimal import Decimal
 from datetime import datetime, timezone, timedelta
@@ -180,6 +181,11 @@ def handler(event, context):
 
     if path == "/uploads/list" and method == "GET":
         return _handle_uploads_list(event)
+
+    # Exact-match bulk-delete must precede the /conversations/{id} path-param
+    # branch below, otherwise "bulk-delete" would be parsed as a session_id.
+    if path == "/conversations/bulk-delete" and method == "POST":
+        return _handle_bulk_delete_conversations(event)
 
     # Path param routes under /conversations/{session_id}
     if path.startswith("/conversations/"):
@@ -734,8 +740,52 @@ def _require_ciso(event):
     form (Cognito JWT) and the comma-separated form (API Gateway authorizer
     flattening). Frontend gating is insufficient — the API is reachable with
     any valid IdToken, so this is the actual security check.
+
+    On a non-CISO caller, a best-effort CROSS_PERSONA audit row is written
+    before the 403. The forged-`cognito:groups` scenario lands here too — we
+    cannot tell a forged token from a real one at the API layer (no JWT
+    signature verification on the Function URL path), so the canary value
+    appears in details.caller_groups and that is enough signal for an auditor.
     """
-    if "ciso" not in _caller_groups(event):
+    caller_groups = _caller_groups(event)
+    if "ciso" not in caller_groups:
+        # Best-effort audit write. Wrapped so any failure in claim extraction
+        # or in _audit itself never blocks the 403 response.
+        try:
+            claims = _caller_claims(event)
+            req_ctx = event.get("requestContext", {}) or {}
+            http_ctx = req_ctx.get("http", {}) or {}
+            path = (event.get("rawPath")
+                    or event.get("path")
+                    or http_ctx.get("path")
+                    or "unknown")
+            method = (event.get("httpMethod")
+                      or http_ctx.get("method")
+                      or "")
+            source_ip = (http_ctx.get("sourceIp")
+                         or (req_ctx.get("identity", {}) or {}).get("sourceIp")
+                         or "unknown")
+            user_label = (claims.get("email")
+                          or claims.get("cognito:username")
+                          or _caller_user_id(event)
+                          or "unknown")
+            _audit(
+                "CROSS_PERSONA",
+                path,
+                user_label,
+                "DENIED",
+                {
+                    "path": path,
+                    "method": method,
+                    "required_group": "ciso",
+                    "caller_groups": caller_groups,
+                    "caller_sub": claims.get("sub"),
+                    "source_ip": source_ip,
+                },
+                ttl_seconds=90 * 24 * 60 * 60,  # 90 days
+            )
+        except Exception as e:
+            logger.warning("audit CROSS_PERSONA write failed: %s", e)
         return _err(403, "Token Tracking is restricted to the CISO persona")
     return None
 
@@ -1053,7 +1103,8 @@ def _handle_delete_conversation(event, session_id: str):
     if not session_id:
         return _err(400, "Missing session_id")
 
-    # Ownership check — the row must exist and belong to the caller.
+    # Fast-path ownership lookup — gives a clean 404 for legitimately-missing
+    # rows without burning a conditional write. Race safety is enforced below.
     try:
         resp = sessions_table.get_item(Key={"session_id": session_id})
     except Exception as e:
@@ -1063,13 +1114,206 @@ def _handle_delete_conversation(event, session_id: str):
     if not item or item.get("user_id") != user_id:
         return _err(404, f"Session {session_id} not found")
 
+    # Conditional delete. DDB DeleteItem is otherwise idempotent — three
+    # concurrent callers that all passed the check above would otherwise all
+    # get 200 (TOCTOU race). The ConditionExpression makes DDB serialize
+    # contenders: the first wins (200), the rest get ConditionalCheckFailed
+    # → 404, matching the "already gone" semantics.
     try:
-        sessions_table.delete_item(Key={"session_id": session_id})
+        sessions_table.delete_item(
+            Key={"session_id": session_id},
+            ConditionExpression="attribute_exists(session_id) AND user_id = :uid",
+            ExpressionAttributeValues={":uid": user_id},
+        )
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+            return _err(404, f"Session {session_id} not found")
+        logger.exception("DeleteItem failed")
+        return _err(502, f"{type(e).__name__}: {e}")
     except Exception as e:
         logger.exception("DeleteItem failed")
         return _err(502, f"{type(e).__name__}: {e}")
 
     return _ok({"deleted": True, "session_id": session_id})
+
+
+# Prefixes the adversarial harness uses when minting session ids — must mirror
+# HARNESS_PREFIXES in ui/src/components/ClearChatsButton.jsx so the "harness"
+# scope deletes server-side exactly what the UI counts client-side.
+HARNESS_SESSION_PREFIXES = ("harness-", "features-", "logic-race-")
+
+# Upper bound on how many of the caller's sessions one scope call may sweep.
+# A user with more than this in a single scope must clear in batches; the
+# response sets truncated=true so the UI knows to re-invoke.
+BULK_DELETE_SCOPE_CAP = 1000
+
+
+def _iter_user_sessions(user_id: str):
+    """Yield every session item for `user_id`, paginating the GSI query."""
+    last_key = None
+    while True:
+        kwargs = {
+            "IndexName": "user-sessions-index",
+            "KeyConditionExpression": Key("user_id").eq(user_id),
+            "ScanIndexForward": False,
+        }
+        if last_key:
+            kwargs["ExclusiveStartKey"] = last_key
+        resp = sessions_table.query(**kwargs)
+        for item in resp.get("Items", []):
+            yield item
+        last_key = resp.get("LastEvaluatedKey")
+        if not last_key:
+            return
+
+
+def _session_matches_scope(item: dict, scope: str, cutoff_ms: int | None) -> bool:
+    sid = item.get("session_id") or ""
+    if scope == "all":
+        return True
+    if scope == "harness":
+        return any(sid.startswith(p) for p in HARNESS_SESSION_PREFIXES)
+    if scope == "older_than_days":
+        raw = item.get("created_at")
+        if not raw:
+            return False
+        try:
+            # tolerate trailing Z by replacing with +00:00 for fromisoformat
+            ts_ms = int(datetime.fromisoformat(str(raw).replace("Z", "+00:00")).timestamp() * 1000)
+        except (TypeError, ValueError):
+            return False
+        return cutoff_ms is not None and ts_ms < cutoff_ms
+    return False
+
+
+# ──────────────────────────── POST /conversations/bulk-delete ───
+def _handle_bulk_delete_conversations(event):
+    """Hard-delete the caller's conversations in one round trip.
+
+    Two request shapes are accepted:
+
+    1. Explicit ids — Body: {"session_ids": [<str>, ...]} with 1 <= len <= 100.
+       Per-id ownership check + delete_item. Per-id outcomes route into
+       `deleted` or `failed[{session_id, reason}]` (`not_found` / `forbidden`
+       / `error`).
+
+    2. Server-side scope — Body: {"scope": "all" | "harness" | "older_than_days",
+       "days": N}. Paginates the user-sessions GSI, filters to rows matching
+       the scope, deletes each. Up to BULK_DELETE_SCOPE_CAP rows per call;
+       any beyond that come back as `truncated=true` and the UI re-invokes.
+
+    Returns 200 with the summary even when some ids fail; only malformed
+    body / oversized list / missing caller / missing table return a non-200.
+    """
+    if not sessions_table:
+        return _err(500, "sessions table not configured")
+
+    try:
+        body = json.loads(event.get("body") or "")
+    except (ValueError, TypeError):
+        return _err(400, "missing session_ids")
+    if not isinstance(body, dict):
+        return _err(400, "missing session_ids")
+
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "unauthorized")
+
+    scope = body.get("scope")
+    if scope is not None:
+        return _bulk_delete_by_scope(user_id, body, scope)
+    return _bulk_delete_by_ids(user_id, body.get("session_ids"))
+
+
+def _bulk_delete_by_ids(user_id: str, session_ids):
+    if not isinstance(session_ids, list) or not session_ids:
+        return _err(400, "missing session_ids")
+    if len(session_ids) > 100:
+        return _err(400, "too many ids")
+
+    deleted: list[str] = []
+    failed: list[dict] = []
+    for sid in session_ids:
+        try:
+            # Fast-path get distinguishes not_found from forbidden in the
+            # response shape (the API contract callers rely on). Race safety
+            # comes from the conditional delete below — without it, two
+            # parallel bulk-delete calls overlapping on the same ids would
+            # both report "deleted" for each shared id (DDB DeleteItem is
+            # idempotent, TOCTOU race).
+            resp = sessions_table.get_item(Key={"session_id": sid})
+            item = resp.get("Item")
+            if not item:
+                failed.append({"session_id": sid, "reason": "not_found"})
+                continue
+            if item.get("user_id") != user_id:
+                failed.append({"session_id": sid, "reason": "forbidden"})
+                continue
+            try:
+                sessions_table.delete_item(
+                    Key={"session_id": sid},
+                    ConditionExpression="attribute_exists(session_id) AND user_id = :uid",
+                    ExpressionAttributeValues={":uid": user_id},
+                )
+            except ClientError as ce:
+                if ce.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+                    # Lost the race to a concurrent caller — the row is gone
+                    # from someone else's delete. Report not_found, not error.
+                    failed.append({"session_id": sid, "reason": "not_found"})
+                    continue
+                raise
+            deleted.append(sid)
+        except ClientError:
+            logger.exception("Bulk delete: DDB error on session_id=%s", sid)
+            failed.append({"session_id": sid, "reason": "error"})
+        except Exception:
+            logger.exception("Bulk delete: unexpected error on session_id=%s", sid)
+            failed.append({"session_id": sid, "reason": "error"})
+
+    return _ok({"deleted": deleted, "failed": failed})
+
+
+def _bulk_delete_by_scope(user_id: str, body: dict, scope):
+    if scope not in ("all", "harness", "older_than_days"):
+        return _err(400, "invalid scope")
+    cutoff_ms = None
+    if scope == "older_than_days":
+        raw_days = body.get("days")
+        try:
+            days = int(raw_days)
+        except (TypeError, ValueError):
+            return _err(400, "days must be a positive integer")
+        if days <= 0:
+            return _err(400, "days must be a positive integer")
+        cutoff_ms = int((datetime.now(timezone.utc).timestamp() - days * 86400) * 1000)
+
+    deleted: list[str] = []
+    failed: list[dict] = []
+    truncated = False
+    try:
+        for item in _iter_user_sessions(user_id):
+            if not _session_matches_scope(item, scope, cutoff_ms):
+                continue
+            if len(deleted) + len(failed) >= BULK_DELETE_SCOPE_CAP:
+                truncated = True
+                break
+            sid = item.get("session_id")
+            if not sid:
+                continue
+            try:
+                sessions_table.delete_item(Key={"session_id": sid})
+                deleted.append(sid)
+            except ClientError:
+                logger.exception("Bulk delete by scope: DDB error on session_id=%s", sid)
+                failed.append({"session_id": sid, "reason": "error"})
+            except Exception:
+                logger.exception("Bulk delete by scope: unexpected error on session_id=%s", sid)
+                failed.append({"session_id": sid, "reason": "error"})
+    except ClientError as e:
+        logger.exception("Bulk delete by scope: query failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+
+    return _ok({"deleted": deleted, "failed": failed, "truncated": truncated})
 
 
 # ──────────────────────────── /conversations/{id}/messages ──────
@@ -1893,11 +2137,11 @@ def _build_approver_chain(target_env: str, severity: str) -> list[dict]:
     return chain
 
 
-def _audit(action_type: str, resource: str, user: str, status: str, details: dict | None = None):
+def _audit(action_type: str, resource: str, user: str, status: str, details: dict | None = None, ttl_seconds: int | None = None):
     if not audit_table:
         return
     try:
-        audit_table.put_item(Item={
+        item = {
             "event_id": f"{action_type.lower()}-{resource}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "action_type": action_type,
@@ -1905,19 +2149,50 @@ def _audit(action_type: str, resource: str, user: str, status: str, details: dic
             "user": user,
             "status": status,
             "details": json.dumps(details or {}),
-        })
+        }
+        # Opt-in TTL: only the new security-event call sites (CROSS_PERSONA,
+        # AUTH_FAILED) pass ttl_seconds; existing callers keep their no-TTL
+        # behaviour so the back-compat contract is preserved.
+        if ttl_seconds is not None:
+            item["ttl"] = int(time.time()) + ttl_seconds
+        audit_table.put_item(Item=item)
     except Exception:
         logger.exception("audit write failed (%s)", action_type)
 
 
-def _handle_create_action(event):
-    if not crs_table:
-        return _err(500, "CHANGE_REQUESTS_TABLE not configured")
-    try:
-        body = json.loads(event.get("body") or "{}")
-    except json.JSONDecodeError:
-        return _err(400, "Invalid JSON body")
-    user_id = _caller_user_id(event) or "anonymous"
+# Note on the split below: _handle_create_action used to be a single
+# function. It was split into a pure builder + a persister + a thin REST
+# shim so the autonomy layer's create_change_request action can call
+# _persist_cr(_build_cr_item(...)) directly without going through HTTP.
+# The split is purely structural — the REST response is byte-identical
+# to the pre-refactor behaviour.
+def _build_cr_item(
+    body: dict,
+    user_id: str,
+    user_email: str | None = None,
+    persona: str | None = None,
+    claims: dict | None = None,
+    ownership: dict | None = None,
+    routing: dict | None = None,
+) -> dict:
+    """Build the DDB CR item from a request body and caller identity.
+
+    Pure with respect to the CR and audit tables — no put_item, no audit
+    write. The function denormalizes the linked finding's team ownership
+    onto the CR row. Callers may pass `ownership` and `routing` to skip
+    the DDB lookup (the autonomy binding does this because its
+    `read_finding` step has already loaded the row); when omitted, the
+    function looks them up via `_finding_ownership` + `_route_for_team`.
+
+    The `user_email`, `persona`, and `claims` arguments are placeholders
+    that the autonomy binding caller (Task 2) can populate from the
+    AgentCore execution context. The REST shim does not pass them today
+    and the CR shape does not depend on them, so adding them is a no-op
+    for the existing /actions caller.
+    """
+    # Unused for now; reserved for future identity-aware fields on the CR.
+    del user_email, persona, claims
+
     requested_by = (body.get("requested_by") or user_id)
     conflict_id = (body.get("conflict_id") or "").strip()
     target_env = (body.get("target_environment") or "PROD").strip().upper()
@@ -1933,9 +2208,12 @@ def _handle_create_action(event):
 
     # Denormalize the linked finding's team ownership onto the CR so the Action
     # Center can show where the work routes. Server-derived — owner_team is never
-    # taken from the request body.
-    ownership = _finding_ownership(conflict_id)
-    routing = _route_for_team(ownership["owner_team"])
+    # taken from the request body. The autonomy binding can pass a pre-resolved
+    # ownership dict to avoid a second DDB lookup on the same finding.
+    if ownership is None:
+        ownership = _finding_ownership(conflict_id)
+    if routing is None:
+        routing = _route_for_team(ownership["owner_team"])
 
     cr_id = f"CR-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{(conflict_id or 'NEW')[-6:].upper()}"
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -1967,15 +2245,54 @@ def _handle_create_action(event):
     }
     if routing.get("component"):
         item["jira_component"] = routing["component"]
+    return item
+
+
+def _persist_cr(item: dict, user_id: str) -> dict:
+    """Persist the built CR item to DDB and write the CR_CREATED audit row.
+
+    Returns the same `item` dict so the REST shim can hand it to `_ok`
+    without re-reading from DDB. Raises the original boto3 exception on
+    put_item failure so the caller (REST or autonomy binding) decides
+    how to surface it.
+    """
+    if not crs_table:
+        raise RuntimeError("CHANGE_REQUESTS_TABLE not configured")
+    crs_table.put_item(Item=item)
+    _audit(
+        "CR_CREATED",
+        item.get("target_resource") or item["cr_id"],
+        user_id,
+        item["status"],
+        {
+            "cr_id": item["cr_id"],
+            "conflict_id": item.get("conflict_id", ""),
+            "target_environment": item.get("target_environment", ""),
+            "severity": item.get("severity", ""),
+        },
+    )
+    return item
+
+
+def _handle_create_action(event):
+    """REST shim — parse the request, build the CR, persist it.
+
+    Response shape is identical to the pre-refactor handler so the UI
+    and any existing curl callers see no change.
+    """
+    if not crs_table:
+        return _err(500, "CHANGE_REQUESTS_TABLE not configured")
     try:
-        crs_table.put_item(Item=item)
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+    user_id = _caller_user_id(event) or "anonymous"
+    item = _build_cr_item(body, user_id)
+    try:
+        _persist_cr(item, user_id)
     except Exception as e:
         logger.exception("CR PutItem failed")
         return _err(502, f"{type(e).__name__}: {e}")
-
-    _audit("CR_CREATED", target_resource or cr_id, user_id, status,
-           {"cr_id": cr_id, "conflict_id": conflict_id, "target_environment": target_env, "severity": severity})
-
     return _ok(item)
 
 
@@ -2004,6 +2321,15 @@ def _handle_action_transition(event, cr_id: str, action: str):
     prior_status = cr.get("status")
     approvers = list(cr.get("approvers") or [])
     transitions = list(cr.get("state_transitions") or [])
+    # Optimistic-locking version. Snapshot the prior value here; the
+    # ConditionExpression on put_item below requires the row to still match
+    # this value at write time. Two concurrent transitions on the same CR
+    # would otherwise be last-writer-wins on the full Item — silently
+    # dropping one approver flip OR moving the CR to two different statuses
+    # depending on read order. Existing rows without `version` are treated
+    # as version 0, and the first write through this path adds the field.
+    prior_version = int(cr.get("version") or 0)
+    cr["version"] = prior_version + 1
     now_iso = datetime.now(timezone.utc).isoformat()
 
     new_status = prior_status
@@ -2097,8 +2423,25 @@ def _handle_action_transition(event, cr_id: str, action: str):
     cr["state_transitions"] = transitions
     cr["status"] = new_status
 
+    # Conditional write. The CR must still exist AND its version must match
+    # what we read above. Rows without a version field yet (first transition
+    # since this patch shipped) are treated as version 0 — `attribute_not_
+    # exists(version) OR version = :pv` covers both the migration case and
+    # the steady state.
     try:
-        crs_table.put_item(Item=cr)
+        crs_table.put_item(
+            Item=cr,
+            ConditionExpression=(
+                "attribute_exists(cr_id) AND "
+                "(attribute_not_exists(version) OR version = :pv)"
+            ),
+            ExpressionAttributeValues={":pv": prior_version},
+        )
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+            return _err(409, f"CR {cr_id} was modified concurrently; please retry")
+        logger.exception("CR transition write failed")
+        return _err(502, f"{type(e).__name__}: {e}")
     except Exception as e:
         logger.exception("CR transition write failed")
         return _err(502, f"{type(e).__name__}: {e}")

@@ -67,7 +67,8 @@
 // Module system: ESM-style imports to match the other spec files
 // (pages-per-persona.spec.js, negative-gating.spec.js).
 
-import { test, expect, request as playwrightRequest } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
+import { request as playwrightRequest } from '@playwright/test'
 import path from 'node:path'
 import fs from 'node:fs'
 

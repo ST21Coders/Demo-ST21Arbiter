@@ -195,6 +195,55 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-api-handler-role"
 
+  # audit_cognito_subscriber: EventBridge target for failed Cognito sign-ins.
+  # Narrowly scoped: PutItem on the audit-log table ARN only, KMS use on the
+  # DynamoDB CMK only. Reusing ApiHandlerRole would silently widen the blast
+  # radius — this Lambda has one job and one resource.
+  AuditCognitoSubscriberRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-audit-cognito-subscriber-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        # 05-compute.yaml's Globals.Function.VpcConfig attaches this Lambda to
+        # PrivateSubnet1 + LambdaSG like every other function in the stack. ENI
+        # creation needs ec2:CreateNetworkInterface etc., which only the AWS
+        # managed VPC-access policy provides. Empty-array VpcConfig overrides
+        # at the function level do NOT cleanly disable VPC, so we attach this
+        # rather than fight the Globals (CFN stack failure 2026-06-15 17:32).
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: AuditCognitoSubscriberInline
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: AuditLogPutItem
+                Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${Environment}-${ProjectName}-audit-log"
+              # The audit-log table is CMK-encrypted via DynamoDBKey. Without
+              # GenerateDataKey on that CMK, PutItem silently fails — same
+              # gotcha documented in CLAUDE.local.md for the AgentCore role.
+              - Sid: AuditCmkUse
+                Effect: Allow
+                Action:
+                  - kms:GenerateDataKey
+                  - kms:Decrypt
+                Resource:
+                  - !GetAtt DynamoDBKey.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-audit-cognito-subscriber-role"
+
   # processing_pipeline: S3 → Textract/parse → KB ingestion
   ProcessingPipelineRole:
     Type: AWS::IAM::Role
@@ -290,3 +339,7 @@ Outputs:
     Value: !GetAtt ProcessingPipelineRole.Arn
     Export:
       Name: !Sub "${Environment}-${ProjectName}-ProcessingPipelineRoleArn"
+  AuditCognitoSubscriberRoleArn:
+    Value: !GetAtt AuditCognitoSubscriberRole.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-AuditCognitoSubscriberRoleArn"

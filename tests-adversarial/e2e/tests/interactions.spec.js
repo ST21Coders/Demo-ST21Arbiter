@@ -53,7 +53,7 @@
 //
 // Module system: ESM-style imports.
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 import path from 'node:path'
 import fs from 'node:fs'
 

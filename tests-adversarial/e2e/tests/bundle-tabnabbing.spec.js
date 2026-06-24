@@ -19,7 +19,7 @@
 // console links from Integrations). New pages with external links should
 // be added to this list.
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 import {
   extractTargetBlankAnchors,
   relProtectsAgainstTabnabbing,

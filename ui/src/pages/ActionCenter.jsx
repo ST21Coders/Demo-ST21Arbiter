@@ -131,7 +131,22 @@ function CRCard({ cr, onApprove, onReject, onExecute, onEscalate }) {
 
   async function act(fn, ...args) {
     setActing(true)
-    try { await fn(...args) } finally { setActing(false) }
+    try {
+      await fn(...args)
+    } catch (err) {
+      // useApi.js::apiFetch throws `Error("<status> <statusText>")` on any
+      // non-2xx. The backend now returns 409 on contended approve/reject/
+      // execute (optimistic-lock conflict in _handle_action_transition).
+      // Without this catch the error becomes an unhandled promise rejection
+      // and the user sees the spinner stop with no feedback. alert() is
+      // intentionally crude — there's no shared toast infra yet — but it
+      // unambiguously surfaces "409 Conflict" so the user knows to refresh
+      // the list and retry.
+      console.error('CR action failed:', err)
+      alert(`Action failed: ${err.message || String(err)}`)
+    } finally {
+      setActing(false)
+    }
   }
 
   const envColors = {
