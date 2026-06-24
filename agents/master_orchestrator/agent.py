@@ -459,7 +459,17 @@ def _run_scan(payload: dict[str, Any]) -> dict[str, Any]:
     awsconfig  = overrides["awsconfig"]  if "awsconfig" in overrides else _seed_awsconfig_observations()
     paloalto   = overrides["paloalto"]   if "paloalto" in overrides else _seed_paloalto_observations()
 
-    findings = run_rule_pack(sharepoint, zscaler, awsconfig, paloalto)
+    # ServiceNow CMDB/Asset drift vs AWS reality. Live snapshot from the specialist
+    # (empty when the runtime/instance is absent → no SN findings). A What-If may
+    # override either input; the dry-run path passes servicenow=False to skip it.
+    if overrides.get("servicenow") is False:
+        servicenow, aws_inventory = None, None
+    else:
+        servicenow = overrides["servicenow"] if "servicenow" in overrides else _servicenow_snapshot()
+        aws_inventory = overrides.get("aws_inventory") or _seed_aws_inventory()
+
+    findings = run_rule_pack(sharepoint, zscaler, awsconfig, paloalto,
+                             servicenow=servicenow, aws_inventory=aws_inventory)
     for f in findings:
         f["scan_run_id"] = scan_run_id
     log.info("Scan complete: %d findings (rule_pack=%s, scan_run_id=%s, dry_run=%s, overrides=%s)",
@@ -476,6 +486,46 @@ def _run_scan(payload: dict[str, Any]) -> dict[str, Any]:
         {"findings": findings, "scan_run_id": scan_run_id, "rule_pack_version": rule_pack_version},
         default=_json_default,
     )
+    return {"result": result_json}
+
+
+def _run_servicenow_drift_scan(payload: dict[str, Any]) -> dict[str, Any]:
+    """Dedicated CMDB/Asset drift report: only the ServiceNow↔AWS DRIFT findings.
+
+    Returns {configured, drift_items, summary, counts} for the Drift Scan dashboard.
+    `configured` is False when the ServiceNow runtime/instance is unavailable so the
+    UI can show the empty/placeholder state (mirrors _impact_analysis's degradation).
+    """
+    from scan_rule_pack import run_servicenow_drift
+    from decimal import Decimal
+
+    overrides = payload.get("observations") or {}
+    snapshot = overrides["servicenow"] if "servicenow" in overrides else _servicenow_snapshot()
+    aws_inventory = overrides.get("aws_inventory") or _seed_aws_inventory()
+    configured = bool(snapshot and snapshot.get("configured"))
+
+    drift = run_servicenow_drift(snapshot or {}, aws_inventory)
+    by_kind: dict[str, int] = {}
+    by_severity: dict[str, int] = {}
+    for f in drift:
+        kind = ((f.get("enforcement_evidence") or [{}])[0].get("raw") or {}).get("drift_kind", "other")
+        by_kind[kind] = by_kind.get(kind, 0) + 1
+        by_severity[f.get("severity", "LOW")] = by_severity.get(f.get("severity", "LOW"), 0) + 1
+
+    def _json_default(o):
+        if isinstance(o, Decimal):
+            return float(o)
+        raise TypeError(f"not serializable: {type(o)}")
+
+    counts = (snapshot or {}).get("counts") or {}
+    result_json = json.dumps({
+        "configured": configured,
+        "drift_items": drift,
+        "summary": {"total": len(drift), "by_kind": by_kind, "by_severity": by_severity},
+        "snapshot_counts": counts,
+        "aws_inventory_count": len(aws_inventory),
+        "note": None if configured else "ServiceNow not configured — showing structure only.",
+    }, default=_json_default)
     return {"result": result_json}
 
 
@@ -604,6 +654,69 @@ def _seed_paloalto_observations() -> list[dict]:
     ]
 
 
+# ──────────────────────────── ServiceNow drift inputs ────────────
+def _seed_aws_inventory() -> list[dict]:
+    """Canonical 'AWS reality' the CMDB is expected to mirror, for drift detection.
+
+    This is the full inventory of AWS-backed resources (distinct from the curated
+    policy-UC awsconfig observations) that scripts/seed_servicenow_cmdb.py mirrors
+    into the CMDB. The deliberate mismatches below produce a deterministic drift demo:
+      - lambda-mig-prod-claims-processor-007 has NO CI            → unmanaged resource
+      - ec2-mig-prod-legacy-batch-009 is absent here but seeded as a CI → stale CI
+      - rds-mig-prod-reporting-replica-003 owner ≠ seeded CI owner → ownership drift
+    When the awsconfig specialist ships a structured inventory tool, replace this fixture.
+    """
+    acct = os.environ.get("AWS_ACCOUNT_ID", "669810405473")
+    rgn = REGION
+    return [
+        {"resource_id": "alb-mig-prod-claims-api-001", "state": "running", "owner": "Cloud Infrastructure",
+         "environment": "prod", "arn": f"arn:aws:elasticloadbalancing:{rgn}:{acct}:loadbalancer/app/alb-mig-prod-claims-api-001"},
+        {"resource_id": "mig-prod-claims-data-primary", "state": "running", "owner": "Data Governance",
+         "environment": "prod", "arn": f"arn:aws:rds:{rgn}:{acct}:db:mig-prod-claims-data-primary"},
+        {"resource_id": "pcx-mig-prod-dev-001", "state": "running", "owner": "Network Engineering", "environment": "prod"},
+        {"resource_id": "vpc-mig-prod-001", "state": "running", "owner": "Network Engineering", "environment": "prod"},
+        {"resource_id": "vpc-mig-dev-002", "state": "running", "owner": "Network Engineering", "environment": "dev"},
+        {"resource_id": "alb-mig-prod-api-002", "state": "running", "owner": "Cloud Infrastructure", "environment": "prod"},
+        {"resource_id": "mig-prod-customer-data-secondary", "state": "running", "owner": "Data Governance", "environment": "prod"},
+        # Owner-drift: CMDB seeds this CI under Network Engineering (see seed script).
+        {"resource_id": "rds-mig-prod-reporting-replica-003", "state": "running", "owner": "Data Governance",
+         "environment": "prod", "arn": f"arn:aws:rds:{rgn}:{acct}:db:rds-mig-prod-reporting-replica-003"},
+        # Unmanaged: live in AWS, no CI in the CMDB.
+        {"resource_id": "lambda-mig-prod-claims-processor-007", "state": "running", "owner": "Application Development",
+         "environment": "prod", "arn": f"arn:aws:lambda:{rgn}:{acct}:function:lambda-mig-prod-claims-processor-007"},
+    ]
+
+
+def _servicenow_snapshot() -> dict:
+    """Invoke the servicenow specialist's cmdb_snapshot action; {} on any failure.
+
+    Mirrors _zscaler_observations()'s direct-invoke pattern (a structured action
+    payload rather than a chat prompt). When the runtime is absent or ServiceNow
+    is unconfigured, returns an empty snapshot so drift simply yields no findings.
+    """
+    if not SERVICENOW_RUNTIME_ARN:
+        return {}
+    try:
+        resp = runtime_client.invoke_agent_runtime(
+            agentRuntimeArn=SERVICENOW_RUNTIME_ARN,
+            payload=json.dumps({"action": "cmdb_snapshot"}).encode("utf-8"),
+            contentType="application/json",
+            accept="application/json",
+        )
+        body = json.loads(resp["response"].read().decode("utf-8"))
+        inner = body.get("result", body) if isinstance(body, dict) else body
+        if isinstance(inner, str):
+            inner = json.loads(inner)
+        if isinstance(inner, dict) and inner.get("configured"):
+            log.info("ServiceNow snapshot: %d CIs, %d assets",
+                     len(inner.get("cis") or []), len(inner.get("assets") or []))
+            return inner
+        log.info("ServiceNow snapshot empty/unconfigured — skipping drift")
+    except Exception:
+        log.exception("ServiceNow snapshot invoke failed — skipping drift")
+    return {}
+
+
 # ──────────────────────────── AgentCore entrypoint ───────────────
 @app.entrypoint
 def invoke(payload: dict[str, Any]) -> dict[str, Any]:
@@ -611,6 +724,11 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     # {"scan": true, scan_run_id, rule_pack} and expects a JSON {"findings":[...]} back.
     if payload.get("scan") is True:
         return _run_scan(payload)
+
+    # Dedicated ServiceNow drift scan (api_handler → /servicenow/drift-scan): gather
+    # the CMDB/asset snapshot + AWS inventory and return ONLY the drift findings.
+    if payload.get("servicenow_drift_scan") is True:
+        return _run_servicenow_drift_scan(payload)
 
     prompt = payload.get("prompt") or payload.get("input") or ""
     if not prompt:

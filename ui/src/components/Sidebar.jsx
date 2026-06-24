@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, ShieldAlert, Activity, Wrench, Scale,
   GitBranch, ScrollText, MessageSquare, Cpu, Terminal,
-  Settings, Wifi, WifiOff, Shield, Users, Coins, Plug, FlaskConical, Network, FileText,
+  Settings, Wifi, WifiOff, Shield, Users, Coins, Plug, FlaskConical, Network, FileText, Radar,
 } from 'lucide-react'
 import { CHAT_URL, USE_MOCK, APP_VERSION } from '../config'
 import { usePersona } from '../contexts/PersonaContext'
@@ -34,6 +34,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/analyst',         icon: MessageSquare, label: 'Analyst Chat' },
       { to: '/impact-analysis', icon: Network,       label: 'Impact Analysis' },
+      { to: '/cmdb-drift',      icon: Radar,         label: 'CMDB Drift Scan' },
       { to: '/whatif',          icon: FlaskConical,  label: 'What-If Scan' },
       { to: '/llm-control',     icon: Cpu,           label: 'LLM Control', adminOnly: true },
     ],
@@ -58,6 +59,7 @@ const PAGE_TITLES = {
   '/audit':      'Audit Logs',
   '/analyst':    'Analyst Chat',
   '/impact-analysis': 'Impact Analysis',
+  '/cmdb-drift': 'CMDB Drift Scan',
   '/whatif':     'What-If Scan',
   '/llm-control':'LLM Control',
   '/pipeline':   'Data Pipeline',

@@ -1049,6 +1049,58 @@ export function mockImpactAnalysis({ resource, target_environment = 'PROD', seve
   return out
 }
 
+// CMDB / Asset drift fixtures — mirror scripts/seed_servicenow_cmdb.py drift
+// fixtures vs the master's _seed_aws_inventory(), so the Drift Scan dashboard
+// renders the same five items in mock mode as a seeded live instance.
+const _DRIFT_ITEMS = [
+  { drift_kind: 'unmanaged_resource', severity: 'HIGH', resource: 'lambda-mig-prod-claims-processor-007',
+    title: 'Unmanaged AWS resource — no CMDB CI for lambda-mig-prod-claims-processor-007',
+    finding: 'AWS resource lambda-mig-prod-claims-processor-007 is live but has no Configuration Item in the CMDB.',
+    impact: 'Change/impact analysis and ownership are blind to this resource — a CMDB coverage gap.',
+    remediation: ['Create a CI for lambda-mig-prod-claims-processor-007 (Service Graph Connector for AWS or manual).', 'Set correlation_id to the ARN and assign an owning support group.'] },
+  { drift_kind: 'stale_ci', severity: 'MEDIUM', resource: 'ec2-mig-prod-legacy-batch-009',
+    title: 'Stale CMDB CI — ec2-mig-prod-legacy-batch-009 not present in AWS',
+    finding: 'CI ec2-mig-prod-legacy-batch-009 is marked operational, but no matching live AWS resource exists.',
+    impact: 'Orphan CI inflates the CMDB and misleads impact analysis; the resource may be decommissioned.',
+    remediation: ['Verify whether ec2-mig-prod-legacy-batch-009 still exists in AWS.', 'Retire the CI (operational_status=retired) or correct its correlation_id.'] },
+  { drift_kind: 'ownership_drift', severity: 'LOW', resource: 'rds-mig-prod-reporting-replica-003',
+    title: 'Ownership drift — rds-mig-prod-reporting-replica-003 owner mismatch',
+    finding: "CMDB owner 'Network Engineering' for rds-mig-prod-reporting-replica-003 differs from the AWS owner tag 'Data Governance'.",
+    impact: 'Change routing and approvals may go to the wrong team.',
+    remediation: ['Reconcile the CMDB support group for rds-mig-prod-reporting-replica-003 with the AWS owner tag.'] },
+  { drift_kind: 'asset_stale', severity: 'MEDIUM', resource: 'P1000099',
+    title: 'In-use asset for a decommissioned resource — P1000099',
+    finding: "Asset P1000099 is in-use and linked to 'ec2-mig-prod-legacy-batch-009', which has no live AWS resource.",
+    impact: 'Asset lifecycle says in-use while the underlying resource is gone — likely over-stated inventory / cost.',
+    remediation: ['Retire asset P1000099 or relink it to a live CI.'] },
+  { drift_kind: 'asset_unlinked', severity: 'LOW', resource: 'P1000100',
+    title: 'Asset not linked to a CI — P1000100',
+    finding: 'Asset P1000100 is not linked to any CMDB CI.',
+    impact: 'Asset↔CI reconciliation gap; financial/lifecycle and operational views are disconnected.',
+    remediation: ['Link the asset to its CI (alm_asset.ci).'] },
+]
+
+export function mockDriftScan() {
+  const drift_items = _DRIFT_ITEMS.map(d => ({
+    conflict_id: `ARBITER-SN-${d.drift_kind}-${d.resource}`,
+    title: d.title, severity: d.severity, conflict_type: 'DRIFT',
+    source_pair: 'ServiceNow+AWS Config', source_technical: d.resource,
+    finding: d.finding, impact: d.impact, remediation: d.remediation,
+    enforcement_evidence: [{ source: 'ServiceNow', resource_id: d.resource, action: d.drift_kind.toUpperCase(), raw: { drift_kind: d.drift_kind } }],
+  }))
+  const by_kind = {}, by_severity = {}
+  drift_items.forEach(d => {
+    const k = d.enforcement_evidence[0].raw.drift_kind
+    by_kind[k] = (by_kind[k] || 0) + 1
+    by_severity[d.severity] = (by_severity[d.severity] || 0) + 1
+  })
+  return {
+    configured: true, drift_items,
+    summary: { total: drift_items.length, by_kind, by_severity },
+    snapshot_counts: { cis: 10, assets: 3 }, aws_inventory_count: 9,
+  }
+}
+
 // Token records → CSV blob (used by the Token Tracking page Export button).
 export function tokenUsageToCsv(records) {
   const headers = [

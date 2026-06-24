@@ -221,6 +221,9 @@ def handler(event, context):
     if path == "/servicenow/impact-analysis" and method == "POST":
         return _handle_servicenow_impact(event)
 
+    if path == "/servicenow/drift-scan" and method == "POST":
+        return _handle_servicenow_drift(event)
+
     if path == "/scan/dry-run" and method == "POST":
         return _handle_scan_dry_run(event)
 
@@ -1981,6 +1984,47 @@ def _handle_servicenow_impact(event):
         "affected_count": len(result.get("affected_cis") or []),
         "owner_team": result.get("owner_team"),
         "drafted_change": change.get("number"),
+    })
+    return _ok(result)
+
+
+# ──────────────────────────── /servicenow/drift-scan ─────────────
+def _handle_servicenow_drift(event):
+    """CMDB / Asset drift report: reconcile the live ServiceNow CMDB against AWS.
+
+    Invokes the master in `servicenow_drift_scan` mode — it pulls the CMDB+asset
+    snapshot from the servicenow specialist, compares it to the AWS inventory, and
+    returns only the DRIFT findings (unmanaged resources, stale CIs, ownership and
+    asset drift) for the Drift Scan dashboard. The same drift also surfaces in the
+    main /scan run as DRIFT findings. Falls back to a structured mock when the
+    master runtime isn't deployed (mirrors _handle_servicenow_impact).
+    """
+    user_id = _caller_user_id(event) or "anonymous"
+    if not MASTER_AGENT_RUNTIME_ARN:
+        return _ok({
+            "configured": False, "drift_items": [],
+            "summary": {"total": 0, "by_kind": {}, "by_severity": {}},
+            "note": "Master runtime not configured — run scripts/deploy_agents.py.",
+        })
+    try:
+        resp = agentcore.invoke_agent_runtime(
+            agentRuntimeArn=MASTER_AGENT_RUNTIME_ARN,
+            payload=json.dumps({"servicenow_drift_scan": True}).encode("utf-8"),
+            contentType="application/json",
+            accept="application/json",
+        )
+        body = json.loads(resp["response"].read().decode("utf-8"))
+        # The master returns {"result": "<json string>"} (same envelope as /scan).
+        inner = body.get("result", body) if isinstance(body, dict) else body
+        result = json.loads(inner) if isinstance(inner, str) else inner
+    except Exception as e:
+        logger.exception("ServiceNow drift-scan invocation failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+
+    summary = result.get("summary") or {}
+    _audit("SERVICENOW_DRIFT_SCAN", "cmdb", user_id, "COMPLETED", {
+        "drift_total": summary.get("total", 0),
+        "by_kind": summary.get("by_kind", {}),
     })
     return _ok(result)
 

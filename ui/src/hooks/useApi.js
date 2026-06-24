@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { API_URL, CHAT_URL, USE_MOCK } from '../config'
 import {
   MOCK_CONFLICTS, MOCK_CHANGE_REQUESTS, MOCK_AUDIT, MOCK_TOKEN_USAGE, mockImpactAnalysis,
-  MOCK_REPORT_CATALOG, MOCK_REPORT_CATEGORIES, mockGenerateReport,
+  MOCK_REPORT_CATALOG, MOCK_REPORT_CATEGORIES, mockGenerateReport, mockDriftScan,
 } from '../mockData'
 import { authHeaders, refresh, signIn } from './useAuth'
 
@@ -407,6 +407,18 @@ export async function runImpactAnalysis({ resource, target_environment = 'PROD',
     method: 'POST',
     body: JSON.stringify({ resource, target_environment, severity, draft_change }),
   })
+}
+
+// CMDB / Asset drift scan via the master orchestrator (servicenow_drift_scan mode).
+// POST /servicenow/drift-scan → {configured, drift_items:[{title, severity, finding,
+// impact, remediation, source_technical, enforcement_evidence:[{raw:{drift_kind}}]}],
+// summary:{total, by_kind, by_severity}, snapshot_counts, aws_inventory_count}.
+export async function runDriftScan() {
+  if (USE_MOCK) {
+    await sleep(600 + Math.random() * 600)
+    return mockDriftScan()
+  }
+  return apiFetch('/servicenow/drift-scan', { method: 'POST', body: JSON.stringify({}) })
 }
 
 // Single-round-trip dashboard aggregate. Polls every 60s.
