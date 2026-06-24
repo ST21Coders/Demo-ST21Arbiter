@@ -66,6 +66,22 @@ CIS = [
     # Compliant guard resources from the fixtures (so the CMDB isn't all-prod-broken).
     ("alb-mig-prod-api-002",          "cmdb_ci_lb",          "cloud-infra",     f"arn:aws:elasticloadbalancing:{REGION}:{ACCOUNT}:loadbalancer/app/alb-mig-prod-api-002"),
     ("mig-prod-customer-data-secondary", "cmdb_ci_db_instance", "data-governance", f"arn:aws:rds:{REGION}:{ACCOUNT}:db:mig-prod-customer-data-secondary"),
+    # ── Intentional DRIFT fixtures (vs the master's _seed_aws_inventory) ──
+    # STALE CI: operational here, but NOT present in the AWS inventory → drift "stale_ci".
+    ("ec2-mig-prod-legacy-batch-009", "cmdb_ci_server",      "cloud-infra",     f"arn:aws:ec2:{REGION}:{ACCOUNT}:instance/i-0legacybatch009"),
+    # OWNERSHIP DRIFT: seeded under Network Engineering, but AWS owner tag = Data
+    # Governance in the inventory → drift "ownership_drift".
+    ("rds-mig-prod-reporting-replica-003", "cmdb_ci_db_instance", "network-eng", f"arn:aws:rds:{REGION}:{ACCOUNT}:db:rds-mig-prod-reporting-replica-003"),
+]
+
+# Assets (alm_hardware). (asset_tag, display_name, install_status, linked-CI-name|"").
+# Install status uses display labels (sysparm_input_display_value=true resolves them).
+# The unlinked + stale-linked assets are intentional DRIFT fixtures; P1000050 is the
+# healthy control the drift scan must NOT flag.
+ASSETS = [
+    ("P1000050", "Claims ALB appliance",   "In use",  "alb-mig-prod-claims-api-001"),  # healthy control
+    ("P1000099", "Legacy batch host",       "In use",  "ec2-mig-prod-legacy-batch-009"),  # in-use asset for a stale resource
+    ("P1000100", "Unlinked spare server",   "In stock", ""),                              # not linked to any CI
 ]
 
 # Relationships: (parent_name, type_display, child_name). The "Depends on::Used
@@ -164,8 +180,17 @@ def main() -> None:
                   {"parent": p, "child": c, "type": rel_type})
         log.info("  rel   %s --%s--> %s", parent, rel_type, child)
 
-    log.info("Done. Try: query the specialist with resource "
-             "'alb-mig-prod-claims-api-001' (impact_analysis).")
+    # 4. Assets (alm_hardware). ci linked by display name (input_display_value=true).
+    for tag, display_name, install_status, ci_name in ASSETS:
+        body = {"asset_tag": tag, "display_name": display_name, "install_status": install_status}
+        if ci_name:
+            body["ci"] = ci_name  # resolved by CI display name
+        sn.upsert("alm_hardware", f"asset_tag={tag}", body)
+        log.info("  asset %-9s %-22s [%s] ci=%s", tag, display_name, install_status, ci_name or "(unlinked)")
+
+    log.info("Done. Try: impact_analysis on 'alb-mig-prod-claims-api-001', or run the "
+             "Drift Scan dashboard — expect unmanaged(lambda-…-007), stale(ec2-…-009), "
+             "ownership(rds-…-003), and 2 asset-drift items.")
 
 
 if __name__ == "__main__":

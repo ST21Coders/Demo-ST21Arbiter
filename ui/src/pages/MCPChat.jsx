@@ -79,12 +79,16 @@ const MCP_SERVERS = [
     id: 'servicenow',
     name: 'ServiceNow Specialist',
     host: 'agentcore · servicenow_specialist',
-    description: 'IT-asset change-impact analysis from the ServiceNow CMDB + Change Management (Table/Change REST).',
+    description: 'Full ITSM/ITAM over the ServiceNow REST API: CMDB, Incident, Problem, Change, Asset Management, and CMDB/asset drift detection.',
     tools: [
-      { name: 'query_ci', desc: 'Resolve an AWS resource/ARN to a CMDB CI' },
+      { name: 'query_ci / get_ci_details', desc: 'Resolve an AWS resource/ARN to a CMDB CI' },
       { name: 'get_affected_cis', desc: 'Blast-radius traversal over cmdb_rel_ci' },
-      { name: 'get_ci_owner', desc: 'Owning/support team for a CI' },
+      { name: 'query_incident / query_problem', desc: 'Look up incidents & problems' },
+      { name: 'update_incident / comment_incident', desc: 'Change state, assign, add work notes' },
+      { name: 'comment_problem', desc: 'Add work notes/comments to a problem' },
+      { name: 'query_asset', desc: 'Look up hardware/software assets (alm_asset)' },
       { name: 'query_change', desc: 'Look up a change_request by number' },
+      { name: 'detect_drift', desc: 'CMDB/asset hygiene gaps (see Drift Scan page)' },
     ],
   },
 ]
@@ -193,7 +197,13 @@ const SUGGESTED = {
   paloalto: ['Is outbound tor traffic allowed at the perimeter?', 'Show the egress security rules', 'What does PAN-SEC-EGRESS-ANYANY-ALLOW-001 permit?'],
   awsconfig: ['List non-compliant resources', 'Which Config rules are failing?', 'Show S3 encryption compliance'],
   jira: ['List my open issues', 'Show issues in the MIG project', 'What is the status of MIG-123?'],
-  servicenow: [],
+  servicenow: [
+    'What is the impact of changing alb-mig-prod-claims-api-001?',
+    'Show open incidents on the Claims API CI',
+    'Add a work note to INC0010001: investigating with the cloud team',
+    'Look up asset P1000099',
+    'What CMDB/asset hygiene drift do you see?',
+  ],
 }
 
 /* ─── Main page ─────────────────────────────────────────────────────── */
