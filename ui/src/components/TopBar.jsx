@@ -14,6 +14,7 @@ const ROUTE_META = {
   '/analyst':    { title: 'Analyst Chat',  section: 'Intelligence' },
   '/llm-control':{ title: 'LLM Control',   section: 'Intelligence' },
   '/pipeline':   { title: 'Data Pipeline', section: 'Infrastructure' },
+  '/data-grouping': { title: 'Data Grouping', section: 'Infrastructure' },
   '/mcp-chat':   { title: 'MCP Admin',     section: 'Infrastructure' },
   '/token-usage':{ title: 'Token Tracking', section: 'Governance' },
   '/personas':   { title: 'Personas',      section: 'Demo' },

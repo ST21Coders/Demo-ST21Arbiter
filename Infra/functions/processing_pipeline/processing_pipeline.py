@@ -28,6 +28,7 @@ import io
 import json
 import logging
 import os
+import re
 import time
 import uuid
 from datetime import datetime, timezone
@@ -51,10 +52,10 @@ ALLOWED_GROUPS = {g.strip() for g in os.environ.get("ALLOWED_GROUPS", "").split(
 KB_ID = os.environ.get("KB_ID", "").strip()
 KB_DATA_SOURCE_ID = os.environ.get("KB_DATA_SOURCE_ID", "").strip()
 SCANNER_LAMBDA_NAME = os.environ.get("SCANNER_LAMBDA_NAME", "").strip()
-# Structured ingestion: .csv exports route to processed/<STRUCTURED_PREFIX><dataset>/
-# and trigger a Glue crawler (Athena-queryable) instead of KB ingestion. Empty
-# crawler name = catalog refresh skipped (file still moved). The re-scan is NOT
-# inline — Glue crawls take minutes; it runs via "Run AI Scan" or the future
+# Structured ingestion: .csv exports are preserved under their original
+# processed key for Data Grouping, then mirrored to processed/<STRUCTURED_PREFIX>
+# for Glue/Athena. Empty crawler name = catalog refresh skipped. The re-scan is
+# NOT inline — Glue crawls take minutes; it runs via "Run AI Scan" or the future
 # crawler-completed Step Functions rule (see Documents/policy_scan_flow.md).
 STRUCTURED_PREFIX = os.environ.get("STRUCTURED_PREFIX", "structured/")
 GLUE_CRAWLER_NAME = os.environ.get("GLUE_CRAWLER_NAME", "").strip()
@@ -62,6 +63,7 @@ GLUE_CRAWLER_NAME = os.environ.get("GLUE_CRAWLER_NAME", "").strip()
 # finishes a 5-doc KB in ~30-60s; 3min is a comfortable ceiling).
 INGEST_POLL_TIMEOUT_S = int(os.environ.get("INGEST_POLL_TIMEOUT_S", "180"))
 INGEST_POLL_INTERVAL_S = int(os.environ.get("INGEST_POLL_INTERVAL_S", "5"))
+INGEST_START_MAX_ATTEMPTS = int(os.environ.get("INGEST_START_MAX_ATTEMPTS", "18"))
 
 s3 = boto3.client("s3", region_name=REGION)
 bedrock_agent = boto3.client("bedrock-agent", region_name=REGION)
@@ -278,18 +280,30 @@ def _handle_single_object_event(event: dict) -> dict:
 
 
 def _start_kb_ingestion() -> str | None:
-    try:
-        resp = bedrock_agent.start_ingestion_job(
-            knowledgeBaseId=KB_ID,
-            dataSourceId=KB_DATA_SOURCE_ID,
-            description=f"auto-trigger {_now_iso()}",
-        )
-        job_id = resp["ingestionJob"]["ingestionJobId"]
-        logger.info("KB ingestion job started: %s (kb=%s ds=%s)", job_id, KB_ID, KB_DATA_SOURCE_ID)
-        return job_id
-    except ClientError as e:
-        logger.exception("StartIngestionJob failed (kb=%s ds=%s)", KB_ID, KB_DATA_SOURCE_ID)
-        return None
+    for attempt in range(1, INGEST_START_MAX_ATTEMPTS + 1):
+        try:
+            resp = bedrock_agent.start_ingestion_job(
+                knowledgeBaseId=KB_ID,
+                dataSourceId=KB_DATA_SOURCE_ID,
+                description=f"auto-trigger {_now_iso()}",
+            )
+            job_id = resp["ingestionJob"]["ingestionJobId"]
+            logger.info("KB ingestion job started: %s (kb=%s ds=%s)", job_id, KB_ID, KB_DATA_SOURCE_ID)
+            return job_id
+        except ClientError as e:
+            code = e.response.get("Error", {}).get("Code", "")
+            if code == "ConflictException" and attempt < INGEST_START_MAX_ATTEMPTS:
+                logger.info(
+                    "KB ingestion already running; retrying start attempt %d/%d in %ds",
+                    attempt,
+                    INGEST_START_MAX_ATTEMPTS,
+                    INGEST_POLL_INTERVAL_S,
+                )
+                time.sleep(INGEST_POLL_INTERVAL_S)
+                continue
+            logger.exception("StartIngestionJob failed (kb=%s ds=%s)", KB_ID, KB_DATA_SOURCE_ID)
+            return None
+    return None
 
 
 def _wait_for_ingestion(job_id: str) -> str:
@@ -339,11 +353,35 @@ def _is_structured(key: str) -> bool:
 def _structured_dataset(key: str) -> str:
     """Classify a structured export by FILENAME (uploads aren't source-prefixed)."""
     name = key.rsplit("/", 1)[-1].lower()
+    normalized = name.replace("-", "_").replace(" ", "_")
+    if "ar_invoice" in normalized or "ar_invoices" in normalized:
+        return "ar_invoices"
+    if "ap_invoice" in normalized or "ap_invoices" in normalized:
+        return "ap_invoices"
+    if "aws_config" in normalized or "awsconfig" in normalized:
+        return "aws_config"
     if "zscaler" in name:
         return "zscaler_rules"
     if "paloalto" in name or "pan-os" in name or "panos" in name:
         return "paloalto_rules"
     return "misc"
+
+
+def _staged_structured_key(key: str, dataset: str) -> str:
+    name = key.rsplit("/", 1)[-1]
+    if dataset != "misc":
+        # Known canonical datasets intentionally replace their one stable file.
+        return f"{STRUCTURED_PREFIX}{dataset}/{dataset}.csv"
+
+    # Unknown CSVs must not overwrite each other. Strip the upload timestamp
+    # prefix added by /uploads/presign, then stage each CSV under its own folder.
+    original = re.sub(r"^\d{8}T\d{6}Z-", "", name)
+    stem = original.rsplit(".", 1)[0]
+    safe_stem = re.sub(r"[^A-Za-z0-9_]+", "_", stem).strip("_").lower()[:120] or "dataset"
+    safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", original).strip("._-")[:200] or f"{safe_stem}.csv"
+    if not safe_name.lower().endswith(".csv"):
+        safe_name = f"{safe_name}.csv"
+    return f"{STRUCTURED_PREFIX}staged/{safe_stem}/{safe_name}"
 
 
 def _start_crawler() -> bool:
@@ -363,18 +401,20 @@ def _start_crawler() -> bool:
 
 
 def _handle_structured_object(bucket: str, key: str) -> dict:
-    """Copy a .csv export to processed/structured/<dataset>/ and kick the crawler.
+    """Preserve a .csv export in processed and mirror it for Glue.
 
     Re-scan is intentionally NOT inline: Glue crawls take minutes, and a Lambda
     poll would be the wait-billing anti-pattern. The scan runs via "Run AI Scan"
     or the future crawler-completed orchestration (Documents/policy_scan_flow.md).
     """
     dataset = _structured_dataset(key)
-    # STABLE per-dataset filename (not the timestamped upload name) so a re-upload
-    # REPLACES the dataset's single file. Otherwise files accumulate under the
-    # prefix and Athena reads them all together (stale + new rows → wrong results).
-    dest_key = f"{STRUCTURED_PREFIX}{dataset}/{dataset}.csv"
+    dest_key = _staged_structured_key(key, dataset)
     try:
+        s3.copy_object(
+            Bucket=PROCESSED_BUCKET, Key=key,
+            CopySource={"Bucket": bucket, "Key": key},
+            ServerSideEncryption="aws:kms", MetadataDirective="COPY",
+        )
         s3.copy_object(
             Bucket=PROCESSED_BUCKET, Key=dest_key,
             CopySource={"Bucket": bucket, "Key": key},
@@ -392,6 +432,7 @@ def _handle_structured_object(bucket: str, key: str) -> dict:
         "key": key,
         "structured": True,
         "dataset": dataset,
+        "processed_key": key,
         "dest_key": dest_key,
         "crawler_started": started,
         "note": "Run a scan after the crawler completes to pick up the new data.",

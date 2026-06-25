@@ -173,6 +173,16 @@ Resources:
         gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
         gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
 
+  Default5xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: DEFAULT_5XX
+      RestApiId: !Ref ArbiterApi
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
   ApiHandlerFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -210,6 +220,8 @@ Resources:
           # AgentCore Runtimes directly via boto3 (see agents/_shared/token_usage.py).
           TOKEN_USAGE_TABLE:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-TokenUsageTableName"
+          GLUE_CRAWLER_NAME:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-StructuredCrawlerName"
           # Comma-separated MCP endpoint URLs for /mcp-health pings. Empty by
           # default — UI shows all MCP servers as "unknown" until configured.
           MCP_ENDPOINTS: ""
@@ -226,7 +238,9 @@ Resources:
           AWSCONFIG_RUNTIME_ARN: ""
           ZSCALER_RUNTIME_ARN: ""
           PALOALTO_RUNTIME_ARN: ""
+          STRUCTURED_RUNTIME_ARN: ""
           JIRA_RUNTIME_ARN: ""
+          SERVICENOW_RUNTIME_ARN: ""
           # Set by deploy_agents.py alongside MASTER_AGENT_RUNTIME_ARN. Read by
           # GET /conversations/{id}/messages to list events from AgentCore Memory.
           MEMORY_ID: ""
@@ -461,6 +475,54 @@ Resources:
             RestApiId: !Ref ArbiterApi
             Path: /uploads/list
             Method: GET
+        DataGroupingMaterialize:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /data-grouping/materialize
+            Method: POST
+        DataGroupingStartCrawler:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /data-grouping/start-crawler
+            Method: POST
+        DataGroupingAnalyzeDocuments:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /data-grouping/analyze-documents
+            Method: POST
+        ConfigDriftSecurityGroupsCurrent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /config-drift/security-groups/current
+            Method: GET
+        ConfigDriftSecurityGroupsBaseline:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /config-drift/security-groups/baseline
+            Method: POST
+        ConfigDriftSecurityGroupsBaselineGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /config-drift/security-groups/baseline
+            Method: GET
+        ConfigDriftSecurityGroupsCheck:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /config-drift/security-groups/check
+            Method: POST
+        ConfigDriftSecurityGroupsRevert:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /config-drift/security-groups/revert
+            Method: POST
       Tags:
         Name: !Sub "${Environment}-${ProjectName}-api-handler"
 

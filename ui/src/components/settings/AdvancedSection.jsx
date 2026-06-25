@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Cpu, GitBranch, Terminal, Trash2, ArrowRight } from 'lucide-react'
+import { Cpu, FolderTree, GitBranch, Terminal, Trash2, ArrowRight } from 'lucide-react'
 import { resetPreferences } from '../../hooks/usePreferences'
 
 const cardStyle = { background: 'var(--surface)', border: '1px solid rgb(var(--c-slate-200))', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }
@@ -8,6 +8,7 @@ const cardStyle = { background: 'var(--surface)', border: '1px solid rgb(var(--c
 const OPERATOR_LINKS = [
   { to: '/llm-control', icon: Cpu,       label: 'LLM Control',  desc: 'Guardrails, agent registry, model selection' },
   { to: '/pipeline',    icon: GitBranch, label: 'Data Pipeline', desc: 'Document ingestion & knowledge-base sync' },
+  { to: '/data-grouping', icon: FolderTree, label: 'Data Grouping', desc: 'Project data objects, metadata, and spreadsheet summaries' },
   { to: '/mcp-chat',    icon: Terminal,  label: 'MCP Admin',     desc: 'Runtime health & MCP server diagnostics' },
 ]
 

@@ -3,7 +3,7 @@ import {
   CheckCircle, Clock, RefreshCw, Database, FileText, Server, Loader2, Activity,
   Upload, AlertTriangle,
 } from 'lucide-react'
-import { presignUpload, uploadToPresignedUrl, listScanRuns } from '../hooks/useApi'
+import { presignUpload, uploadToPresignedUrl, listScanRuns, getUploadStatus } from '../hooks/useApi'
 import { formatDistanceToNow } from 'date-fns'
 
 // ── Static source / KB reference (kept from previous build) ─────────────────
@@ -72,13 +72,27 @@ function StepChip({ status, label }) {
 function stepStatesFor(upload) {
   // Structured (.csv): raw → processed → catalog. The processing_pipeline copies
   // to processed/structured/ and starts the Glue crawler on the S3 ObjectCreated
-  // event (seconds), so once the PUT succeeds the structured chain is underway.
-  // There's no KB or auto-scan, so this terminates at "catalog" (no infinite KB wait).
+  // event. Poll /uploads/status so we do not mark cataloging complete before
+  // the staged object exists and the crawler has reported a result.
   if (isStructuredUpload(upload)) {
     const s = { raw: 'pending', processed: 'pending', catalog: 'pending' }
     if (upload.state === 'uploading')     { s.raw = 'running'; return s }
     if (upload.state === 'upload_failed') { s.raw = 'failed';  return s }
-    s.raw = 'done'; s.processed = 'done'; s.catalog = 'done'
+    s.raw = 'done'
+    const status = upload.processingStatus
+    if (!status) {
+      s.processed = 'running'
+      return s
+    }
+    if (status.processed?.exists || status.structured?.exists) {
+      s.processed = 'done'
+    } else {
+      s.processed = 'running'
+      return s
+    }
+    if (status.status === 'catalog_done') s.catalog = 'done'
+    else if (status.status === 'catalog_failed') s.catalog = 'failed'
+    else s.catalog = 'running'
     return s
   }
 
@@ -170,6 +184,8 @@ function UploadRow({ upload }) {
   const structured = isStructuredUpload(upload)
   const finished = stepDefs.every(d => states[d.key] === 'done') || stepDefs.some(d => states[d.key] === 'failed')
   const ts = upload.startedAt ? new Date(upload.startedAt) : null
+  const statusMessage = structured ? upload.processingStatus?.message : null
+  const structuredKey = structured ? upload.processingStatus?.structured?.key : null
 
   return (
     <div className="rounded-xl p-4 bg-white border border-slate-200"
@@ -185,8 +201,14 @@ function UploadRow({ upload }) {
             </p>
           </div>
         </div>
-        {finished && structured && (
-          <p className="text-xs text-emerald-700 flex-shrink-0">Catalogued · run a scan to apply</p>
+        {finished && structured && states.catalog === 'done' && (
+          <p className="text-xs text-emerald-700 flex-shrink-0">Cataloged · ready for grouping/query</p>
+        )}
+        {finished && structured && states.catalog === 'failed' && (
+          <p className="text-xs text-red-700 flex-shrink-0">Catalog failed</p>
+        )}
+        {!finished && structured && statusMessage && (
+          <p className="text-xs text-amber-700 flex-shrink-0">{statusMessage}</p>
         )}
         {finished && !structured && upload.scanRun?.totals && (
           <p className="text-xs text-emerald-700 flex-shrink-0">
@@ -213,6 +235,11 @@ function UploadRow({ upload }) {
       {upload.error && (
         <p className="text-xs text-red-700 mt-2 flex items-center gap-1.5">
           <AlertTriangle size={12} /> {upload.error}
+        </p>
+      )}
+      {structuredKey && (
+        <p className="text-[11px] text-slate-500 mt-2">
+          Structured path: <span className="font-mono">{structuredKey}</span>
         </p>
       )}
     </div>
@@ -355,6 +382,7 @@ export default function DataPipeline() {
       startedAt: new Date().toISOString(),
       key: null,
       scanRun: null,
+      processingStatus: null,
       error: null,
     }
     setUploads(prev => [upload, ...prev])
@@ -390,9 +418,9 @@ export default function DataPipeline() {
   useEffect(() => {
     const active = uploads.some(u => {
       if (u.state === 'upload_failed') return false
-      // Structured (.csv) uploads don't produce a scan-run; they're terminal once
-      // the PUT succeeds (catalog refresh runs server-side). Don't poll for them.
-      if (isStructuredUpload(u)) return u.state !== 'uploaded'
+      if (isStructuredUpload(u)) {
+        return !['catalog_done', 'catalog_failed'].includes(u.processingStatus?.status)
+      }
       return !u.scanRun || (u.scanRun.status !== 'COMPLETED' && u.scanRun.status !== 'FAILED')
     })
     if (!active) return
@@ -402,9 +430,23 @@ export default function DataPipeline() {
         const data = await listScanRuns(20)
         const runs = data?.scan_runs || []
         if (cancelled) return
+        const structuredUploads = uploads.filter(u =>
+          u.key &&
+          isStructuredUpload(u) &&
+          !['catalog_done', 'catalog_failed'].includes(u.processingStatus?.status)
+        )
+        const statusById = {}
+        await Promise.all(structuredUploads.map(async u => {
+          try {
+            statusById[u.id] = await getUploadStatus(u.key)
+          } catch (err) {
+            statusById[u.id] = { status: 'catalog_failed', message: err.message || 'status check failed' }
+          }
+        }))
         // For each upload that has a key but no terminal scanRun, see if a row
         // matching its triggered_by has appeared.
         setUploads(prev => prev.map(u => {
+          if (statusById[u.id]) return { ...u, processingStatus: statusById[u.id] }
           if (!u.key) return u
           if (u.scanRun?.status === 'COMPLETED' || u.scanRun?.status === 'FAILED') return u
           const wanted = `auto-ingest:${u.key}`

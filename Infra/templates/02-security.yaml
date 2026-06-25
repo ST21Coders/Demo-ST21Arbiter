@@ -166,11 +166,35 @@ Resources:
                   - s3:PutObject
                   - s3:ListBucket
                   - s3:GetObject
+                  - s3:DeleteObject
                 Resource:
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-raw"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-raw/*"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/*"
+              # Data Grouping materializes project folders and starts the same
+              # structured crawler used by the processing pipeline.
+              - Sid: DataGroupingCrawlerStart
+                Effect: Allow
+                Action:
+                  - glue:StartCrawler
+                  - glue:GetCrawler
+                Resource:
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:crawler/${Environment}-${ProjectName}-structured-crawler"
+              # Config Drift reads current security group state for baseline and
+              # drift comparison. The first remediation POC is deliberately
+              # allowlisted to the one security group used in manual testing.
+              - Sid: ConfigDriftReadSecurityGroups
+                Effect: Allow
+                Action:
+                  - ec2:DescribeSecurityGroups
+                Resource: "*"
+              - Sid: ConfigDriftRevertAllowlistedSecurityGroup
+                Effect: Allow
+                Action:
+                  - ec2:RevokeSecurityGroupIngress
+                Resource:
+                  - !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/sg-0ff2704a0e3189977"
               # Synchronous report generation: api_handler PUTs generated reports
               # into the reports bucket (SSE-S3, no KMS) and signs presigned GET
               # URLs the browser downloads. GetObject must be allowed on the role

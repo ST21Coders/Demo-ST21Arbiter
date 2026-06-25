@@ -16,6 +16,18 @@ Routes:
   GET  /uploads/list?bucket=raw|processed     → list the caller's files in the
                                                 named bucket (scoped to
                                                 users/<sub>/ prefix).
+  GET  /uploads/status?key=<raw-key>          → per-upload processing/catalog
+                                                status for Data Pipeline rows.
+  POST /data-grouping/materialize             → copy selected processed files
+                                                into a project prefix and write
+                                                project metadata.
+  POST /data-grouping/start-crawler           → start Glue crawler for structured data
+  POST /data-grouping/analyze-documents       → deterministic portfolio analysis
+                                                for project documents in a group.
+  GET  /config-drift/security-groups/current  → current EC2 security group snapshot
+  POST /config-drift/security-groups/baseline → capture live security group baseline
+  POST /config-drift/security-groups/check    → compare current SGs to baseline
+  POST /config-drift/security-groups/revert   → execute expired allowlisted SG revert
   GET  /health                                → unauth health check
 
 Note: POST /conversations and POST /conversations/{id}/messages were removed —
@@ -30,17 +42,22 @@ Env vars:
   MEMORY_ID                  AgentCore Memory ID (for message history reads).
   RAW_BUCKET                 S3 bucket for browser uploads (raw zone).
   PROCESSED_BUCKET           S3 bucket for processed files (read-only list).
+  GLUE_CRAWLER_NAME          Optional structured crawler to start after project
+                             files are materialized.
   S3_KMS_KEY_ARN             Optional. CMK ARN that encrypts both buckets;
                              when set, the presigned PUT includes the SSE-KMS
                              headers so the browser PUT succeeds.
   UPLOAD_URL_EXPIRES_SECONDS Optional. Presigned URL lifetime. Default 900s.
 """
 import base64
+import csv
+import io
 import json
 import logging
 import os
 import re
 import time
+import zlib
 from typing import Any
 from decimal import Decimal
 from datetime import datetime, timezone, timedelta
@@ -69,6 +86,7 @@ SPECIALIST_RUNTIME_ARNS = {
     "awsconfig":  os.environ.get("AWSCONFIG_RUNTIME_ARN", "").strip(),
     "zscaler":    os.environ.get("ZSCALER_RUNTIME_ARN", "").strip(),
     "paloalto":   os.environ.get("PALOALTO_RUNTIME_ARN", "").strip(),
+    "structured": os.environ.get("STRUCTURED_RUNTIME_ARN", "").strip(),
     "jira":       os.environ.get("JIRA_RUNTIME_ARN", "").strip(),
     "servicenow": os.environ.get("SERVICENOW_RUNTIME_ARN", "").strip(),
 }
@@ -83,6 +101,10 @@ MEMORY_ID = os.environ.get("MEMORY_ID", "").strip()
 RAW_BUCKET = os.environ.get("RAW_BUCKET", "").strip()
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "").strip()
 REPORTS_BUCKET = os.environ.get("REPORTS_BUCKET", "").strip()
+GLUE_CRAWLER_NAME = (
+    os.environ.get("GLUE_CRAWLER_NAME", "").strip()
+    or f"{os.environ.get('ENVIRONMENT', 'dev')}-{os.environ.get('PROJECT_NAME', 'st21arbiter-poc')}-structured-crawler"
+)
 REPORT_URL_EXPIRES_SECONDS = int(os.environ.get("REPORT_URL_EXPIRES_SECONDS", "86400"))
 ORG_NAME = os.environ.get("ORG_NAME", "Meridian Insurance Group")
 S3_KMS_KEY_ARN = os.environ.get("S3_KMS_KEY_ARN", "").strip()
@@ -91,6 +113,11 @@ MCP_ENDPOINTS = [u.strip() for u in os.environ.get("MCP_ENDPOINTS", "").split(",
 UPLOAD_URL_EXPIRES_SECONDS = int(os.environ.get("UPLOAD_URL_EXPIRES_SECONDS", "900"))
 UPLOAD_PREFIX = "users/"            # per-user folder root inside each bucket
 MAX_LIST_KEYS = 200                 # cap list responses; bucket-listing isn't paginated to the UI
+CONFIG_DRIFT_ALLOWED_REVERT_SECURITY_GROUPS = {
+    group_id.strip()
+    for group_id in os.environ.get("CONFIG_DRIFT_ALLOWED_REVERT_SECURITY_GROUPS", "sg-0ff2704a0e3189977").split(",")
+    if group_id.strip()
+}
 
 # Module-level flag toggled per-invocation in handler(). Safe because Lambda
 # runs at most one invocation per container at a time. The Function URL adds
@@ -126,6 +153,8 @@ s3 = boto3.client(
     region_name=REGION,
     config=BotoConfig(signature_version="s3v4", s3={"addressing_style": "virtual"}),
 )
+glue = boto3.client("glue", region_name=REGION)
+ec2 = boto3.client("ec2", region_name=REGION)
 
 # Anything outside this character class is replaced with '_' in upload keys.
 # S3 accepts a wider set but browsers + presigned URLs handle this subset cleanly.
@@ -181,6 +210,33 @@ def handler(event, context):
 
     if path == "/uploads/list" and method == "GET":
         return _handle_uploads_list(event)
+
+    if path == "/uploads/status" and method == "GET":
+        return _handle_uploads_status(event)
+
+    if path == "/data-grouping/materialize" and method == "POST":
+        return _handle_data_grouping_materialize(event)
+
+    if path == "/data-grouping/start-crawler" and method == "POST":
+        return _handle_data_grouping_start_crawler(event)
+
+    if path == "/data-grouping/analyze-documents" and method == "POST":
+        return _handle_data_grouping_analyze_documents(event)
+
+    if path == "/config-drift/security-groups/current" and method == "GET":
+        return _handle_config_drift_security_groups_current(event)
+
+    if path == "/config-drift/security-groups/baseline" and method == "GET":
+        return _handle_config_drift_security_groups_get_baseline(event)
+
+    if path == "/config-drift/security-groups/baseline" and method == "POST":
+        return _handle_config_drift_security_groups_baseline(event)
+
+    if path == "/config-drift/security-groups/check" and method == "POST":
+        return _handle_config_drift_security_groups_check(event)
+
+    if path == "/config-drift/security-groups/revert" and method == "POST":
+        return _handle_config_drift_security_groups_revert(event)
 
     # Exact-match bulk-delete must precede the /conversations/{id} path-param
     # branch below, otherwise "bulk-delete" would be parsed as a session_id.
@@ -309,11 +365,21 @@ def _handle_chat(event):
     claims = _caller_claims(event)
     user_email = (claims.get("email") or "")[:200]
 
+    runtime_prompt = prompt
+    if target == "structured":
+        explicit_group = _extract_structured_group_context(prompt)
+        if explicit_group:
+            _remember_structured_group_context(session_id, actor_id, chat_type, prompt, explicit_group)
+        elif session_id != "adhoc":
+            stored_group = _load_structured_group_context(session_id)
+            if stored_group:
+                runtime_prompt = f"Use the {stored_group} group. {prompt}"
+
     try:
         resp = agentcore.invoke_agent_runtime(
             agentRuntimeArn=runtime_arn,
             payload=json.dumps({
-                "prompt": prompt,
+                "prompt": runtime_prompt,
                 "session_id": session_id,
                 "actor_id": actor_id,
                 "chat_type": chat_type,
@@ -325,13 +391,83 @@ def _handle_chat(event):
         )
         raw = resp["response"].read().decode("utf-8")
         parsed = json.loads(raw)
+        reply = parsed.get("result", raw)
+        if target == "structured":
+            reply_group = _extract_structured_group_context(reply)
+            if reply_group:
+                _remember_structured_group_context(session_id, actor_id, chat_type, prompt, reply_group)
         return _ok({
-            "reply": parsed.get("result", raw),
+            "reply": reply,
             "session_id": session_id,  # echo so frontend can correlate
         })
     except Exception as e:
         logger.exception("AgentCore invocation failed")
         return _err(502, f"{type(e).__name__}: {e}")
+
+
+def _extract_structured_group_context(text: str) -> str:
+    """Return a Data Grouping project group name mentioned in user/model text."""
+    if not text:
+        return ""
+    match = re.search(r"\b(Project_[A-Za-z0-9_]+)\b", text)
+    if match:
+        return _canonical_structured_group_name(match.group(1))
+    match = re.search(r"Group:\s*([A-Za-z0-9_]+)", text)
+    if match:
+        return _canonical_structured_group_name(match.group(1))
+    return ""
+
+
+def _canonical_structured_group_name(group: str) -> str:
+    if not group:
+        return ""
+    parts = [part for part in group.split("_") if part]
+    if not parts:
+        return ""
+    if parts[0].lower() == "project":
+        parts = parts[1:]
+    return "Project_" + "_".join(part[:1].upper() + part[1:] for part in parts)
+
+
+def _load_structured_group_context(session_id: str) -> str:
+    if not sessions_table or not session_id or session_id == "adhoc":
+        return ""
+    try:
+        resp = sessions_table.get_item(Key={"session_id": session_id})
+    except Exception:
+        logger.exception("Structured group context lookup failed")
+        return ""
+    item = resp.get("Item") or {}
+    return (item.get("structured_group_context") or "").strip()
+
+
+def _remember_structured_group_context(session_id: str, user_id: str, chat_type: str, prompt: str, group: str) -> None:
+    if not sessions_table or not session_id or session_id == "adhoc" or not group:
+        return
+    now = datetime.now(timezone.utc).isoformat()
+    title = (prompt or group).strip()[:80] or group
+    try:
+        sessions_table.update_item(
+            Key={"session_id": session_id},
+            UpdateExpression=(
+                "SET structured_group_context = :group, "
+                "user_id = if_not_exists(user_id, :user_id), "
+                "#title = if_not_exists(#title, :title), "
+                "chat_type = if_not_exists(chat_type, :chat_type), "
+                "created_at = if_not_exists(created_at, :now), "
+                "last_message_at = :now"
+            ),
+            ExpressionAttributeNames={"#title": "title"},
+            ExpressionAttributeValues={
+                ":group": group,
+                ":user_id": user_id or "anonymous",
+                ":title": title,
+                ":chat_type": chat_type or "mcp",
+                ":now": now,
+            },
+        )
+    except Exception:
+        logger.exception("Structured group context update failed")
 
 
 # ──────────────────────────── /uploads ──────────────────────────
@@ -422,30 +558,1370 @@ def _handle_uploads_list(event):
         return _err(401, "Could not resolve caller identity")
     prefix = f"{UPLOAD_PREFIX}{user_id}/"
 
+    files = []
+    truncated = False
+    continuation_token = None
+    max_keys = 2000 if which == "processed" else MAX_LIST_KEYS
     try:
-        resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=MAX_LIST_KEYS)
+        while len(files) < max_keys:
+            kwargs = {"Bucket": bucket, "Prefix": prefix, "MaxKeys": min(1000, max_keys - len(files))}
+            if continuation_token:
+                kwargs["ContinuationToken"] = continuation_token
+            resp = s3.list_objects_v2(**kwargs)
+            for obj in resp.get("Contents") or []:
+                key = obj["Key"]
+                if key.endswith("/"):
+                    continue  # folder marker
+                lm = obj.get("LastModified")
+                files.append({
+                    "key": key,
+                    "name": key[len(prefix):],   # strip the user-namespace prefix
+                    "size": int(obj.get("Size") or 0),
+                    "last_modified": lm.isoformat() if hasattr(lm, "isoformat") else str(lm or ""),
+                })
+            if not resp.get("IsTruncated"):
+                break
+            continuation_token = resp.get("NextContinuationToken")
+            if not continuation_token:
+                break
+        truncated = bool(resp.get("IsTruncated")) if "resp" in locals() else False
     except ClientError as e:
         logger.exception("list_objects_v2 failed")
         return _err(502, f"{type(e).__name__}: {e}")
 
-    files = []
-    for obj in resp.get("Contents") or []:
-        key = obj["Key"]
-        if key.endswith("/"):
-            continue  # folder marker
-        lm = obj.get("LastModified")
-        files.append({
-            "key": key,
-            "name": key[len(prefix):],   # strip the user-namespace prefix
-            "size": int(obj.get("Size") or 0),
-            "last_modified": lm.isoformat() if hasattr(lm, "isoformat") else str(lm or ""),
-        })
     files.sort(key=lambda f: f["last_modified"], reverse=True)
     return _ok({
         "bucket": bucket,
         "prefix": prefix,
         "files": files,
-        "truncated": bool(resp.get("IsTruncated")),
+        "truncated": truncated,
+        "max_keys": max_keys,
+    })
+
+
+def _upload_status_head(bucket: str, key: str) -> dict[str, Any]:
+    try:
+        obj = s3.head_object(Bucket=bucket, Key=key)
+        return {
+            "exists": True,
+            "size": int(obj.get("ContentLength") or 0),
+            "lastModified": obj.get("LastModified"),
+        }
+    except ClientError as e:
+        code = e.response.get("Error", {}).get("Code", "")
+        if code in {"404", "NoSuchKey", "NotFound"}:
+            return {"exists": False}
+        raise
+
+
+def _structured_upload_dataset(key: str) -> str:
+    name = key.rsplit("/", 1)[-1].lower()
+    normalized = name.replace("-", "_").replace(" ", "_")
+    if "ar_invoice" in normalized or "ar_invoices" in normalized:
+        return "ar_invoices"
+    if "ap_invoice" in normalized or "ap_invoices" in normalized:
+        return "ap_invoices"
+    if "aws_config" in normalized or "awsconfig" in normalized:
+        return "aws_config"
+    if "zscaler" in name:
+        return "zscaler_rules"
+    if "paloalto" in name or "pan-os" in name or "panos" in name:
+        return "paloalto_rules"
+    return "misc"
+
+
+def _structured_status_key(key: str, dataset: str) -> str:
+    if dataset != "misc":
+        return f"structured/{dataset}/{dataset}.csv"
+    name = key.rsplit("/", 1)[-1]
+    original = re.sub(r"^\d{8}T\d{6}Z-", "", name)
+    stem = original.rsplit(".", 1)[0]
+    safe_stem = re.sub(r"[^A-Za-z0-9_]+", "_", stem).strip("_").lower()[:120] or "dataset"
+    safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", original).strip("._-")[:200] or f"{safe_stem}.csv"
+    if not safe_name.lower().endswith(".csv"):
+        safe_name = f"{safe_name}.csv"
+    return f"structured/staged/{safe_stem}/{safe_name}"
+
+
+def _handle_uploads_status(event):
+    qs = event.get("queryStringParameters") or {}
+    key = unquote((qs.get("key") or "").strip())
+    if not key:
+        return _err(400, "Missing key")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+    caller_prefix = f"{UPLOAD_PREFIX}{user_id}/"
+    if not key.startswith(caller_prefix):
+        return _err(403, "key is outside caller upload prefix")
+    if not RAW_BUCKET or not PROCESSED_BUCKET:
+        return _err(500, "RAW_BUCKET or PROCESSED_BUCKET not configured")
+
+    is_csv = key.lower().endswith(".csv")
+    try:
+        raw = _upload_status_head(RAW_BUCKET, key)
+        processed = _upload_status_head(PROCESSED_BUCKET, key)
+        structured = None
+        crawler = None
+        status = "processing"
+        message = "Waiting for processing pipeline"
+
+        if is_csv:
+            dataset = _structured_upload_dataset(key)
+            structured_key = _structured_status_key(key, dataset)
+            structured = {
+                "dataset": dataset,
+                "key": structured_key,
+                **_upload_status_head(PROCESSED_BUCKET, structured_key),
+            }
+            if structured.get("exists"):
+                status = "catalog_running"
+                message = "Structured CSV staged; Glue crawler is refreshing"
+            if GLUE_CRAWLER_NAME:
+                crawler_obj = glue.get_crawler(Name=GLUE_CRAWLER_NAME).get("Crawler", {})
+                last_crawl = crawler_obj.get("LastCrawl") or {}
+                crawler = {
+                    "name": GLUE_CRAWLER_NAME,
+                    "state": crawler_obj.get("State") or "UNKNOWN",
+                    "lastCrawl": last_crawl,
+                }
+                last_status = last_crawl.get("Status")
+                if structured.get("exists") and crawler["state"] == "RUNNING":
+                    status = "catalog_running"
+                    message = "Structured CSV staged; Glue crawler is running"
+                elif structured.get("exists") and last_status == "SUCCEEDED":
+                    status = "catalog_done"
+                    message = "Structured CSV staged and latest crawler run succeeded"
+                elif structured.get("exists") and last_status == "FAILED":
+                    status = "catalog_failed"
+                    message = last_crawl.get("ErrorMessage") or "Latest crawler run failed"
+                elif structured.get("exists"):
+                    status = "catalog_waiting"
+                    message = "Structured CSV staged; waiting for crawler result"
+            elif structured.get("exists"):
+                status = "catalog_waiting"
+                message = "Structured CSV staged; Glue crawler is not configured"
+        elif processed.get("exists"):
+            status = "processed"
+            message = "File moved to processed storage"
+
+        return _ok({
+            "key": key,
+            "isCsv": is_csv,
+            "status": status,
+            "message": message,
+            "raw": raw,
+            "processed": processed,
+            "structured": structured,
+            "crawler": crawler,
+        })
+    except ClientError as e:
+        logger.exception("upload status failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+
+
+# ──────────────────────────── /data-grouping ────────────────────
+def _s3_segment(value: str, default: str = "item") -> str:
+    """S3-prefix-safe path segment for project/group/table names."""
+    cleaned = _SAFE_FILENAME_RE.sub("_", (value or "").strip()).strip("._-")
+    return cleaned[:160] or default
+
+
+def _table_segment(value: str, default: str = "dataset") -> str:
+    """Glue/Athena-friendly lowercase identifier segment."""
+    cleaned = re.sub(r"[^A-Za-z0-9_]+", "_", (value or "").strip()).strip("_").lower()
+    return cleaned[:120] or default
+
+
+def _dataset_name_from_file(filename: str) -> str:
+    stem = re.sub(r"\.[^.]+$", "", filename or "")
+    return re.sub(r"^\d{8}T\d{6}Z[-_]+", "", stem, flags=re.IGNORECASE)
+
+
+def _csv_header_signature(bucket: str, key: str) -> tuple[str, ...]:
+    try:
+        obj = s3.get_object(Bucket=bucket, Key=key, Range="bytes=0-65535")
+        sample = obj.get("Body").read().decode("utf-8-sig", errors="replace")
+    except ClientError:
+        logger.exception("csv header read failed: %s", key)
+        return ()
+
+    reader = csv.reader(io.StringIO(sample))
+    for row in reader:
+        cleaned = tuple(str(cell or "").strip().lower() for cell in row)
+        if any(cleaned):
+            return cleaned
+    return ()
+
+
+def _csv_structured_table_hints(project_id: str, group_name: str, files: list[dict[str, Any]]) -> dict[str, str]:
+    csv_files = [
+        file for file in files
+        if str(file.get("name") or file.get("key") or "").lower().endswith(".csv")
+    ]
+    group_table = _table_segment(f"{project_id}_{group_name}", f"{project_id}_{group_name}")
+    if len(csv_files) <= 1:
+        return {
+            str(file.get("key") or ""): _table_segment(
+                f"{project_id}_{group_name}_{_dataset_name_from_file(file.get('name') or file.get('key') or 'csv')}",
+                group_table,
+            )
+            for file in csv_files
+            if file.get("key")
+        }
+
+    signatures = {
+        str(file.get("key") or ""): _csv_header_signature(PROCESSED_BUCKET, str(file.get("key") or ""))
+        for file in csv_files
+        if file.get("key")
+    }
+    unique_signatures = {signature for signature in signatures.values() if signature}
+    if len(unique_signatures) == 1 and len(signatures) == len(csv_files):
+        return {str(file.get("key") or ""): group_table for file in csv_files if file.get("key")}
+
+    return {
+        str(file.get("key") or ""): _table_segment(
+            f"{project_id}_{group_name}_{_dataset_name_from_file(file.get('name') or file.get('key') or 'csv')}",
+            group_table,
+        )
+        for file in csv_files
+        if file.get("key")
+    }
+
+
+def _delete_s3_prefix(bucket: str, prefix: str) -> list[str]:
+    deleted: list[str] = []
+    token = None
+    while True:
+        params = {"Bucket": bucket, "Prefix": prefix}
+        if token:
+            params["ContinuationToken"] = token
+        resp = s3.list_objects_v2(**params)
+        keys = [obj["Key"] for obj in resp.get("Contents") or [] if obj.get("Key")]
+        for start in range(0, len(keys), 1000):
+            batch = keys[start:start + 1000]
+            if not batch:
+                continue
+            s3.delete_objects(
+                Bucket=bucket,
+                Delete={"Objects": [{"Key": key} for key in batch], "Quiet": True},
+            )
+            deleted.extend(batch)
+        if not resp.get("IsTruncated"):
+            break
+        token = resp.get("NextContinuationToken")
+    return deleted
+
+
+def _load_data_grouping_metadata(bucket: str, metadata_key: str) -> dict[str, Any] | None:
+    try:
+        obj = s3.get_object(Bucket=bucket, Key=metadata_key)
+        return json.loads(obj.get("Body").read().decode("utf-8"))
+    except s3.exceptions.NoSuchKey:
+        return None
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+            return None
+        raise
+    except Exception:
+        logger.exception("data grouping metadata read failed")
+        return None
+
+
+def _handle_data_grouping_materialize(event):
+    """Materialize locally-defined project groups into S3.
+
+    Body:
+      {
+        "projectId": "vendor-audit-june-2026",
+        "projectName": "Vendor Audit June 2026",
+        "groups": [
+          {"id": "...", "name": "AR_Invoices", "type": "audit",
+           "files": [{"key": "users/<sub>/...", "name": "AR_...csv"}]}
+        ],
+        "move": true
+      }
+
+    Copies each selected processed object to:
+      projects/<projectId>/<groupName>/<filename>
+    and copies CSVs to:
+      structured/<projectId>_<groupName>/<filename>
+    then writes:
+      projects/<projectId>/metadata/project.json
+    """
+    if not PROCESSED_BUCKET:
+        return _err(500, "PROCESSED_BUCKET not configured")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+
+    project_id = _s3_segment(body.get("projectId") or body.get("projectName"), "project")
+    project_name = (body.get("projectName") or project_id).strip()[:200]
+    groups = body.get("groups") or []
+    delete_groups = body.get("deleteGroups") or []
+    if not isinstance(groups, list):
+        return _err(400, "groups must be a list")
+    if not isinstance(delete_groups, list):
+        return _err(400, "deleteGroups must be a list")
+    if not groups and not delete_groups:
+        return _err(400, "At least one group or deleteGroups entry is required")
+
+    caller_prefix = f"{UPLOAD_PREFIX}{user_id}/"
+    copied: list[dict[str, Any]] = []
+    structured_copies: list[dict[str, Any]] = []
+    moved_sources: set[str] = set()
+    materialized_groups: list[dict[str, Any]] = []
+    move_sources = bool(body.get("move", True))
+    deleted: list[str] = []
+
+    metadata_key = f"projects/{project_id}/metadata/project.json"
+    existing_metadata = _load_data_grouping_metadata(PROCESSED_BUCKET, metadata_key) or {}
+    existing_groups = [
+        group for group in existing_metadata.get("groups", [])
+        if isinstance(group, dict)
+    ]
+    groups_to_remove = []
+    incoming_ids = {str(group.get("id") or "") for group in groups if isinstance(group, dict)}
+    incoming_names = {
+        _s3_segment(group.get("name") or "", "")
+        for group in groups
+        if isinstance(group, dict) and group.get("name")
+    }
+    delete_ids = {str(group.get("id") or "") for group in delete_groups if isinstance(group, dict)}
+    delete_names = {
+        _s3_segment(group.get("name") or "", "")
+        for group in delete_groups
+        if isinstance(group, dict) and group.get("name")
+    }
+    for existing in existing_groups:
+        existing_id = str(existing.get("id") or "")
+        existing_name = _s3_segment(existing.get("name") or "", "")
+        if (
+            existing_id in incoming_ids
+            or existing_name in incoming_names
+            or existing_id in delete_ids
+            or existing_name in delete_names
+        ):
+            groups_to_remove.append(existing)
+
+    removed_table_hints = set()
+    for group in groups_to_remove:
+        if group.get("structuredTableHint"):
+            removed_table_hints.add(str(group.get("structuredTableHint")))
+        removed_table_hints.update(str(hint) for hint in (group.get("structuredTableHints") or []) if hint)
+    structured_deleted = False
+    for existing in groups_to_remove:
+        structured_prefixes = [
+            f"structured/{hint}/"
+            for hint in (
+                [existing.get("structuredTableHint")] + list(existing.get("structuredTableHints") or [])
+            )
+            if hint
+        ]
+        for prefix in (existing.get("targetPrefix"), *structured_prefixes):
+            if not prefix:
+                continue
+            try:
+                deleted.extend(_delete_s3_prefix(PROCESSED_BUCKET, str(prefix)))
+                if str(prefix).startswith("structured/"):
+                    structured_deleted = True
+            except ClientError as e:
+                logger.exception("group prefix cleanup failed")
+                return _err(502, f"delete {prefix}: {type(e).__name__}: {e}")
+
+    retained_groups = [
+        group for group in existing_groups
+        if group not in groups_to_remove
+    ]
+
+    for index, group in enumerate(groups):
+        group_name = _s3_segment(group.get("name") or f"group_{index + 1}", f"group_{index + 1}")
+        group_table_name = _table_segment(f"{project_id}_{group_name}", f"{project_id}_group_{index + 1}")
+        files = [f for f in (group.get("files") or []) if isinstance(f, dict) and f.get("key")]
+        structured_table_hints_by_key = _csv_structured_table_hints(project_id, group_name, files)
+        structured_table_hints = sorted(set(structured_table_hints_by_key.values()))
+        cleanup_prefixes = [
+            f"projects/{project_id}/{group_name}/",
+            f"structured/{group_table_name}/",
+            *[f"structured/{hint}/" for hint in structured_table_hints],
+        ]
+        for prefix in dict.fromkeys(cleanup_prefixes):
+            try:
+                deleted.extend(_delete_s3_prefix(PROCESSED_BUCKET, prefix))
+                if prefix.startswith("structured/"):
+                    structured_deleted = True
+            except ClientError as e:
+                logger.exception("group prefix cleanup failed")
+                return _err(502, f"delete {prefix}: {type(e).__name__}: {e}")
+        materialized_files: list[dict[str, Any]] = []
+        for file in files:
+            source_key = str(file.get("key") or "")
+            if not source_key.startswith(caller_prefix) and not source_key.startswith("structured/"):
+                return _err(403, f"Source key is outside allowed processed prefixes: {source_key}")
+            filename = _s3_segment(file.get("name") or source_key.rsplit("/", 1)[-1], "file")
+            project_key = f"projects/{project_id}/{group_name}/{filename}"
+            copy_source = {"Bucket": PROCESSED_BUCKET, "Key": source_key}
+            try:
+                s3.copy_object(
+                    Bucket=PROCESSED_BUCKET,
+                    Key=project_key,
+                    CopySource=copy_source,
+                    MetadataDirective="COPY",
+                )
+            except ClientError as e:
+                logger.exception("project materialize copy failed")
+                return _err(502, f"copy {source_key}: {type(e).__name__}: {e}")
+            copied.append({"sourceKey": source_key, "destinationKey": project_key})
+            file_entry = {
+                "name": filename,
+                "sourceKey": source_key,
+                "projectKey": project_key,
+                "type": "csv" if filename.lower().endswith(".csv") else "file",
+            }
+
+            if filename.lower().endswith(".csv"):
+                structured_table_hint = structured_table_hints_by_key.get(source_key, group_table_name)
+                structured_key = f"structured/{structured_table_hint}/{filename}"
+                try:
+                    s3.copy_object(
+                        Bucket=PROCESSED_BUCKET,
+                        Key=structured_key,
+                        CopySource=copy_source,
+                        MetadataDirective="COPY",
+                    )
+                except ClientError as e:
+                    logger.exception("structured materialize copy failed")
+                    return _err(502, f"copy {source_key} to structured: {type(e).__name__}: {e}")
+                structured_copies.append({
+                    "sourceKey": source_key,
+                    "destinationKey": structured_key,
+                    "glueTableHint": structured_table_hint,
+                })
+                file_entry["structuredKey"] = structured_key
+                file_entry["glueTableHint"] = structured_table_hint
+
+            materialized_files.append(file_entry)
+            if move_sources and source_key.startswith(caller_prefix):
+                moved_sources.add(source_key)
+
+        materialized_groups.append({
+            "id": group.get("id") or group_name,
+            "name": group_name,
+            "type": group.get("type") or "",
+            "targetPrefix": f"projects/{project_id}/{group_name}/",
+            "structuredTableHint": group_table_name if len(structured_table_hints) <= 1 else None,
+            "structuredTableHints": structured_table_hints,
+            "files": materialized_files,
+        })
+
+    metadata = {
+        "projectId": project_id,
+        "projectName": project_name,
+        "createdAt": existing_metadata.get("createdAt") or datetime.now(timezone.utc).isoformat(),
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
+        "createdBy": user_id,
+        "bucket": PROCESSED_BUCKET,
+        "projectPrefix": f"projects/{project_id}/",
+        "metadataKey": metadata_key,
+        "groups": [*retained_groups, *materialized_groups],
+        "glue": {
+            "crawlerName": GLUE_CRAWLER_NAME or None,
+            "structuredCopies": [
+                *[
+                    copy for copy in existing_metadata.get("glue", {}).get("structuredCopies", [])
+                    if copy.get("glueTableHint") not in removed_table_hints
+                ],
+                *structured_copies,
+            ],
+        },
+    }
+    try:
+        s3.put_object(
+            Bucket=PROCESSED_BUCKET,
+            Key=metadata_key,
+            Body=json.dumps(metadata, default=str, indent=2).encode("utf-8"),
+            ContentType="application/json",
+        )
+    except ClientError as e:
+        logger.exception("metadata write failed")
+        return _err(502, f"metadata write: {type(e).__name__}: {e}")
+
+    for source_key in sorted(moved_sources):
+        try:
+            s3.delete_object(Bucket=PROCESSED_BUCKET, Key=source_key)
+            deleted.append(source_key)
+        except ClientError:
+            logger.exception("source delete failed after materialize: %s", source_key)
+
+    crawler_started = False
+    crawler_message = ""
+    if GLUE_CRAWLER_NAME and (structured_copies or structured_deleted):
+        try:
+            glue.start_crawler(Name=GLUE_CRAWLER_NAME)
+            crawler_started = True
+            crawler_message = "started"
+        except glue.exceptions.CrawlerRunningException:
+            crawler_started = True
+            crawler_message = "already_running"
+        except ClientError as e:
+            logger.exception("Glue crawler start failed")
+            crawler_message = f"{type(e).__name__}: {e}"
+
+    return _ok({
+        "bucket": PROCESSED_BUCKET,
+        "projectPrefix": f"projects/{project_id}/",
+        "metadataKey": metadata_key,
+        "copied": copied,
+        "structuredCopies": structured_copies,
+        "deletedSources": deleted,
+        "crawlerStarted": crawler_started,
+        "crawlerMessage": crawler_message,
+        "metadata": metadata,
+    })
+
+
+_DOCUMENT_ANALYSIS_EXTENSIONS = (".txt", ".md", ".json", ".pdf")
+_ANALYSIS_STOPWORDS = {
+    "about", "across", "after", "against", "also", "and", "are", "because",
+    "been", "between", "both", "business", "can", "data", "each", "engineering",
+    "from", "goal", "goals", "has", "have", "into", "its", "may", "more",
+    "must", "need", "needs", "objective", "objectives", "only", "other",
+    "problem", "problems", "project", "projects", "risk", "risks", "should",
+    "system", "team", "that", "the", "their", "this", "through", "with",
+}
+
+
+def _sentences(text: str) -> list[str]:
+    chunks = re.split(r"(?<=[.!?])\s+|\n+", text or "")
+    return [re.sub(r"\s+", " ", chunk).strip(" -\t") for chunk in chunks if chunk.strip()]
+
+
+def _pdf_stream_text(raw: bytes) -> str:
+    """Best-effort PDF text extraction without adding Lambda dependencies.
+
+    This is intentionally deterministic and modest: it handles the small,
+    text-based project PDFs used in the demo by reading stream objects, inflating
+    Flate streams when present, and extracting literal/string-array text tokens.
+    """
+    chunks: list[bytes] = []
+    for match in re.finditer(rb"stream\r?\n(.*?)endstream", raw, flags=re.DOTALL):
+        stream = match.group(1).strip(b"\r\n")
+        candidates = [stream]
+        if stream.endswith(b"~>"):
+            try:
+                candidates.insert(0, base64.a85decode(stream, adobe=True))
+            except ValueError:
+                pass
+        for candidate in candidates:
+            try:
+                chunks.append(zlib.decompress(candidate))
+                break
+            except zlib.error:
+                if candidate is stream:
+                    chunks.append(candidate)
+    if not chunks:
+        chunks = [raw]
+
+    text_parts: list[str] = []
+    for chunk in chunks:
+        text = chunk.decode("latin-1", errors="ignore")
+        for value in re.findall(r"\(([^()]*)\)", text):
+            cleaned = (
+                value
+                .replace(r"\(", "(")
+                .replace(r"\)", ")")
+                .replace(r"\\", "\\")
+            )
+            if cleaned.strip():
+                text_parts.append(cleaned)
+    extracted = " ".join(text_parts)
+    extracted = re.sub(r"\\[nrbtf]", " ", extracted)
+    extracted = re.sub(r"\s+", " ", extracted).strip()
+    return extracted
+
+
+def _document_text_from_bytes(name: str, raw: bytes) -> str:
+    if name.lower().endswith(".pdf"):
+        return _pdf_stream_text(raw)
+    return raw.decode("utf-8", errors="replace")
+
+
+def _matching_sentences(sentences: list[str], terms: tuple[str, ...], limit: int = 3) -> list[str]:
+    matches = []
+    for sentence in sentences:
+        lowered = sentence.lower()
+        if any(term in lowered for term in terms):
+            matches.append(sentence[:320])
+        if len(matches) >= limit:
+            break
+    return matches
+
+
+def _keyword_list(text: str, limit: int = 8) -> list[str]:
+    counts: dict[str, int] = {}
+    for raw in re.findall(r"[A-Za-z][A-Za-z0-9_-]{3,}", text or ""):
+        word = raw.lower().strip("_-")
+        if word in _ANALYSIS_STOPWORDS:
+            continue
+        counts[word] = counts.get(word, 0) + 1
+    return [word for word, _ in sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:limit]]
+
+
+def _project_title(name: str, text: str) -> str:
+    for line in (text or "").splitlines():
+        cleaned = line.strip().strip("#").strip()
+        if cleaned and len(cleaned) <= 120:
+            return cleaned
+    return re.sub(r"[_-]+", " ", name.rsplit(".", 1)[0]).strip() or name
+
+
+def _document_analysis(name: str, key: str, text: str) -> dict[str, Any]:
+    sentences = _sentences(text)
+    goals = _matching_sentences(sentences, ("goal", "objective", "aim", "deliver", "build", "modernize", "improve"))
+    problems = _matching_sentences(sentences, ("problem", "issue", "pain", "challenge", "gap", "failure", "bottleneck"))
+    risks = _matching_sentences(sentences, ("risk", "blocked", "blocker", "constraint", "dependency", "delay", "security", "compliance"))
+    dependencies = _matching_sentences(sentences, ("depend", "requires", "integration", "upstream", "downstream", "vendor", "team", "api"))
+    metrics = _matching_sentences(sentences, ("success", "metric", "kpi", "measure", "target", "outcome"))
+    missing = []
+    if not goals:
+        missing.append("goal/objective")
+    if not problems:
+        missing.append("problem statement")
+    if not dependencies:
+        missing.append("dependencies")
+    if not metrics:
+        missing.append("success metrics")
+    if not risks:
+        missing.append("risks")
+    return {
+        "name": name,
+        "key": key,
+        "title": _project_title(name, text),
+        "keywords": _keyword_list(text),
+        "goals": goals,
+        "problems": problems,
+        "risks": risks,
+        "dependencies": dependencies,
+        "successSignals": metrics,
+        "missingInformation": missing,
+        "riskLevel": "high" if len(risks) >= 3 or any("security" in item.lower() or "compliance" in item.lower() for item in risks) else "medium" if risks else "low",
+        "recommendedAction": (
+            "Clarify scope, owner, dependencies, and success metrics before sequencing."
+            if missing else "Ready for portfolio sequencing and dependency review."
+        ),
+    }
+
+
+def _portfolio_overlap(projects: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    overlaps = []
+    for left_index, left in enumerate(projects):
+        left_words = set(left.get("keywords") or [])
+        for right in projects[left_index + 1:]:
+            shared = sorted(left_words.intersection(set(right.get("keywords") or [])))
+            if len(shared) >= 2:
+                overlaps.append({
+                    "projects": [left["title"], right["title"]],
+                    "sharedKeywords": shared[:6],
+                    "note": "Potential overlap or shared dependency; review for consolidation or sequencing.",
+                })
+    return overlaps[:12]
+
+
+def _portfolio_action_plan(projects: list[dict[str, Any]], overlaps: list[dict[str, Any]]) -> list[str]:
+    high_risk = [p["title"] for p in projects if p.get("riskLevel") == "high"]
+    unclear = [p["title"] for p in projects if p.get("missingInformation")]
+    plan = []
+    if high_risk:
+        plan.append(f"Review high-risk projects first: {', '.join(high_risk[:5])}.")
+    if overlaps:
+        plan.append("Resolve overlap before funding parallel workstreams.")
+    if unclear:
+        plan.append(f"Request missing project details for: {', '.join(unclear[:5])}.")
+    plan.append("Sequence projects after dependencies and success metrics are documented.")
+    return plan
+
+
+def _portfolio_markdown(group_name: str, projects: list[dict[str, Any]], overlaps: list[dict[str, Any]], action_plan: list[str]) -> str:
+    lines = [f"# Portfolio Analysis: {group_name}", "", f"Documents analyzed: {len(projects)}", ""]
+    lines.extend(["## Project Inventory", ""])
+    for project in projects:
+        lines.extend([
+            f"### {project['title']}",
+            f"- File: {project['name']}",
+            f"- Risk level: {project['riskLevel']}",
+            f"- Keywords: {', '.join(project['keywords']) or 'None detected'}",
+            f"- Goal/objective: {project['goals'][0] if project['goals'] else 'Not stated'}",
+            f"- Problem: {project['problems'][0] if project['problems'] else 'Not stated'}",
+            f"- Dependencies: {project['dependencies'][0] if project['dependencies'] else 'Not stated'}",
+            f"- Missing: {', '.join(project['missingInformation']) or 'None detected'}",
+            f"- Recommended action: {project['recommendedAction']}",
+            "",
+        ])
+    lines.extend(["## Overlap And Conflict Scan", ""])
+    if overlaps:
+        for item in overlaps:
+            lines.append(f"- {' / '.join(item['projects'])}: shared {', '.join(item['sharedKeywords'])}. {item['note']}")
+    else:
+        lines.append("- No strong keyword overlap detected.")
+    lines.extend(["", "## Recommended Action Plan", ""])
+    lines.extend([f"- {item}" for item in action_plan])
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _handle_data_grouping_analyze_documents(event):
+    if not PROCESSED_BUCKET:
+        return _err(500, "PROCESSED_BUCKET not configured")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+
+    group_name = (body.get("groupName") or "Project group").strip()[:200]
+    files = [f for f in (body.get("files") or []) if isinstance(f, dict) and f.get("key")]
+    caller_prefix = f"{UPLOAD_PREFIX}{user_id}/"
+    documents = []
+    skipped = []
+    for file in files[:25]:
+        key = str(file.get("key") or "")
+        name = str(file.get("name") or key.rsplit("/", 1)[-1])
+        if not key.startswith(caller_prefix) and not key.startswith("projects/"):
+            return _err(403, f"Source key is outside allowed processed prefixes: {key}")
+        if not name.lower().endswith(_DOCUMENT_ANALYSIS_EXTENSIONS):
+            skipped.append({"name": name, "key": key, "reason": "unsupported_file_type"})
+            continue
+        try:
+            obj = s3.get_object(Bucket=PROCESSED_BUCKET, Key=key)
+            raw = obj["Body"].read(250_000)
+            text = _document_text_from_bytes(name, raw)
+        except ClientError as e:
+            logger.exception("document analysis read failed")
+            skipped.append({"name": name, "key": key, "reason": f"{type(e).__name__}: {e}"})
+            continue
+        if not text.strip():
+            skipped.append({"name": name, "key": key, "reason": "no_extractable_text"})
+            continue
+        documents.append(_document_analysis(name, key, text))
+
+    if not documents:
+        return _err(400, "No readable .txt, .md, .json, or .pdf files were found in this group")
+    overlaps = _portfolio_overlap(documents)
+    action_plan = _portfolio_action_plan(documents, overlaps)
+    return _ok({
+        "groupName": group_name,
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "documentCount": len(documents),
+        "skipped": skipped,
+        "projects": documents,
+        "overlaps": overlaps,
+        "actionPlan": action_plan,
+        "markdown": _portfolio_markdown(group_name, documents, overlaps, action_plan),
+    })
+
+
+def _handle_data_grouping_start_crawler(event):
+    if not _caller_user_id(event):
+        return _err(401, "Could not resolve caller identity")
+    if not GLUE_CRAWLER_NAME:
+        return _err(500, "GLUE_CRAWLER_NAME not configured")
+    try:
+        crawler = glue.get_crawler(Name=GLUE_CRAWLER_NAME).get("Crawler", {})
+        state = crawler.get("State") or "UNKNOWN"
+        if state == "RUNNING":
+            return _ok({
+                "crawlerName": GLUE_CRAWLER_NAME,
+                "crawlerStarted": True,
+                "crawlerMessage": "already_running",
+                "state": state,
+                "lastCrawl": crawler.get("LastCrawl"),
+            })
+        glue.start_crawler(Name=GLUE_CRAWLER_NAME)
+        return _ok({
+            "crawlerName": GLUE_CRAWLER_NAME,
+            "crawlerStarted": True,
+            "crawlerMessage": "started",
+            "state": "RUNNING",
+            "lastCrawl": crawler.get("LastCrawl"),
+        })
+    except glue.exceptions.CrawlerRunningException:
+        return _ok({
+            "crawlerName": GLUE_CRAWLER_NAME,
+            "crawlerStarted": True,
+            "crawlerMessage": "already_running",
+            "state": "RUNNING",
+        })
+    except ClientError as e:
+        logger.exception("Glue crawler start failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+
+
+# ──────────────────────────── /config-drift ─────────────────────
+def _config_drift_baseline_key(user_id: str) -> str:
+    return f"config-drift/{user_id}/security-groups/baseline.json"
+
+
+def _config_drift_check_key(user_id: str, check_id: str) -> str:
+    return f"config-drift/{user_id}/security-groups/checks/{check_id}.json"
+
+
+def _load_config_drift_check(user_id: str, check_id: str) -> dict[str, Any] | None:
+    if not PROCESSED_BUCKET or not check_id:
+        return None
+    try:
+        obj = s3.get_object(Bucket=PROCESSED_BUCKET, Key=_config_drift_check_key(user_id, check_id))
+        return json.loads(obj["Body"].read().decode("utf-8"))
+    except s3.exceptions.NoSuchKey:
+        return None
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+            return None
+        raise
+
+
+def _sg_tag(tags: list[dict[str, Any]] | None, key: str) -> str:
+    for tag in tags or []:
+        if tag.get("Key") == key:
+            return str(tag.get("Value") or "")
+    return ""
+
+
+def _sg_rule_sources(permission: dict[str, Any]) -> list[dict[str, Any]]:
+    sources: list[dict[str, Any]] = []
+    for item in permission.get("IpRanges") or []:
+        value = item.get("CidrIp")
+        if value:
+            sources.append({
+                "sourceType": "cidr",
+                "source": value,
+                "description": item.get("Description") or "",
+            })
+    for item in permission.get("Ipv6Ranges") or []:
+        value = item.get("CidrIpv6")
+        if value:
+            sources.append({
+                "sourceType": "cidr6",
+                "source": value,
+                "description": item.get("Description") or "",
+            })
+    for item in permission.get("PrefixListIds") or []:
+        value = item.get("PrefixListId")
+        if value:
+            sources.append({
+                "sourceType": "prefixList",
+                "source": value,
+                "description": item.get("Description") or "",
+            })
+    for item in permission.get("UserIdGroupPairs") or []:
+        group_id = item.get("GroupId")
+        if group_id:
+            sources.append({
+                "sourceType": "securityGroup",
+                "source": group_id,
+                "description": item.get("Description") or "",
+            })
+    return sources or [{"sourceType": "unknown", "source": "unknown", "description": ""}]
+
+
+def _normalize_sg_rule(permission: dict[str, Any], source: dict[str, Any], direction: str) -> dict[str, Any]:
+    protocol = str(permission.get("IpProtocol") or "-1")
+    from_port = permission.get("FromPort")
+    to_port = permission.get("ToPort")
+    if protocol == "-1":
+        from_port = -1
+        to_port = -1
+    return {
+        "direction": direction,
+        "protocol": protocol,
+        "fromPort": int(from_port) if from_port is not None else -1,
+        "toPort": int(to_port) if to_port is not None else -1,
+        "sourceType": source.get("sourceType") or "unknown",
+        "source": source.get("source") or "unknown",
+        "description": source.get("description") or "",
+    }
+
+
+def _normalize_security_group(group: dict[str, Any]) -> dict[str, Any]:
+    ingress = [
+        _normalize_sg_rule(permission, source, "ingress")
+        for permission in group.get("IpPermissions") or []
+        for source in _sg_rule_sources(permission)
+    ]
+    egress = [
+        _normalize_sg_rule(permission, source, "egress")
+        for permission in group.get("IpPermissionsEgress") or []
+        for source in _sg_rule_sources(permission)
+    ]
+    return {
+        "resourceId": group.get("GroupId"),
+        "resourceName": group.get("GroupName") or _sg_tag(group.get("Tags"), "Name") or group.get("GroupId"),
+        "description": group.get("Description") or "",
+        "vpcId": group.get("VpcId") or "",
+        "ownerId": group.get("OwnerId") or "",
+        "environment": _sg_tag(group.get("Tags"), "Environment") or _sg_tag(group.get("Tags"), "environment") or "",
+        "tags": {str(tag.get("Key")): str(tag.get("Value") or "") for tag in group.get("Tags") or [] if tag.get("Key")},
+        "ingress": sorted(ingress, key=_security_group_rule_key),
+        "egress": sorted(egress, key=_security_group_rule_key),
+    }
+
+
+def _security_group_rule_key(rule: dict[str, Any]) -> str:
+    return "|".join([
+        str(rule.get("direction") or ""),
+        str(rule.get("protocol") or ""),
+        str(rule.get("fromPort") if rule.get("fromPort") is not None else ""),
+        str(rule.get("toPort") if rule.get("toPort") is not None else ""),
+        str(rule.get("sourceType") or ""),
+        str(rule.get("source") or ""),
+    ])
+
+
+def _ec2_permission_for_rule(rule: dict[str, Any]) -> dict[str, Any]:
+    permission = {
+        "IpProtocol": str(rule.get("protocol") or "-1"),
+    }
+    if permission["IpProtocol"] != "-1":
+        permission["FromPort"] = int(rule.get("fromPort"))
+        permission["ToPort"] = int(rule.get("toPort"))
+    source_type = rule.get("sourceType")
+    source = rule.get("source")
+    if source_type == "cidr":
+        permission["IpRanges"] = [{"CidrIp": source}]
+    elif source_type == "cidr6":
+        permission["Ipv6Ranges"] = [{"CidrIpv6": source}]
+    elif source_type == "prefixList":
+        permission["PrefixListIds"] = [{"PrefixListId": source}]
+    elif source_type == "securityGroup":
+        permission["UserIdGroupPairs"] = [{"GroupId": source}]
+    else:
+        raise ValueError(f"Unsupported security group rule source type: {source_type}")
+    return permission
+
+
+def _format_sg_rule(rule: dict[str, Any]) -> str:
+    protocol = rule.get("protocol") or "any"
+    if protocol == "-1":
+        port = "All"
+    elif rule.get("fromPort") == rule.get("toPort"):
+        port = str(rule.get("fromPort"))
+    else:
+        port = f"{rule.get('fromPort')}-{rule.get('toPort')}"
+    direction = rule.get("direction") or "rule"
+    source = rule.get("source") or "unknown"
+    return f"{direction} {protocol} {port} from {source}"
+
+
+def _severity_for_sg_change(rule: dict[str, Any] | None, drift_type: str) -> str:
+    if not rule:
+        return "MEDIUM" if drift_type == "New security group" else "HIGH"
+    if rule.get("direction") == "ingress" and rule.get("source") in ("0.0.0.0/0", "::/0"):
+        if rule.get("protocol") == "-1" or rule.get("fromPort") in (22, 3389):
+            return "CRITICAL"
+        return "HIGH"
+    if rule.get("direction") == "egress":
+        return "LOW"
+    return "MEDIUM"
+
+
+def _recommendation_for_sg_change(rule: dict[str, Any] | None, drift_type: str) -> str:
+    if drift_type == "Ingress rule added" and rule and rule.get("source") in ("0.0.0.0/0", "::/0"):
+        return "Open a HITL exception immediately; revoke this public ingress if no approval is received before the deadline."
+    if drift_type.endswith("removed"):
+        return "Confirm the removal was intentional before updating baseline."
+    if drift_type == "New security group":
+        return "Confirm owner, purpose, and tags before accepting this security group into the baseline."
+    return "Review the rule change; update baseline only if the change is approved."
+
+
+def _pending_revert_for_sg_change(finding: dict[str, Any]) -> dict[str, Any] | None:
+    rule = finding.get("rule") or {}
+    if finding.get("driftType") == "Ingress rule added":
+        return {
+            "action": "revoke_security_group_ingress",
+            "resourceId": finding.get("resourceId"),
+            "rule": rule,
+            "status": "PENDING_HITL",
+        }
+    if finding.get("driftType") == "Ingress rule removed":
+        return {
+            "action": "authorize_security_group_ingress",
+            "resourceId": finding.get("resourceId"),
+            "rule": rule,
+            "status": "PENDING_HITL",
+        }
+    return None
+
+
+def _compare_security_groups(baseline: list[dict[str, Any]], latest: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    baseline_by_id = {group.get("resourceId"): group for group in baseline if group.get("resourceId")}
+    latest_by_id = {group.get("resourceId"): group for group in latest if group.get("resourceId")}
+    findings: list[dict[str, Any]] = []
+
+    for group in latest:
+        resource_id = group.get("resourceId")
+        prior = baseline_by_id.get(resource_id)
+        if not prior:
+            findings.append({
+                "id": f"{resource_id}-new-group",
+                "resourceId": resource_id,
+                "resourceName": group.get("resourceName") or resource_id,
+                "driftType": "New security group",
+                "before": "Not present in baseline",
+                "after": group.get("resourceName") or resource_id,
+                "severity": "MEDIUM",
+                "recommendation": _recommendation_for_sg_change(None, "New security group"),
+            })
+            continue
+
+        for direction in ("ingress", "egress"):
+            drift_label = "Ingress" if direction == "ingress" else "Egress"
+            prior_rules = {_security_group_rule_key(rule): rule for rule in prior.get(direction) or []}
+            latest_rules = {_security_group_rule_key(rule): rule for rule in group.get(direction) or []}
+            for key, rule in latest_rules.items():
+                if key in prior_rules:
+                    continue
+                drift_type = f"{drift_label} rule added"
+                finding = {
+                    "id": f"{resource_id}-{direction}-added-{abs(hash(key))}",
+                    "resourceId": resource_id,
+                    "resourceName": group.get("resourceName") or resource_id,
+                    "driftType": drift_type,
+                    "before": "No matching baseline rule",
+                    "after": _format_sg_rule(rule),
+                    "severity": _severity_for_sg_change(rule, drift_type),
+                    "recommendation": _recommendation_for_sg_change(rule, drift_type),
+                    "rule": rule,
+                }
+                pending = _pending_revert_for_sg_change(finding)
+                if pending:
+                    finding["pendingRevert"] = pending
+                findings.append(finding)
+            for key, rule in prior_rules.items():
+                if key in latest_rules:
+                    continue
+                drift_type = f"{drift_label} rule removed"
+                finding = {
+                    "id": f"{resource_id}-{direction}-removed-{abs(hash(key))}",
+                    "resourceId": resource_id,
+                    "resourceName": group.get("resourceName") or resource_id,
+                    "driftType": drift_type,
+                    "before": _format_sg_rule(rule),
+                    "after": "Missing from latest AWS observation",
+                    "severity": _severity_for_sg_change(rule, drift_type),
+                    "recommendation": _recommendation_for_sg_change(rule, drift_type),
+                    "rule": rule,
+                }
+                pending = _pending_revert_for_sg_change(finding)
+                if pending:
+                    finding["pendingRevert"] = pending
+                findings.append(finding)
+
+    for group in baseline:
+        resource_id = group.get("resourceId")
+        if resource_id in latest_by_id:
+            continue
+        findings.append({
+            "id": f"{resource_id}-missing-group",
+            "resourceId": resource_id,
+            "resourceName": group.get("resourceName") or resource_id,
+            "driftType": "Security group missing",
+            "before": group.get("resourceName") or resource_id,
+            "after": "Not present in latest AWS observation",
+            "severity": "HIGH",
+            "recommendation": "Treat as high-risk; require human review before attempting recreation.",
+        })
+
+    severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+    findings.sort(key=lambda item: (severity_order.get(item.get("severity"), 9), item.get("resourceName") or ""))
+    return findings
+
+
+def _load_security_group_snapshot(group_ids: list[str] | None = None) -> list[dict[str, Any]]:
+    paginator = ec2.get_paginator("describe_security_groups")
+    params = {"GroupIds": group_ids} if group_ids else {}
+    groups: list[dict[str, Any]] = []
+    for page in paginator.paginate(**params):
+        groups.extend(_normalize_security_group(group) for group in page.get("SecurityGroups") or [])
+    groups.sort(key=lambda item: (item.get("resourceName") or "", item.get("resourceId") or ""))
+    return groups
+
+
+def _load_config_drift_baseline(user_id: str) -> dict[str, Any] | None:
+    if not PROCESSED_BUCKET:
+        return None
+    try:
+        obj = s3.get_object(Bucket=PROCESSED_BUCKET, Key=_config_drift_baseline_key(user_id))
+        return json.loads(obj["Body"].read().decode("utf-8"))
+    except s3.exceptions.NoSuchKey:
+        return None
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+            return None
+        raise
+
+
+def _handle_config_drift_security_groups_current(event):
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+    try:
+        resources = _load_security_group_snapshot()
+    except ClientError as e:
+        logger.exception("security group current snapshot failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    return _ok({
+        "source": "live_ec2_describe_security_groups",
+        "observedAt": datetime.now(timezone.utc).isoformat(),
+        "resources": resources,
+        "count": len(resources),
+    })
+
+
+def _handle_config_drift_security_groups_get_baseline(event):
+    if not PROCESSED_BUCKET:
+        return _err(500, "PROCESSED_BUCKET not configured")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+    try:
+        baseline = _load_config_drift_baseline(user_id)
+    except ClientError as e:
+        logger.exception("security group baseline read failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    if not baseline:
+        return _ok({
+            "captured": False,
+            "resourceType": "AWS::EC2::SecurityGroup",
+            "resources": [],
+        })
+    baseline["captured"] = True
+    baseline["resourceCount"] = len(baseline.get("resources") or [])
+    return _ok(baseline)
+
+
+def _handle_config_drift_security_groups_baseline(event):
+    if not PROCESSED_BUCKET:
+        return _err(500, "PROCESSED_BUCKET not configured")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+    group_ids = body.get("groupIds") or None
+    if group_ids is not None and not isinstance(group_ids, list):
+        return _err(400, "groupIds must be a list")
+    group_ids = [str(group_id).strip() for group_id in (group_ids or []) if str(group_id).strip()] or None
+    try:
+        resources = _load_security_group_snapshot(group_ids)
+        baseline = {
+            "capturedAt": datetime.now(timezone.utc).isoformat(),
+            "capturedBy": user_id,
+            "source": "live_ec2_describe_security_groups",
+            "resourceType": "AWS::EC2::SecurityGroup",
+            "resources": resources,
+        }
+        s3.put_object(
+            Bucket=PROCESSED_BUCKET,
+            Key=_config_drift_baseline_key(user_id),
+            Body=json.dumps(baseline, default=str, indent=2).encode("utf-8"),
+            ContentType="application/json",
+        )
+    except ClientError as e:
+        logger.exception("security group baseline capture failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    _audit("CONFIG_DRIFT_BASELINE_CAPTURED", "AWS::EC2::SecurityGroup", user_id, "COMPLETED",
+           {"resource_count": len(resources)})
+    return _ok(baseline)
+
+
+def _handle_config_drift_security_groups_check(event):
+    if not PROCESSED_BUCKET:
+        return _err(500, "PROCESSED_BUCKET not configured")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+    timeout_minutes = int(body.get("hitlTimeoutMinutes") or 10)
+    timeout_minutes = max(1, min(timeout_minutes, 60))
+    baseline = _load_config_drift_baseline(user_id)
+    if not baseline:
+        return _err(404, "No security group baseline has been captured")
+    try:
+        latest = _load_security_group_snapshot()
+        findings = _compare_security_groups(baseline.get("resources") or [], latest)
+        now = datetime.now(timezone.utc)
+        deadline = now + timedelta(minutes=timeout_minutes)
+        pending_reverts = [finding["pendingRevert"] for finding in findings if finding.get("pendingRevert")]
+        result = {
+            "checkId": f"sg-drift-{now.strftime('%Y%m%d%H%M%S')}",
+            "checkedAt": now.isoformat(),
+            "source": "live_ec2_describe_security_groups",
+            "baselineCapturedAt": baseline.get("capturedAt"),
+            "baselineResourceCount": len(baseline.get("resources") or []),
+            "latestResourceCount": len(latest),
+            "hitl": {
+                "status": "PENDING" if findings else "NOT_REQUIRED",
+                "deadlineAt": deadline.isoformat() if findings else None,
+                "timeoutMinutes": timeout_minutes if findings else 0,
+                "note": "Remediation is staged until the HITL deadline expires.",
+            },
+            "findings": findings,
+            "pendingReverts": pending_reverts,
+            "latest": latest,
+        }
+        s3.put_object(
+            Bucket=PROCESSED_BUCKET,
+            Key=_config_drift_check_key(user_id, result["checkId"]),
+            Body=json.dumps(result, default=str, indent=2).encode("utf-8"),
+            ContentType="application/json",
+        )
+    except ClientError as e:
+        logger.exception("security group drift check failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    _audit("CONFIG_DRIFT_CHECKED", "AWS::EC2::SecurityGroup", user_id, "PENDING_HITL" if findings else "COMPLETED",
+           {"finding_count": len(findings), "pending_revert_count": len(pending_reverts)})
+    return _ok(result)
+
+
+def _handle_config_drift_security_groups_revert(event):
+    if not PROCESSED_BUCKET:
+        return _err(500, "PROCESSED_BUCKET not configured")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+
+    check_id = (body.get("checkId") or "").strip()
+    if not check_id:
+        return _err(400, "Missing checkId")
+    try:
+        check = _load_config_drift_check(user_id, check_id)
+    except ClientError as e:
+        logger.exception("security group drift check read failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    if not check:
+        return _err(404, f"Drift check {check_id} not found")
+
+    deadline_raw = (check.get("hitl") or {}).get("deadlineAt")
+    if not deadline_raw:
+        return _err(409, "This drift check has no pending HITL deadline")
+    deadline = datetime.fromisoformat(str(deadline_raw).replace("Z", "+00:00"))
+    now = datetime.now(timezone.utc)
+    if now < deadline:
+        return _err(409, f"HITL deadline has not expired ({deadline.isoformat()})")
+
+    actions = check.get("pendingReverts") or []
+    if not actions:
+        return _err(409, "No pending revert actions exist for this drift check")
+
+    applied = []
+    skipped = []
+    for action in actions:
+        resource_id = action.get("resourceId")
+        rule = action.get("rule") or {}
+        if action.get("status") == "COMPLETED":
+            skipped.append({"resourceId": resource_id, "reason": "already_completed"})
+            continue
+        if action.get("action") != "revoke_security_group_ingress":
+            skipped.append({"resourceId": resource_id, "reason": "unsupported_action"})
+            continue
+        if resource_id not in CONFIG_DRIFT_ALLOWED_REVERT_SECURITY_GROUPS:
+            skipped.append({"resourceId": resource_id, "reason": "security_group_not_allowlisted"})
+            continue
+        if rule.get("direction") != "ingress":
+            skipped.append({"resourceId": resource_id, "reason": "not_ingress"})
+            continue
+
+        try:
+            current_groups = _load_security_group_snapshot([resource_id])
+        except ClientError as e:
+            logger.exception("security group current snapshot failed before revert")
+            skipped.append({"resourceId": resource_id, "reason": f"{type(e).__name__}: {e}"})
+            continue
+        current_rules = {
+            _security_group_rule_key(current_rule)
+            for group in current_groups
+            for current_rule in group.get("ingress") or []
+        }
+        if _security_group_rule_key(rule) not in current_rules:
+            action["status"] = "COMPLETED"
+            action["completedAt"] = now.isoformat()
+            action["note"] = "Rule was already absent at execution time."
+            skipped.append({"resourceId": resource_id, "reason": "rule_already_absent"})
+            continue
+
+        try:
+            ec2.revoke_security_group_ingress(
+                GroupId=resource_id,
+                IpPermissions=[_ec2_permission_for_rule(rule)],
+            )
+        except ClientError as e:
+            code = e.response.get("Error", {}).get("Code")
+            if code == "InvalidPermission.NotFound":
+                action["status"] = "COMPLETED"
+                action["completedAt"] = now.isoformat()
+                action["note"] = "Rule was already absent at execution time."
+                skipped.append({"resourceId": resource_id, "reason": "rule_already_absent"})
+                continue
+            logger.exception("security group ingress revoke failed")
+            action["status"] = "FAILED"
+            action["error"] = f"{type(e).__name__}: {e}"
+            skipped.append({"resourceId": resource_id, "reason": action["error"]})
+            continue
+
+        action["status"] = "COMPLETED"
+        action["completedAt"] = now.isoformat()
+        action["note"] = "Expired HITL drift reverted by Arbiter."
+        applied.append({
+            "resourceId": resource_id,
+            "action": action.get("action"),
+            "rule": rule,
+        })
+
+    remaining = [a for a in actions if a.get("status") not in ("COMPLETED",)]
+    completed_count = len(actions) - len(remaining)
+    check["pendingReverts"] = actions
+    check["revertedAt"] = now.isoformat() if completed_count else check.get("revertedAt")
+    if actions and not remaining:
+        check["revertStatus"] = "COMPLETED"
+    elif completed_count:
+        check["revertStatus"] = "PARTIAL"
+    else:
+        check["revertStatus"] = "NO_ACTION"
+    try:
+        s3.put_object(
+            Bucket=PROCESSED_BUCKET,
+            Key=_config_drift_check_key(user_id, check_id),
+            Body=json.dumps(check, default=str, indent=2).encode("utf-8"),
+            ContentType="application/json",
+        )
+    except ClientError as e:
+        logger.exception("security group drift revert state write failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+
+    _audit("CONFIG_DRIFT_REVERT_EXECUTED", "AWS::EC2::SecurityGroup", user_id,
+           "COMPLETED" if applied else "NO_ACTION",
+           {"check_id": check_id, "applied_count": len(applied), "skipped": skipped})
+    return _ok({
+        "checkId": check_id,
+        "status": check["revertStatus"],
+        "applied": applied,
+        "skipped": skipped,
+        "check": check,
     })
 
 
@@ -2600,6 +4076,8 @@ def _err(status, message):
 def _json_default(o):
     if isinstance(o, Decimal):
         return int(o) if o == o.to_integral_value() else float(o)
+    if isinstance(o, datetime):
+        return o.isoformat()
     raise TypeError(f"not serializable: {type(o)}")
 
 
