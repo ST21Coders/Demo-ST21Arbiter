@@ -320,7 +320,7 @@ def test_email_not_logged_on_cognito_error(
     from src.identity.cognito_auth import _require_env
 
     test_id = "logging.redaction.email"
-    target_id = "post-cognito-initiate-auth"
+    target_id = "cognito-initiate-auth"
 
     try:
         import boto3

@@ -25,7 +25,7 @@ export const PERSONAS = {
     role: 'GRC Analyst',
     color: '#6366f1',
     gradient: 'linear-gradient(135deg, #6366f1, #4338ca)',
-    access: ['dashboard', 'findings', 'heatmap', 'governance', 'reports', 'audit', 'analyst', 'whatif', 'impact-analysis'],
+    access: ['dashboard', 'findings', 'heatmap', 'governance', 'reports', 'audit', 'analyst', 'whatif', 'impact-analysis', 'cmdb-drift'],
     badge: 'GRC',
     description: 'Runs AI scans, reviews all findings, tracks compliance posture across PCI-DSS/NAIC/SOC2, and uses chatbot for drill-down queries.',
   },
@@ -38,7 +38,7 @@ export const PERSONAS = {
     role: 'SOC Analyst',
     color: '#f472b6',
     gradient: 'linear-gradient(135deg, #f472b6, #db2777)',
-    access: ['dashboard', 'findings', 'heatmap', 'actions', 'reports', 'audit', 'analyst', 'whatif', 'impact-analysis'],
+    access: ['dashboard', 'findings', 'heatmap', 'actions', 'reports', 'audit', 'analyst', 'whatif', 'impact-analysis', 'cmdb-drift'],
     badge: 'SOC',
     description: 'Alert-driven — sees new detections on the dashboard, investigates broader exposure via chatbot, initiates remediation actions.',
   },
@@ -51,7 +51,7 @@ export const PERSONAS = {
     role: 'CISO',
     color: '#f59e0b',
     gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
-    access: ['dashboard', 'findings', 'heatmap', 'actions', 'governance', 'reports', 'audit', 'analyst', 'whatif', 'llm-control', 'pipeline', 'data-grouping', 'config-drift', 'mcp-chat', 'integrations', 'token-usage', 'impact-analysis'],
+    access: ['dashboard', 'findings', 'heatmap', 'actions', 'governance', 'reports', 'audit', 'analyst', 'whatif', 'llm-control', 'pipeline', 'data-grouping', 'config-drift', 'mcp-chat', 'integrations', 'token-usage', 'impact-analysis', 'cmdb-drift'],
     badge: 'CISO',
     description: 'Executive approver — reviews critical findings, approves or rejects change requests requiring CISO sign-off, monitors compliance posture.',
   },
@@ -76,6 +76,7 @@ export const ROUTE_ACCESS = {
   '/integrations': 'integrations',
   '/token-usage': 'token-usage',
   '/impact-analysis': 'impact-analysis',
+  '/cmdb-drift':  'cmdb-drift',
   // '/personas' and '/settings' have no entry — always accessible to any
   // authenticated persona (demo page / personal preferences respectively).
 }

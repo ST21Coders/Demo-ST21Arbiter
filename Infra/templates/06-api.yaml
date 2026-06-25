@@ -406,6 +406,12 @@ Resources:
             RestApiId: !Ref ArbiterApi
             Path: /conversations/{session_id}
             Method: DELETE
+        ConversationsBulkDelete:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ArbiterApi
+            Path: /conversations/bulk-delete
+            Method: POST
         ConversationMessages:
           Type: Api
           Properties:

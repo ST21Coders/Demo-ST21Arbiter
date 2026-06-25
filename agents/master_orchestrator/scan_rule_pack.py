@@ -126,6 +126,140 @@ def _compliant(*, cid: str, rule_key: str, domain: str, source_pair: str,
     }
 
 
+# ── ServiceNow CMDB/Asset drift (AWS-vs-CMDB reconciliation) ──────────────────
+# Only infrastructure CIs reconcile against the AWS resource inventory; business
+# application / service CIs are exempt (they have no 1:1 AWS resource).
+_AWS_BACKED_CLASSES = {
+    "cmdb_ci_lb", "cmdb_ci_db_instance", "cmdb_ci_network", "cmdb_ci_server",
+    "cmdb_ci_ec2_instance", "cmdb_ci_storage", "cmdb_ci_cloud_function",
+}
+
+
+def _drift_finding(*, rule_key: str, severity: str, title: str, finding_text: str,
+                   impact: str, remediation: list[str], resource_id: str, kind: str,
+                   domain: str = "CLOUD_SECURITY") -> dict[str, Any]:
+    """A DRIFT finding from ServiceNow↔AWS reconciliation, in the conflicts schema."""
+    return _finding(
+        rule_key=rule_key, severity=severity, conflict_type="DRIFT", domain=domain,
+        source_pair="ServiceNow+AWS Config", source_policy="CMDB reconciliation",
+        source_technical=resource_id, title=title, finding_text=finding_text,
+        impact=impact, remediation=remediation, policy_citations=[],
+        enforcement_evidence=[{"source": "ServiceNow", "resource_id": resource_id,
+                               "action": kind.upper(), "raw": {"drift_kind": kind}}],
+        regulatory=["ISO 27001 A.8.9", "SOC 2 CC6.1"],
+        domains_list=["ServiceNow", "AWSConfig"], fp_score=0.08)
+
+
+def _ci_to_resource(rec: dict, inv_by_id: dict) -> str | None:
+    """Map a CI/asset record to an inventory resource_id by name or ARN tail."""
+    name = rec.get("name") or rec.get("ci_name")
+    if name and name in inv_by_id:
+        return name
+    corr = rec.get("correlation_id") or rec.get("ci_correlation_id") or ""
+    if corr:
+        tail = corr.rsplit("/", 1)[-1].rsplit(":", 1)[-1]
+        if tail in inv_by_id:
+            return tail
+    return None
+
+
+def run_servicenow_drift(snapshot: dict, aws_inventory: list[dict]) -> list[dict]:
+    """Correlate a ServiceNow CMDB+asset snapshot against live AWS reality.
+
+    snapshot   = {cis: [{name, class, correlation_id, operational_status, owner_team}],
+                  assets: [{asset_tag, install_status, ci_name, ci_correlation_id}]}
+    aws_inventory = [{resource_id, arn, state, owner, environment}]
+
+    Emits DRIFT findings: unmanaged resource (AWS has it, CMDB doesn't), stale CI
+    (CMDB has it, AWS doesn't), ownership drift, and asset drift.
+    """
+    cis = (snapshot or {}).get("cis") or []
+    assets = (snapshot or {}).get("assets") or []
+    inv_by_id = {r["resource_id"]: r for r in (aws_inventory or []) if r.get("resource_id")}
+    findings: list[dict] = []
+
+    # CIs that reconcile to an inventory resource (infrastructure classes only).
+    ci_resource_ids: set[str] = set()
+    for ci in cis:
+        if (ci.get("class") or "") in _AWS_BACKED_CLASSES:
+            rid = _ci_to_resource(ci, inv_by_id)
+            if rid:
+                ci_resource_ids.add(rid)
+
+    # 1. Unmanaged: live AWS resource with no CI.
+    for rid, r in inv_by_id.items():
+        if rid not in ci_resource_ids and (r.get("state") or "running") != "terminated":
+            findings.append(_drift_finding(
+                rule_key=f"SN-UNMANAGED-{rid}", severity="HIGH",
+                title=f"Unmanaged AWS resource — no CMDB CI for {rid}",
+                finding_text=f"AWS resource {rid} ({r.get('arn') or 'no ARN'}) is live but has no "
+                             f"Configuration Item in the CMDB.",
+                impact="Change/impact analysis and ownership are blind to this resource — a CMDB coverage gap.",
+                remediation=[f"Create a CI for {rid} (Service Graph Connector for AWS or manual).",
+                             "Set correlation_id to the ARN and assign an owning support group."],
+                resource_id=rid, kind="unmanaged_resource"))
+
+    # 2/3. Stale CI + ownership drift.
+    for ci in cis:
+        if (ci.get("class") or "") not in _AWS_BACKED_CLASSES:
+            continue
+        corr = ci.get("correlation_id") or ""
+        if not corr:
+            continue  # missing correlation = hygiene, reported by detect_drift
+        op = str(ci.get("operational_status") or "").lower()
+        operational = op in ("1", "operational", "")
+        rid = _ci_to_resource(ci, inv_by_id)
+        if rid is None and operational:
+            findings.append(_drift_finding(
+                rule_key=f"SN-STALE-{ci.get('name')}", severity="MEDIUM",
+                title=f"Stale CMDB CI — {ci.get('name')} not present in AWS",
+                finding_text=f"CI {ci.get('name')} (correlation_id {corr}) is marked operational, but no "
+                             f"matching live AWS resource exists.",
+                impact="Orphan CI inflates the CMDB and misleads impact analysis; the resource may be decommissioned.",
+                remediation=[f"Verify whether {ci.get('name')} still exists in AWS.",
+                             "Retire the CI (operational_status=retired) or correct its correlation_id."],
+                resource_id=ci.get("name") or corr, kind="stale_ci"))
+        elif rid is not None:
+            r = inv_by_id[rid]
+            ci_owner = (ci.get("owner_team") or "").strip()
+            aws_owner = (r.get("owner") or "").strip()
+            if aws_owner and ci_owner and ci_owner.lower() != aws_owner.lower():
+                findings.append(_drift_finding(
+                    rule_key=f"SN-OWNER-{rid}", severity="LOW",
+                    title=f"Ownership drift — {rid} owner mismatch",
+                    finding_text=f"CMDB owner '{ci_owner}' for {rid} differs from the AWS owner tag '{aws_owner}'.",
+                    impact="Change routing and approvals may go to the wrong team.",
+                    remediation=[f"Reconcile the CMDB support group for {rid} with the AWS owner tag."],
+                    resource_id=rid, kind="ownership_drift", domain="COMPLIANCE"))
+
+    # 4. Asset drift: unlinked asset, or in-use asset for an absent/terminated resource.
+    for a in assets:
+        status = str(a.get("install_status") or "").lower()
+        in_use = status in ("1", "in use", "installed", "deployed")
+        if not (a.get("ci_name") or a.get("ci_correlation_id")):
+            findings.append(_drift_finding(
+                rule_key=f"SN-ASSET-UNLINKED-{a.get('asset_tag')}", severity="LOW",
+                title=f"Asset not linked to a CI — {a.get('asset_tag')}",
+                finding_text=f"Asset {a.get('asset_tag') or a.get('display_name')} is not linked to any CMDB CI.",
+                impact="Asset↔CI reconciliation gap; financial/lifecycle and operational views are disconnected.",
+                remediation=["Link the asset to its CI (alm_asset.ci)."],
+                resource_id=a.get("asset_tag") or "asset", kind="asset_unlinked",
+                domain="COMPLIANCE"))
+            continue
+        rid = _ci_to_resource(a, inv_by_id)
+        if rid is None and in_use:
+            findings.append(_drift_finding(
+                rule_key=f"SN-ASSET-STALE-{a.get('asset_tag')}", severity="MEDIUM",
+                title=f"In-use asset for a decommissioned resource — {a.get('asset_tag')}",
+                finding_text=f"Asset {a.get('asset_tag')} is in-use and linked to "
+                             f"'{a.get('ci_name')}', which has no live AWS resource.",
+                impact="Asset lifecycle says in-use while the underlying resource is gone — likely over-stated inventory / cost.",
+                remediation=[f"Retire asset {a.get('asset_tag')} or relink it to a live CI."],
+                resource_id=a.get("asset_tag") or "asset", kind="asset_stale",
+                domain="COMPLIANCE"))
+    return findings
+
+
 # ── 12 conflict matchers (UC01..UC12) ────────────────────────────────────────
 
 def uc01_dropbox_block(sp, zs, aws, pa=None):
@@ -518,8 +652,15 @@ MATCHERS = [
 
 
 def run_rule_pack(sharepoint: list[dict], zscaler: list[dict], awsconfig: list[dict],
-                  paloalto: list[dict] | None = None) -> list[dict]:
-    """Run all 14 matchers + emit 16 compliant rows. Returns combined finding list."""
+                  paloalto: list[dict] | None = None,
+                  servicenow: dict | None = None,
+                  aws_inventory: list[dict] | None = None) -> list[dict]:
+    """Run all 14 matchers + emit 16 compliant rows + (optional) ServiceNow drift.
+
+    When a ServiceNow CMDB/asset `servicenow` snapshot and an `aws_inventory` are
+    supplied, the CMDB↔AWS reconciliation runs too and its DRIFT findings are merged.
+    Returns the combined finding list.
+    """
     paloalto = paloalto or []
     findings: list[dict] = []
     for m in MATCHERS:
@@ -532,4 +673,10 @@ def run_rule_pack(sharepoint: list[dict], zscaler: list[dict], awsconfig: list[d
             # must not abort the whole scan.
             continue
     findings.extend(emit_compliants(sharepoint, zscaler, awsconfig, paloalto))
+    if servicenow and aws_inventory:
+        try:
+            findings.extend(run_servicenow_drift(servicenow, aws_inventory))
+        except Exception:
+            # ServiceNow drift is best-effort; never abort the policy scan.
+            pass
     return findings

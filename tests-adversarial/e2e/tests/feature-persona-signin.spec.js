@@ -21,7 +21,7 @@
 // test.skip on the non-matching project so each pair runs exactly once across
 // the project matrix. This keeps `--list` output deterministic.
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 import path from 'node:path'
 import fs from 'node:fs'
 import { personaIds } from '../lib/manifest.js'

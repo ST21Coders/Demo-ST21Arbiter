@@ -91,10 +91,12 @@ _LAYER_HARD_CAPS_SECONDS: dict[str, float] = {
 # env or CLI flag.
 _DEFAULT_TARGET_URL = "https://d5u0vv1zl3eqd.cloudfront.net"
 
-# Default global timeout per spec §5.5: 10 minutes wall-clock for the full
-# sweep. Includes Phase 2 only — preflight + aggregation are bounded by
-# their own (much shorter) operations.
-_DEFAULT_TIMEOUT_SECONDS = 600
+# Default global timeout: 30 minutes wall-clock for Phase 2. Sized to the
+# fuzz layer's own 30-min hard cap so a full Hypothesis sweep can complete;
+# the other layers keep tighter per-layer caps (dos/logic/fault=300s,
+# logging_audit/features=600s) via min() in _run_phase2. Preflight +
+# aggregation are bounded by their own (much shorter) operations.
+_DEFAULT_TIMEOUT_SECONDS = 1800
 
 # Default Bedrock cost cap (USD) per AC3. The .env can override via
 # BEDROCK_COST_CAP_USD; the CLI's --cap-usd flag wins over both.

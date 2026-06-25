@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { API_URL, CHAT_URL, USE_MOCK } from '../config'
 import {
   MOCK_CONFLICTS, MOCK_CHANGE_REQUESTS, MOCK_AUDIT, MOCK_TOKEN_USAGE, mockImpactAnalysis,
-  MOCK_REPORT_CATALOG, MOCK_REPORT_CATEGORIES, mockGenerateReport,
+  MOCK_REPORT_CATALOG, MOCK_REPORT_CATEGORIES, mockGenerateReport, mockDriftScan,
 } from '../mockData'
 import { authHeaders, refresh, signIn } from './useAuth'
 
@@ -317,10 +317,71 @@ export function useConversations(opts = {}) {
     }
   }, [])
 
+  // Bulk-delete N sessions in a single server round-trip. Unlike deleteSession,
+  // this is NOT optimistic: the server returns a {deleted, failed} summary with
+  // per-id partial-failure outcomes, so the caller should refresh via list()
+  // after the promise resolves to reconcile the sidebar with the truth. In mock
+  // mode, splice the ids out of MOCK_SESSIONS and return {deleted: ids, failed: []}.
+  const bulkDeleteSessions = useCallback(async (ids) => {
+    if (USE_MOCK) {
+      await sleep(150)
+      for (const id of ids || []) {
+        const idx = MOCK_SESSIONS.findIndex(s => s.session_id === id)
+        if (idx >= 0) MOCK_SESSIONS.splice(idx, 1)
+      }
+      return { deleted: [...(ids || [])], failed: [] }
+    }
+    return apiFetch('/conversations/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ session_ids: ids }),
+    })
+  }, [])
+
+  // Server-side scoped delete — server walks every session row this user owns
+  // (paginated), filters by scope, and deletes each. Lets the UI clear chats
+  // the sidebar can't see because of the list Limit.
+  //   scope === 'all' | 'harness' | 'older_than_days' (days required for the last)
+  // Returns {deleted: [...], failed: [...], truncated: bool}. If truncated,
+  // the caller should re-invoke until truncated === false to drain the rest.
+  const bulkDeleteByScope = useCallback(async (scope, opts = {}) => {
+    if (USE_MOCK) {
+      await sleep(150)
+      const nowMs = Date.now()
+      const matches = (s) => {
+        if (scope === 'all') return true
+        if (scope === 'harness') {
+          return ['harness-', 'features-', 'logic-race-'].some(p => (s.session_id || '').startsWith(p))
+        }
+        if (scope === 'older_than_days') {
+          const t = Date.parse(s.created_at || '')
+          if (Number.isNaN(t)) return false
+          const days = Number(opts.days)
+          if (!Number.isFinite(days) || days <= 0) return false
+          return (nowMs - t) > days * 86400_000
+        }
+        return false
+      }
+      const deleted = []
+      for (let i = MOCK_SESSIONS.length - 1; i >= 0; i--) {
+        if (matches(MOCK_SESSIONS[i])) {
+          deleted.push(MOCK_SESSIONS[i].session_id)
+          MOCK_SESSIONS.splice(i, 1)
+        }
+      }
+      return { deleted, failed: [], truncated: false }
+    }
+    const payload = { scope }
+    if (scope === 'older_than_days') payload.days = Number(opts.days)
+    return apiFetch('/conversations/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  }, [])
+
   return {
     sessions, activeMessages, loading,
     list, loadMessages, clearActive,
-    addLocalSession, bumpLocalSession, deleteSession
+    addLocalSession, bumpLocalSession, deleteSession, bulkDeleteSessions, bulkDeleteByScope
   }
 }
 
@@ -358,6 +419,18 @@ export async function runImpactAnalysis({ resource, target_environment = 'PROD',
     method: 'POST',
     body: JSON.stringify({ resource, target_environment, severity, draft_change }),
   })
+}
+
+// CMDB / Asset drift scan via the master orchestrator (servicenow_drift_scan mode).
+// POST /servicenow/drift-scan → {configured, drift_items:[{title, severity, finding,
+// impact, remediation, source_technical, enforcement_evidence:[{raw:{drift_kind}}]}],
+// summary:{total, by_kind, by_severity}, snapshot_counts, aws_inventory_count}.
+export async function runDriftScan() {
+  if (USE_MOCK) {
+    await sleep(600 + Math.random() * 600)
+    return mockDriftScan()
+  }
+  return apiFetch('/servicenow/drift-scan', { method: 'POST', body: JSON.stringify({}) })
 }
 
 // Single-round-trip dashboard aggregate. Polls every 60s.

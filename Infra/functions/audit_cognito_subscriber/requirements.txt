@@ -1,0 +1,4 @@
+# boto3 is already bundled in the Lambda Python 3.13 runtime; we list it for
+# documentation. SAM still runs a pip install of this file but boto3 is a no-op
+# upgrade against the runtime-shipped version.
+boto3

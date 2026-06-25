@@ -10,12 +10,11 @@
       "severity": "medium"
     },
     "findings": {
-      "interaction_id": "row-click",
-      "description": "Click the first findings table row to open the finding detail.",
-      "selector_role": "row",
-      "expected_signal": "url",
-      "expected_url_contains": "/findings/",
-      "severity": "medium"
+      "interaction_id": "open-severity-filter",
+      "description": "Click the severity filter <select> on the Findings page. Findings renders div-cards now (no <table>/<tr>), so the old row-click probe has no target. The filter <select> is mount-stable, read-only, no backend call.",
+      "selector_role": "combobox",
+      "expected_signal": "no-console-error",
+      "severity": "low"
     },
     "finding-detail": {
       "interaction_id": null,
@@ -36,9 +35,9 @@
       "severity": "medium"
     },
     "governance": {
-      "interaction_id": "click-policy-row",
-      "description": "Click the first policy row in the Governance table.",
-      "selector_role": "row",
+      "interaction_id": "click-trend-range",
+      "description": "Click the '6M' trend-range button on the Governance Score Trend chart. Governance has no policy table — it renders framework cards + ScoreTrend with read-only range toggles. Read-only state change, no backend.",
+      "selector_text": "6M",
       "expected_signal": "no-console-error",
       "severity": "low"
     },
@@ -46,6 +45,13 @@
       "interaction_id": "filter-toggle",
       "description": "Click a filter chip or column header on the Audit Logs page (filter, not row, because rows are immutable log entries).",
       "selector_role": "button",
+      "expected_signal": "no-console-error",
+      "severity": "low"
+    },
+    "reports": {
+      "interaction_id": "search-catalog",
+      "description": "Type into the report-catalog search input on Reports. Read-only client-side filter; does NOT trigger /reports/generate or /compliance/report (those are exercised by fuzz/features).",
+      "selector_role": "textbox",
       "expected_signal": "no-console-error",
       "severity": "low"
     },
@@ -69,8 +75,8 @@
     },
     "mcp-chat": {
       "interaction_id": "select-second-server",
-      "description": "Click the second MCP server in the sidebar to switch the active server. Does NOT send a chat prompt (that is covered by e2e.mcp-chat.sidebar-cosmetic).",
-      "selector_text": "Conflict Detector MCP",
+      "description": "Click the second MCP server in the sidebar to switch the active server. MCP_SERVERS[1] is now 'Zscaler ZIA Specialist'. Does NOT send a chat prompt.",
+      "selector_text": "Zscaler ZIA Specialist",
       "expected_signal": "no-console-error",
       "severity": "low"
     },

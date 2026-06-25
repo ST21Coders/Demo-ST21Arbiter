@@ -17,7 +17,7 @@
 // either refuses to render the page or it doesn't. We don't need a
 // storageState here.
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures.js'
 
 test.describe.configure({ mode: 'parallel' })
 

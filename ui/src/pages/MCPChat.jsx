@@ -8,6 +8,7 @@ import { CHAT_URL } from '../config'
 import { useConversations, sendChat, useAgentStatus } from '../hooks/useApi'
 import { detectProblem } from '../detectProblem'
 import CreateTicketButton from '../components/CreateTicketButton'
+import ClearChatsButton from '../components/ClearChatsButton'
 
 /* ─── MCP server registry ────────────────────────────────────────────
    Each entry maps to a real ARBITER AgentCore runtime. `id` is the routing
@@ -88,12 +89,16 @@ const MCP_SERVERS = [
     id: 'servicenow',
     name: 'ServiceNow Specialist',
     host: 'agentcore · servicenow_specialist',
-    description: 'IT-asset change-impact analysis from the ServiceNow CMDB + Change Management (Table/Change REST).',
+    description: 'Full ITSM/ITAM over the ServiceNow REST API: CMDB, Incident, Problem, Change, Asset Management, and CMDB/asset drift detection.',
     tools: [
-      { name: 'query_ci', desc: 'Resolve an AWS resource/ARN to a CMDB CI' },
+      { name: 'query_ci / get_ci_details', desc: 'Resolve an AWS resource/ARN to a CMDB CI' },
       { name: 'get_affected_cis', desc: 'Blast-radius traversal over cmdb_rel_ci' },
-      { name: 'get_ci_owner', desc: 'Owning/support team for a CI' },
+      { name: 'query_incident / query_problem', desc: 'Look up incidents & problems' },
+      { name: 'update_incident / comment_incident', desc: 'Change state, assign, add work notes' },
+      { name: 'comment_problem', desc: 'Add work notes/comments to a problem' },
+      { name: 'query_asset', desc: 'Look up hardware/software assets (alm_asset)' },
       { name: 'query_change', desc: 'Look up a change_request by number' },
+      { name: 'detect_drift', desc: 'CMDB/asset hygiene gaps (see Drift Scan page)' },
     ],
   },
 ]
@@ -203,7 +208,13 @@ const SUGGESTED = {
   awsconfig: ['List non-compliant resources', 'Which Config rules are failing?', 'Show S3 encryption compliance'],
   structured: ['Show Available Projects', 'Summarize AR invoices by status', 'Count rows in the latest invoice dataset'],
   jira: ['List my open issues', 'Show issues in the MIG project', 'What is the status of MIG-123?'],
-  servicenow: [],
+  servicenow: [
+    'What is the impact of changing alb-mig-prod-claims-api-001?',
+    'Show open incidents on the Claims API CI',
+    'Add a work note to INC0010001: investigating with the cloud team',
+    'Look up asset P1000099',
+    'What CMDB/asset hygiene drift do you see?',
+  ],
 }
 
 const MCP_CHAT_DRAFT_KEY = 'arbiter.mcpChat.sessionDraft.v1'
@@ -252,7 +263,8 @@ export default function MCPChat() {
   const statusById = useAgentStatus()
   const {
     sessions, list: listSessions, loadMessages,
-    addLocalSession, bumpLocalSession, deleteSession, clearActive, loading: sessionsLoading,
+    addLocalSession, bumpLocalSession, deleteSession, clearActive, bulkDeleteByScope,
+    loading: sessionsLoading,
   } = useConversations({ type: 'mcp' })
 
   // Decorate a registry entry with its live status bucket/label/chat-enabled.
@@ -425,13 +437,26 @@ export default function MCPChat() {
               <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
                 <MessageSquare size={10} /> Recent Conversations
               </p>
-              <button
-                onClick={newChat}
-                title="Start a new chat"
-                className="text-[10px] text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5"
-              >
-                <Plus size={10} /> New
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={newChat}
+                  title="Start a new chat"
+                  className="text-[10px] text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5"
+                >
+                  <Plus size={10} /> New
+                </button>
+                <ClearChatsButton
+                  sessions={sessions}
+                  onBulkDelete={bulkDeleteByScope}
+                  onAfter={listSessions}
+                  activeSessionId={activeSessionId}
+                  onActiveDeleted={() => {
+                    setActiveSessionId(null)
+                    setActiveSessionTitle(null)
+                    setMessages([introMessage(selectedServer)])
+                  }}
+                />
+              </div>
             </div>
             {sessionsLoading && (
               <div className="text-[10px] text-slate-400 px-2 py-1 flex items-center gap-1">

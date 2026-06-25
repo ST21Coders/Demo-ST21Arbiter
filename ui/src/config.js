@@ -106,5 +106,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.5.77'
-export const APP_VERSION_NOTE = 'Add Structured Data Clear Chat session reset'
+export const APP_VERSION = '1.7.1-poc'
+export const APP_VERSION_NOTE = 'Merge latest main and preserve Structured Data Clear Chat reset'
