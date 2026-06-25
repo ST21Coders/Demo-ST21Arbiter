@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import {
   Terminal, Send, Loader2, ChevronRight, Server, Zap,
   CheckCircle, AlertTriangle, Activity, Clock, Copy,
-  Shield, Wifi, WifiOff, MessageSquare, Plus,
+  Shield, Wifi, WifiOff, MessageSquare, Plus, RotateCcw,
 } from 'lucide-react'
 import { CHAT_URL } from '../config'
 import { useConversations, sendChat, useAgentStatus } from '../hooks/useApi'
@@ -59,8 +59,9 @@ const MCP_SERVERS = [
     id: 'structured',
     name: 'Structured Data Specialist',
     host: 'agentcore · structured_specialist',
-    description: 'Runs SELECT-only Athena queries over Glue-catalogued CSV datasets such as invoice batches and control exports.',
+    description: 'Answers project-centric questions across grouped project files and Glue-catalogued datasets.',
     tools: [
+      { name: 'list_projects', desc: 'List Data Grouping projects and their structured table hints' },
       { name: 'run_athena_query', desc: 'Read-only SELECT queries against the structured Glue catalog' },
     ],
   },
@@ -200,25 +201,58 @@ const SUGGESTED = {
   zscaler: ['Is dropbox.com allowed?', 'What URL categories are blocked?', 'Check the TeamViewer category'],
   paloalto: ['Is outbound tor traffic allowed at the perimeter?', 'Show the egress security rules', 'What does PAN-SEC-EGRESS-ANYANY-ALLOW-001 permit?'],
   awsconfig: ['List non-compliant resources', 'Which Config rules are failing?', 'Show S3 encryption compliance'],
-  structured: ['Show available invoice tables', 'Summarize AR invoices by status', 'Count rows in the latest invoice dataset'],
+  structured: ['Show Available Projects', 'Summarize AR invoices by status', 'Count rows in the latest invoice dataset'],
   jira: ['List my open issues', 'Show issues in the MIG project', 'What is the status of MIG-123?'],
   servicenow: [],
+}
+
+const MCP_CHAT_DRAFT_KEY = 'arbiter.mcpChat.sessionDraft.v1'
+
+function readMcpChatDraft() {
+  if (typeof window === 'undefined') return null
+  try {
+    const draft = JSON.parse(sessionStorage.getItem(MCP_CHAT_DRAFT_KEY) || 'null')
+    if (!draft || !Array.isArray(draft.messages)) return null
+    return draft
+  } catch {
+    return null
+  }
+}
+
+function writeMcpChatDraft(draft) {
+  if (typeof window === 'undefined') return
+  try {
+    sessionStorage.setItem(MCP_CHAT_DRAFT_KEY, JSON.stringify(draft))
+  } catch {
+    // Best-effort only; chat still works if the browser denies storage.
+  }
+}
+
+function clearMcpChatDraft() {
+  if (typeof window === 'undefined') return
+  try {
+    sessionStorage.removeItem(MCP_CHAT_DRAFT_KEY)
+  } catch {
+    // Best-effort only; chat reset still works if the browser denies storage.
+  }
 }
 
 /* ─── Main page ─────────────────────────────────────────────────────── */
 
 export default function MCPChat() {
-  const [selectedServer, setSelectedServer] = useState(MCP_SERVERS[0])
-  const [messages, setMessages] = useState([])
+  const restoredDraftRef = useRef(readMcpChatDraft())
+  const restoredServer = MCP_SERVERS.find(s => s.id === restoredDraftRef.current?.selectedServerId) || MCP_SERVERS[0]
+  const [selectedServer, setSelectedServer] = useState(restoredServer)
+  const [messages, setMessages] = useState(() => restoredDraftRef.current?.messages || [])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [activeSessionId, setActiveSessionId] = useState(null)
-  const [activeSessionTitle, setActiveSessionTitle] = useState(null)
+  const [activeSessionId, setActiveSessionId] = useState(restoredDraftRef.current?.activeSessionId || null)
+  const [activeSessionTitle, setActiveSessionTitle] = useState(restoredDraftRef.current?.activeSessionTitle || null)
   const bottomRef = useRef(null)
   const statusById = useAgentStatus()
   const {
     sessions, list: listSessions, loadMessages,
-    addLocalSession, bumpLocalSession, loading: sessionsLoading,
+    addLocalSession, bumpLocalSession, deleteSession, clearActive, loading: sessionsLoading,
   } = useConversations({ type: 'mcp' })
 
   // Decorate a registry entry with its live status bucket/label/chat-enabled.
@@ -241,6 +275,15 @@ export default function MCPChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  useEffect(() => {
+    writeMcpChatDraft({
+      selectedServerId: selectedServer.id,
+      activeSessionId,
+      activeSessionTitle,
+      messages,
+    })
+  }, [selectedServer.id, activeSessionId, activeSessionTitle, messages])
+
   // Fetch the user's session list once on mount.
   useEffect(() => {
     listSessions().catch(() => { })
@@ -249,7 +292,7 @@ export default function MCPChat() {
   // Reset chat when the user picks a different server (only if no session is loaded).
   useEffect(() => {
     if (activeSessionId) return
-    setMessages([introMessage(selectedServer)])
+    setMessages(prev => prev.length ? prev : [introMessage(selectedServer)])
   }, [selectedServer.id, activeSessionId])
 
   async function openSession(sessionId, title) {
@@ -270,6 +313,25 @@ export default function MCPChat() {
     setActiveSessionTitle(null)
     // Re-trigger the server-intro effect by setting messages here directly.
     setMessages([introMessage(selectedServer)])
+  }
+
+  async function clearChat() {
+    const sessionToDelete = activeSessionId
+    clearMcpChatDraft()
+    clearActive()
+    setInput('')
+    setLoading(false)
+    setActiveSessionId(null)
+    setActiveSessionTitle(null)
+    setMessages([introMessage(selectedServer)])
+    if (sessionToDelete) {
+      try {
+        await deleteSession(sessionToDelete)
+      } catch {
+        // Local reset has already happened; the next session-list refresh can
+        // reconcile any server-side delete hiccup.
+      }
+    }
   }
 
   async function send(text) {
@@ -348,7 +410,12 @@ export default function MCPChat() {
               key={srv.id}
               server={srv}
               selected={selectedServer}
-              onSelect={(s) => { setActiveSessionId(null); setActiveSessionTitle(null); setSelectedServer(s) }}
+              onSelect={(s) => {
+                setActiveSessionId(null)
+                setActiveSessionTitle(null)
+                setSelectedServer(s)
+                setMessages([introMessage(s)])
+              }}
             />
           ))}
 
@@ -414,6 +481,15 @@ export default function MCPChat() {
               <MessageSquare size={9} /> History: {activeSessionTitle}
             </span>
           )}
+          {selectedServer.id === 'structured' && (
+            <button
+              onClick={clearChat}
+              title="Clear chat history and reset this Structured Data session"
+              className="inline-flex items-center gap-1 text-[10px] border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 px-2 py-1 rounded-lg transition-colors"
+            >
+              <RotateCcw size={11} /> Clear Chat
+            </button>
+          )}
         </div>
 
         {!sel.chat && (
@@ -439,8 +515,17 @@ export default function MCPChat() {
               <div key={i}>
                 <Message msg={msg} />
                 {detected?.hasProblem && (
-                  <div className="ml-10 mt-1">
+                  <div className="ml-10 mt-1 flex items-start gap-2">
                     <CreateTicketButton detected={detected} />
+                    {selectedServer.id === 'structured' && (
+                      <button
+                        onClick={clearChat}
+                        title="Clear chat history and reset this Structured Data session"
+                        className="mt-2 inline-flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                      >
+                        <RotateCcw size={13} /> Clear Chat
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

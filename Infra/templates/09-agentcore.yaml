@@ -330,6 +330,8 @@ Resources:
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/structured/*"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/athena-results/*"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/projects/*"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/projects/*/metadata/project.json"
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-agentcore-runtime-role"

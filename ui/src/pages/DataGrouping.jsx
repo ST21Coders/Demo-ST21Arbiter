@@ -970,6 +970,7 @@ function GroupCard({
 export default function DataGrouping() {
   const [projectName, setProjectName] = useState('Vendor Audit June 2026')
   const [files, setFiles] = useState([])
+  const [filesTruncated, setFilesTruncated] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [summaries, setSummaries] = useState({})
@@ -1028,6 +1029,7 @@ export default function DataGrouping() {
     try {
       const data = await listUploadedFiles('processed')
       setFiles(data.files || [])
+      setFilesTruncated(Boolean(data.truncated))
     } catch (err) {
       setError(err.message || 'Unable to list processed files')
     } finally {
@@ -1127,7 +1129,8 @@ export default function DataGrouping() {
         move: false,
       })
       setS3Materialize(result)
-      setUploadMessage(`${group.name} published to S3. ${result.structuredCopies?.length || 0} CSV file${result.structuredCopies?.length === 1 ? '' : 's'} mirrored for Glue${result.crawlerStarted ? `; crawler ${result.crawlerMessage || 'started'}.` : '.'}`)
+      const tableHints = [...new Set((result.structuredCopies || []).map(copy => copy.glueTableHint).filter(Boolean))]
+      setUploadMessage(`${group.name} published to S3. ${result.structuredCopies?.length || 0} CSV file${result.structuredCopies?.length === 1 ? '' : 's'} mirrored into ${tableHints.length || 0} Glue-ready table folder${tableHints.length === 1 ? '' : 's'}${result.crawlerStarted ? `; crawler ${result.crawlerMessage || 'started'}.` : '.'}`)
     } catch (err) {
       setError(err.message || `Unable to publish ${group.name}`)
     } finally {
@@ -1708,6 +1711,11 @@ export default function DataGrouping() {
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-sm font-bold text-slate-900">Add files from /processed</h2>
           <p className="mt-1 text-xs text-slate-500">All processed files appear here. Available files can be added; selected or saved-group files are shown with status.</p>
+          {filesTruncated && (
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-700">
+              Showing the newest processed files. Older files are still in S3 but may require search/filtering in a later version.
+            </p>
+          )}
           <div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">
             {files.length ? files.map(file => {
               const key = fileKey(file)

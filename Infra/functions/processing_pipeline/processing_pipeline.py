@@ -28,6 +28,7 @@ import io
 import json
 import logging
 import os
+import re
 import time
 import uuid
 from datetime import datetime, timezone
@@ -366,6 +367,23 @@ def _structured_dataset(key: str) -> str:
     return "misc"
 
 
+def _staged_structured_key(key: str, dataset: str) -> str:
+    name = key.rsplit("/", 1)[-1]
+    if dataset != "misc":
+        # Known canonical datasets intentionally replace their one stable file.
+        return f"{STRUCTURED_PREFIX}{dataset}/{dataset}.csv"
+
+    # Unknown CSVs must not overwrite each other. Strip the upload timestamp
+    # prefix added by /uploads/presign, then stage each CSV under its own folder.
+    original = re.sub(r"^\d{8}T\d{6}Z-", "", name)
+    stem = original.rsplit(".", 1)[0]
+    safe_stem = re.sub(r"[^A-Za-z0-9_]+", "_", stem).strip("_").lower()[:120] or "dataset"
+    safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", original).strip("._-")[:200] or f"{safe_stem}.csv"
+    if not safe_name.lower().endswith(".csv"):
+        safe_name = f"{safe_name}.csv"
+    return f"{STRUCTURED_PREFIX}staged/{safe_stem}/{safe_name}"
+
+
 def _start_crawler() -> bool:
     if not GLUE_CRAWLER_NAME:
         logger.info("GLUE_CRAWLER_NAME unset — skipping crawler trigger")
@@ -390,10 +408,7 @@ def _handle_structured_object(bucket: str, key: str) -> dict:
     or the future crawler-completed orchestration (Documents/policy_scan_flow.md).
     """
     dataset = _structured_dataset(key)
-    # STABLE per-dataset filename (not the timestamped upload name) so a re-upload
-    # REPLACES the dataset's single file. Otherwise files accumulate under the
-    # prefix and Athena reads them all together (stale + new rows → wrong results).
-    dest_key = f"{STRUCTURED_PREFIX}{dataset}/{dataset}.csv"
+    dest_key = _staged_structured_key(key, dataset)
     try:
         s3.copy_object(
             Bucket=PROCESSED_BUCKET, Key=key,

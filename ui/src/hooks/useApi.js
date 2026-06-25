@@ -693,6 +693,24 @@ export async function listUploadedFiles(bucket = 'processed') {
   return apiFetch(`/uploads/list?${qs}`)
 }
 
+export async function getUploadStatus(key) {
+  if (USE_MOCK) {
+    await sleep(250)
+    return {
+      key,
+      isCsv: key?.toLowerCase().endsWith('.csv'),
+      status: key?.toLowerCase().endsWith('.csv') ? 'catalog_done' : 'processed',
+      message: 'mock',
+      raw: { exists: false },
+      processed: { exists: true },
+      structured: key?.toLowerCase().endsWith('.csv') ? { exists: true, key: 'structured/staged/mock/mock.csv' } : null,
+      crawler: key?.toLowerCase().endsWith('.csv') ? { state: 'READY', lastCrawl: { Status: 'SUCCEEDED' } } : null,
+    }
+  }
+  const qs = new URLSearchParams({ key }).toString()
+  return apiFetch(`/uploads/status?${qs}`)
+}
+
 export async function materializeDataGroupingProject({ projectName, projectId, groups = [], deleteGroups = [], move = true }) {
   if (USE_MOCK) {
     await sleep(400)
@@ -762,6 +780,174 @@ export async function analyzeDataGroupingDocuments({ groupName, files }) {
   return apiFetch('/data-grouping/analyze-documents', {
     method: 'POST',
     body: JSON.stringify({ groupName, files }),
+  })
+}
+
+const MOCK_SECURITY_GROUP_BASELINE = [
+  {
+    resourceId: 'sg-lm-prod-peer-dev-001',
+    resourceName: 'lm-prod-peer-dev',
+    vpcId: 'vpc-lm-prod-001a2b3c4d',
+    environment: 'PRODUCTION',
+    ingress: [
+      {
+        direction: 'ingress',
+        protocol: '-1',
+        fromPort: -1,
+        toPort: -1,
+        sourceType: 'cidr',
+        source: '10.50.0.0/16',
+        description: 'dev VPC CIDR',
+      },
+    ],
+    egress: [],
+  },
+]
+
+const MOCK_SECURITY_GROUP_LATEST = [
+  {
+    ...MOCK_SECURITY_GROUP_BASELINE[0],
+    ingress: [
+      ...MOCK_SECURITY_GROUP_BASELINE[0].ingress,
+      {
+        direction: 'ingress',
+        protocol: 'tcp',
+        fromPort: 22,
+        toPort: 22,
+        sourceType: 'cidr',
+        source: '0.0.0.0/0',
+        description: 'console-added temporary SSH access',
+      },
+    ],
+  },
+]
+
+function mockSecurityGroupFinding() {
+  const deadline = new Date(Date.now() + 10 * 60_000).toISOString()
+  return {
+    checkId: `mock-sg-drift-${Date.now()}`,
+    checkedAt: new Date().toISOString(),
+    source: 'mock_ec2_describe_security_groups',
+    baselineCapturedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+    baselineResourceCount: MOCK_SECURITY_GROUP_BASELINE.length,
+    latestResourceCount: MOCK_SECURITY_GROUP_LATEST.length,
+    hitl: {
+      status: 'PENDING',
+      deadlineAt: deadline,
+      timeoutMinutes: 10,
+      note: 'Mock remediation is not executed.',
+    },
+    findings: [
+      {
+        id: 'sg-lm-prod-peer-dev-001-ingress-added-public-ssh',
+        resourceId: 'sg-lm-prod-peer-dev-001',
+        resourceName: 'lm-prod-peer-dev',
+        driftType: 'Ingress rule added',
+        before: 'No matching baseline rule',
+        after: 'ingress tcp 22 from 0.0.0.0/0',
+        severity: 'CRITICAL',
+        recommendation: 'Open a HITL exception immediately; revoke this public ingress if no approval is received before the deadline.',
+        pendingRevert: {
+          action: 'revoke_security_group_ingress',
+          resourceId: 'sg-lm-prod-peer-dev-001',
+          status: 'PENDING_HITL',
+        },
+      },
+    ],
+    pendingReverts: [
+      {
+        action: 'revoke_security_group_ingress',
+        resourceId: 'sg-lm-prod-peer-dev-001',
+        status: 'PENDING_HITL',
+      },
+    ],
+    latest: MOCK_SECURITY_GROUP_LATEST,
+  }
+}
+
+export async function getCurrentSecurityGroups() {
+  if (USE_MOCK) {
+    await sleep(250)
+    return {
+      source: 'mock_ec2_describe_security_groups',
+      observedAt: new Date().toISOString(),
+      resources: MOCK_SECURITY_GROUP_LATEST,
+      count: MOCK_SECURITY_GROUP_LATEST.length,
+    }
+  }
+  return apiFetch('/config-drift/security-groups/current')
+}
+
+export async function getSecurityGroupBaseline() {
+  if (USE_MOCK) {
+    await sleep(150)
+    return {
+      captured: true,
+      capturedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+      capturedBy: 'mock-user',
+      source: 'mock_ec2_describe_security_groups',
+      resourceType: 'AWS::EC2::SecurityGroup',
+      resourceCount: MOCK_SECURITY_GROUP_BASELINE.length,
+      resources: MOCK_SECURITY_GROUP_BASELINE,
+    }
+  }
+  return apiFetch('/config-drift/security-groups/baseline')
+}
+
+export async function captureSecurityGroupBaseline({ groupIds } = {}) {
+  if (USE_MOCK) {
+    await sleep(500)
+    return {
+      capturedAt: new Date().toISOString(),
+      capturedBy: 'mock-user',
+      source: 'mock_ec2_describe_security_groups',
+      resourceType: 'AWS::EC2::SecurityGroup',
+      resources: MOCK_SECURITY_GROUP_BASELINE,
+    }
+  }
+  return apiFetch('/config-drift/security-groups/baseline', {
+    method: 'POST',
+    body: JSON.stringify({ groupIds: groupIds || [] }),
+  })
+}
+
+export async function checkSecurityGroupDrift({ hitlTimeoutMinutes = 10 } = {}) {
+  if (USE_MOCK) {
+    await sleep(600)
+    return mockSecurityGroupFinding()
+  }
+  return apiFetch('/config-drift/security-groups/check', {
+    method: 'POST',
+    body: JSON.stringify({ hitlTimeoutMinutes }),
+  })
+}
+
+export async function revertSecurityGroupDrift({ checkId }) {
+  if (USE_MOCK) {
+    await sleep(500)
+    return {
+      checkId,
+      status: 'COMPLETED',
+      applied: [{ resourceId: 'sg-lm-prod-peer-dev-001', action: 'revoke_security_group_ingress' }],
+      skipped: [],
+      check: {
+        ...mockSecurityGroupFinding(),
+        checkId,
+        revertStatus: 'COMPLETED',
+        revertedAt: new Date().toISOString(),
+        pendingReverts: [
+          {
+            action: 'revoke_security_group_ingress',
+            resourceId: 'sg-lm-prod-peer-dev-001',
+            status: 'COMPLETED',
+          },
+        ],
+      },
+    }
+  }
+  return apiFetch('/config-drift/security-groups/revert', {
+    method: 'POST',
+    body: JSON.stringify({ checkId }),
   })
 }
 
