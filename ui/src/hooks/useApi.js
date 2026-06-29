@@ -386,13 +386,13 @@ export function useConversations(opts = {}) {
 }
 
 // Hits an agent runtime via the Lambda Function URL (CHAT_URL) so we bypass
-// API Gateway's 29s timeout. Body shape: { prompt, session_id, chat_type, target }.
+// API Gateway's 29s timeout. Body shape: { prompt, session_id, chat_type, target, data_group }.
 // chat_type ('analyst' | 'mcp') is stamped onto new session rows so the two
 // chats can be listed separately. `target` selects which agent runtime handles
 // the message: absent/'master' → orchestrator fan-out (Analyst page); a
 // specialist id ('sharepoint' | 'zscaler' | 'awsconfig' | 'jira' | 'servicenow')
 // → that agent directly (MCP page). Response: { reply, session_id }.
-export async function sendChat({ prompt, session_id, chat_type, target }) {
+export async function sendChat({ prompt, session_id, chat_type, target, data_group }) {
   if (USE_MOCK || !CHAT_URL) {
     await sleep(600 + Math.random() * 800)
     return { reply: `(mock reply) You asked: "${prompt}". Wire VITE_CHAT_URL to get a real answer.`, session_id }
@@ -400,7 +400,7 @@ export async function sendChat({ prompt, session_id, chat_type, target }) {
   const res = await fetch(`${CHAT_URL}chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ prompt, session_id, chat_type: chat_type || 'analyst', target }),
+    body: JSON.stringify({ prompt, session_id, chat_type: chat_type || 'analyst', target, data_group }),
   })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
   return res.json()
@@ -805,6 +805,43 @@ export async function materializeDataGroupingProject({ projectName, projectId, g
     method: 'POST',
     body: JSON.stringify({ projectName, projectId, groups, deleteGroups, move }),
   })
+}
+
+export async function getDataGroupingProject(projectId) {
+  if (USE_MOCK) {
+    await sleep(150)
+    return {
+      projectId,
+      exists: false,
+      groups: [],
+      assignedSourceKeys: [],
+    }
+  }
+  const qs = new URLSearchParams({ projectId }).toString()
+  return apiFetch(`/data-grouping/project?${qs}`)
+}
+
+export async function listDataGroupingProjects() {
+  if (USE_MOCK) {
+    await sleep(150)
+    return {
+      groups: [
+        {
+          id: 'mock::Project_Helios_Ridge',
+          projectId: 'vendor-audit-june-2026',
+          projectName: 'Vendor Audit June 2026',
+          groupName: 'Project_Helios_Ridge',
+          label: 'Vendor Audit June 2026 / Project_Helios_Ridge',
+          value: 'Project_Helios_Ridge',
+          fileCount: 3,
+          csvCount: 3,
+          tableCount: 3,
+        },
+      ],
+      truncated: false,
+    }
+  }
+  return apiFetch('/data-grouping/projects')
 }
 
 export async function startDataGroupingCrawler() {

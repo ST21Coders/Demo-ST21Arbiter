@@ -80,6 +80,7 @@ export const AGENT_MODELS = {
   sharepoint: import.meta.env.VITE_SHAREPOINT_MODEL_ID || NOVA_LITE,
   awsconfig:  import.meta.env.VITE_AWSCONFIG_MODEL_ID  || NOVA_LITE,
   zscaler:    import.meta.env.VITE_ZSCALER_MODEL_ID    || NOVA_LITE,
+  structured: import.meta.env.VITE_STRUCTURED_MODEL_ID  || NOVA_LITE,
   servicenow: import.meta.env.VITE_SERVICENOW_MODEL_ID || NOVA_LITE,
 }
 
@@ -106,5 +107,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.7.1-poc'
-export const APP_VERSION_NOTE = 'Merge latest main and preserve Structured Data Clear Chat reset'
+export const APP_VERSION = '1.7.21-poc'
+export const APP_VERSION_NOTE = 'Add deterministic Daily Sales cross-zone report'

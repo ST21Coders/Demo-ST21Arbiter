@@ -2,10 +2,10 @@ import { useState, useRef, useEffect } from 'react'
 import {
   Terminal, Send, Loader2, ChevronRight, Server, Zap,
   CheckCircle, AlertTriangle, Activity, Clock, Copy,
-  Shield, Wifi, WifiOff, MessageSquare, Plus, RotateCcw,
+  Shield, Wifi, WifiOff, MessageSquare, Plus, RotateCcw, Database,
 } from 'lucide-react'
 import { CHAT_URL } from '../config'
-import { useConversations, sendChat, useAgentStatus } from '../hooks/useApi'
+import { listDataGroupingProjects, useConversations, sendChat, useAgentStatus } from '../hooks/useApi'
 import { detectProblem } from '../detectProblem'
 import CreateTicketButton from '../components/CreateTicketButton'
 import ClearChatsButton from '../components/ClearChatsButton'
@@ -218,6 +218,7 @@ const SUGGESTED = {
 }
 
 const MCP_CHAT_DRAFT_KEY = 'arbiter.mcpChat.sessionDraft.v1'
+const DATA_GROUPING_GROUPS_KEY = 'arbiter.dataGrouping.v2.savedGroups'
 
 function readMcpChatDraft() {
   if (typeof window === 'undefined') return null
@@ -248,6 +249,97 @@ function clearMcpChatDraft() {
   }
 }
 
+function readLocalDataGroupingGroups() {
+  if (typeof window === 'undefined') return []
+  try {
+    const saved = JSON.parse(localStorage.getItem(DATA_GROUPING_GROUPS_KEY) || '[]')
+    if (!Array.isArray(saved)) return []
+    return saved
+      .filter(group => group?.name)
+      .map(group => {
+        const files = (group.files || []).map(file => ({
+          name: file?.name || file?.key || 'Unnamed file',
+          type: /\.csv$/i.test(file?.name || '') ? 'csv' : 'file',
+          glueTableHint: file?.glueTableHint,
+        }))
+        const fileCount = Array.isArray(group.files) ? group.files.length : Array.isArray(group.fileKeys) ? group.fileKeys.length : 0
+        const csvCount = files.filter(file => file.type === 'csv').length
+        return {
+          id: `local::${group.id || group.name}`,
+          projectId: 'local-browser',
+          projectName: 'Local Data Grouping',
+          groupName: group.name,
+          label: `Local Data Grouping / ${group.name}`,
+          value: group.name,
+          fileCount,
+          csvCount,
+          tableCount: 0,
+          files,
+          local: true,
+        }
+      })
+  } catch {
+    return []
+  }
+}
+
+function mergeDataGroupOptions(primary = [], fallback = []) {
+  const byGroupName = new Map()
+  ;[...fallback, ...primary].forEach(group => {
+    if (!group?.groupName) return
+    byGroupName.set(group.groupName, group)
+  })
+  return [...byGroupName.values()].sort((a, b) => String(a.label || '').localeCompare(String(b.label || '')))
+}
+
+function normalizeGroupMention(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
+function findOutOfScopeGroup(prompt, selectedGroup, groups) {
+  if (!selectedGroup) return null
+  const text = ` ${normalizeGroupMention(prompt)} `
+  const selectedNames = new Set([
+    normalizeGroupMention(selectedGroup.groupName),
+    normalizeGroupMention(selectedGroup.label),
+  ].filter(Boolean))
+  return groups.find(group => {
+    if (!group?.groupName || group.id === selectedGroup.id) return false
+    const candidates = [
+      normalizeGroupMention(group.groupName),
+      normalizeGroupMention(group.label),
+    ].filter(Boolean)
+    return candidates.some(candidate => (
+      candidate.length >= 5
+      && !selectedNames.has(candidate)
+      && text.includes(` ${candidate} `)
+    ))
+  }) || null
+}
+
+function buildStructuredScopedPrompt(question, selectedGroup) {
+  if (!selectedGroup) return question
+  const fileLines = selectedGroup.files?.length
+    ? selectedGroup.files.slice(0, 100).map(file => `- ${file.name || 'Unnamed file'} (${file.type || 'file'}${file.glueTableHint ? `, table: ${file.glueTableHint}` : ''})`).join('\n')
+    : ''
+
+  return [
+    'Resolved project/group context from the UI selector.',
+    `Project: ${selectedGroup.projectName || selectedGroup.projectId || 'Selected project'} (${selectedGroup.projectId || 'unknown'})`,
+    `Group: ${selectedGroup.groupName}`,
+    selectedGroup.tableHints?.length
+      ? `Allowed Glue table hints:\n${selectedGroup.tableHints.slice(0, 40).map(table => `- ${table}`).join('\n')}`
+      : selectedGroup.local
+        ? 'Allowed Glue table hints: none available for this local browser group; answer from the selected group file inventory.'
+        : 'Allowed Glue table hints: use only tables that resolve to this selected group.',
+    fileLines
+      ? `Available files for selected group:\n${fileLines}`
+      : 'Available files for selected group: not loaded in the UI selector.',
+    '',
+    `User request:\n${question}`,
+  ].join('\n')
+}
+
 /* ─── Main page ─────────────────────────────────────────────────────── */
 
 export default function MCPChat() {
@@ -259,6 +351,9 @@ export default function MCPChat() {
   const [loading, setLoading] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState(restoredDraftRef.current?.activeSessionId || null)
   const [activeSessionTitle, setActiveSessionTitle] = useState(restoredDraftRef.current?.activeSessionTitle || null)
+  const [dataGroups, setDataGroups] = useState([])
+  const [dataGroupsLoading, setDataGroupsLoading] = useState(false)
+  const [selectedDataGroupId, setSelectedDataGroupId] = useState(restoredDraftRef.current?.selectedDataGroupId || '')
   const bottomRef = useRef(null)
   const statusById = useAgentStatus()
   const {
@@ -271,6 +366,7 @@ export default function MCPChat() {
   const decorate = (s) => ({ ...s, ...deriveStatus(statusById[s.id], s.placeholder) })
   const servers = MCP_SERVERS.map(decorate)
   const sel = decorate(selectedServer)
+  const selectedDataGroup = dataGroups.find(group => group.id === selectedDataGroupId) || null
 
   const introMessage = (s) => ({
     role: 'assistant',
@@ -292,14 +388,44 @@ export default function MCPChat() {
       selectedServerId: selectedServer.id,
       activeSessionId,
       activeSessionTitle,
+      selectedDataGroupId,
       messages,
     })
-  }, [selectedServer.id, activeSessionId, activeSessionTitle, messages])
+  }, [selectedServer.id, activeSessionId, activeSessionTitle, selectedDataGroupId, messages])
 
   // Fetch the user's session list once on mount.
   useEffect(() => {
     listSessions().catch(() => { })
   }, [listSessions])
+
+  useEffect(() => {
+    if (selectedServer.id !== 'structured') return
+    let cancelled = false
+    const localGroups = readLocalDataGroupingGroups()
+    setDataGroups(localGroups)
+    setDataGroupsLoading(true)
+    listDataGroupingProjects()
+      .then(data => {
+        if (cancelled) return
+        const groups = mergeDataGroupOptions(data.groups || [], localGroups)
+        setDataGroups(groups)
+        if (selectedDataGroupId && !groups.some(group => group.id === selectedDataGroupId)) {
+          setSelectedDataGroupId('')
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDataGroups(localGroups)
+          if (selectedDataGroupId && !localGroups.some(group => group.id === selectedDataGroupId)) {
+            setSelectedDataGroupId('')
+          }
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDataGroupsLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [selectedServer.id])
 
   // Reset chat when the user picks a different server (only if no session is loaded).
   useEffect(() => {
@@ -333,6 +459,7 @@ export default function MCPChat() {
     clearActive()
     setInput('')
     setLoading(false)
+    setSelectedDataGroupId('')
     setActiveSessionId(null)
     setActiveSessionTitle(null)
     setMessages([introMessage(selectedServer)])
@@ -355,6 +482,21 @@ export default function MCPChat() {
 
     const userMsg = { role: 'user', content: q, time: new Date().toLocaleTimeString() }
     setMessages(prev => [...prev, userMsg])
+
+    const outOfScopeGroup = selectedServer.id === 'structured'
+      ? findOutOfScopeGroup(q, selectedDataGroup, dataGroups)
+      : null
+    if (outOfScopeGroup) {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        system: true,
+        content: `This chat is locked to **${selectedDataGroup.label || selectedDataGroup.groupName}**. The data you asked for appears to be in **${outOfScopeGroup.label || outOfScopeGroup.groupName}**, which is outside the selected group boundary.\n\nChange the Data group selector to **${outOfScopeGroup.label || outOfScopeGroup.groupName}** or switch back to **All data** to ask that question.`,
+        toolCalls: [],
+        time: new Date().toLocaleTimeString(),
+      }])
+      return
+    }
+
     setLoading(true)
 
     // Generate a session_id the first time the user sends a message in this chat.
@@ -380,7 +522,18 @@ export default function MCPChat() {
     }
 
     try {
-      const { reply } = await sendChat({ prompt: q, session_id: sid, chat_type: 'mcp', target: selectedServer.id })
+      const scopedPrompt = selectedServer.id === 'structured' && selectedDataGroup
+        ? buildStructuredScopedPrompt(q, selectedDataGroup)
+        : q
+      const { reply } = await sendChat({
+        prompt: scopedPrompt,
+        session_id: sid,
+        chat_type: 'mcp',
+        target: selectedServer.id,
+        data_group: selectedServer.id === 'structured' && selectedDataGroup
+          ? selectedDataGroup.groupName
+          : '',
+      })
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: reply,
@@ -426,6 +579,7 @@ export default function MCPChat() {
                 setActiveSessionId(null)
                 setActiveSessionTitle(null)
                 setSelectedServer(s)
+                if (s.id !== 'structured') setSelectedDataGroupId('')
                 setMessages([introMessage(s)])
               }}
             />
@@ -504,6 +658,11 @@ export default function MCPChat() {
           {activeSessionId && (
             <span className="flex items-center gap-1 text-[10px] bg-indigo-50 border border-indigo-200 text-indigo-700 px-1.5 py-0.5 rounded-full">
               <MessageSquare size={9} /> History: {activeSessionTitle}
+            </span>
+          )}
+          {selectedServer.id === 'structured' && selectedDataGroup && (
+            <span className="flex max-w-[320px] items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700">
+              <Database size={9} /> <span className="truncate">{selectedDataGroup.label}</span>
             </span>
           )}
           {selectedServer.id === 'structured' && (
@@ -590,6 +749,28 @@ export default function MCPChat() {
         {/* Input */}
         <div className="p-4 border-t border-slate-200 bg-white">
           <div className="flex gap-2">
+            {selectedServer.id === 'structured' && (
+              <label className="relative flex min-w-[260px] max-w-[340px] flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <Database size={14} className="shrink-0 text-indigo-600" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Data group</p>
+                  <select
+                    value={selectedDataGroupId}
+                    onChange={(event) => setSelectedDataGroupId(event.target.value)}
+                    disabled={loading || dataGroupsLoading}
+                    className="mt-0.5 w-full bg-transparent text-xs font-semibold text-slate-800 outline-none disabled:text-slate-400"
+                    title={selectedDataGroup?.label || 'All data'}
+                  >
+                    <option value="">{dataGroupsLoading ? 'Loading groups...' : 'All data'}</option>
+                    {dataGroups.map(group => (
+                      <option key={group.id} value={group.id}>
+                        {group.label}{group.local ? ' · local' : ` · ${group.tableCount || 0} tables`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </label>
+            )}
             <input
               value={input}
               onChange={e => setInput(e.target.value)}

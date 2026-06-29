@@ -217,6 +217,12 @@ def handler(event, context):
     if path == "/data-grouping/materialize" and method == "POST":
         return _handle_data_grouping_materialize(event)
 
+    if path == "/data-grouping/project" and method == "GET":
+        return _handle_data_grouping_project(event)
+
+    if path == "/data-grouping/projects" and method == "GET":
+        return _handle_data_grouping_projects(event)
+
     if path == "/data-grouping/start-crawler" and method == "POST":
         return _handle_data_grouping_start_crawler(event)
 
@@ -340,10 +346,14 @@ def _handle_chat(event):
     if not prompt:
         return _err(400, "Missing 'prompt' in request body")
 
+    selected_data_group = _canonical_structured_group_name((body.get("data_group") or "").strip())
+
     # Direct per-agent routing: the MCP page sends a "target" naming the
     # specialist to invoke; the Analyst page sends none → master orchestrator.
     # An unknown target falls back to master for backward compatibility.
     target = (body.get("target") or "master").strip().lower()
+    if selected_data_group or _looks_like_structured_inventory_prompt(prompt):
+        target = "structured"
     runtime_arn = SPECIALIST_RUNTIME_ARNS.get(target) or MASTER_AGENT_RUNTIME_ARN
     if not runtime_arn:
         return _err(503, f"Runtime ARN for '{target}' not configured (run scripts/deploy_agents.py)")
@@ -367,9 +377,12 @@ def _handle_chat(event):
 
     runtime_prompt = prompt
     if target == "structured":
-        explicit_group = _extract_structured_group_context(prompt)
+        selected_group = selected_data_group
+        explicit_group = selected_group or _extract_structured_group_context(prompt)
         if explicit_group:
             _remember_structured_group_context(session_id, actor_id, chat_type, prompt, explicit_group)
+            if selected_group and selected_group not in prompt:
+                runtime_prompt = f"Use the {selected_group} group. {prompt}"
         elif session_id != "adhoc":
             stored_group = _load_structured_group_context(session_id)
             if stored_group:
@@ -418,10 +431,20 @@ def _extract_structured_group_context(text: str) -> str:
     return ""
 
 
+def _looks_like_structured_inventory_prompt(text: str) -> bool:
+    normalized = re.sub(r"[^a-z0-9]+", " ", (text or "").lower()).strip()
+    return (
+        ("available" in normalized or "list" in normalized)
+        and "tables" in normalized
+        and "files" in normalized
+        and ("group" in normalized or "project" in normalized)
+    )
+
+
 def _canonical_structured_group_name(group: str) -> str:
     if not group:
         return ""
-    parts = [part for part in group.split("_") if part]
+    parts = [part for part in re.split(r"[^A-Za-z0-9]+", group) if part]
     if not parts:
         return ""
     if parts[0].lower() == "project":
@@ -826,6 +849,143 @@ def _load_data_grouping_metadata(bucket: str, metadata_key: str) -> dict[str, An
     except Exception:
         logger.exception("data grouping metadata read failed")
         return None
+
+
+def _handle_data_grouping_project(event):
+    """Return persisted S3 project metadata for Data Grouping.
+
+    The UI uses this as the assignment source of truth so a processed source
+    file that was already materialized into a project group cannot be added to
+    a second group after a browser refresh or another session.
+    """
+    if not PROCESSED_BUCKET:
+        return _err(500, "PROCESSED_BUCKET not configured")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+
+    qs = event.get("queryStringParameters") or {}
+    project_id = _s3_segment(qs.get("projectId") or qs.get("projectName"), "project")
+    metadata_key = f"projects/{project_id}/metadata/project.json"
+    try:
+        metadata = _load_data_grouping_metadata(PROCESSED_BUCKET, metadata_key)
+    except ClientError as e:
+        logger.exception("project metadata read failed")
+        return _err(502, f"metadata read: {type(e).__name__}: {e}")
+
+    if not metadata:
+        return _ok({
+            "projectId": project_id,
+            "metadataKey": metadata_key,
+            "exists": False,
+            "groups": [],
+            "assignedSourceKeys": [],
+        })
+
+    caller_prefix = f"{UPLOAD_PREFIX}{user_id}/"
+    groups = [group for group in metadata.get("groups", []) if isinstance(group, dict)]
+    assigned_source_keys: list[str] = []
+    for group in groups:
+        for file in group.get("files") or []:
+            if not isinstance(file, dict):
+                continue
+            source_key = str(file.get("sourceKey") or "")
+            if source_key.startswith(caller_prefix):
+                assigned_source_keys.append(source_key)
+
+    return _ok({
+        "projectId": metadata.get("projectId") or project_id,
+        "projectName": metadata.get("projectName") or "",
+        "metadataKey": metadata_key,
+        "exists": True,
+        "updatedAt": metadata.get("updatedAt"),
+        "groups": groups,
+        "assignedSourceKeys": sorted(set(assigned_source_keys)),
+    })
+
+
+def _collect_data_grouping_table_hints(group: dict[str, Any]) -> set[str]:
+    hints: set[str] = set()
+    for key in ("structuredTableHint", "glueTableHint"):
+        value = group.get(key)
+        if isinstance(value, str) and value:
+            hints.add(value)
+    for value in group.get("structuredTableHints") or []:
+        if isinstance(value, str) and value:
+            hints.add(value)
+    for file_info in group.get("files") or []:
+        value = file_info.get("glueTableHint") if isinstance(file_info, dict) else None
+        if isinstance(value, str) and value:
+            hints.add(value)
+    return hints
+
+
+def _handle_data_grouping_projects(event):
+    """Return compact Data Grouping project/group options for chat scoping."""
+    if not PROCESSED_BUCKET:
+        return _err(500, "PROCESSED_BUCKET not configured")
+    user_id = _caller_user_id(event)
+    if not user_id:
+        return _err(401, "Could not resolve caller identity")
+
+    groups: list[dict[str, Any]] = []
+    token = None
+    try:
+        while True:
+            params = {"Bucket": PROCESSED_BUCKET, "Prefix": "projects/", "MaxKeys": 1000}
+            if token:
+                params["ContinuationToken"] = token
+            resp = s3.list_objects_v2(**params)
+            for obj in resp.get("Contents") or []:
+                key = obj.get("Key", "")
+                if not key.endswith("/metadata/project.json"):
+                    continue
+                metadata = _load_data_grouping_metadata(PROCESSED_BUCKET, key)
+                if not metadata:
+                    continue
+                project_id = metadata.get("projectId") or ""
+                project_name = metadata.get("projectName") or project_id or "Unnamed project"
+                for group in metadata.get("groups") or []:
+                    if not isinstance(group, dict):
+                        continue
+                    group_name = group.get("name") or group.get("id")
+                    if not group_name:
+                        continue
+                    files = group.get("files") or []
+                    table_hints = _collect_data_grouping_table_hints(group)
+                    groups.append({
+                        "id": f"{project_id}::{group_name}",
+                        "projectId": project_id,
+                        "projectName": project_name,
+                        "groupName": group_name,
+                        "label": f"{project_name} / {group_name}",
+                        "value": group_name,
+                        "fileCount": len(files),
+                        "csvCount": sum(1 for item in files if item.get("type") == "csv"),
+                        "tableCount": len(table_hints),
+                        "tableHints": sorted(table_hints)[:40],
+                        "files": [
+                            {
+                                "name": item.get("name") or item.get("filename") or item.get("key"),
+                                "type": item.get("type") or "file",
+                                "glueTableHint": item.get("glueTableHint"),
+                            }
+                            for item in files[:100]
+                            if isinstance(item, dict)
+                        ],
+                        "updatedAt": metadata.get("updatedAt") or metadata.get("createdAt") or "",
+                    })
+            if not resp.get("IsTruncated"):
+                break
+            token = resp.get("NextContinuationToken")
+            if not token:
+                break
+    except ClientError as e:
+        logger.exception("project group list failed")
+        return _err(502, f"project list: {type(e).__name__}: {e}")
+
+    groups.sort(key=lambda item: (item.get("updatedAt") or "", item.get("label") or ""), reverse=True)
+    return _ok({"groups": groups[:250], "truncated": len(groups) > 250})
 
 
 def _handle_data_grouping_materialize(event):
@@ -3125,6 +3285,7 @@ _AGENT_DISPLAY_NAMES = {
     "sharepoint": "SharePoint Specialist",
     "awsconfig":  "AWS Config Specialist",
     "zscaler":    "Zscaler ZIA Specialist",
+    "structured": "Structured Data Specialist",
     "paloalto":   "Palo Alto NGFW Specialist",
     "jira":       "JIRA Specialist",
     "servicenow": "ServiceNow Specialist",
