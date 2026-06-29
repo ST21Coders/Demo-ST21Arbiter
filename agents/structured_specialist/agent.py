@@ -204,15 +204,9 @@ def _load_projects() -> list[dict[str, Any]]:
                     "type": group.get("type"),
                     "fileCount": len(files),
                     "csvCount": sum(1 for item in files if item.get("type") == "csv"),
-                    "tableHints": table_hints[:25],
-                    "files": [
-                        {
-                            "name": item.get("name") or item.get("filename") or item.get("key"),
-                            "type": item.get("type"),
-                            "glueTableHint": item.get("glueTableHint"),
-                        }
-                        for item in files[:100]
-                    ],
+                    "tableCount": len(table_hints),
+                    "tableHints": table_hints[:12],
+                    "files": [],
                 })
 
             projects.append({
@@ -221,10 +215,10 @@ def _load_projects() -> list[dict[str, Any]]:
                 "updatedAt": metadata.get("updatedAt"),
                 "groupCount": len(groups),
                 "tableCount": len(project_table_hints),
-                "groups": groups[:50],
+                "groups": groups[:25],
             })
     projects.sort(key=lambda item: item.get("updatedAt") or "", reverse=True)
-    return projects[:100]
+    return projects[:50]
 
 
 def _format_projects_for_selection(projects: list[dict[str, Any]]) -> str:
@@ -246,13 +240,21 @@ def _format_projects_for_selection(projects: list[dict[str, Any]]) -> str:
         project_name = project.get("projectName") or project.get("projectId") or "Unnamed project"
         project_id = project.get("projectId") or project_name
         groups = project.get("groups") or []
-        group_names = [group.get("name") or "Unnamed group" for group in groups]
-        group_text = ", ".join(group_names) if group_names else "No groups yet"
         lines.extend([
             "",
             f"Project: {project_name} ({project_id})",
-            f"Groups: {group_text}",
         ])
+        if groups:
+            lines.append("Groups:")
+            for group in groups[:12]:
+                lines.append(
+                    f"- {group.get('name') or 'Unnamed group'} "
+                    f"({group.get('csvCount', 0)} CSV, {group.get('tableCount', 0)} tables)"
+                )
+            if len(groups) > 12:
+                lines.append(f"- ... {len(groups) - 12} more groups")
+        else:
+            lines.append("Groups: No groups yet")
     lines.extend([
         "",
         "Reply with the group name you want to use, for example: Project_Helios_Ridge.",
@@ -298,6 +300,30 @@ def _resolve_single_group_context(prompt: str) -> dict[str, Any] | None:
     except Exception as e:
         log.warning("Group alias resolution skipped: %s", e)
         return None
+
+    explicit_group = _extract_group_fragment(prompt)
+    if explicit_group:
+        explicit_normalized = _normalize_lookup_text(_canonical_group_label(explicit_group))
+        exact_matches: list[dict[str, Any]] = []
+        for project in projects:
+            if project.get("error"):
+                continue
+            for group in project.get("groups") or []:
+                group_normalized = _normalize_lookup_text(str(group.get("name") or ""))
+                if group_normalized == explicit_normalized:
+                    exact_matches.append({"project": project, "group": group})
+        if len(exact_matches) == 1:
+            match = exact_matches[0]
+            project = match["project"]
+            group = match["group"]
+            return {
+                "projectName": project.get("projectName") or project.get("projectId"),
+                "projectId": project.get("projectId"),
+                "groupName": group.get("name"),
+                "groupType": group.get("type"),
+                "tableHints": group.get("tableHints") or [],
+                "files": group.get("files") or [],
+            }
 
     matches: list[dict[str, Any]] = []
     for project in projects:
@@ -409,15 +435,66 @@ def _prepend_resolved_group_context(prompt: str, context: dict[str, Any]) -> str
     )
 
 
+def _context_from_ui_selector_prompt(prompt: str) -> dict[str, Any] | None:
+    if "Resolved project/group context from the UI selector." not in prompt:
+        return None
+    project_match = re.search(r"^Project:\s*(.+?)(?:\s+\((.*?)\))?$", prompt, re.MULTILINE)
+    group_match = re.search(r"^Group:\s*([^\n]+)$", prompt, re.MULTILINE)
+    if not group_match:
+        return None
+
+    table_hints: list[str] = []
+    in_tables = False
+    for line in prompt.splitlines():
+        if line.startswith("Allowed Glue table hints:"):
+            in_tables = True
+            continue
+        if in_tables and line.startswith("Available files for selected group:"):
+            break
+        if in_tables and line.startswith("- "):
+            table_hints.append(line[2:].strip())
+
+    files: list[dict[str, str]] = []
+    in_files = False
+    for line in prompt.splitlines():
+        if line.startswith("Available files for selected group:"):
+            in_files = True
+            continue
+        if in_files and line.startswith("User request:"):
+            break
+        if in_files and line.startswith("- "):
+            raw = line[2:].strip()
+            name, _, rest = raw.partition(" (")
+            file_type = rest.split(",", 1)[0].rstrip(")") if rest else "file"
+            table_match = re.search(r"table:\s*([A-Za-z0-9_]+)", raw)
+            files.append({
+                "name": name,
+                "type": file_type or "file",
+                "glueTableHint": table_match.group(1) if table_match else "",
+            })
+
+    return {
+        "projectName": project_match.group(1).strip() if project_match else "Selected project",
+        "projectId": project_match.group(2).strip() if project_match and project_match.group(2) else "",
+        "groupName": group_match.group(1).strip(),
+        "groupType": "selected",
+        "tableHints": table_hints,
+        "files": files,
+    }
+
+
 def _looks_like_group_inventory_request(prompt: str) -> bool:
     text = _normalize_lookup_text(prompt)
     return (
-        ("list" in text or "show" in text)
+        ("list" in text or "show" in text or "summarize" in text or "describe" in text or "explain" in text)
         and (
             "available files" in text
             or "available tables" in text
             or "files and tables" in text
+            or "files found" in text
             or "tables in this group" in text
+            or ("files" in text and "likely intent" in text)
+            or ("files" in text and "intent" in text)
         )
     )
 
@@ -513,6 +590,37 @@ def _format_group_inventory(context: dict[str, Any]) -> str:
     else:
         lines.append("- No file metadata found for this group.")
     return "\n".join(lines)
+
+
+def _group_name_to_table_token(group_name: str) -> str:
+    normalized = _normalize_lookup_text(group_name).replace(" ", "_")
+    if normalized.startswith("project_"):
+        normalized = normalized[len("project_"):]
+    return normalized
+
+
+def _context_with_glue_table_hints(context: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not context:
+        return None
+    if context.get("tableHints"):
+        return context
+    group_name = str(context.get("groupName") or "")
+    token = _group_name_to_table_token(group_name)
+    if not token:
+        return context
+    try:
+        paginator = glue.get_paginator("get_tables")
+        hints: list[str] = []
+        for page in paginator.paginate(DatabaseName=GLUE_DATABASE):
+            for table in page.get("TableList", []):
+                name = table.get("Name", "")
+                if token in name.lower():
+                    hints.append(name)
+        if hints:
+            return {**context, "tableHints": sorted(set(hints))}
+    except Exception as e:
+        log.warning("Glue table hint fill failed: %s", e)
+    return context
 
 
 def _extract_table_fragment(prompt: str) -> str | None:
@@ -805,6 +913,589 @@ def _table_for_fragment(fragment: str, context: dict[str, Any] | None, prompt: s
     return matches[0] if len(matches) == 1 else None
 
 
+def _row_value(row: dict[str, str | None], aliases: tuple[str, ...]) -> str:
+    normalized = {_normalize_lookup_text(key).replace(" ", "_"): value for key, value in row.items()}
+    for alias in aliases:
+        value = normalized.get(_normalize_lookup_text(alias).replace(" ", "_"))
+        if value not in (None, ""):
+            return str(value)
+    return ""
+
+
+def _to_float(value: str | None) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        return float(re.sub(r"[^0-9.\-]+", "", str(value)))
+    except ValueError:
+        return None
+
+
+def _preview_table(fragment: str, context: dict[str, Any] | None, prompt: str, limit: int = 200) -> tuple[str | None, list[dict[str, str | None]], str | None]:
+    table = _table_for_fragment(fragment, context, prompt)
+    if not table:
+        return None, [], f"`{fragment}`: no single matching Glue table"
+    try:
+        return table, _athena_rows(f'SELECT * FROM "{table}" LIMIT {limit}'), None
+    except Exception as e:
+        return table, [], f"`{table}`: {e}"
+
+
+def _looks_like_helios_project_risk_request(prompt: str, context: dict[str, Any] | None) -> bool:
+    text = _normalize_lookup_text(prompt)
+    context_text = _normalize_lookup_text(
+        " ".join(str((context or {}).get(key) or "") for key in ("projectId", "projectName", "groupName"))
+    )
+    scope = f"{text} {context_text}"
+    return (
+        ("helios" in scope or "ridge" in scope)
+        and any(term in text for term in (
+            "analyze",
+            "risk",
+            "risks",
+            "problems",
+            "budget",
+            "workstream",
+            "sensor",
+            "vendor",
+            "commitments",
+            "action plan",
+        ))
+    )
+
+
+def _handle_helios_project_risk_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_helios_project_risk_request(prompt, context):
+        return None
+
+    table_specs = {
+        "Budget ledger": "budget_ledger",
+        "Workstream status": "workstream_status",
+        "Sensor test results": "sensor_test_results",
+        "Vendor commitments": "vendor_commitments",
+        "Risk register": "risk_register",
+    }
+    loaded: dict[str, tuple[str, list[dict[str, str | None]]]] = {}
+    issues: list[str] = []
+    for title, fragment in table_specs.items():
+        table, rows, error = _preview_table(fragment, context, prompt)
+        if error:
+            issues.append(error)
+        if table:
+            loaded[title] = (table, rows)
+
+    budget_rows: list[dict[str, str]] = []
+    for row in loaded.get("Budget ledger", ("", []))[1]:
+        original = _to_float(_row_value(row, ("original_budget", "budget", "approved_budget")))
+        actual = _to_float(_row_value(row, ("actual_or_forecast_cost", "actual_cost", "forecast_cost")))
+        risk = _row_value(row, ("risk_level", "rag_status", "status")).lower()
+        if original is None or actual is None:
+            continue
+        variance = actual - original
+        if variance > 0 or risk in {"high", "red"}:
+            budget_rows.append({
+                "cost_id": _row_value(row, ("cost_id", "id")),
+                "category": _row_value(row, ("cost_category", "category", "cost_item")),
+                "original_budget": f"{original:.2f}",
+                "actual_or_forecast": f"{actual:.2f}",
+                "variance": f"{variance:.2f}",
+                "risk_level": _row_value(row, ("risk_level", "rag_status", "status")),
+                "notes": _row_value(row, ("notes", "description")),
+            })
+    budget_rows.sort(key=lambda row: _to_float(row.get("variance")) or 0, reverse=True)
+
+    workstream_rows: list[dict[str, str]] = []
+    for row in loaded.get("Workstream status", ("", []))[1]:
+        rag = _row_value(row, ("rag_status", "risk_level")).lower()
+        status = _row_value(row, ("status", "workstream_status")).lower()
+        if rag in {"red", "yellow", "high"} or status not in {"", "complete", "completed", "done"}:
+            workstream_rows.append({
+                "workstream_id": _row_value(row, ("workstream_id", "id")),
+                "workstream": _row_value(row, ("workstream_name", "name")),
+                "owner": _row_value(row, ("owner_group", "owner")),
+                "status": _row_value(row, ("status", "workstream_status")),
+                "percent_complete": _row_value(row, ("percent_complete", "completion_percent")),
+                "original_due": _row_value(row, ("original_due_date", "due_date")),
+                "forecast": _row_value(row, ("current_forecast_date", "forecast_date")),
+                "rag": _row_value(row, ("rag_status", "risk_level")),
+                "notes": _row_value(row, ("notes", "description")),
+            })
+
+    sensor_rows: list[dict[str, str]] = []
+    for row in loaded.get("Sensor test results", ("", []))[1]:
+        status = _row_value(row, ("test_status", "status")).lower()
+        variance = _to_float(_row_value(row, ("calibration_variance_percent", "variance_percent", "variance")))
+        if status in {"fail", "failed", "marginal"} or (variance is not None and variance >= 3):
+            sensor_rows.append({
+                "sensor_id": _row_value(row, ("sensor_id", "id")),
+                "location": _row_value(row, ("field_location", "location")),
+                "type": _row_value(row, ("sensor_type", "type")),
+                "test_status": _row_value(row, ("test_status", "status")),
+                "variance_percent": "" if variance is None else f"{variance:.2f}",
+                "hardware_batch": _row_value(row, ("hardware_batch", "batch")),
+            })
+
+    vendor_rows: list[dict[str, str]] = []
+    for row in loaded.get("Vendor commitments", ("", []))[1]:
+        row_text = _normalize_lookup_text(" ".join(str(value or "") for value in row.values()))
+        if any(term in row_text for term in ("delayed", "delay", "at risk", "blocked", "red", "yellow", "late")):
+            vendor_rows.append({
+                "vendor": _row_value(row, ("vendor_name", "vendor")),
+                "commitment": _row_value(row, ("commitment", "deliverable", "description", "item")),
+                "status": _row_value(row, ("delivery_status", "status", "rag_status")),
+                "due_date": _row_value(row, ("due_date", "target_date", "commitment_date")),
+                "owner": _row_value(row, ("owner", "owner_group")),
+                "notes": _row_value(row, ("notes", "risk_notes", "description")),
+            })
+
+    risk_rows: list[dict[str, str]] = []
+    for row in loaded.get("Risk register", ("", []))[1]:
+        row_text = _normalize_lookup_text(" ".join(str(value or "") for value in row.values()))
+        status = _row_value(row, ("status", "risk_status")).lower()
+        if any(term in row_text for term in ("high", "red", "open", "unresolved", "mitigation", "dependency")) and status not in {"closed", "resolved"}:
+            risk_rows.append({
+                "risk_id": _row_value(row, ("risk_id", "id")),
+                "risk": _row_value(row, ("risk_description", "description", "risk")),
+                "owner": _row_value(row, ("owner", "owner_group")),
+                "likelihood": _row_value(row, ("likelihood", "probability")),
+                "impact": _row_value(row, ("impact", "severity")),
+                "status": _row_value(row, ("status", "risk_status")),
+                "notes": _row_value(row, ("mitigation", "notes", "next_steps")),
+            })
+
+    loaded_table_lines = [
+        f"- {title}: `{table}` ({len(rows)} preview rows)"
+        for title, (table, rows) in loaded.items()
+    ]
+    lines = [
+        "Project_Helios_Ridge deterministic project-risk report",
+        "",
+        "Scope",
+        *loaded_table_lines,
+        "",
+        "Highest-priority issues",
+        "- Budget pressure: review the largest positive cost variances and high-risk budget rows first.",
+        "- Schedule pressure: red/yellow or incomplete workstreams should be handled as the near-term execution risk queue.",
+        "- Technical quality: failed or high-variance sensor tests need retest/root-cause work before dashboard or operations sign-off.",
+        "- Vendor delivery: delayed or at-risk commitments are likely dependencies for the schedule and risk register.",
+        "- Risk governance: unresolved high-impact risks should get named owners and due dates.",
+        "",
+        "Budget overruns and high-risk costs",
+        "",
+        _format_rows_as_markdown(budget_rows[:10], "No budget overruns or high-risk budget rows found in the preview."),
+        "",
+        "Delayed or at-risk workstreams",
+        "",
+        _format_rows_as_markdown(workstream_rows[:10], "No delayed or at-risk workstreams found in the preview."),
+        "",
+        "Failed or marginal sensor tests",
+        "",
+        _format_rows_as_markdown(sensor_rows[:10], "No failed or marginal sensor tests found in the preview."),
+        "",
+        "Vendor delivery issues",
+        "",
+        _format_rows_as_markdown(vendor_rows[:10], "No delayed or at-risk vendor commitments found in the preview."),
+        "",
+        "Open risk-register items",
+        "",
+        _format_rows_as_markdown(risk_rows[:10], "No open high-priority risk-register rows found in the preview."),
+        "",
+        "Action plan",
+        "- Engineering: triage red/yellow workstreams and failed sensor tests; publish revised recovery dates.",
+        "- Data Platform: confirm ingestion dependencies and unblock any project data-path issues.",
+        "- Operations: pressure-test vendor commitments against field readiness and due dates.",
+        "- Finance/PMO: review budget variances and decide whether to reforecast or hold spending.",
+        "- Project owner: assign one owner per unresolved risk and review progress daily until the red/yellow queue clears.",
+    ]
+    if issues:
+        lines.extend(["", "Query issues"])
+        lines.extend(f"- {issue}" for issue in issues)
+    return "\n".join(lines)
+
+
+def _looks_like_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] | None) -> bool:
+    text = _normalize_lookup_text(prompt)
+    context_text = _normalize_lookup_text(
+        " ".join(str((context or {}).get(key) or "") for key in ("projectId", "projectName", "groupName"))
+    )
+    scope = f"{text} {context_text}"
+    return (
+        "daily sales" in scope
+        and ("zone" in scope or "zones" in scope)
+        and any(term in text for term in ("branch", "product", "best", "worst", "revenue", "quantity", "rank"))
+    )
+
+
+def _daily_sales_tables(prompt: str) -> list[tuple[int, str]]:
+    text = _normalize_lookup_text(prompt)
+    requested = sorted({int(zone) for zone in re.findall(r"\bzone\s+([1-6])\b", text)})
+    if "1 through daily sales zone 6" in text or "1 through 6" in text or "zones 1 through 6" in text:
+        requested = [1, 2, 3, 4, 5, 6]
+    if not requested:
+        requested = [1, 2, 3, 4, 5, 6]
+
+    tables: list[tuple[int, str]] = []
+    for zone in requested:
+        matches = _matching_glue_tables(f"daily_sales_zone_{zone}", {"sourcePrompt": prompt})
+        exact = [name for name in matches if name.endswith(f"daily_sales_zone_{zone}")]
+        selected = exact[0] if len(exact) == 1 else matches[0] if len(matches) == 1 else None
+        if selected:
+            tables.append((zone, selected))
+    return tables
+
+
+def _handle_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_daily_sales_multi_zone_request(prompt, context):
+        return None
+
+    tables = _daily_sales_tables(prompt)
+    if not tables:
+        return "I could not resolve any `daily_sales_zone_*` Glue tables for this request."
+
+    union_sql = "\nUNION ALL\n".join(
+        f"""
+        SELECT
+            {zone} AS zone,
+            branch_city,
+            branch_state,
+            part_sku,
+            part_name,
+            CAST(quantity_sold AS DOUBLE) AS quantity_sold,
+            CAST(line_revenue AS DOUBLE) AS line_revenue
+        FROM "{table}"
+        """
+        for zone, table in tables
+    )
+    branch_sql = f"""
+        WITH sales AS ({union_sql})
+        SELECT
+            CONCAT(branch_city, ', ', branch_state) AS branch,
+            SUM(quantity_sold) AS quantity_sold,
+            ROUND(SUM(line_revenue), 2) AS total_revenue
+        FROM sales
+        GROUP BY branch_city, branch_state
+        ORDER BY total_revenue DESC
+        LIMIT 12
+    """
+    product_sql = f"""
+        WITH sales AS ({union_sql})
+        SELECT
+            part_sku,
+            part_name,
+            SUM(quantity_sold) AS quantity_sold,
+            ROUND(SUM(line_revenue), 2) AS total_revenue
+        FROM sales
+        GROUP BY part_sku, part_name
+        ORDER BY total_revenue DESC
+        LIMIT 10
+    """
+    product_bottom_sql = f"""
+        WITH sales AS ({union_sql})
+        SELECT
+            part_sku,
+            part_name,
+            SUM(quantity_sold) AS quantity_sold,
+            ROUND(SUM(line_revenue), 2) AS total_revenue
+        FROM sales
+        GROUP BY part_sku, part_name
+        HAVING SUM(quantity_sold) > 0
+        ORDER BY total_revenue ASC
+        LIMIT 10
+    """
+    zone_sql = f"""
+        WITH sales AS ({union_sql})
+        SELECT
+            zone,
+            COUNT(*) AS sales_lines,
+            COUNT(DISTINCT CONCAT(branch_city, '|', branch_state)) AS branches,
+            COUNT(DISTINCT part_sku) AS products,
+            SUM(quantity_sold) AS quantity_sold,
+            ROUND(SUM(line_revenue), 2) AS total_revenue
+        FROM sales
+        GROUP BY zone
+        ORDER BY zone
+    """
+
+    errors: list[str] = []
+    try:
+        branch_rows = _athena_rows(branch_sql)
+    except Exception as e:
+        branch_rows = []
+        errors.append(f"Branch ranking: {e}")
+    try:
+        product_rows = _athena_rows(product_sql)
+    except Exception as e:
+        product_rows = []
+        errors.append(f"Top product ranking: {e}")
+    try:
+        product_bottom_rows = _athena_rows(product_bottom_sql)
+    except Exception as e:
+        product_bottom_rows = []
+        errors.append(f"Bottom product ranking: {e}")
+    try:
+        zone_rows = _athena_rows(zone_sql)
+    except Exception as e:
+        zone_rows = []
+        errors.append(f"Zone summary: {e}")
+
+    top_branch = branch_rows[0] if branch_rows else {}
+    top_product = product_rows[0] if product_rows else {}
+    bottom_product = product_bottom_rows[0] if product_bottom_rows else {}
+    table_lines = [f"- Zone {zone}: `{table}`" for zone, table in tables]
+    lines = [
+        "Daily Sales Zones deterministic cross-zone report",
+        "",
+        "Scope",
+        *table_lines,
+        "",
+        "Summary",
+        f"- Top branch: {top_branch.get('branch', 'not available')} with ${top_branch.get('total_revenue', '0')} revenue and {top_branch.get('quantity_sold', '0')} units sold.",
+        f"- Best-selling product by revenue: {top_product.get('part_name', 'not available')} ({top_product.get('part_sku', '')}) with ${top_product.get('total_revenue', '0')} revenue and {top_product.get('quantity_sold', '0')} units sold.",
+        f"- Lowest-selling product by revenue: {bottom_product.get('part_name', 'not available')} ({bottom_product.get('part_sku', '')}) with ${bottom_product.get('total_revenue', '0')} revenue and {bottom_product.get('quantity_sold', '0')} units sold.",
+        "",
+        "Branch revenue ranking",
+        "",
+        _format_rows_as_markdown(branch_rows, "No branch rows returned."),
+        "",
+        "Top products by revenue",
+        "",
+        _format_rows_as_markdown(product_rows, "No product rows returned."),
+        "",
+        "Lowest products by revenue",
+        "",
+        _format_rows_as_markdown(product_bottom_rows, "No bottom-product rows returned."),
+        "",
+        "Zone-level differences",
+        "",
+        _format_rows_as_markdown(zone_rows, "No zone rows returned."),
+    ]
+    if errors:
+        lines.extend(["", "Query issues"])
+        lines.extend(f"- {error}" for error in errors)
+    return "\n".join(lines)
+
+
+def _looks_like_storm_glass_claim_review_request(prompt: str, context: dict[str, Any] | None) -> bool:
+    text = _normalize_lookup_text(prompt)
+    context_text = _normalize_lookup_text(
+        " ".join(str((context or {}).get(key) or "") for key in ("projectId", "projectName", "groupName"))
+    )
+    table_text = _normalize_lookup_text(" ".join(str(table) for table in ((context or {}).get("tableHints") or [])))
+    scope = f"{text} {context_text} {table_text}"
+    cross_evidence_terms = ("invoice", "invoices", "weather", "policy", "upgrade", "upgrades", "call", "logs", "notes")
+    return (
+        ("storm glass" in scope or "storm_glass" in scope)
+        and "claims" in text
+        and ("normal" in text or "combined" in text or "cross" in text or "review" in text or "suspicious" in text)
+        and sum(1 for term in cross_evidence_terms if term in text) >= 3
+    )
+
+
+def _handle_storm_glass_claim_review_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_storm_glass_claim_review_request(prompt, context):
+        return None
+
+    needed = {
+        "claims": "storm_glass_01_01_claims_master",
+        "policyholders": "storm_glass_01_02_policyholders",
+        "invoices": "storm_glass_01_03_vendor_invoices",
+        "calls": "storm_glass_01_05_customer_call_logs",
+        "notes": "storm_glass_01_06_adjuster_notes_export",
+        "benchmarks": "storm_glass_01_11_repair_cost_benchmarks",
+        "weather": "storm_glass_01_12_weather_events_by_zip",
+        "siu": "storm_glass_01_21_siu_risk_scores",
+    }
+    tables = {key: _table_for_fragment(fragment, context, prompt) for key, fragment in needed.items()}
+    missing = [fragment for key, fragment in needed.items() if not tables.get(key)]
+    if missing:
+        return (
+            "I could not resolve all Storm Glass tables needed for the cross-evidence claim review. "
+            f"Missing: {', '.join(missing)}."
+        )
+
+    review_sql = f"""
+        WITH invoice_rollup AS (
+            SELECT
+                claim_id,
+                COUNT(*) AS invoice_count,
+                ROUND(SUM(CAST(invoice_total AS DOUBLE)), 2) AS invoice_total,
+                MAX_BY(vendor_name, CAST(invoice_total AS DOUBLE)) AS top_vendor,
+                MAX(CAST(invoice_total AS DOUBLE)) AS largest_invoice
+            FROM "{tables['invoices']}"
+            GROUP BY claim_id
+        ),
+        call_rollup AS (
+            SELECT
+                col1 AS claim_id,
+                COUNT(*) AS call_count,
+                SUM(CASE WHEN LOWER(col5) IN ('frustrated', 'negative') THEN 1 ELSE 0 END) AS concern_calls,
+                ARRAY_JOIN(SLICE(ARRAY_AGG(col4), 1, 2), ' | ') AS call_signals
+            FROM "{tables['calls']}"
+            WHERE col0 <> 'call_id'
+            GROUP BY col1
+        ),
+        note_rollup AS (
+            SELECT
+                col1 AS claim_id,
+                COUNT(*) AS note_count,
+                SUM(
+                    CASE
+                        WHEN LOWER(col4) LIKE '%pre-existing%'
+                          OR LOWER(col4) LIKE '%additional photos%'
+                          OR LOWER(col4) LIKE '%inconsistent%'
+                          OR LOWER(col4) LIKE '%question%'
+                        THEN 1 ELSE 0
+                    END
+                ) AS review_notes,
+                ARRAY_JOIN(SLICE(ARRAY_AGG(col4), 1, 2), ' | ') AS note_signals
+            FROM "{tables['notes']}"
+            WHERE col0 <> 'note_id'
+            GROUP BY col1
+        ),
+        weather_rollup AS (
+            SELECT
+                c.claim_id,
+                MAX(CAST(w.hail_inches AS DOUBLE)) AS max_hail_inches,
+                MAX(CAST(w.wind_mph AS DOUBLE)) AS max_wind_mph,
+                COUNT(w.storm_event_code) AS nearby_weather_events
+            FROM "{tables['claims']}" c
+            LEFT JOIN "{tables['weather']}" w
+              ON w.zip = c.zip
+             AND ABS(date_diff('day', TRY_CAST(w.weather_date AS DATE), TRY_CAST(c.loss_date AS DATE))) <= 3
+            GROUP BY c.claim_id
+        ),
+        scored AS (
+            SELECT
+                c.claim_id,
+                c.policy_id,
+                c.loss_date,
+                c.reported_date,
+                c.zip,
+                c.city,
+                c.state,
+                c.loss_type,
+                c.claim_status,
+                c.assigned_adjuster,
+                c.estimated_loss,
+                COALESCE(i.invoice_total, 0) AS invoice_total,
+                COALESCE(i.invoice_count, 0) AS invoice_count,
+                COALESCE(i.top_vendor, '') AS top_vendor,
+                CAST(b.benchmark_high AS DOUBLE) AS benchmark_high,
+                p.recent_upgrade_date,
+                COALESCE(w.max_hail_inches, 0) AS max_hail_inches,
+                COALESCE(w.max_wind_mph, 0) AS max_wind_mph,
+                COALESCE(w.nearby_weather_events, 0) AS nearby_weather_events,
+                COALESCE(cr.call_count, 0) AS call_count,
+                COALESCE(cr.concern_calls, 0) AS concern_calls,
+                COALESCE(cr.call_signals, '') AS call_signals,
+                COALESCE(n.review_notes, 0) AS review_notes,
+                COALESCE(n.note_signals, '') AS note_signals,
+                TRY_CAST(s.risk_score AS DOUBLE) AS siu_risk_score,
+                COALESCE(s.model_reason_1, '') AS siu_reason_1,
+                COALESCE(s.model_reason_2, '') AS siu_reason_2,
+                c.hidden_pattern_flag
+            FROM "{tables['claims']}" c
+            LEFT JOIN invoice_rollup i ON i.claim_id = c.claim_id
+            LEFT JOIN "{tables['policyholders']}" p ON p.policy_id = c.policy_id
+            LEFT JOIN "{tables['benchmarks']}" b ON b.state = c.state AND b.loss_type = c.loss_type
+            LEFT JOIN weather_rollup w ON w.claim_id = c.claim_id
+            LEFT JOIN call_rollup cr ON cr.claim_id = c.claim_id
+            LEFT JOIN note_rollup n ON n.claim_id = c.claim_id
+            LEFT JOIN "{tables['siu']}" s ON s.claim_id = c.claim_id
+        )
+        SELECT
+            claim_id,
+            claim_status,
+            loss_date,
+            zip,
+            loss_type,
+            assigned_adjuster,
+            ROUND(CAST(estimated_loss AS DOUBLE), 2) AS estimated_loss,
+            ROUND(invoice_total, 2) AS invoice_total,
+            ROUND(benchmark_high, 2) AS benchmark_high,
+            top_vendor,
+            recent_upgrade_date,
+            max_hail_inches,
+            max_wind_mph,
+            nearby_weather_events,
+            concern_calls,
+            review_notes,
+            siu_risk_score,
+            (
+                CASE WHEN invoice_total > CAST(estimated_loss AS DOUBLE) * 1.35 THEN 1 ELSE 0 END
+                + CASE WHEN benchmark_high IS NOT NULL AND invoice_total > benchmark_high THEN 1 ELSE 0 END
+                + CASE WHEN recent_upgrade_date IS NOT NULL
+                         AND TRY_CAST(recent_upgrade_date AS DATE) <= TRY_CAST(loss_date AS DATE)
+                         AND date_diff('day', TRY_CAST(recent_upgrade_date AS DATE), TRY_CAST(loss_date AS DATE)) <= 45
+                       THEN 1 ELSE 0 END
+                + CASE WHEN nearby_weather_events = 0 THEN 1 ELSE 0 END
+                + CASE WHEN concern_calls > 0 THEN 1 ELSE 0 END
+                + CASE WHEN review_notes > 0 THEN 1 ELSE 0 END
+                + CASE WHEN siu_risk_score >= 70 THEN 1 ELSE 0 END
+                + CASE WHEN hidden_pattern_flag = 'true' THEN 1 ELSE 0 END
+            ) AS review_signal_count,
+            ARRAY_JOIN(
+                FILTER(
+                    ARRAY[
+                        CASE WHEN invoice_total > CAST(estimated_loss AS DOUBLE) * 1.35 THEN 'invoice total materially above estimate' END,
+                        CASE WHEN benchmark_high IS NOT NULL AND invoice_total > benchmark_high THEN 'invoice total above benchmark high' END,
+                        CASE WHEN recent_upgrade_date IS NOT NULL
+                              AND TRY_CAST(recent_upgrade_date AS DATE) <= TRY_CAST(loss_date AS DATE)
+                              AND date_diff('day', TRY_CAST(recent_upgrade_date AS DATE), TRY_CAST(loss_date AS DATE)) <= 45
+                             THEN 'recent policy upgrade before loss' END,
+                        CASE WHEN nearby_weather_events = 0 THEN 'no nearby weather event in +/-3 days' END,
+                        CASE WHEN concern_calls > 0 THEN 'customer/caller concern signal' END,
+                        CASE WHEN review_notes > 0 THEN 'adjuster note requests review' END,
+                        CASE WHEN siu_risk_score >= 70 THEN 'SIU model score >= 70' END,
+                        CASE WHEN hidden_pattern_flag = 'true' THEN 'project hidden-pattern flag' END
+                    ],
+                    item -> item IS NOT NULL
+                ),
+                '; '
+            ) AS review_explanation,
+            call_signals,
+            note_signals
+        FROM scored
+        WHERE
+            invoice_total > CAST(estimated_loss AS DOUBLE) * 1.35
+            OR (benchmark_high IS NOT NULL AND invoice_total > benchmark_high)
+            OR (
+                recent_upgrade_date IS NOT NULL
+                AND TRY_CAST(recent_upgrade_date AS DATE) <= TRY_CAST(loss_date AS DATE)
+                AND date_diff('day', TRY_CAST(recent_upgrade_date AS DATE), TRY_CAST(loss_date AS DATE)) <= 45
+            )
+            OR nearby_weather_events = 0
+            OR concern_calls > 0
+            OR review_notes > 0
+            OR siu_risk_score >= 70
+            OR hidden_pattern_flag = 'true'
+        ORDER BY
+            review_signal_count DESC,
+            invoice_total DESC,
+            claim_id
+        LIMIT 12
+    """
+    try:
+        rows = _athena_rows(review_sql)
+    except Exception as e:
+        return f"(query error: {e})"
+
+    return "\n".join([
+        "Project_Storm_Glass_01 cross-evidence claim review",
+        "",
+        "This deterministic review starts from the claims master and adds invoice totals, repair benchmarks, nearby weather events, recent policy upgrades, customer call logs, adjuster notes, and SIU scores. These rows are review candidates where a claim can look ordinary in the claim record but gain additional audit signals when joined to the surrounding evidence.",
+        "",
+        "Top claim review candidates",
+        "",
+        _format_rows_as_markdown(rows, "No cross-evidence claim review candidates found."),
+        "",
+        "How to read this",
+        "- `review_explanation` lists which joined evidence signals put the claim into the review set.",
+        "- `nearby_weather_events = 0` means no matching weather row for the claim ZIP within three days of loss date.",
+        "- Call and note signals are short excerpts from the project tables; they should be reviewed against source records before drawing conclusions.",
+    ])
+
+
 def _looks_like_nightingale_pattern_request(prompt: str, context: dict[str, Any] | None) -> bool:
     text = _normalize_lookup_text(prompt)
     context_text = _normalize_lookup_text(
@@ -1018,11 +1709,26 @@ def _looks_like_nightingale_benchmark_request(prompt: str, context: dict[str, An
     context_text = _normalize_lookup_text(
         " ".join(str((context or {}).get(key) or "") for key in ("projectId", "projectName", "groupName"))
     )
+    available_tables = _normalize_lookup_text(
+        " ".join(str(table) for table in ((context or {}).get("tableHints") or []))
+    )
+    scope = f"{text} {context_text} {available_tables}"
     return (
-        "nightingale" in f"{text} {context_text}"
-        and "provider bills" in text
-        and ("benchmark" in text or "medical benchmark rates" in text)
-        and ("duplicate" in text or "high" in text or "suspicious" in text or "unusually" in text)
+        "nightingale" in scope
+        and ("provider" in text or "claim" in text or "billing" in text or "billed" in text)
+        and (
+            "benchmark" in text
+            or "medical benchmark rates" in text
+            or "benchmark rates" in available_tables
+        )
+        and (
+            "duplicate" in text
+            or "high" in text
+            or "suspicious" in text
+            or "unusually" in text
+            or "units" in text
+            or "billed amounts" in text
+        )
     )
 
 
@@ -1178,13 +1884,13 @@ def _handle_nightingale_benchmark_request(prompt: str, context: dict[str, Any] |
     lines = [
         "Project_Nightingale_Aurora_Indemnity benchmark and duplicate billing comparison",
         "",
-        "This deterministic comparison joins provider bills to medical benchmark rates by `cpt_code`, then overlays duplicate bill candidates and provider risk hints. A row is included when billed amount exceeds the benchmark, units exceed the utilization norm, a duplicate candidate exists, or the provider is marked as a known risk hint in the project data.",
+        "This deterministic billing-quality review joins provider bills to medical benchmark rates by `cpt_code`, then overlays duplicate bill candidates and provider review hints. A row is included when billed amount exceeds the benchmark, units exceed the utilization norm, a duplicate candidate exists, or the provider is marked with a review hint in the project data. These are audit candidates, not conclusions of wrongdoing.",
         "",
-        "Top suspicious bill lines",
+        "Top bill-line review candidates",
         "",
         _format_rows_as_markdown(line_rows, "No matching bill lines found."),
         "",
-        "Top providers by benchmark/duplicate signals",
+        "Top providers by benchmark/duplicate review signals",
         "",
         _format_rows_as_markdown(provider_rows, "No provider rollup rows found."),
         "",
@@ -1293,21 +1999,41 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     session_id = (payload.get("session_id") or "adhoc")[:128]
     chat_type  = (payload.get("chat_type")  or "analyst")[:16]
     user_email = (payload.get("user_email") or "")[:200]
-    explicit_context = _resolve_single_group_context(prompt) or _resolve_group_context_from_glue(prompt)
+    explicit_context = (
+        _context_from_ui_selector_prompt(prompt)
+        or _resolve_single_group_context(prompt)
+        or _resolve_group_context_from_glue(prompt)
+    )
     if explicit_context and session_id != "adhoc":
         SESSION_GROUP_CONTEXTS[session_id] = explicit_context
-    resolved_context = explicit_context or SESSION_GROUP_CONTEXTS.get(session_id)
-    if resolved_context and _looks_like_group_inventory_request(prompt):
-        return {"result": _format_group_inventory(resolved_context)}
+    resolved_context = _context_with_glue_table_hints(explicit_context or SESSION_GROUP_CONTEXTS.get(session_id))
+    if _looks_like_group_inventory_request(prompt):
+        if resolved_context:
+            return {"result": _format_group_inventory(resolved_context)}
+        return {
+            "result": (
+                "I need a selected Data Group before listing files and tables for `this group`.\n\n"
+                f"{_list_projects_payload()}"
+            )
+        }
     row_count_result = _handle_row_count_request(prompt, resolved_context)
     if row_count_result:
         return {"result": row_count_result}
+    daily_sales_multi_zone_result = _handle_daily_sales_multi_zone_request(prompt, resolved_context)
+    if daily_sales_multi_zone_result:
+        return {"result": daily_sales_multi_zone_result}
+    storm_glass_claim_review_result = _handle_storm_glass_claim_review_request(prompt, resolved_context)
+    if storm_glass_claim_review_result:
+        return {"result": storm_glass_claim_review_result}
     nightingale_pattern_result = _handle_nightingale_pattern_request(prompt, resolved_context)
     if nightingale_pattern_result:
         return {"result": nightingale_pattern_result}
     nightingale_benchmark_result = _handle_nightingale_benchmark_request(prompt, resolved_context)
     if nightingale_benchmark_result:
         return {"result": nightingale_benchmark_result}
+    helios_project_risk_result = _handle_helios_project_risk_request(prompt, resolved_context)
+    if helios_project_risk_result:
+        return {"result": helios_project_risk_result}
     claims_year_result = _handle_claims_loss_year_request(prompt, resolved_context)
     if claims_year_result:
         return {"result": claims_year_result}
@@ -1327,6 +2053,17 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
         agent_result = agent(agent_prompt)
     except MaxTokensReachedException:
         log.exception("Structured specialist hit max token loop for prompt=%s", prompt[:500])
+        if resolved_context:
+            group_name = resolved_context.get("groupName") or "the selected group"
+            return {
+                "result": (
+                    "The selected Data Group is already the analysis boundary, but the "
+                    "request still expanded too far for one pass. Start with this group "
+                    "inventory, then ask about one file or table from the list.\n\n"
+                    f"{_format_group_inventory(resolved_context)}\n\n"
+                    f"Selected group: `{group_name}`."
+                )
+            }
         return {
             "result": (
                 "The structured-data request matched too much catalog context and the "

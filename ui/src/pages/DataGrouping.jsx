@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   AlertTriangle, CheckCircle, ChevronDown, ChevronRight, ClipboardList, Database, Download, Edit3,
-  Eye, FileSpreadsheet, FolderTree, Loader2, Plus, RefreshCw, Save, Trash2, Wand2, XCircle,
+  Eye, FileSpreadsheet, FolderTree, Loader2, MessageSquare, Plus, RefreshCw, Save, Search, Trash2, Upload, Wand2, XCircle,
 } from 'lucide-react'
 import { USE_MOCK } from '../config'
-import { analyzeDataGroupingDocuments, listUploadedFiles, materializeDataGroupingProject, startDataGroupingCrawler } from '../hooks/useApi'
+import { analyzeDataGroupingDocuments, getDataGroupingProject, listUploadedFiles, materializeDataGroupingProject, startDataGroupingCrawler } from '../hooks/useApi'
 
 const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.v2.projectMetadata'
 const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.v2.savedGroups'
 const METADATA_LEDGER_STORAGE_KEY = 'arbiter.dataGrouping.v2.metadataLedger'
+const MCP_CHAT_DRAFT_KEY = 'arbiter.mcpChat.sessionDraft.v1'
 
 const GROUP_TYPE_OPTIONS = [
   { value: 'special_project', label: 'Special Project', suggestedName: 'Special_Project', summaryFile: '' },
@@ -67,8 +69,24 @@ function formatBytes(bytes) {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`
 }
 
+function formatShortDate(value) {
+  if (!value) return 'Unknown'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Unknown'
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+function fileKind(file) {
+  const name = String(file?.name || '').toLowerCase()
+  if (name.endsWith('.csv')) return 'csv'
+  if (name.endsWith('.pdf')) return 'pdf'
+  if (name.endsWith('.txt') || name.endsWith('.md')) return 'text'
+  if (name.endsWith('.json')) return 'json'
+  return 'other'
+}
+
 function fileKey(file) {
-  return file?.key || file?.name || ''
+  return file?.key || file?.sourceKey || file?.source_key || file?.s3_key || file?.path || file?.name || ''
 }
 
 function groupFileKeys(group) {
@@ -464,25 +482,30 @@ function Stat({ label, value }) {
 
 function FileRow({ file, action }) {
   const isSummary = Boolean(file.summary)
+  const kind = fileKind(file)
   return (
-    <div className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${isSummary ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-slate-50'}`}>
+    <div className={`grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-lg border px-3 py-2 ${isSummary ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-slate-50'}`}>
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-slate-800" title={file.name}>
+        <p className="truncate text-xs font-semibold text-slate-800" title={file.name}>
           {file.name}
           {isSummary && <span className="ml-2 rounded-full border border-indigo-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-indigo-700">Summary</span>}
         </p>
         <p className="truncate font-mono text-[10px] text-slate-400" title={file.key}>{file.key}</p>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <span className="text-xs text-slate-500">{formatBytes(file.size)}</span>
-        {action}
+      <div className="hidden shrink-0 items-center gap-2 text-[10px] text-slate-500 sm:flex">
+        <span className="rounded-full border border-slate-200 bg-white px-2 py-1 font-semibold uppercase text-slate-500">{kind}</span>
+        <span>{formatBytes(file.size)}</span>
       </div>
+      <div className="flex shrink-0 items-center gap-2">{action}</div>
     </div>
   )
 }
 
-function ProcessedFileRow({ file, status, groupName, onAdd }) {
+function ProcessedFileRow({ file, status, groupName, onToggle, disabled = false }) {
   const isAvailable = status === 'available'
+  const isSelected = status === 'selected'
+  const canToggle = !disabled && (isAvailable || isSelected)
+  const kind = fileKind(file)
   const statusStyles = {
     available: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     selected: 'border-indigo-200 bg-indigo-50 text-indigo-700',
@@ -495,42 +518,48 @@ function ProcessedFileRow({ file, status, groupName, onAdd }) {
   }[status]
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+    <label className={`grid items-center gap-3 rounded-lg border px-3 py-2 ${canToggle ? 'cursor-pointer border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50' : 'cursor-not-allowed border-slate-200 bg-slate-50'}`}
+           style={{ gridTemplateColumns: 'auto minmax(0,1fr) auto auto' }}>
+      <input
+        type="checkbox"
+        checked={isSelected}
+        disabled={!canToggle}
+        onChange={() => onToggle(file)}
+        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed"
+        aria-label={`${isSelected ? 'Remove' : 'Select'} ${file.name}`}
+      />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-slate-800" title={file.name}>{file.name}</p>
+        <p className="truncate text-xs font-semibold text-slate-800" title={file.name}>{file.name}</p>
         <p className="truncate font-mono text-[10px] text-slate-400" title={file.key}>{file.key}</p>
       </div>
-      <span className="shrink-0 text-xs text-slate-500">{formatBytes(file.size)}</span>
+      <div className="hidden shrink-0 items-center gap-2 text-[10px] text-slate-500 md:flex">
+        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 font-semibold uppercase text-slate-500">{kind}</span>
+        <span>{formatBytes(file.size)}</span>
+        <span>{formatShortDate(file.last_modified)}</span>
+      </div>
       <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold ${statusStyles[status]}`}>
         {statusLabel}
       </span>
-      {isAvailable && (
-        <button
-          type="button"
-          onClick={onAdd}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
-        >
-          <Plus size={13} /> Add
-        </button>
-      )}
-    </div>
+    </label>
   )
 }
 
 function SelectedDraftFileRow({ file, onRemove }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2">
+    <div className="flex items-center gap-2 rounded-md border border-indigo-100 bg-indigo-50/70 px-2 py-1">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-slate-800" title={file.name}>{file.name}</p>
-        <p className="truncate font-mono text-[10px] text-indigo-400" title={file.key}>{file.key}</p>
+        <p className="truncate text-[10px] font-medium leading-3 text-slate-800" title={file.name}>{file.name}</p>
+        <p className="truncate font-mono text-[8px] leading-3 text-indigo-400" title={file.key}>{file.key}</p>
       </div>
-      <span className="shrink-0 text-xs text-slate-500">{formatBytes(file.size)}</span>
+      <span className="shrink-0 text-[9px] leading-3 text-slate-500">{formatBytes(file.size)}</span>
       <button
         type="button"
         onClick={onRemove}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
+        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-red-100 bg-white text-red-700 hover:bg-red-50"
+        title={`Remove ${file.name}`}
+        aria-label={`Remove ${file.name}`}
       >
-        <Trash2 size={13} /> Remove
+        <Trash2 size={10} />
       </button>
     </div>
   )
@@ -561,7 +590,7 @@ function GroupCard({
   const targetPrefix = `${processedPrefix}${projectId}/${group.name}/`
 
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <article id={`group-${group.id}`} className="scroll-mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -612,7 +641,7 @@ function GroupCard({
           <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr]">
             <div>
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Files in group</p>
-              <div className="space-y-2">
+              <div className="max-h-40 space-y-1 overflow-auto pr-1">
                 {group.files.map(file => {
                   const summaryCsvText = file.summary ? (file.csvText || (summary ? toCsv(summary.rows) : '')) : ''
                   return (
@@ -968,6 +997,7 @@ function GroupCard({
 }
 
 export default function DataGrouping() {
+  const navigate = useNavigate()
   const [projectName, setProjectName] = useState('Vendor Audit June 2026')
   const [files, setFiles] = useState([])
   const [filesTruncated, setFilesTruncated] = useState(false)
@@ -976,6 +1006,7 @@ export default function DataGrouping() {
   const [summaries, setSummaries] = useState({})
   const [documentAnalyses, setDocumentAnalyses] = useState({})
   const [metadata, setMetadata] = useState(null)
+  const [persistedProject, setPersistedProject] = useState(null)
   const [metadataLedger, setMetadataLedger] = useState({ version: '0.1', projects: {} })
   const [metadataWrite, setMetadataWrite] = useState(null)
   const [s3Materialize, setS3Materialize] = useState(null)
@@ -992,11 +1023,28 @@ export default function DataGrouping() {
   const [draftType, setDraftType] = useState('special_project')
   const [draftKeys, setDraftKeys] = useState([])
   const [collapsedGroupIds, setCollapsedGroupIds] = useState([])
+  const [fileSearch, setFileSearch] = useState('')
+  const [fileStatusFilter, setFileStatusFilter] = useState('available')
+  const [fileTypeFilter, setFileTypeFilter] = useState('all')
+  const [showSavedGroups, setShowSavedGroups] = useState(false)
 
   const projectId = slugify(projectName)
   const processedPrefix = 'projects/'
   const fileMap = useMemo(() => new Map(files.map(file => [fileKey(file), file])), [files])
+  const activeGroups = useMemo(
+    () => groups.filter(group => group.projectId === projectId),
+    [groups, projectId],
+  )
   const hydratedGroups = useMemo(() => (
+    activeGroups.map(group => ({
+      ...group,
+      fileKeys: groupFileKeys(group),
+      files: groupFileKeys(group)
+        .map(key => fileMap.get(key) || (group.files || []).find(file => fileKey(file) === key))
+        .filter(Boolean),
+    }))
+  ), [activeGroups, fileMap])
+  const queryableGroups = useMemo(() => (
     groups.map(group => ({
       ...group,
       fileKeys: groupFileKeys(group),
@@ -1018,10 +1066,41 @@ export default function DataGrouping() {
   }, [hydratedGroups])
   const draftKeySet = useMemo(() => new Set(draftKeys), [draftKeys])
   const editingGroup = hydratedGroups.find(group => group.id === editingGroupId)
-  const ungroupedFiles = useMemo(() => files.filter(file => !assignedKeySet.has(fileKey(file))), [files, assignedKeySet])
+  const canSelectDraftFiles = Boolean(draftName.trim())
+  const isLockedFileKey = (key) => {
+    if (!key) return false
+    const assignedGroup = assignedGroupByKey.get(key)
+    return Boolean(assignedGroup && assignedGroup.id !== editingGroupId)
+  }
   const selectedDraftFiles = useMemo(() => files.filter(file => draftKeySet.has(fileKey(file))), [files, draftKeySet])
   const csvCount = files.filter(file => /\.csv$/i.test(file.name || '')).length
   const csvDraftCount = selectedDraftFiles.filter(file => /\.csv$/i.test(file.name || '')).length
+  const documentCount = files.filter(file => isDocumentAnalysisFile(file)).length
+  const groupedFileCount = assignedKeySet.size
+  const filteredFiles = useMemo(() => {
+    const query = fileSearch.trim().toLowerCase()
+    return files.filter(file => {
+      const key = fileKey(file)
+      const assignedGroup = assignedGroupByKey.get(key)
+      const status = draftKeySet.has(key) ? 'selected' : isLockedFileKey(key) ? 'grouped' : 'available'
+      if (fileStatusFilter === 'available' && status === 'grouped') return false
+      if (fileStatusFilter !== 'all' && fileStatusFilter !== 'available' && status !== fileStatusFilter) return false
+      if (fileTypeFilter !== 'all' && fileKind(file) !== fileTypeFilter) return false
+      if (!query) return true
+      return `${file.name || ''} ${file.key || ''} ${assignedGroup?.name || ''}`.toLowerCase().includes(query)
+    })
+  }, [files, assignedGroupByKey, draftKeySet, fileSearch, fileStatusFilter, fileTypeFilter, editingGroupId])
+  const visibleSelectableCount = filteredFiles.filter(file => !isLockedFileKey(fileKey(file))).length
+  const visibleUncheckedAddableCount = filteredFiles.filter(file => {
+    const key = fileKey(file)
+    return !draftKeySet.has(key) && !isLockedFileKey(key)
+  }).length
+  const visibleSelectedCount = filteredFiles.filter(file => draftKeySet.has(fileKey(file))).length
+  const addableFileCount = files.filter(file => !isLockedFileKey(fileKey(file))).length
+  const uncheckedAddableFileCount = files.filter(file => {
+    const key = fileKey(file)
+    return !draftKeySet.has(key) && !isLockedFileKey(key)
+  }).length
 
   async function loadFiles() {
     setLoading(true)
@@ -1034,6 +1113,15 @@ export default function DataGrouping() {
       setError(err.message || 'Unable to list processed files')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadPersistedProject() {
+    try {
+      const data = await getDataGroupingProject(projectId)
+      setPersistedProject(data)
+    } catch {
+      setPersistedProject(null)
     }
   }
 
@@ -1056,6 +1144,10 @@ export default function DataGrouping() {
       setGroupsLoaded(true)
     }
   }, [])
+
+  useEffect(() => {
+    loadPersistedProject()
+  }, [projectId])
 
   useEffect(() => {
     if (groupsLoaded) persistGroups(groups)
@@ -1089,16 +1181,45 @@ export default function DataGrouping() {
     setDraftType(type)
   }
 
-  function addDraftFile(file) {
-    const key = fileKey(file)
-    setMetadata(null)
-    setDraftKeys(prev => (prev.includes(key) ? prev : [...prev, key]))
-  }
-
   function removeDraftFile(file) {
     const key = fileKey(file)
     setMetadata(null)
     setDraftKeys(prev => prev.filter(item => item !== key))
+  }
+
+  function toggleDraftFile(file) {
+    if (!canSelectDraftFiles) return
+    const key = fileKey(file)
+    if (isLockedFileKey(key) && !draftKeySet.has(key)) return
+    setMetadata(null)
+    setDraftKeys(prev => (
+      prev.includes(key)
+        ? prev.filter(item => item !== key)
+        : [...prev, key]
+    ))
+  }
+
+  function selectFilesForDraft(nextFiles) {
+    if (!canSelectDraftFiles) return
+    const keys = nextFiles
+      .map(file => fileKey(file))
+      .filter(key => key && !isLockedFileKey(key))
+    if (!keys.length) return
+    setMetadata(null)
+    setDraftKeys(prev => [...new Set([...prev, ...keys])])
+  }
+
+  function selectVisibleAddableFiles() {
+    selectFilesForDraft(filteredFiles)
+  }
+
+  function selectAllAddableFiles() {
+    selectFilesForDraft(files)
+  }
+
+  function clearDraftFiles() {
+    setMetadata(null)
+    setDraftKeys([])
   }
 
   function groupPublishPayload(group) {
@@ -1129,6 +1250,12 @@ export default function DataGrouping() {
         move: false,
       })
       setS3Materialize(result)
+      setPersistedProject(result.metadata ? {
+        ...result.metadata,
+        exists: true,
+        assignedSourceKeys: (result.metadata.groups || [])
+          .flatMap(item => (item.files || []).map(file => file.sourceKey).filter(Boolean)),
+      } : persistedProject)
       const tableHints = [...new Set((result.structuredCopies || []).map(copy => copy.glueTableHint).filter(Boolean))]
       setUploadMessage(`${group.name} published to S3. ${result.structuredCopies?.length || 0} CSV file${result.structuredCopies?.length === 1 ? '' : 's'} mirrored into ${tableHints.length || 0} Glue-ready table folder${tableHints.length === 1 ? '' : 's'}${result.crawlerStarted ? `; crawler ${result.crawlerMessage || 'started'}.` : '.'}`)
     } catch (err) {
@@ -1150,6 +1277,12 @@ export default function DataGrouping() {
         move: false,
       })
       setS3Materialize(result)
+      setPersistedProject(result.metadata ? {
+        ...result.metadata,
+        exists: true,
+        assignedSourceKeys: (result.metadata.groups || [])
+          .flatMap(item => (item.files || []).map(file => file.sourceKey).filter(Boolean)),
+      } : persistedProject)
       setUploadMessage(`${group.name} removed from S3 project storage${result.crawlerStarted ? `; crawler ${result.crawlerMessage || 'started'}.` : '.'}`)
     } catch (err) {
       setError(err.message || `Unable to remove ${group.name} from S3`)
@@ -1163,6 +1296,8 @@ export default function DataGrouping() {
     const savedFileKeys = selectedDraftFiles.map(file => fileKey(file))
     const nextGroup = {
       id: editingGroupId || `${slugify(draftName)}-${Date.now()}`,
+      projectId,
+      projectName,
       name: draftName.trim().replace(/\s+/g, '_'),
       type: draftType,
       fileKeys: savedFileKeys,
@@ -1259,6 +1394,24 @@ export default function DataGrouping() {
     } finally {
       setAnalyzingGroupIds(prev => prev.filter(groupId => groupId !== group.id))
     }
+  }
+
+  function querySavedGroup(group) {
+    if (!group?.name) return
+    const selectedDataGroupId = `local::${group.id || group.name}`
+    try {
+      sessionStorage.setItem(MCP_CHAT_DRAFT_KEY, JSON.stringify({
+        selectedServerId: 'structured',
+        selectedDataGroupId,
+        activeSessionId: null,
+        activeSessionTitle: null,
+        messages: [],
+      }))
+    } catch {
+      // If session storage is unavailable, still take the user to chat.
+    }
+    setShowSavedGroups(false)
+    navigate('/mcp-chat')
   }
 
   async function loadGroupCsvContents(groupId, fileList) {
@@ -1433,6 +1586,12 @@ export default function DataGrouping() {
         move: false,
       })
       setS3Materialize(result)
+      setPersistedProject(result.metadata ? {
+        ...result.metadata,
+        exists: true,
+        assignedSourceKeys: (result.metadata.groups || [])
+          .flatMap(item => (item.files || []).map(file => file.sourceKey).filter(Boolean)),
+      } : persistedProject)
       setUploadMessage(`All groups republished to S3 at ${result.projectPrefix}. ${result.structuredCopies?.length || 0} CSV file${result.structuredCopies?.length === 1 ? '' : 's'} mirrored for Glue.`)
     } catch (err) {
       setError(err.message || 'Unable to republish groups to S3')
@@ -1453,6 +1612,14 @@ export default function DataGrouping() {
     } finally {
       setCrawling(false)
     }
+  }
+
+  function collapseAllGroups() {
+    setCollapsedGroupIds(hydratedGroups.map(group => group.id).filter(Boolean))
+  }
+
+  function expandAllGroups() {
+    setCollapsedGroupIds([])
   }
 
   return (
@@ -1495,15 +1662,23 @@ export default function DataGrouping() {
               {crawling ? <Loader2 size={13} className="animate-spin" /> : <Database size={13} />}
               Re-index Athena
             </button>
+            <button
+              type="button"
+              onClick={() => setShowSavedGroups(true)}
+              disabled={!queryableGroups.length}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+            >
+              <MessageSquare size={13} /> Query saved group
+            </button>
           </div>
         </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
         <Stat label="Processed files" value={files.length} />
-        <Stat label="Available files" value={ungroupedFiles.length} />
-        <Stat label="Saved groups" value={hydratedGroups.length} />
-        <Stat label="Summaries" value={Object.keys(summaries).length} />
+        <Stat label="Addable files" value={addableFileCount} />
+        <Stat label="Saved groups" value={queryableGroups.length} />
+        <Stat label="Grouped files" value={groupedFileCount} />
       </div>
 
       {USE_MOCK && (
@@ -1532,6 +1707,75 @@ export default function DataGrouping() {
       {error && (
         <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           <AlertTriangle size={16} /> {error}
+        </div>
+      )}
+
+      {showSavedGroups && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-slate-900/35 p-4 pt-16"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setShowSavedGroups(false)
+          }}
+        >
+          <section className="w-full max-w-3xl rounded-xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 p-4">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Saved groups</p>
+                <h2 className="mt-1 text-sm font-bold text-slate-900">Query a saved data group</h2>
+                <p className="mt-1 text-xs text-slate-500">Choose a group to open MCP Chat with Structured Data Specialist and that group selected.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSavedGroups(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                aria-label="Close saved groups"
+              >
+                <XCircle size={15} />
+              </button>
+            </div>
+            <div className="max-h-[60vh] space-y-2 overflow-auto p-4">
+              {queryableGroups.map(group => {
+                const csvCount = (group.files || []).filter(file => /\.csv$/i.test(file.name || '')).length
+                const documentCount = (group.files || []).length - csvCount
+                return (
+                  <div key={group.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-900">{group.name}</p>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        {group.projectName || group.projectId || 'Saved group'} · {(group.files || []).length} files · {csvCount} CSV · {documentCount} docs · {formatShortDate(group.updatedAt)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => querySavedGroup(group)}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+                      >
+                        <MessageSquare size={13} /> Query
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          editGroup(group)
+                          setShowSavedGroups(false)
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        <Edit3 size={13} /> Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteGroup(group.id)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 size={13} /> Delete
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
         </div>
       )}
 
@@ -1570,34 +1814,13 @@ export default function DataGrouping() {
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(360px,0.9fr)_minmax(0,1.1fr)]">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+      <section className="grid gap-4">
+        <div id="create-group" className="scroll-mt-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="grid items-end gap-3 lg:grid-cols-[minmax(160px,0.7fr)_minmax(240px,1fr)_220px_auto]">
             <div>
               <h2 className="text-sm font-bold text-slate-900">{editingGroupId ? 'Edit group' : 'Create group'}</h2>
-              <p className="mt-1 text-xs text-slate-500">Click New group, name it, choose a type, then add files not already in another group.</p>
+              <p className="mt-1 text-[11px] leading-4 text-slate-500">Name first, then check files below.</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => startNewGroup()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
-              >
-                <Plus size={13} /> New group
-              </button>
-              {editingGroupId && (
-              <button
-                type="button"
-                onClick={() => resetDraft()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                <XCircle size={13} /> Cancel edit
-              </button>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
               <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400" htmlFor="group-name">Group name</label>
               <input
@@ -1620,24 +1843,26 @@ export default function DataGrouping() {
                 ))}
               </select>
             </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+              {draftKeys.length} selected · {csvDraftCount} CSV
+            </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <p className="text-xs text-slate-500">{draftKeys.length} selected · {csvDraftCount} CSV</p>
-            <button
-              type="button"
-              onClick={saveGroup}
-              disabled={!draftName.trim() || !draftKeys.length}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-            >
-              {editingGroupId ? <Save size={13} /> : <Plus size={13} />}
-              {editingGroupId ? 'Save group' : 'Create group'}
-            </button>
-          </div>
-
-          <div className="mt-4 grid gap-4">
-            <div>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Files in this group</p>
+          <div className={`grid gap-3 ${selectedDraftFiles.length ? 'mt-3' : 'mt-2'}`}>
+            {selectedDraftFiles.length > 0 ? (
+              <div>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Files selected</p>
+                {draftKeys.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearDraftFiles}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    <XCircle size={13} /> Clear
+                  </button>
+                )}
+              </div>
               <div className="space-y-2">
                 {selectedDraftFiles.map(file => (
                   <SelectedDraftFileRow
@@ -1646,27 +1871,161 @@ export default function DataGrouping() {
                     onRemove={() => removeDraftFile(file)}
                   />
                 ))}
-                {!selectedDraftFiles.length && (
-                  <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-500">No files selected for this group yet.</p>
-                )}
               </div>
-            </div>
+              </div>
+            ) : (
+              <p className="text-[11px] leading-4 text-slate-500">
+                {canSelectDraftFiles ? 'No files selected yet.' : 'Enter a group name to unlock file selection.'}
+              </p>
+            )}
 
             {editingGroupId && (
               <p className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-700">
                 Editing this group releases its current files only inside this editor. Save group to keep changes, or cancel edit to leave the saved group unchanged.
               </p>
             )}
+
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
+              {editingGroupId && (
+                <button
+                  type="button"
+                  onClick={() => resetDraft()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  <XCircle size={13} /> Cancel edit
+                </button>
+              )}
+              {!editingGroupId && (draftName || draftKeys.length > 0) && (
+                <button
+                  type="button"
+                  onClick={() => startNewGroup()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  <RefreshCw size={13} /> Reset
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={saveGroup}
+                disabled={!draftName.trim() || !draftKeys.length}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+              >
+                {editingGroupId ? <Save size={13} /> : <Plus size={13} />}
+                {editingGroupId ? 'Save group' : 'New group'}
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div id="processed-files" className="scroll-mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Saved project groups</h2>
-              <p className="text-xs text-slate-500">Each file can belong to one group in this version.</p>
+              <h2 className="text-sm font-bold text-slate-900">Select files from /processed</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                {canSelectDraftFiles
+                  ? 'Check files into the draft group. A file can belong to only one saved group.'
+                  : 'Enter a group name before selecting files.'}
+              </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+              {filteredFiles.length} shown · {visibleSelectableCount} selectable · {visibleSelectedCount} checked
+            </div>
+          </div>
+          <div className="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+            <label className="relative block">
+              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                value={fileSearch}
+                onChange={(event) => setFileSearch(event.target.value)}
+                placeholder="Search filename, key, or group"
+                className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-xs font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              />
+            </label>
+            <select
+              value={fileStatusFilter}
+              onChange={(event) => setFileStatusFilter(event.target.value)}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            >
+              <option value="available">Addable + checked</option>
+              <option value="all">All statuses</option>
+              <option value="selected">Checked</option>
+              <option value="grouped">Grouped</option>
+            </select>
+            <select
+              value={fileTypeFilter}
+              onChange={(event) => setFileTypeFilter(event.target.value)}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            >
+              <option value="all">All types</option>
+              <option value="csv">CSV</option>
+              <option value="pdf">PDF</option>
+              <option value="text">Text</option>
+              <option value="json">JSON</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={selectVisibleAddableFiles}
+              disabled={!canSelectDraftFiles || !visibleUncheckedAddableCount}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+            >
+              <Plus size={13} /> Check visible addable
+            </button>
+            <button
+              type="button"
+              onClick={selectAllAddableFiles}
+              disabled={!canSelectDraftFiles || !uncheckedAddableFileCount}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+            >
+              <Plus size={13} /> Check all addable
+            </button>
+            <button
+              type="button"
+              onClick={clearDraftFiles}
+              disabled={!draftKeys.length}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+            >
+              <XCircle size={13} /> Clear checked
+            </button>
+          </div>
+          {filesTruncated && (
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-700">
+              Showing the newest processed files. Older files are still in S3 but may require search/filtering in a later version.
+            </p>
+          )}
+          <div className="mt-3 max-h-[520px] space-y-1.5 overflow-auto pr-1">
+            {filteredFiles.length ? filteredFiles.map(file => {
+              const key = fileKey(file)
+              const assignedGroup = assignedGroupByKey.get(key)
+              const status = draftKeySet.has(key) ? 'selected' : isLockedFileKey(key) ? 'grouped' : 'available'
+              return (
+                <ProcessedFileRow
+                  key={key}
+                  file={file}
+                  status={status}
+                  groupName={assignedGroup?.name}
+                  onToggle={toggleDraftFile}
+                  disabled={!canSelectDraftFiles}
+                />
+              )
+            }) : (
+              <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No processed files match the current filters.</p>
+            )}
+          </div>
+        </div>
+
+        <div id="metadata-preview" className="scroll-mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Metadata preview</h2>
+              <p className="mt-1 text-xs text-slate-500">Stored locally for now; ready to become /processed project metadata.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={createMetadata}
@@ -1675,80 +2034,14 @@ export default function DataGrouping() {
               >
                 <Database size={13} /> Create metadata
               </button>
+              <button
+                type="button"
+                onClick={downloadMetadata}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <Download size={13} /> JSON
+              </button>
             </div>
-          </div>
-          {hydratedGroups.map(group => (
-            <GroupCard
-              key={group.id}
-              group={group}
-              projectId={projectId}
-              processedPrefix={processedPrefix}
-              summary={summaries[group.id]}
-              onGenerateSummary={generateSummary}
-              onEdit={editGroup}
-              onDelete={deleteGroup}
-              onLoadCsvContents={loadGroupCsvContents}
-              analysis={documentAnalyses[group.id]}
-              analysisError={analysisErrors[group.id]}
-              analyzing={analyzingGroupIds.includes(group.id)}
-              publishing={publishingGroupIds.includes(group.id)}
-              onAnalyzeDocuments={analyzeProjectDocuments}
-              collapsed={collapsedGroupIds.includes(group.id)}
-              onToggleCollapse={toggleGroupCollapse}
-            />
-          ))}
-          {!hydratedGroups.length && (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-              <FileSpreadsheet size={24} className="mx-auto text-slate-400" />
-              <p className="mt-2 text-sm font-semibold text-slate-800">No project groups yet.</p>
-              <p className="mt-1 text-xs text-slate-500">Select processed files and create the first logical data group.</p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-900">Add files from /processed</h2>
-          <p className="mt-1 text-xs text-slate-500">All processed files appear here. Available files can be added; selected or saved-group files are shown with status.</p>
-          {filesTruncated && (
-            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-700">
-              Showing the newest processed files. Older files are still in S3 but may require search/filtering in a later version.
-            </p>
-          )}
-          <div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">
-            {files.length ? files.map(file => {
-              const key = fileKey(file)
-              const assignedGroup = assignedGroupByKey.get(key)
-              const status = draftKeySet.has(key) ? 'selected' : assignedGroup ? 'grouped' : 'available'
-              return (
-                <ProcessedFileRow
-                  key={key}
-                  file={file}
-                  status={status}
-                  groupName={assignedGroup?.name}
-                  onAdd={() => addDraftFile(file)}
-                />
-              )
-            }) : (
-              <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">No processed files found.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">Metadata preview</h2>
-              <p className="mt-1 text-xs text-slate-500">Stored locally for now; ready to become /processed project metadata.</p>
-            </div>
-            <button
-              type="button"
-              onClick={downloadMetadata}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              <Download size={13} /> JSON
-            </button>
           </div>
           {metadata ? (
             <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3">

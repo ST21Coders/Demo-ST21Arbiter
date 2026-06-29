@@ -148,7 +148,7 @@ Resources:
       RestApiId: !Ref ArbiterApi
       StatusCode: "401"
       ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
         gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
         gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
 
@@ -159,7 +159,95 @@ Resources:
       RestApiId: !Ref ArbiterApi
       StatusCode: "403"
       ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  MissingAuthenticationToken4xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: MISSING_AUTHENTICATION_TOKEN
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "403"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  ExpiredToken4xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: EXPIRED_TOKEN
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "403"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  InvalidSignature4xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: INVALID_SIGNATURE
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "403"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  BadRequestParameters4xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: BAD_REQUEST_PARAMETERS
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "400"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  BadRequestBody4xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: BAD_REQUEST_BODY
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "400"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  Throttled4xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: THROTTLED
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "429"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  QuotaExceeded4xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: QUOTA_EXCEEDED
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "429"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  WafFiltered4xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: WAF_FILTERED
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "403"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
         gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
         gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
 
@@ -169,7 +257,72 @@ Resources:
       ResponseType: DEFAULT_4XX
       RestApiId: !Ref ArbiterApi
       ResponseParameters:
-        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  Default5xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: DEFAULT_5XX
+      RestApiId: !Ref ArbiterApi
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  ApiConfiguration5xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: API_CONFIGURATION_ERROR
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "500"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  AuthorizerFailure5xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: AUTHORIZER_FAILURE
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "500"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  AuthorizerConfiguration5xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: AUTHORIZER_CONFIGURATION_ERROR
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "500"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  IntegrationFailure5xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: INTEGRATION_FAILURE
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "504"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+
+  IntegrationTimeout5xxResponse:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      ResponseType: INTEGRATION_TIMEOUT
+      RestApiId: !Ref ArbiterApi
+      StatusCode: "504"
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${AllowedOrigin}'"
         gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
         gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
 
