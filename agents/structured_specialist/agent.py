@@ -206,6 +206,10 @@ def _load_projects() -> list[dict[str, Any]]:
                     "csvCount": sum(1 for item in files if item.get("type") == "csv"),
                     "tableCount": len(table_hints),
                     "tableHints": table_hints[:12],
+                    "groupProfile": group.get("groupProfile") or {},
+                    "structuredFacts": {
+                        "counts": (group.get("structuredFacts") or {}).get("counts") or {},
+                    },
                     "files": [],
                 })
 
@@ -322,6 +326,8 @@ def _resolve_single_group_context(prompt: str) -> dict[str, Any] | None:
                 "groupName": group.get("name"),
                 "groupType": group.get("type"),
                 "tableHints": group.get("tableHints") or [],
+                "groupProfile": group.get("groupProfile") or {},
+                "structuredFacts": group.get("structuredFacts") or {},
                 "files": group.get("files") or [],
             }
 
@@ -355,6 +361,8 @@ def _resolve_single_group_context(prompt: str) -> dict[str, Any] | None:
         "groupName": group.get("name"),
         "groupType": group.get("type"),
         "tableHints": group.get("tableHints") or [],
+        "groupProfile": group.get("groupProfile") or {},
+        "structuredFacts": group.get("structuredFacts") or {},
         "files": group.get("files") or [],
     }
 
@@ -460,6 +468,8 @@ def _context_from_ui_selector_prompt(prompt: str) -> dict[str, Any] | None:
         if line.startswith("Available files for selected group:"):
             in_files = True
             continue
+        if in_files and line.startswith("Group setup profile:"):
+            break
         if in_files and line.startswith("User request:"):
             break
         if in_files and line.startswith("- "):
@@ -473,6 +483,45 @@ def _context_from_ui_selector_prompt(prompt: str) -> dict[str, Any] | None:
                 "glueTableHint": table_match.group(1) if table_match else "",
             })
 
+    group_profile: dict[str, Any] = {}
+    profile_match = re.search(
+        r"Group setup profile:\s*(.*?)(?:\n\nUser request:|\nUser request:|\Z)",
+        prompt,
+        re.DOTALL,
+    )
+    if profile_match:
+        profile_text = profile_match.group(1)
+        kind_match = re.search(r"(?:^|[;\n-])\s*kind[:=]\s*([^;\n]+)", profile_text, re.MULTILINE)
+        columns_match = re.search(r"(?:^|[;\n-])\s*columns[:=]\s*([^;\n]+)", profile_text, re.MULTILINE)
+        if kind_match:
+            group_profile["kind"] = kind_match.group(1).strip()
+        if columns_match:
+            group_profile["columns"] = [
+                item.strip()
+                for item in columns_match.group(1).split(",")
+                if item.strip()
+            ]
+
+    structured_facts: dict[str, Any] = {}
+    facts_match = re.search(
+        r"^Structured text facts:\s*sources=(\d+);\s*lookupKeys=(\d+);\s*types=([^\n]+)$",
+        prompt,
+        re.MULTILINE,
+    )
+    if facts_match:
+        fact_types = [
+            item.strip()
+            for item in facts_match.group(3).split(",")
+            if item.strip()
+        ]
+        structured_facts = {
+            "counts": {
+                "factSources": int(facts_match.group(1)),
+                "lookupKeys": int(facts_match.group(2)),
+                "types": {fact_type: 1 for fact_type in fact_types},
+            },
+        }
+
     return {
         "projectName": project_match.group(1).strip() if project_match else "Selected project",
         "projectId": project_match.group(2).strip() if project_match and project_match.group(2) else "",
@@ -480,7 +529,16 @@ def _context_from_ui_selector_prompt(prompt: str) -> dict[str, Any] | None:
         "groupType": "selected",
         "tableHints": table_hints,
         "files": files,
+        "groupProfile": group_profile,
+        "structuredFacts": structured_facts,
     }
+
+
+def _user_request_from_scoped_prompt(prompt: str) -> str:
+    match = re.search(r"(?:^|\n)User request:\n(.*)\Z", prompt or "", re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    return prompt
 
 
 def _looks_like_group_inventory_request(prompt: str) -> bool:
@@ -490,6 +548,7 @@ def _looks_like_group_inventory_request(prompt: str) -> bool:
         and (
             "available files" in text
             or "available tables" in text
+            or ("available" in text and "tables" in text)
             or "files and tables" in text
             or "files found" in text
             or "tables in this group" in text
@@ -589,6 +648,20 @@ def _format_group_inventory(context: dict[str, Any]) -> str:
         lines.append("- File-level metadata is not available to this runtime, but the catalogued CSV tables above are available for Athena queries.")
     else:
         lines.append("- No file metadata found for this group.")
+    group_profile = context.get("groupProfile") or {}
+    fact_counts = (context.get("structuredFacts") or {}).get("counts") or group_profile.get("factIndex") or {}
+    if fact_counts.get("factSources") or fact_counts.get("sourceCount"):
+        type_counts = fact_counts.get("types") or {}
+        type_text = ", ".join(str(key) for key in type_counts.keys()) or "generic text"
+        lines.extend([
+            "",
+            "Structured text facts",
+            f"- Indexed {fact_counts.get('factSources') or fact_counts.get('sourceCount')} text fact sources with {fact_counts.get('lookupKeys') or fact_counts.get('lookupKeyCount') or 0} lookup keys. Types: {type_text}.",
+        ])
+    starter_prompts = group_profile.get("starterPrompts") or []
+    if starter_prompts:
+        lines.extend(["", "Suggested starter prompts"])
+        lines.extend(f"- {prompt}" for prompt in starter_prompts[:8])
     return "\n".join(lines)
 
 
@@ -913,6 +986,31 @@ def _table_for_fragment(fragment: str, context: dict[str, Any] | None, prompt: s
     return matches[0] if len(matches) == 1 else None
 
 
+def _table_for_fragments(fragments: tuple[str, ...], context: dict[str, Any] | None, prompt: str) -> str | None:
+    context_hints = (context or {}).get("tableHints") or []
+    for fragment in fragments:
+        scoped = [table for table in context_hints if fragment.lower() in str(table).lower()]
+        if len(scoped) == 1:
+            return scoped[0]
+    for fragment in fragments:
+        table = _table_for_fragment(fragment, context, prompt)
+        if table:
+            return table
+    return None
+
+
+def _glue_columns_for_table(table_name: str | None) -> set[str]:
+    if not table_name or not GLUE_DATABASE:
+        return set()
+    try:
+        table = glue.get_table(DatabaseName=GLUE_DATABASE, Name=table_name).get("Table", {})
+        columns = table.get("StorageDescriptor", {}).get("Columns", [])
+        return {str(column.get("Name") or "").lower() for column in columns}
+    except Exception as e:
+        log.warning("Glue column lookup failed for %s: %s", table_name, e)
+        return set()
+
+
 def _row_value(row: dict[str, str | None], aliases: tuple[str, ...]) -> str:
     normalized = {_normalize_lookup_text(key).replace(" ", "_"): value for key, value in row.items()}
     for alias in aliases:
@@ -1119,14 +1217,109 @@ def _looks_like_daily_sales_multi_zone_request(prompt: str, context: dict[str, A
         " ".join(str((context or {}).get(key) or "") for key in ("projectId", "projectName", "groupName"))
     )
     scope = f"{text} {context_text}"
-    return (
+    profile = (context or {}).get("groupProfile") or {}
+    table_text = _normalize_lookup_text(" ".join(str(table) for table in ((context or {}).get("tableHints") or [])))
+    sales_scope = (
         "daily sales" in scope
-        and ("zone" in scope or "zones" in scope)
-        and any(term in text for term in ("branch", "product", "best", "worst", "revenue", "quantity", "rank"))
+        or profile.get("kind") == "sales"
+        or "mountain west electronics" in scope
+        or "midwest electronics" in scope
+        or ("electronics" in scope and ("sales" in scope or "line revenue" in table_text))
+        or "line revenue" in table_text
+        or "sales" in table_text
+    )
+    return (
+        sales_scope
+        and any(term in text for term in (
+            "branch", "store", "stores", "product", "category", "channel",
+            "best", "worst", "highest", "lowest", "sales", "revenue",
+            "quantity", "rank", "margin", "management", "business",
+            "notes", "performance", "strong", "weak",
+        ))
     )
 
 
-def _daily_sales_tables(prompt: str) -> list[tuple[int, str]]:
+def _table_has_sales_columns(table: str) -> bool:
+    columns = _glue_columns_for_table(table)
+    aliases = _sales_column_aliases(columns)
+    required = ("branch_city", "branch_state", "part_sku", "part_name", "part_category", "quantity_sold", "line_revenue")
+    return all(aliases.get(key) for key in required)
+
+
+def _sales_column_aliases(columns: set[str]) -> dict[str, str]:
+    candidates = {
+        "branch_city": ("branch_city", "city", "store_city"),
+        "branch_state": ("branch_state", "state", "branch_st", "store_state"),
+        "part_sku": ("part_sku", "product_sku", "sku", "item_sku"),
+        "part_name": ("part_name", "product_name", "item_name", "name"),
+        "part_category": ("part_category", "category", "product_category", "item_category"),
+        "sales_channel": ("sales_channel", "channel"),
+        "customer_type": ("customer_type", "customer_segment"),
+        "quantity_sold": ("quantity_sold", "quantity", "qty", "units_sold", "units"),
+        "unit_cost": ("unit_cost", "cost"),
+        "unit_price": ("unit_price", "price"),
+        "line_revenue": ("line_revenue", "net_sales", "gross_sales", "revenue", "sales_amount", "amount"),
+        "estimated_margin": ("estimated_margin", "margin", "gross_margin"),
+    }
+    aliases: dict[str, str] = {}
+    for canonical, options in candidates.items():
+        match = next((option for option in options if option in columns), "")
+        if match:
+            aliases[canonical] = match
+    return aliases
+
+
+def _sales_select_expr(table: str, label: str) -> str:
+    columns = _glue_columns_for_table(table)
+    aliases = _sales_column_aliases(columns)
+
+    def ident(canonical: str, default: str = "NULL") -> str:
+        column = aliases.get(canonical)
+        return f'"{column}"' if column else default
+
+    quantity = ident("quantity_sold", "0")
+    revenue = ident("line_revenue", "0")
+    unit_cost = ident("unit_cost", "NULL")
+    unit_price = ident("unit_price", "NULL")
+    estimated_margin = aliases.get("estimated_margin")
+    margin_expr = (
+        f'CAST("{estimated_margin}" AS DOUBLE)'
+        if estimated_margin
+        else f"CAST(({unit_price} - {unit_cost}) * {quantity} AS DOUBLE)"
+        if unit_cost != "NULL" and unit_price != "NULL"
+        else "NULL"
+    )
+    return f"""
+        SELECT
+            '{label}' AS source_table,
+            CAST({ident("branch_city")} AS VARCHAR) AS branch_city,
+            CAST({ident("branch_state")} AS VARCHAR) AS branch_state,
+            CAST({ident("part_sku")} AS VARCHAR) AS part_sku,
+            CAST({ident("part_name")} AS VARCHAR) AS part_name,
+            CAST({ident("part_category")} AS VARCHAR) AS part_category,
+            CAST({ident("sales_channel", "'unknown'")} AS VARCHAR) AS sales_channel,
+            CAST({ident("customer_type", "'unknown'")} AS VARCHAR) AS customer_type,
+            CAST({quantity} AS DOUBLE) AS quantity_sold,
+            CAST({unit_cost} AS DOUBLE) AS unit_cost,
+            CAST({unit_price} AS DOUBLE) AS unit_price,
+            CAST({revenue} AS DOUBLE) AS line_revenue,
+            {margin_expr} AS estimated_margin
+        FROM "{table}"
+    """
+
+
+def _daily_sales_tables(prompt: str, context: dict[str, Any] | None = None) -> list[tuple[str, str]]:
+    context_hints = (context or {}).get("tableHints") or []
+    scoped_sales = [
+        str(table)
+        for table in context_hints
+        if _table_has_sales_columns(str(table))
+    ]
+    if scoped_sales:
+        return [(str(index + 1), table) for index, table in enumerate(scoped_sales)]
+    if (context or {}).get("groupName"):
+        return []
+
     text = _normalize_lookup_text(prompt)
     requested = sorted({int(zone) for zone in re.findall(r"\bzone\s+([1-6])\b", text)})
     if "1 through daily sales zone 6" in text or "1 through 6" in text or "zones 1 through 6" in text:
@@ -1134,13 +1327,13 @@ def _daily_sales_tables(prompt: str) -> list[tuple[int, str]]:
     if not requested:
         requested = [1, 2, 3, 4, 5, 6]
 
-    tables: list[tuple[int, str]] = []
+    tables: list[tuple[str, str]] = []
     for zone in requested:
         matches = _matching_glue_tables(f"daily_sales_zone_{zone}", {"sourcePrompt": prompt})
         exact = [name for name in matches if name.endswith(f"daily_sales_zone_{zone}")]
         selected = exact[0] if len(exact) == 1 else matches[0] if len(matches) == 1 else None
         if selected:
-            tables.append((zone, selected))
+            tables.append((str(zone), selected))
     return tables
 
 
@@ -1148,30 +1341,26 @@ def _handle_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] 
     if not _looks_like_daily_sales_multi_zone_request(prompt, context):
         return None
 
-    tables = _daily_sales_tables(prompt)
+    tables = _daily_sales_tables(prompt, context)
     if not tables:
-        return "I could not resolve any `daily_sales_zone_*` Glue tables for this request."
+        group_name = (context or {}).get("groupName")
+        if group_name:
+            return (
+                f"I could not resolve sales-shaped Glue tables for the selected `{group_name}` group yet. "
+                "I did not use tables from any other group. The group may still be materializing/indexing, or its table hints may not have been published yet. "
+                f"Try: `List the available files and tables in this {group_name} group and briefly explain what each one appears to contain.`"
+            )
+        return "I could not resolve any sales-shaped Glue tables for this request."
 
-    union_sql = "\nUNION ALL\n".join(
-        f"""
-        SELECT
-            {zone} AS zone,
-            branch_city,
-            branch_state,
-            part_sku,
-            part_name,
-            CAST(quantity_sold AS DOUBLE) AS quantity_sold,
-            CAST(line_revenue AS DOUBLE) AS line_revenue
-        FROM "{table}"
-        """
-        for zone, table in tables
-    )
+    union_sql = "\nUNION ALL\n".join(_sales_select_expr(table, label) for label, table in tables)
     branch_sql = f"""
         WITH sales AS ({union_sql})
         SELECT
             CONCAT(branch_city, ', ', branch_state) AS branch,
+            COUNT(*) AS transaction_lines,
             SUM(quantity_sold) AS quantity_sold,
-            ROUND(SUM(line_revenue), 2) AS total_revenue
+            ROUND(SUM(line_revenue), 2) AS total_revenue,
+            MAX_BY(part_category, line_revenue) AS top_category
         FROM sales
         GROUP BY branch_city, branch_state
         ORDER BY total_revenue DESC
@@ -1182,10 +1371,11 @@ def _handle_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] 
         SELECT
             part_sku,
             part_name,
+            part_category,
             SUM(quantity_sold) AS quantity_sold,
             ROUND(SUM(line_revenue), 2) AS total_revenue
         FROM sales
-        GROUP BY part_sku, part_name
+        GROUP BY part_sku, part_name, part_category
         ORDER BY total_revenue DESC
         LIMIT 10
     """
@@ -1194,26 +1384,41 @@ def _handle_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] 
         SELECT
             part_sku,
             part_name,
+            part_category,
             SUM(quantity_sold) AS quantity_sold,
             ROUND(SUM(line_revenue), 2) AS total_revenue
         FROM sales
-        GROUP BY part_sku, part_name
+        GROUP BY part_sku, part_name, part_category
         HAVING SUM(quantity_sold) > 0
         ORDER BY total_revenue ASC
         LIMIT 10
     """
-    zone_sql = f"""
+    channel_sql = f"""
         WITH sales AS ({union_sql})
         SELECT
-            zone,
+            sales_channel,
+            customer_type,
             COUNT(*) AS sales_lines,
             COUNT(DISTINCT CONCAT(branch_city, '|', branch_state)) AS branches,
             COUNT(DISTINCT part_sku) AS products,
             SUM(quantity_sold) AS quantity_sold,
             ROUND(SUM(line_revenue), 2) AS total_revenue
         FROM sales
-        GROUP BY zone
-        ORDER BY zone
+        GROUP BY sales_channel, customer_type
+        ORDER BY total_revenue DESC
+        LIMIT 12
+    """
+    margin_sql = f"""
+        WITH sales AS ({union_sql})
+        SELECT
+            CONCAT(branch_city, ', ', branch_state) AS branch,
+            ROUND(SUM(COALESCE(estimated_margin, (unit_price - unit_cost) * quantity_sold)), 2) AS estimated_margin,
+            ROUND(100 * SUM(COALESCE(estimated_margin, (unit_price - unit_cost) * quantity_sold)) / NULLIF(SUM(line_revenue), 0), 2) AS margin_percent,
+            ROUND(SUM(line_revenue), 2) AS total_revenue
+        FROM sales
+        GROUP BY branch_city, branch_state
+        ORDER BY estimated_margin DESC
+        LIMIT 12
     """
 
     errors: list[str] = []
@@ -1233,17 +1438,23 @@ def _handle_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] 
         product_bottom_rows = []
         errors.append(f"Bottom product ranking: {e}")
     try:
-        zone_rows = _athena_rows(zone_sql)
+        channel_rows = _athena_rows(channel_sql)
     except Exception as e:
-        zone_rows = []
-        errors.append(f"Zone summary: {e}")
+        channel_rows = []
+        errors.append(f"Channel summary: {e}")
+    try:
+        margin_rows = _athena_rows(margin_sql)
+    except Exception as e:
+        margin_rows = []
+        errors.append(f"Margin summary: {e}")
 
     top_branch = branch_rows[0] if branch_rows else {}
     top_product = product_rows[0] if product_rows else {}
     bottom_product = product_bottom_rows[0] if product_bottom_rows else {}
-    table_lines = [f"- Zone {zone}: `{table}`" for zone, table in tables]
+    group_name = (context or {}).get("groupName") or "sales group"
+    table_lines = [f"- `{table}`" for _, table in tables]
     lines = [
-        "Daily Sales Zones deterministic cross-zone report",
+        f"{group_name} sales discovery report",
         "",
         "Scope",
         *table_lines,
@@ -1265,9 +1476,20 @@ def _handle_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] 
         "",
         _format_rows_as_markdown(product_bottom_rows, "No bottom-product rows returned."),
         "",
-        "Zone-level differences",
+        "Sales channel and customer type mix",
         "",
-        _format_rows_as_markdown(zone_rows, "No zone rows returned."),
+        _format_rows_as_markdown(channel_rows, "No channel rows returned."),
+        "",
+        "Estimated margin by branch",
+        "",
+        _format_rows_as_markdown(margin_rows, "No margin rows returned."),
+        "",
+        "Suggested follow-up prompts",
+        f"- For this {group_name} group, rank stores from highest to lowest total sales. Include branch city, branch state, total revenue, units sold, transaction count, top category, and a short explanation.",
+        f"- For this {group_name} group, rank product categories by revenue and units sold. Include part category, total revenue, units sold, average unit price, and the leading branch if available.",
+        f"- For this {group_name} group, compare sales channels by revenue, units sold, transaction count, and average line revenue. Include a short explanation of channel mix.",
+        f"- For this {group_name} group, analyze gross margin using Unit_Cost and Unit_Price. Rank stores or products by estimated margin dollars and margin percent.",
+        f"- For this {group_name} group, find underperforming stores by total revenue and units sold. Include branch city, branch state, total revenue, units sold, transaction count, and likely next review question.",
     ]
     if errors:
         lines.extend(["", "Query issues"])
@@ -1282,28 +1504,386 @@ def _looks_like_storm_glass_claim_review_request(prompt: str, context: dict[str,
     )
     table_text = _normalize_lookup_text(" ".join(str(table) for table in ((context or {}).get("tableHints") or [])))
     scope = f"{text} {context_text} {table_text}"
-    cross_evidence_terms = ("invoice", "invoices", "weather", "policy", "upgrade", "upgrades", "call", "logs", "notes")
-    return (
-        ("storm glass" in scope or "storm_glass" in scope)
-        and "claims" in text
-        and ("normal" in text or "combined" in text or "cross" in text or "review" in text or "suspicious" in text)
-        and sum(1 for term in cross_evidence_terms if term in text) >= 3
+    cross_evidence_terms = (
+        "invoice",
+        "invoices",
+        "benchmark",
+        "benchmarks",
+        "weather",
+        "policy",
+        "upgrade",
+        "upgrades",
+        "call",
+        "logs",
+        "notes",
+        "siu",
     )
+    followup_terms = (
+        "claim ids above",
+        "claim id above",
+        "top storm glass claim",
+        "claim packet",
+        "claim level",
+        "evidence summary",
+    )
+    if (
+        ("list" in text or "show" in text or "summarize" in text or "describe" in text or "explain" in text)
+        and ("available" in text or "tables" in text or "files" in text)
+    ):
+        return False
+    storm_scope = "storm glass" in scope or "storm_glass" in scope
+    has_claim = "claim" in text or "claims" in text
+    cross_evidence_count = sum(1 for term in cross_evidence_terms if term in text)
+    return (
+        storm_scope
+        and has_claim
+        and (
+            (
+                ("normal" in text or "combined" in text or "cross" in text or "review" in text or "suspicious" in text)
+                and cross_evidence_count >= 3
+            )
+            or (
+                any(term in text for term in followup_terms)
+                and cross_evidence_count >= 2
+            )
+        )
+    )
+
+
+def _storm_glass_token(prompt: str, context: dict[str, Any] | None) -> str:
+    text = " ".join([
+        str((context or {}).get("groupName") or ""),
+        str((context or {}).get("projectName") or ""),
+        str((context or {}).get("projectId") or ""),
+        " ".join(str(table) for table in ((context or {}).get("tableHints") or [])),
+        prompt or "",
+    ]).lower()
+    match = re.search(r"storm[\s_-]*glass[\s_-]*0?(\d+)", text)
+    if match:
+        return f"storm_glass_{int(match.group(1)):02d}"
+    return "storm_glass_01"
+
+
+def _storm_glass_tables(token: str, fragment: str, context: dict[str, Any] | None, prompt: str) -> list[str]:
+    return _matching_glue_tables(f"{token}_{fragment}", {**(context or {}), "sourcePrompt": prompt})
+
+
+def _union_from_tables(tables: list[str], select_body: str, where: str = "") -> str:
+    return "\nUNION ALL\n".join(
+        f"SELECT {select_body} FROM \"{table}\"{(' WHERE ' + where) if where else ''}"
+        for table in tables
+    )
+
+
+def _storm_glass_02_claims_select(table: str) -> str:
+    columns = _glue_columns_for_table(table)
+
+    def col(*names: str, default: str = "NULL") -> str:
+        match = next((name for name in names if name in columns), "")
+        return f'"{match}"' if match else default
+
+    return f"""
+        SELECT
+            CAST({col("claim_id")} AS VARCHAR) AS claim_id,
+            CAST({col("policy_id")} AS VARCHAR) AS policy_id,
+            CAST({col("loss_date")} AS VARCHAR) AS loss_date,
+            CAST({col("city")} AS VARCHAR) AS city,
+            CAST({col("zip")} AS VARCHAR) AS zip,
+            CAST({col("claim_type", "line", "peril", "loss_type")} AS VARCHAR) AS claim_type,
+            CAST({col("status", default="'open'")} AS VARCHAR) AS claim_status,
+            CAST({col("assigned_adjuster", "adjuster", "adjuster_id")} AS VARCHAR) AS assigned_adjuster,
+            TRY_CAST({col("claimed_amount", "amount", "reserve_amount", default="0")} AS DOUBLE) AS estimated_loss,
+            CAST({col("primary_vendor", "vendor", "contractor", "vendor_id")} AS VARCHAR) AS primary_vendor,
+            CAST({col("fraud_cluster", "suspicious", "suspicion_hint", "fraud_seed_flag", default="''")} AS VARCHAR) AS fraud_cluster,
+            CAST({col("embedded_flags", "flags", default="''")} AS VARCHAR) AS embedded_flags
+        FROM "{table}"
+        WHERE CAST({col("claim_id")} AS VARCHAR) <> 'claim_id'
+    """
+
+
+def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, Any] | None, storm_token: str, storm_label: str) -> str:
+    claims_tables = _storm_glass_tables(storm_token, "claims_batch", context, prompt)
+    invoice_tables = _storm_glass_tables(storm_token, "contractor_invoice_detail", context, prompt)
+    policy_tables = _storm_glass_tables(storm_token, "policy_master_coverage_changes", context, prompt)
+    weather_tables = _storm_glass_tables(storm_token, "weather_claim_match", context, prompt)
+    call_tables = _storm_glass_tables(storm_token, "call_center_logs", context, prompt)
+    siu_tables = _storm_glass_tables(storm_token, "fraud_scoring_export", context, prompt)
+    benchmark_tables = _storm_glass_tables(storm_token, "regional_cost_benchmarks", context, prompt)
+
+    missing = []
+    if not claims_tables:
+        missing.append("claims_batch")
+    if not invoice_tables:
+        missing.append("contractor_invoice_detail")
+    if not weather_tables:
+        missing.append("weather_claim_match")
+    if missing:
+        return (
+            f"I could not resolve all {storm_label} tables needed for the cross-evidence claim review. "
+            f"Missing: {', '.join(missing)}."
+        )
+
+    claims_union = "\nUNION ALL\n".join(_storm_glass_02_claims_select(table) for table in claims_tables)
+    invoice_union = _union_from_tables(
+        invoice_tables,
+        """
+            CAST(claim_id AS VARCHAR) AS claim_id,
+            CAST(vendor AS VARCHAR) AS vendor,
+            CAST(invoice_date AS VARCHAR) AS invoice_date,
+            CAST(description AS VARCHAR) AS description,
+            TRY_CAST(total_amount AS DOUBLE) AS invoice_amount
+        """,
+        "CAST(claim_id AS VARCHAR) <> 'claim_id'",
+    )
+    weather_union = _union_from_tables(
+        weather_tables,
+        """
+            CAST(claim_id AS VARCHAR) AS claim_id,
+            CAST(zip AS VARCHAR) AS zip,
+            CAST(event_date AS VARCHAR) AS event_date,
+            TRY_CAST(hail_inches AS DOUBLE) AS hail_inches,
+            TRY_CAST(wind_mph AS DOUBLE) AS wind_mph,
+            TRY_CAST(storm_cell_distance_miles AS DOUBLE) AS storm_cell_distance_miles,
+            CAST(supports_reported_loss AS VARCHAR) AS supports_reported_loss
+        """,
+        "CAST(claim_id AS VARCHAR) <> 'claim_id'",
+    )
+    policy_union = _union_from_tables(
+        policy_tables,
+        """
+            CAST(policy_id AS VARCHAR) AS policy_id,
+            CAST(insured_id AS VARCHAR) AS insured_id,
+            CAST(coverage AS VARCHAR) AS coverage,
+            TRY_CAST(limit AS DOUBLE) AS coverage_limit,
+            TRY_CAST(deductible AS DOUBLE) AS deductible,
+            CAST(effective_date AS VARCHAR) AS effective_date,
+            CAST(recent_upgrade AS VARCHAR) AS recent_upgrade
+        """,
+        "CAST(policy_id AS VARCHAR) <> 'policy_id'",
+    ) if policy_tables else "SELECT CAST(NULL AS VARCHAR) AS policy_id, CAST(NULL AS VARCHAR) AS insured_id, CAST(NULL AS VARCHAR) AS coverage, CAST(NULL AS DOUBLE) AS coverage_limit, CAST(NULL AS DOUBLE) AS deductible, CAST(NULL AS VARCHAR) AS effective_date, CAST(NULL AS VARCHAR) AS recent_upgrade"
+    call_union = _union_from_tables(
+        call_tables,
+        """
+            CAST(col1 AS VARCHAR) AS claim_id,
+            CAST(col2 AS VARCHAR) AS call_date,
+            CAST(col3 AS VARCHAR) AS caller_type,
+            CAST(col4 AS VARCHAR) AS summary,
+            CAST(col5 AS VARCHAR) AS early_contact_flag
+        """,
+        "col0 <> 'call_id'",
+    ) if call_tables else "SELECT CAST(NULL AS VARCHAR) AS claim_id, CAST(NULL AS VARCHAR) AS call_date, CAST(NULL AS VARCHAR) AS caller_type, CAST(NULL AS VARCHAR) AS summary, CAST(NULL AS VARCHAR) AS early_contact_flag"
+    siu_union = _union_from_tables(
+        siu_tables,
+        """
+            CAST(claim_id AS VARCHAR) AS claim_id,
+            TRY_CAST(fraud_score AS DOUBLE) AS fraud_score,
+            CAST(score_band AS VARCHAR) AS score_band,
+            CAST(drivers AS VARCHAR) AS drivers,
+            CAST(siu_referral_status AS VARCHAR) AS siu_referral_status
+        """,
+        "CAST(claim_id AS VARCHAR) <> 'claim_id'",
+    ) if siu_tables else "SELECT CAST(NULL AS VARCHAR) AS claim_id, CAST(NULL AS DOUBLE) AS fraud_score, CAST(NULL AS VARCHAR) AS score_band, CAST(NULL AS VARCHAR) AS drivers, CAST(NULL AS VARCHAR) AS siu_referral_status"
+    benchmark_union = _union_from_tables(
+        benchmark_tables,
+        """
+            CAST(city AS VARCHAR) AS city,
+            CAST(zip AS VARCHAR) AS zip,
+            TRY_CAST(roof_repair_benchmark_high AS DOUBLE) AS benchmark_high
+        """,
+        "CAST(zip AS VARCHAR) <> 'zip'",
+    ) if benchmark_tables else "SELECT CAST(NULL AS VARCHAR) AS city, CAST(NULL AS VARCHAR) AS zip, CAST(NULL AS DOUBLE) AS benchmark_high"
+
+    review_sql = f"""
+        WITH claims AS (
+            SELECT DISTINCT * FROM ({claims_union})
+        ),
+        invoices AS ({invoice_union}),
+        weather AS ({weather_union}),
+        policies AS ({policy_union}),
+        calls AS ({call_union}),
+        siu AS ({siu_union}),
+        benchmarks AS ({benchmark_union}),
+        invoice_rollup AS (
+            SELECT
+                claim_id,
+                COUNT(*) AS invoice_count,
+                ROUND(SUM(COALESCE(invoice_amount, 0)), 2) AS invoice_total,
+                MAX_BY(vendor, invoice_amount) AS top_vendor,
+                ARRAY_JOIN(SLICE(ARRAY_AGG(description), 1, 2), ' | ') AS invoice_signals
+            FROM invoices
+            WHERE claim_id IS NOT NULL
+            GROUP BY claim_id
+        ),
+        weather_rollup AS (
+            SELECT
+                claim_id,
+                MAX(hail_inches) AS max_hail_inches,
+                MAX(wind_mph) AS max_wind_mph,
+                MIN(storm_cell_distance_miles) AS nearest_storm_miles,
+                SUM(CASE WHEN LOWER(COALESCE(supports_reported_loss, '')) IN ('n', 'no', 'false') THEN 1 ELSE 0 END) AS unsupported_weather_rows,
+                COUNT(*) AS nearby_weather_events
+            FROM weather
+            WHERE claim_id IS NOT NULL
+            GROUP BY claim_id
+        ),
+        call_rollup AS (
+            SELECT
+                claim_id,
+                COUNT(*) AS call_count,
+                SUM(CASE WHEN LOWER(COALESCE(early_contact_flag, '')) IN ('y', 'yes', 'true') THEN 1 ELSE 0 END) AS early_contact_calls,
+                ARRAY_JOIN(SLICE(ARRAY_AGG(summary), 1, 2), ' | ') AS call_signals
+            FROM calls
+            WHERE claim_id IS NOT NULL
+            GROUP BY claim_id
+        ),
+        scored AS (
+            SELECT
+                c.claim_id,
+                c.policy_id,
+                c.loss_date,
+                c.zip,
+                c.city,
+                c.claim_type AS loss_type,
+                c.claim_status,
+                c.assigned_adjuster,
+                c.estimated_loss,
+                c.primary_vendor,
+                COALESCE(i.invoice_total, 0) AS invoice_total,
+                COALESCE(i.invoice_count, 0) AS invoice_count,
+                COALESCE(i.top_vendor, c.primary_vendor, '') AS top_vendor,
+                i.invoice_signals,
+                MAX(b.benchmark_high) AS benchmark_high,
+                MAX(p.recent_upgrade) AS recent_upgrade,
+                COALESCE(w.max_hail_inches, 0) AS max_hail_inches,
+                COALESCE(w.max_wind_mph, 0) AS max_wind_mph,
+                COALESCE(w.nearest_storm_miles, 999) AS nearest_storm_miles,
+                COALESCE(w.nearby_weather_events, 0) AS nearby_weather_events,
+                COALESCE(w.unsupported_weather_rows, 0) AS unsupported_weather_rows,
+                COALESCE(cr.call_count, 0) AS call_count,
+                COALESCE(cr.early_contact_calls, 0) AS early_contact_calls,
+                COALESCE(cr.call_signals, '') AS call_signals,
+                MAX(s.fraud_score) AS siu_risk_score,
+                MAX(s.drivers) AS siu_drivers,
+                c.fraud_cluster,
+                c.embedded_flags
+            FROM claims c
+            LEFT JOIN invoice_rollup i ON i.claim_id = c.claim_id
+            LEFT JOIN policies p ON p.policy_id = c.policy_id
+            LEFT JOIN weather_rollup w ON w.claim_id = c.claim_id
+            LEFT JOIN call_rollup cr ON cr.claim_id = c.claim_id
+            LEFT JOIN siu s ON s.claim_id = c.claim_id
+            LEFT JOIN benchmarks b ON CAST(b.zip AS VARCHAR) = CAST(c.zip AS VARCHAR)
+            GROUP BY
+                c.claim_id, c.policy_id, c.loss_date, c.zip, c.city, c.claim_type,
+                c.claim_status, c.assigned_adjuster, c.estimated_loss, c.primary_vendor,
+                i.invoice_total, i.invoice_count, i.top_vendor, i.invoice_signals,
+                w.max_hail_inches, w.max_wind_mph, w.nearest_storm_miles,
+                w.nearby_weather_events, w.unsupported_weather_rows,
+                cr.call_count, cr.early_contact_calls, cr.call_signals,
+                c.fraud_cluster, c.embedded_flags
+        )
+        SELECT
+            claim_id,
+            claim_status,
+            loss_date,
+            zip,
+            loss_type,
+            assigned_adjuster,
+            ROUND(estimated_loss, 2) AS estimated_loss,
+            ROUND(invoice_total, 2) AS invoice_total,
+            ROUND(benchmark_high, 2) AS benchmark_high,
+            top_vendor,
+            recent_upgrade,
+            max_hail_inches,
+            max_wind_mph,
+            nearest_storm_miles,
+            nearby_weather_events,
+            early_contact_calls,
+            siu_risk_score,
+            (
+                CASE WHEN invoice_total > estimated_loss * 1.35 THEN 1 ELSE 0 END
+                + CASE WHEN benchmark_high IS NOT NULL AND invoice_total > benchmark_high THEN 1 ELSE 0 END
+                + CASE WHEN LOWER(COALESCE(recent_upgrade, '')) IN ('y', 'yes', 'true') THEN 1 ELSE 0 END
+                + CASE WHEN unsupported_weather_rows > 0 OR nearest_storm_miles > 20 THEN 1 ELSE 0 END
+                + CASE WHEN early_contact_calls > 0 THEN 1 ELSE 0 END
+                + CASE WHEN siu_risk_score >= 70 THEN 1 ELSE 0 END
+                + CASE WHEN LOWER(COALESCE(fraud_cluster, '')) NOT IN ('', 'none', 'low') THEN 1 ELSE 0 END
+            ) AS review_signal_count,
+            ARRAY_JOIN(
+                FILTER(
+                    ARRAY[
+                        CASE WHEN invoice_total > estimated_loss * 1.35 THEN 'invoice total materially above estimate' END,
+                        CASE WHEN benchmark_high IS NOT NULL AND invoice_total > benchmark_high THEN 'invoice total above regional benchmark' END,
+                        CASE WHEN LOWER(COALESCE(recent_upgrade, '')) IN ('y', 'yes', 'true') THEN 'recent policy coverage change' END,
+                        CASE WHEN unsupported_weather_rows > 0 OR nearest_storm_miles > 20 THEN 'weather support is weak or distant' END,
+                        CASE WHEN early_contact_calls > 0 THEN 'early call-center contact signal' END,
+                        CASE WHEN siu_risk_score >= 70 THEN 'SIU/fraud score >= 70' END,
+                        CASE WHEN LOWER(COALESCE(fraud_cluster, '')) NOT IN ('', 'none', 'low') THEN 'fraud cluster flag present' END
+                    ],
+                    item -> item IS NOT NULL
+                ),
+                '; '
+            ) AS review_explanation,
+            invoice_signals,
+            call_signals,
+            siu_drivers
+        FROM scored
+        WHERE
+            invoice_total > estimated_loss * 1.35
+            OR (benchmark_high IS NOT NULL AND invoice_total > benchmark_high)
+            OR LOWER(COALESCE(recent_upgrade, '')) IN ('y', 'yes', 'true')
+            OR unsupported_weather_rows > 0
+            OR nearest_storm_miles > 20
+            OR early_contact_calls > 0
+            OR siu_risk_score >= 70
+            OR LOWER(COALESCE(fraud_cluster, '')) NOT IN ('', 'none', 'low')
+        ORDER BY review_signal_count DESC, invoice_total DESC, claim_id
+        LIMIT 12
+    """
+    try:
+        rows = _athena_rows(review_sql)
+    except Exception as e:
+        return f"(query error: {e})"
+
+    return "\n".join([
+        f"{storm_label} cross-evidence claim review",
+        "",
+        "This deterministic review uses the selected Storm Glass group only. It joins claim batches with contractor invoice details, weather-claim matches, policy coverage changes, call-center logs, regional benchmarks, and SIU/fraud scores.",
+        "",
+        "Top claim review candidates",
+        "",
+        _format_rows_as_markdown(rows, "No cross-evidence claim review candidates found."),
+        "",
+        "How to read this",
+        "- `review_explanation` lists which joined evidence signals put the claim into the review set.",
+        "- Weather signals use the Storm Glass 02 weather-claim match tables and storm-cell distance, not Storm Glass 01 weather tables.",
+        "- Invoice and call signals are short table excerpts; review source records before drawing conclusions.",
+        "",
+        "Suggested follow-up prompts",
+        f"- Create a neutral claim-level evidence summary for the top {storm_label} claim IDs above. Include claim_id, policy_id, loss date, invoice total, benchmark high, weather support, recent upgrade flag, call context, SIU score if available, and joined data factors.",
+        f"- Review {storm_label} claims where contractor invoice totals exceed regional benchmarks. Include claim_id, vendor, invoice total, benchmark high, estimated loss, and amount above benchmark.",
+        f"- Validate {storm_label} weather support for the highest-value claims. Include claim_id, ZIP, loss date, invoice total, nearest storm miles, max hail inches, max wind mph, and whether weather supports the reported loss.",
+    ])
 
 
 def _handle_storm_glass_claim_review_request(prompt: str, context: dict[str, Any] | None) -> str | None:
     if not _looks_like_storm_glass_claim_review_request(prompt, context):
         return None
 
+    storm_token = _storm_glass_token(prompt, context)
+    storm_label = "Project_" + "_".join(part.capitalize() for part in storm_token.split("_"))
+    if storm_token != "storm_glass_01":
+        return _handle_storm_glass_02_claim_review_request(prompt, context, storm_token, storm_label)
+
     needed = {
-        "claims": "storm_glass_01_01_claims_master",
-        "policyholders": "storm_glass_01_02_policyholders",
-        "invoices": "storm_glass_01_03_vendor_invoices",
-        "calls": "storm_glass_01_05_customer_call_logs",
-        "notes": "storm_glass_01_06_adjuster_notes_export",
-        "benchmarks": "storm_glass_01_11_repair_cost_benchmarks",
-        "weather": "storm_glass_01_12_weather_events_by_zip",
-        "siu": "storm_glass_01_21_siu_risk_scores",
+        "claims": f"{storm_token}_01_claims_master",
+        "policyholders": f"{storm_token}_02_policyholders",
+        "invoices": f"{storm_token}_03_vendor_invoices",
+        "calls": f"{storm_token}_05_customer_call_logs",
+        "notes": f"{storm_token}_06_adjuster_notes_export",
+        "benchmarks": f"{storm_token}_11_repair_cost_benchmarks",
+        "weather": f"{storm_token}_12_weather_events_by_zip",
+        "siu": f"{storm_token}_21_siu_risk_scores",
     }
     tables = {key: _table_for_fragment(fragment, context, prompt) for key, fragment in needed.items()}
     missing = [fragment for key, fragment in needed.items() if not tables.get(key)]
@@ -1481,7 +2061,7 @@ def _handle_storm_glass_claim_review_request(prompt: str, context: dict[str, Any
         return f"(query error: {e})"
 
     return "\n".join([
-        "Project_Storm_Glass_01 cross-evidence claim review",
+        f"{storm_label} cross-evidence claim review",
         "",
         "This deterministic review starts from the claims master and adds invoice totals, repair benchmarks, nearby weather events, recent policy upgrades, customer call logs, adjuster notes, and SIU scores. These rows are review candidates where a claim can look ordinary in the claim record but gain additional audit signals when joined to the surrounding evidence.",
         "",
@@ -1493,6 +2073,321 @@ def _handle_storm_glass_claim_review_request(prompt: str, context: dict[str, Any
         "- `review_explanation` lists which joined evidence signals put the claim into the review set.",
         "- `nearby_weather_events = 0` means no matching weather row for the claim ZIP within three days of loss date.",
         "- Call and note signals are short excerpts from the project tables; they should be reviewed against source records before drawing conclusions.",
+        "",
+        "Suggested follow-up prompts",
+        "- Create a neutral claim-level evidence summary for the top Storm Glass claim IDs above. Include claim_id, policy_id, loss date, invoice total, benchmark high, weather match status, recent upgrade date, call context, note context, SIU score if available, and joined data factors.",
+        "- Review Storm Glass claims where invoice totals exceed repair benchmarks. Include claim_id, loss_type, state, vendor, invoice total, benchmark high, estimated loss, and the amount above benchmark.",
+        "- Find Storm Glass claims with recent policy upgrades before the loss date and supporting invoice or call-log signals. Include claim_id, policy_id, upgrade date, loss date, days between upgrade and loss, invoice total, and call or note evidence.",
+        "- Validate Storm Glass weather support for the highest-value claims. Include claim_id, ZIP, loss date, loss type, invoice total, nearby weather event count, max hail inches, max wind mph, and whether weather evidence supports the claim.",
+        "- Summarize Storm Glass claims using combined invoice, weather, policy upgrade, call-log, adjuster-note, and SIU-score context. Include claim_id, review_signal_count, SIU score if available, top vendor, invoice total, and concise joined data factors.",
+    ])
+
+
+def _looks_like_legal_department_enterprise_review(prompt: str, context: dict[str, Any] | None) -> bool:
+    text = _normalize_lookup_text(prompt)
+    context_text = _normalize_lookup_text(
+        " ".join(str((context or {}).get(key) or "") for key in ("projectId", "projectName", "groupName"))
+    )
+    table_text = _normalize_lookup_text(" ".join(str(table) for table in ((context or {}).get("tableHints") or [])))
+    scope = f"{text} {context_text} {table_text}"
+    return (
+        "legal department" in scope
+        and any(term in text for term in (
+            "enterprise", "repository", "review", "governance", "financial",
+            "operational", "compliance", "issue", "issues", "management",
+            "business observation", "observations", "compare", "marketing",
+            "budget", "variance", "campaign", "vendor", "invoice", "contract",
+            "claim", "claims", "relationship", "relationships", "expired",
+        ))
+    )
+
+
+def _legal_department_tables(prompt: str, context: dict[str, Any] | None) -> dict[str, str | None]:
+    return {
+        "contracts": _table_for_fragment("blackstone_contract_registry", context, prompt),
+        "engineering": _table_for_fragment("engineering_vendor_registry", context, prompt),
+        "relationships": _table_for_fragment("enterprise_relationship_index", context, prompt),
+        "invoices": _table_for_fragment("ledger_ap_invoice_export", context, prompt),
+        "marketing": _table_for_fragment("marketing_budget_export", context, prompt),
+        "claims": _table_for_fragment("stormglass_claim_master", context, prompt),
+    }
+
+
+def _missing_legal_tables(tables: dict[str, str | None], required: tuple[str, ...]) -> str | None:
+    missing = [name for name in required if not tables.get(name)]
+    if missing:
+        return (
+            "I could not resolve all Legal_Department tables needed for this deterministic review. "
+            f"Missing: {', '.join(missing)}."
+        )
+    return None
+
+
+def _handle_legal_department_specific_review(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_legal_department_enterprise_review(prompt, context):
+        return None
+
+    text = _normalize_lookup_text(prompt)
+    tables = _legal_department_tables(prompt, context)
+
+    if "marketing" in text or "budget" in text or "variance" in text or "campaign" in text:
+        missing = _missing_legal_tables(tables, ("marketing",))
+        if missing:
+            return missing
+        sql = f"""
+            SELECT
+                campaign,
+                vendor,
+                ROUND(TRY_CAST(budget AS DOUBLE), 2) AS budget,
+                ROUND(TRY_CAST(actual AS DOUBLE), 2) AS actual,
+                ROUND(TRY_CAST(variance AS DOUBLE), 2) AS variance,
+                CASE WHEN TRY_CAST(variance AS DOUBLE) > 0 THEN 'Marketing; Finance; Procurement' ELSE 'Marketing' END AS affected_department,
+                'Review budget approval, change authorization, vendor scope, and invoice support for campaign overrun.' AS recommended_action
+            FROM "{tables['marketing']}"
+            WHERE campaign <> 'campaign'
+            ORDER BY TRY_CAST(variance AS DOUBLE) DESC, vendor, campaign
+            LIMIT 20
+        """
+        try:
+            rows = _athena_rows(sql)
+        except Exception as e:
+            return f"(query error: {e})"
+        return "\n".join([
+            "Legal_Department marketing budget variance review",
+            "",
+            "This deterministic review uses the selected Legal_Department marketing budget table and ranks campaign/vendor rows by positive budget variance.",
+            "",
+            _format_rows_as_markdown(rows, "No marketing budget variance rows found."),
+            "",
+            "Suggested follow-up prompts",
+            "- For this Legal_Department group, compare AP invoices for the same marketing vendors. Include invoice_id, vendor, amount, invoice_date, related_group, and issue_hint.",
+            "- For this Legal_Department group, review cross-department relationship signals for the top marketing vendors. Include source object, relationship, target, and follow-up question.",
+        ])
+
+    if "invoice" in text or "ap " in f"{text} ":
+        missing = _missing_legal_tables(tables, ("invoices",))
+        if missing:
+            return missing
+        sql = f"""
+            SELECT
+                invoice_id,
+                vendor,
+                ROUND(TRY_CAST(amount AS DOUBLE), 2) AS amount,
+                invoice_date,
+                related_group,
+                COALESCE(issue_hint, '') AS issue_hint,
+                CASE
+                    WHEN LOWER(COALESCE(issue_hint, '')) = 'review'
+                    THEN 'Review invoice approval trail, vendor master record, and receiving documentation before payment escalation.'
+                    ELSE 'Confirm ordinary invoice support and approval trail.'
+                END AS recommended_action
+            FROM "{tables['invoices']}"
+            WHERE invoice_id <> 'invoice_id'
+            ORDER BY
+                CASE WHEN LOWER(COALESCE(issue_hint, '')) = 'review' THEN 0 ELSE 1 END,
+                TRY_CAST(amount AS DOUBLE) DESC,
+                vendor
+            LIMIT 20
+        """
+        try:
+            rows = _athena_rows(sql)
+        except Exception as e:
+            return f"(query error: {e})"
+        return "\n".join([
+            "Legal_Department AP invoice review",
+            "",
+            _format_rows_as_markdown(rows, "No AP invoice rows found."),
+        ])
+
+    if "contract" in text or "expired" in text:
+        missing = _missing_legal_tables(tables, ("contracts",))
+        if missing:
+            return missing
+        sql = f"""
+            SELECT
+                col0 AS contract_id,
+                col1 AS vendor,
+                col2 AS start_date,
+                col3 AS end_date,
+                col4 AS status,
+                col5 AS hourly_rate,
+                'Confirm active authorization, renewal status, billing rate approval, and whether related invoices are properly supported.' AS recommended_action
+            FROM "{tables['contracts']}"
+            WHERE col0 <> 'contract_id'
+            ORDER BY CASE WHEN LOWER(COALESCE(col4, '')) = 'expired' THEN 0 ELSE 1 END, col3, col1
+            LIMIT 20
+        """
+        try:
+            rows = _athena_rows(sql)
+        except Exception as e:
+            return f"(query error: {e})"
+        return "\n".join([
+            "Legal_Department contract review",
+            "",
+            _format_rows_as_markdown(rows, "No contract rows found."),
+        ])
+
+    if "relationship" in text or "cross department" in text or "cross-department" in text:
+        missing = _missing_legal_tables(tables, ("relationships",))
+        if missing:
+            return missing
+        sql = f"""
+            SELECT
+                col0 AS source_group,
+                col1 AS source_object,
+                col2 AS relationship,
+                col3 AS target,
+                CASE
+                    WHEN LOWER(col2) = 'duplicate_identity' THEN 'Finance; Procurement'
+                    WHEN LOWER(col2) = 'reports_concern_about' THEN 'HR; Legal; Management'
+                    ELSE col0
+                END AS affected_departments,
+                'Trace the relationship across source records and assign an owner to validate the connection.' AS follow_up_question
+            FROM "{tables['relationships']}"
+            WHERE col0 <> 'source_group'
+            ORDER BY source_group, relationship, target
+            LIMIT 20
+        """
+        try:
+            rows = _athena_rows(sql)
+        except Exception as e:
+            return f"(query error: {e})"
+        return "\n".join([
+            "Legal_Department relationship signal review",
+            "",
+            _format_rows_as_markdown(rows, "No relationship rows found."),
+        ])
+
+    return None
+
+
+def _handle_legal_department_enterprise_review(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_legal_department_enterprise_review(prompt, context):
+        return None
+
+    specific = _handle_legal_department_specific_review(prompt, context)
+    if specific:
+        return specific
+
+    tables = _legal_department_tables(prompt, context)
+    missing = _missing_legal_tables(tables, ("contracts", "engineering", "relationships", "invoices", "marketing", "claims"))
+    if missing:
+        return missing
+
+    review_sql = f"""
+        WITH findings AS (
+            SELECT
+                94 AS enterprise_rank_score,
+                'Financial / vendor oversight' AS risk_area,
+                related_group AS affected_departments,
+                vendor AS primary_entity,
+                CONCAT('AP invoice ', invoice_id, ' is marked for review at $', CAST(amount AS VARCHAR)) AS supporting_evidence,
+                'Review invoice approval trail, vendor master record, and receiving documentation before payment escalation.' AS recommended_action
+            FROM "{tables['invoices']}"
+            WHERE LOWER(COALESCE(issue_hint, '')) = 'review'
+
+            UNION ALL
+            SELECT
+                91 AS enterprise_rank_score,
+                'Claims operations / vendor concentration' AS risk_area,
+                'Claims; Legal; Finance/AP' AS affected_departments,
+                CONCAT(vendor, ' / ', adjuster) AS primary_entity,
+                CAST(COUNT(*) AS VARCHAR) || ' flagged claim records; total reserve $' || CAST(ROUND(SUM(TRY_CAST(reserve AS DOUBLE)), 2) AS VARCHAR) AS supporting_evidence,
+                'Review claim assignment pattern, vendor selection basis, reserve movement, and supporting claim documentation.' AS recommended_action
+            FROM "{tables['claims']}"
+            WHERE LOWER(COALESCE(risk_flag, '')) IN ('y', 'yes', 'true')
+            GROUP BY vendor, adjuster
+
+            UNION ALL
+            SELECT
+                86 AS enterprise_rank_score,
+                'Contract governance' AS risk_area,
+                'Legal; Procurement; Finance/AP' AS affected_departments,
+                col1 AS primary_entity,
+                CONCAT('Contract ', col0, ' has status ', col4, ', end date ', col3, ', hourly rate ', col5) AS supporting_evidence,
+                'Confirm active authorization, renewal status, billing rate approval, and whether related invoices are properly supported.' AS recommended_action
+            FROM "{tables['contracts']}"
+            WHERE col0 <> 'contract_id' AND LOWER(COALESCE(col4, '')) = 'expired'
+
+            UNION ALL
+            SELECT
+                83 AS enterprise_rank_score,
+                'Vendor insurance / operational readiness' AS risk_area,
+                'Engineering; Procurement; Legal' AS affected_departments,
+                col0 AS primary_entity,
+                CONCAT('Vendor status ', col1, '; insurance expiration ', col2) AS supporting_evidence,
+                'Validate insurance certificate status, exception approval, and whether vendor work should continue under current controls.' AS recommended_action
+            FROM "{tables['engineering']}"
+            WHERE col0 <> 'vendor'
+              AND (
+                LOWER(COALESCE(col1, '')) = 'exception'
+                OR TRY_CAST(col2 AS DATE) < CURRENT_DATE
+              )
+
+            UNION ALL
+            SELECT
+                80 AS enterprise_rank_score,
+                'Marketing spend control' AS risk_area,
+                'Marketing; Finance; Procurement' AS affected_departments,
+                vendor AS primary_entity,
+                CONCAT('Campaign ', campaign, ' variance $', CAST(variance AS VARCHAR), ' on budget $', CAST(budget AS VARCHAR), ' and actual $', CAST(actual AS VARCHAR)) AS supporting_evidence,
+                'Review budget approval, change authorization, vendor scope, and invoice support for campaign overrun.' AS recommended_action
+            FROM "{tables['marketing']}"
+            WHERE TRY_CAST(variance AS DOUBLE) > 0
+
+            UNION ALL
+            SELECT
+                CASE
+                    WHEN LOWER(col2) = 'duplicate_identity' THEN 89
+                    WHEN LOWER(col2) = 'reports_concern_about' THEN 87
+                    WHEN LOWER(col2) IN ('involves_vendor', 'pays_vendor') THEN 84
+                    ELSE 76
+                END AS enterprise_rank_score,
+                'Cross-department relationship signal' AS risk_area,
+                col0 AS affected_departments,
+                col3 AS primary_entity,
+                CONCAT(col1, ' ', col2, ' ', col3) AS supporting_evidence,
+                'Trace the relationship across source records and assign an owner to validate whether the connection needs management review.' AS recommended_action
+            FROM "{tables['relationships']}"
+            WHERE col0 <> 'source_group'
+        )
+        SELECT
+            ROW_NUMBER() OVER (ORDER BY enterprise_rank_score DESC, primary_entity, supporting_evidence) AS item_rank,
+            risk_area,
+            affected_departments,
+            primary_entity,
+            enterprise_rank_score,
+            supporting_evidence,
+            recommended_action
+        FROM findings
+        ORDER BY enterprise_rank_score DESC, primary_entity, supporting_evidence
+        LIMIT 10
+    """
+    try:
+        rows = _athena_rows(review_sql)
+    except Exception as e:
+        return f"(query error: {e})"
+
+    return "\n".join([
+        "Legal_Department enterprise review",
+        "",
+        "This deterministic review uses only the selected Legal_Department structured tables. It ranks review items by enterprise impact signals across invoices, contracts, claims, vendor readiness, budget variance, and cross-department relationships. These are review priorities, not conclusions.",
+        "",
+        "Top enterprise review items",
+        "",
+        _format_rows_as_markdown(rows, "No Legal_Department enterprise review items found."),
+        "",
+        "How to read this",
+        "- `enterprise_rank_score` is a deterministic priority score from the source-table signal type.",
+        "- `supporting_evidence` names the table-derived fact that put the item into the review set.",
+        "- `recommended_action` is a practical next step for management review and evidence validation.",
+        "",
+        "Suggested follow-up prompts",
+        "- For this Legal_Department group, review AP invoice items marked for review. Include invoice_id, vendor, amount, invoice_date, related_group, and recommended next action.",
+        "- For this Legal_Department group, summarize flagged claims by vendor and adjuster. Include claim count, reserve total, loss types, and affected departments.",
+        "- For this Legal_Department group, review expired contracts and related vendor activity. Include contract_id, vendor, end_date, status, hourly_rate, and likely business impact.",
+        "- For this Legal_Department group, review cross-department relationship signals. Include source group, source object, relationship, target, affected departments, and follow-up question.",
+        "- For this Legal_Department group, compare marketing budget variances by campaign and vendor. Include budget, actual, variance, affected department, and recommended next action.",
     ])
 
 
@@ -1511,89 +2406,307 @@ def _looks_like_nightingale_pattern_request(prompt: str, context: dict[str, Any]
             or "mri" in text
             or "fraud" in text
             or "suspicious" in text
+            or "claim packet" in text
         )
-        and any(term in text for term in ("pattern", "investigative", "evidence", "combine", "summarize", "look for"))
+        and any(term in text for term in ("pattern", "investigative", "evidence", "combine", "summarize", "look for", "review", "packet"))
     )
+
+
+def _looks_like_nightingale_claim_packet_request(prompt: str, context: dict[str, Any] | None) -> bool:
+    text = _normalize_lookup_text(prompt)
+    context_text = _normalize_lookup_text(
+        " ".join(str((context or {}).get(key) or "") for key in ("projectId", "projectName", "groupName"))
+    )
+    scope = f"{text} {context_text}"
+    return (
+        "nightingale" in scope
+        and "claim packet" in text
+        and ("provider" in text or "attorney" in text)
+    )
+
+
+def _nightingale_tables_for_context(context: dict[str, Any] | None, prompt: str) -> dict[str, str | None]:
+    return {
+        "bills": _table_for_fragments(("medical_bills", "provider_bills"), context, prompt),
+        "treatments": _table_for_fragment("treatment_sessions", context, prompt),
+        "duplicates": _table_for_fragment("duplicate_bill_candidates", context, prompt),
+        "siu": _table_for_fragment("siu_referrals", context, prompt),
+        "claims": _table_for_fragment("claims_master", context, prompt),
+        "accidents": _table_for_fragment("accident_reports", context, prompt),
+    }
+
+
+def _nightingale_billing_sql_parts(tables: dict[str, str | None]) -> tuple[str, str, str]:
+    bill_columns = _glue_columns_for_table(tables.get("bills"))
+    bills_provider_expr = "provider_id" if "provider_id" in bill_columns else "provider"
+    bills_cpt_expr = "cpt_code" if "cpt_code" in bill_columns else "procedure_code"
+    bills_desc_expr = "description" if "description" in bill_columns else bills_cpt_expr
+    bills_units_expr = "units" if "units" in bill_columns else "1"
+    bills_amount_expr = "TRY_CAST(billed_amount AS DOUBLE)"
+    bills_cte = f"""
+        bills AS (
+            SELECT
+                claim_id,
+                CAST({bills_provider_expr} AS VARCHAR) AS provider_id,
+                CAST({bills_cpt_expr} AS VARCHAR) AS cpt_code,
+                CAST({bills_desc_expr} AS VARCHAR) AS description,
+                TRY_CAST({bills_units_expr} AS DOUBLE) AS units,
+                {bills_amount_expr} AS billed_amount,
+                CAST(service_date AS VARCHAR) AS service_date
+            FROM "{tables['bills']}"
+            WHERE claim_id <> 'claim_id'
+        )
+    """
+    claims_cte = f"""
+        claims AS (
+            SELECT
+                col0 AS claim_id,
+                col3 AS loss_date,
+                col5 AS attorney_id,
+                col6 AS claim_provider,
+                col7 AS severity_hint,
+                col8 AS claim_status
+            FROM "{tables['claims']}"
+            WHERE col0 <> 'claim_id'
+        )
+    """
+    duplicates_cte = ""
+    if tables.get("duplicates") and "provider_id" in _glue_columns_for_table(tables.get("duplicates")):
+        duplicates_cte = f""",
+        duplicates AS (
+            SELECT bill_id, claim_id, provider_id, duplicate_reason, confidence
+            FROM "{tables['duplicates']}"
+            WHERE bill_id <> 'bill_id'
+        )
+        """
+    return bills_cte, claims_cte, duplicates_cte
+
+
+def _handle_nightingale_claim_packet_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_nightingale_claim_packet_request(prompt, context):
+        return None
+
+    tables = _nightingale_tables_for_context(context, prompt)
+    missing = [name for name in ("bills", "claims") if not tables.get(name)]
+    if missing:
+        return (
+            "I could not resolve all Nightingale tables needed for claim packet review. "
+            f"Missing: {', '.join(missing)}."
+        )
+
+    bills_cte, claims_cte, duplicates_cte = _nightingale_billing_sql_parts(tables)
+    duplicate_join = ""
+    duplicate_select = "0 AS duplicate_candidates, '' AS duplicate_reasons"
+    duplicate_reason_case = "''"
+    duplicate_order_expr = "duplicate_candidates"
+    if duplicates_cte:
+        duplicate_join = """
+        LEFT JOIN (
+            SELECT
+                claim_id,
+                provider_id,
+                COUNT(*) AS duplicate_candidates,
+                array_join(array_sort(array_distinct(array_agg(duplicate_reason))), ', ') AS duplicate_reasons
+            FROM duplicates
+            GROUP BY claim_id, provider_id
+        ) d ON d.claim_id = cb.claim_id AND d.provider_id = cb.provider_id
+        """
+        duplicate_select = "COALESCE(d.duplicate_candidates, 0) AS duplicate_candidates, COALESCE(d.duplicate_reasons, '') AS duplicate_reasons"
+        duplicate_reason_case = "CASE WHEN COALESCE(d.duplicate_candidates, 0) > 0 THEN 'duplicate bill candidate; ' ELSE '' END"
+        duplicate_order_expr = "duplicate_candidates"
+
+    claim_packet_sql = f"""
+        WITH
+        {claims_cte},
+        {bills_cte}
+        {duplicates_cte},
+        provider_top AS (
+            SELECT
+                provider_id,
+                ROUND(SUM(COALESCE(billed_amount, 0)), 2) AS provider_billed_amount
+            FROM bills
+            GROUP BY provider_id
+            ORDER BY provider_billed_amount DESC
+            LIMIT 8
+        ),
+        attorney_top AS (
+            SELECT
+                c.attorney_id,
+                ROUND(SUM(COALESCE(b.billed_amount, 0)), 2) AS attorney_billed_amount
+            FROM claims c
+            JOIN bills b ON b.claim_id = c.claim_id
+            GROUP BY c.attorney_id
+            ORDER BY attorney_billed_amount DESC
+            LIMIT 8
+        ),
+        claim_bills AS (
+            SELECT
+                claim_id,
+                provider_id,
+                ROUND(SUM(COALESCE(billed_amount, 0)), 2) AS billed_amount,
+                COUNT(*) AS bill_lines,
+                SUM(CASE WHEN LOWER(description) LIKE '%mri%' OR LOWER(cpt_code) LIKE '%mri%' THEN 1 ELSE 0 END) AS mri_lines,
+                SUM(CASE WHEN COALESCE(units, 0) >= 4 THEN 1 ELSE 0 END) AS high_unit_lines
+            FROM bills
+            GROUP BY claim_id, provider_id
+        )
+        SELECT
+            c.claim_id,
+            cb.provider_id,
+            c.attorney_id,
+            c.loss_date,
+            c.severity_hint,
+            c.claim_status,
+            cb.billed_amount,
+            cb.bill_lines,
+            cb.mri_lines,
+            cb.high_unit_lines,
+            {duplicate_select},
+            CONCAT(
+                CASE WHEN pt.provider_id IS NOT NULL THEN 'top provider; ' ELSE '' END,
+                CASE WHEN at.attorney_id IS NOT NULL THEN 'top attorney; ' ELSE '' END,
+                CASE WHEN cb.mri_lines > 0 THEN 'MRI billing; ' ELSE '' END,
+                CASE WHEN cb.high_unit_lines > 0 THEN 'high-unit billing; ' ELSE '' END,
+                {duplicate_reason_case},
+                CASE WHEN LOWER(c.severity_hint) IN ('low', 'minor') THEN 'low severity; ' ELSE '' END
+            ) AS review_reason
+        FROM claim_bills cb
+        JOIN claims c ON c.claim_id = cb.claim_id
+        LEFT JOIN provider_top pt ON pt.provider_id = cb.provider_id
+        LEFT JOIN attorney_top at ON at.attorney_id = c.attorney_id
+        {duplicate_join}
+        WHERE pt.provider_id IS NOT NULL OR at.attorney_id IS NOT NULL
+        ORDER BY
+            {duplicate_order_expr} DESC,
+            cb.mri_lines DESC,
+            cb.billed_amount DESC,
+            c.claim_id
+        LIMIT 15
+    """
+    try:
+        rows = _athena_rows(claim_packet_sql)
+    except Exception as e:
+        return f"(query error: {e})"
+
+    group_name = (context or {}).get("groupName") or "selected Nightingale group"
+    return "\n".join([
+        "Nightingale claim packet review",
+        "",
+        f"Scope: `{group_name}`. This review narrows the prior provider/attorney billing signals into claim-level packets for follow-up.",
+        "",
+        "Claim packet candidates",
+        "",
+        _format_rows_as_markdown(rows, "No claim packet candidates found for the top provider/attorney signals."),
+        "",
+        "How to use this",
+        "- Start with claims where `review_reason` includes both `top provider` and `top attorney`.",
+        "- Use `mri_lines`, `high_unit_lines`, and `duplicate_candidates` to prioritize packet review order.",
+        "- Review the source bill images, payment records, treatment notes, and call/document tables before drawing conclusions.",
+    ])
 
 
 def _handle_nightingale_pattern_request(prompt: str, context: dict[str, Any] | None) -> str | None:
     if not _looks_like_nightingale_pattern_request(prompt, context):
         return None
 
-    needed = {
-        "bills": "provider_bills",
-        "treatments": "treatment_sessions",
-        "hours": "provider_hours",
-        "duplicates": "duplicate_bill_candidates",
-        "siu": "siu_referrals",
-        "claims": "claims_master",
-        "attorneys": "attorney_directory",
-        "providers": "provider_directory",
-        "accidents": "accident_reports",
+    tables = {
+        "bills": _table_for_fragments(("medical_bills", "provider_bills"), context, prompt),
+        "treatments": _table_for_fragment("treatment_sessions", context, prompt),
+        "duplicates": _table_for_fragment("duplicate_bill_candidates", context, prompt),
+        "siu": _table_for_fragment("siu_referrals", context, prompt),
+        "claims": _table_for_fragment("claims_master", context, prompt),
+        "accidents": _table_for_fragment("accident_reports", context, prompt),
     }
-    tables = {key: _table_for_fragment(fragment, context, prompt) for key, fragment in needed.items()}
-    missing = [fragment for key, fragment in needed.items() if not tables.get(key)]
+    missing = [name for name in ("bills", "claims") if not tables.get(name)]
     if missing:
         return (
             "I could not resolve all Nightingale tables needed for the deterministic pattern report. "
             f"Missing: {', '.join(missing)}."
         )
 
-    provider_sql = f"""
-        WITH provider_directory AS (
-            SELECT col0 AS provider_id, col1 AS provider_name, col5 AS risk_hint
-            FROM "{tables['providers']}"
-            WHERE col0 <> 'provider_id'
-        ),
-        duplicate_counts AS (
-            SELECT provider_id, COUNT(*) AS duplicate_candidates
-            FROM "{tables['duplicates']}"
-            GROUP BY provider_id
+    bill_columns = _glue_columns_for_table(tables["bills"])
+    bills_provider_expr = "provider_id" if "provider_id" in bill_columns else "provider"
+    bills_cpt_expr = "cpt_code" if "cpt_code" in bill_columns else "procedure_code"
+    bills_desc_expr = "description" if "description" in bill_columns else bills_cpt_expr
+    bills_units_expr = "units" if "units" in bill_columns else "1"
+    bills_amount_expr = "TRY_CAST(billed_amount AS DOUBLE)"
+    bills_cte = f"""
+        bills AS (
+            SELECT
+                claim_id,
+                CAST({bills_provider_expr} AS VARCHAR) AS provider_id,
+                CAST({bills_cpt_expr} AS VARCHAR) AS cpt_code,
+                CAST({bills_desc_expr} AS VARCHAR) AS description,
+                TRY_CAST({bills_units_expr} AS DOUBLE) AS units,
+                {bills_amount_expr} AS billed_amount,
+                CAST(service_date AS VARCHAR) AS service_date
+            FROM "{tables['bills']}"
+            WHERE claim_id <> 'claim_id'
         )
+    """
+    claims_cte = f"""
+        claims AS (
+            SELECT
+                col0 AS claim_id,
+                col3 AS loss_date,
+                col5 AS attorney_id,
+                col6 AS claim_provider,
+                col7 AS severity_hint,
+                col8 AS claim_status
+            FROM "{tables['claims']}"
+            WHERE col0 <> 'claim_id'
+        )
+    """
+    duplicate_join = ""
+    duplicate_select = "0 AS duplicate_candidates"
+    if tables.get("duplicates") and "provider_id" in _glue_columns_for_table(tables["duplicates"]):
+        duplicate_join = """
+        LEFT JOIN (
+            SELECT provider_id, COUNT(*) AS duplicate_candidates
+            FROM duplicates
+            GROUP BY provider_id
+        ) d ON d.provider_id = b.provider_id
+        """
+        duplicate_select = "COALESCE(MAX(d.duplicate_candidates), 0) AS duplicate_candidates"
+
+    provider_sql = f"""
+        WITH
+        {bills_cte}
+        {", duplicates AS (SELECT * FROM \"" + tables["duplicates"] + "\" WHERE bill_id <> 'bill_id')" if tables.get("duplicates") else ""}
         SELECT
             b.provider_id,
-            COALESCE(p.provider_name, b.provider_id) AS provider_name,
-            COALESCE(p.risk_hint, '') AS risk_hint,
             COUNT(*) AS bill_lines,
             COUNT(DISTINCT b.claim_id) AS claims,
-            ROUND(SUM(CAST(b.billed_amount AS DOUBLE)), 2) AS billed_amount,
+            ROUND(SUM(COALESCE(b.billed_amount, 0)), 2) AS billed_amount,
             SUM(CASE WHEN LOWER(b.description) LIKE '%mri%' OR LOWER(b.cpt_code) LIKE '%mri%' THEN 1 ELSE 0 END) AS mri_lines,
-            SUM(CASE WHEN CAST(b.units AS DOUBLE) >= 4 THEN 1 ELSE 0 END) AS high_unit_lines,
-            COALESCE(MAX(d.duplicate_candidates), 0) AS duplicate_candidates
-        FROM "{tables['bills']}" b
-        LEFT JOIN provider_directory p ON p.provider_id = b.provider_id
-        LEFT JOIN duplicate_counts d ON d.provider_id = b.provider_id
-        GROUP BY b.provider_id, p.provider_name, p.risk_hint
-        ORDER BY
-            CASE WHEN COALESCE(p.risk_hint, '') = 'fraud' THEN 0 ELSE 1 END,
-            duplicate_candidates DESC,
-            billed_amount DESC
+            SUM(CASE WHEN COALESCE(b.units, 0) >= 4 THEN 1 ELSE 0 END) AS high_unit_lines,
+            {duplicate_select}
+        FROM bills b
+        {duplicate_join}
+        GROUP BY b.provider_id
+        ORDER BY duplicate_candidates DESC, billed_amount DESC
         LIMIT 8
     """
     attorney_sql = f"""
-        WITH attorney_directory AS (
-            SELECT col0 AS attorney_id, col1 AS firm_name, col2 AS risk_hint
-            FROM "{tables['attorneys']}"
-            WHERE col0 <> 'attorney_id'
-        )
+        WITH
+        {claims_cte},
+        {bills_cte}
         SELECT
             c.attorney_id,
-            COALESCE(a.firm_name, c.attorney_id) AS firm_name,
-            COALESCE(a.risk_hint, '') AS risk_hint,
             COUNT(DISTINCT c.claim_id) AS claims,
-            ROUND(SUM(CAST(b.billed_amount AS DOUBLE)), 2) AS billed_amount,
+            ROUND(SUM(COALESCE(b.billed_amount, 0)), 2) AS billed_amount,
             SUM(CASE WHEN LOWER(b.description) LIKE '%mri%' OR LOWER(b.cpt_code) LIKE '%mri%' THEN 1 ELSE 0 END) AS mri_lines
-        FROM "{tables['claims']}" c
-        JOIN "{tables['bills']}" b ON b.claim_id = c.claim_id
-        LEFT JOIN attorney_directory a ON a.attorney_id = c.attorney_id
-        GROUP BY c.attorney_id, a.firm_name, a.risk_hint
-        ORDER BY
-            CASE WHEN COALESCE(a.risk_hint, '') = 'fraud' THEN 0 ELSE 1 END,
-            billed_amount DESC
+        FROM claims c
+        JOIN bills b ON b.claim_id = c.claim_id
+        GROUP BY c.attorney_id
+        ORDER BY billed_amount DESC
         LIMIT 8
     """
     delayed_sql = f"""
-        WITH first_treatment AS (
+        WITH
+        {claims_cte},
+        {bills_cte},
+        first_treatment AS (
             SELECT claim_id, MIN(CAST(treatment_date AS DATE)) AS first_treatment_date
             FROM "{tables['treatments']}"
             GROUP BY claim_id
@@ -1603,7 +2716,7 @@ def _handle_nightingale_pattern_request(prompt: str, context: dict[str, Any] | N
                 claim_id,
                 ROUND(SUM(CAST(billed_amount AS DOUBLE)), 2) AS billed_amount,
                 SUM(CASE WHEN LOWER(description) LIKE '%mri%' OR LOWER(cpt_code) LIKE '%mri%' THEN 1 ELSE 0 END) AS mri_lines
-            FROM "{tables['bills']}"
+            FROM bills
             GROUP BY claim_id
         )
         SELECT DISTINCT
@@ -1614,17 +2727,20 @@ def _handle_nightingale_pattern_request(prompt: str, context: dict[str, Any] | N
             date_diff('day', CAST(c.loss_date AS DATE), ft.first_treatment_date) AS days_to_treatment,
             cb.billed_amount,
             cb.mri_lines
-        FROM "{tables['claims']}" c
+        FROM claims c
         JOIN first_treatment ft ON ft.claim_id = c.claim_id
         JOIN claim_bills cb ON cb.claim_id = c.claim_id
         WHERE date_diff('day', CAST(c.loss_date AS DATE), ft.first_treatment_date) BETWEEN 10 AND 15
         ORDER BY cb.billed_amount DESC
         LIMIT 8
-    """
-    low_severity_sql = f"""
-        WITH claim_bills AS (
-            SELECT claim_id, ROUND(SUM(CAST(billed_amount AS DOUBLE)), 2) AS billed_amount
-            FROM "{tables['bills']}"
+    """ if tables.get("treatments") else None
+    if tables.get("accidents"):
+        low_severity_sql = f"""
+        WITH
+        {bills_cte},
+        claim_bills AS (
+            SELECT claim_id, ROUND(SUM(COALESCE(billed_amount, 0)), 2) AS billed_amount
+            FROM bills
             GROUP BY claim_id
         )
         SELECT
@@ -1639,14 +2755,36 @@ def _handle_nightingale_pattern_request(prompt: str, context: dict[str, Any] | N
         WHERE LOWER(a.damage_severity) IN ('low', 'minor')
         ORDER BY cb.billed_amount DESC
         LIMIT 8
-    """
+        """
+    else:
+        low_severity_sql = f"""
+        WITH
+        {claims_cte},
+        {bills_cte},
+        claim_bills AS (
+            SELECT claim_id, ROUND(SUM(COALESCE(billed_amount, 0)), 2) AS billed_amount
+            FROM bills
+            GROUP BY claim_id
+        )
+        SELECT
+            c.claim_id,
+            c.severity_hint AS damage_severity,
+            cb.billed_amount
+        FROM claims c
+        JOIN claim_bills cb ON cb.claim_id = c.claim_id
+        WHERE LOWER(c.severity_hint) IN ('low', 'minor')
+        ORDER BY cb.billed_amount DESC
+        LIMIT 8
+        """
     sunday_sql = f"""
+        WITH
+        {bills_cte}
         SELECT
             b.provider_id,
             COUNT(*) AS sunday_bill_lines,
             COUNT(DISTINCT b.claim_id) AS claims,
-            ROUND(SUM(CAST(b.billed_amount AS DOUBLE)), 2) AS billed_amount
-        FROM "{tables['bills']}" b
+            ROUND(SUM(COALESCE(b.billed_amount, 0)), 2) AS billed_amount
+        FROM bills b
         WHERE day_of_week(CAST(b.service_date AS DATE)) = 7
         GROUP BY b.provider_id
         ORDER BY sunday_bill_lines DESC, billed_amount DESC
@@ -1662,7 +2800,7 @@ def _handle_nightingale_pattern_request(prompt: str, context: dict[str, Any] | N
         GROUP BY col2, col3
         ORDER BY referrals DESC
         LIMIT 8
-    """
+    """ if tables.get("siu") else None
 
     sections: list[tuple[str, str, list[dict[str, str | None]]]] = []
     errors: list[str] = []
@@ -1674,6 +2812,9 @@ def _handle_nightingale_pattern_request(prompt: str, context: dict[str, Any] | N
         ("Sunday service-date billing", sunday_sql),
         ("SIU referral reasons", siu_sql),
     ):
+        if not sql:
+            sections.append((title, "", []))
+            continue
         try:
             sections.append((title, sql, _athena_rows(sql)))
         except Exception as e:
@@ -1694,12 +2835,12 @@ def _handle_nightingale_pattern_request(prompt: str, context: dict[str, Any] | N
         lines.extend(f"- {error}" for error in errors)
     lines.extend([
         "",
-        "Next investigative actions",
-        "- Pull the top provider IDs and attorney IDs above into a claim packet review.",
-        "- Review duplicate bill candidates against original bill images and payment records.",
-        "- Validate Sunday service dates against provider operating records and appointment logs.",
-        "- Compare delayed-treatment claims against call-center intake logs and witness/document narratives.",
-        "- Prioritize low-severity/high-billing claims for SIU review before payment escalation.",
+        "Suggested follow-up prompts",
+        "- Pull the top provider IDs and attorney IDs above into a claim packet review for this Nightingale group. Include claim_id, provider_id or provider name, attorney_id or attorney name, billed amount, MRI indicators, duplicate candidate count, and why each claim should be reviewed.",
+        "- Review duplicate bill candidates in this Nightingale group against payment records. Include bill_id, claim_id, provider_id, duplicate_reason, confidence, paid amount if available, and a short recommendation.",
+        "- Validate Sunday service dates in this Nightingale group against provider operating records and treatment/session logs. Include provider_id, claim_id, service_date, billed amount, and whether the provider appears open.",
+        "- Compare delayed-treatment claims in this Nightingale group against call-center intake logs and witness or document narrative tables. Include days from loss to first treatment and the evidence that supports review.",
+        "- Prioritize low-severity and high-billing Nightingale claims for SIU review before payment escalation. Include claim_id, severity, provider, attorney, billed amount, duplicate indicator, and SIU reason if available.",
     ])
     return "\n".join(lines)
 
@@ -1977,7 +3118,8 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     prompt = payload.get("prompt") or payload.get("input") or ""
     if not prompt:
         return {"error": "Missing 'prompt'"}
-    stripped_prompt = prompt.strip().rstrip(";").lstrip("(").strip()
+    request_prompt = _user_request_from_scoped_prompt(prompt)
+    stripped_prompt = request_prompt.strip().rstrip(";").lstrip("(").strip()
     prompt_lower = stripped_prompt.lower()
     if prompt_lower in {
         "available projects",
@@ -1990,7 +3132,7 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
         return {"result": _list_projects_payload()}
     if stripped_prompt.lower().startswith(("select", "with")):
         try:
-            rows = _athena_rows(prompt)
+            rows = _athena_rows(request_prompt)
             return {"result": json.dumps(rows[:ATHENA_MAX_ROWS], indent=2)}
         except Exception as e:
             return {"result": f"(query error: {e})"}
@@ -2007,7 +3149,7 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     if explicit_context and session_id != "adhoc":
         SESSION_GROUP_CONTEXTS[session_id] = explicit_context
     resolved_context = _context_with_glue_table_hints(explicit_context or SESSION_GROUP_CONTEXTS.get(session_id))
-    if _looks_like_group_inventory_request(prompt):
+    if _looks_like_group_inventory_request(request_prompt):
         if resolved_context:
             return {"result": _format_group_inventory(resolved_context)}
         return {
@@ -2016,43 +3158,49 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
                 f"{_list_projects_payload()}"
             )
         }
-    row_count_result = _handle_row_count_request(prompt, resolved_context)
+    row_count_result = _handle_row_count_request(request_prompt, resolved_context)
     if row_count_result:
         return {"result": row_count_result}
-    daily_sales_multi_zone_result = _handle_daily_sales_multi_zone_request(prompt, resolved_context)
+    daily_sales_multi_zone_result = _handle_daily_sales_multi_zone_request(request_prompt, resolved_context)
     if daily_sales_multi_zone_result:
         return {"result": daily_sales_multi_zone_result}
-    storm_glass_claim_review_result = _handle_storm_glass_claim_review_request(prompt, resolved_context)
+    storm_glass_claim_review_result = _handle_storm_glass_claim_review_request(request_prompt, resolved_context)
     if storm_glass_claim_review_result:
         return {"result": storm_glass_claim_review_result}
-    nightingale_pattern_result = _handle_nightingale_pattern_request(prompt, resolved_context)
+    legal_department_review_result = _handle_legal_department_enterprise_review(request_prompt, resolved_context)
+    if legal_department_review_result:
+        return {"result": legal_department_review_result}
+    nightingale_claim_packet_result = _handle_nightingale_claim_packet_request(request_prompt, resolved_context)
+    if nightingale_claim_packet_result:
+        return {"result": nightingale_claim_packet_result}
+    nightingale_pattern_result = _handle_nightingale_pattern_request(request_prompt, resolved_context)
     if nightingale_pattern_result:
         return {"result": nightingale_pattern_result}
-    nightingale_benchmark_result = _handle_nightingale_benchmark_request(prompt, resolved_context)
+    nightingale_benchmark_result = _handle_nightingale_benchmark_request(request_prompt, resolved_context)
     if nightingale_benchmark_result:
         return {"result": nightingale_benchmark_result}
-    helios_project_risk_result = _handle_helios_project_risk_request(prompt, resolved_context)
+    helios_project_risk_result = _handle_helios_project_risk_request(request_prompt, resolved_context)
     if helios_project_risk_result:
         return {"result": helios_project_risk_result}
-    claims_year_result = _handle_claims_loss_year_request(prompt, resolved_context)
+    claims_year_result = _handle_claims_loss_year_request(request_prompt, resolved_context)
     if claims_year_result:
         return {"result": claims_year_result}
-    first_records_result = _handle_first_records_request(prompt, resolved_context)
+    first_records_result = _handle_first_records_request(request_prompt, resolved_context)
     if first_records_result:
         return {"result": first_records_result}
-    agent_prompt = _prepend_resolved_group_context(prompt, resolved_context) if resolved_context else prompt
+    agent_prompt = _prepend_resolved_group_context(request_prompt, resolved_context) if resolved_context else request_prompt
     if resolved_context:
         log.info(
             "Structured specialist resolved group: project=%s group=%s",
             resolved_context.get("projectId"),
             resolved_context.get("groupName"),
         )
-    log.info("Structured specialist: persona=%s session=%s prompt=%s", persona, session_id, prompt[:200])
+    log.info("Structured specialist: persona=%s session=%s prompt=%s", persona, session_id, request_prompt[:200])
     agent = build_agent()
     try:
         agent_result = agent(agent_prompt)
     except MaxTokensReachedException:
-        log.exception("Structured specialist hit max token loop for prompt=%s", prompt[:500])
+        log.exception("Structured specialist hit max token loop for prompt=%s", request_prompt[:500])
         if resolved_context:
             group_name = resolved_context.get("groupName") or "the selected group"
             return {

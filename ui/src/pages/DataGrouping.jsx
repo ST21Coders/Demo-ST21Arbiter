@@ -5,12 +5,13 @@ import {
   Eye, FileSpreadsheet, FolderTree, Loader2, MessageSquare, Plus, RefreshCw, Save, Search, Trash2, Upload, Wand2, XCircle,
 } from 'lucide-react'
 import { USE_MOCK } from '../config'
-import { analyzeDataGroupingDocuments, getDataGroupingProject, listUploadedFiles, materializeDataGroupingProject, startDataGroupingCrawler } from '../hooks/useApi'
+import { analyzeDataGroupingDocuments, getDataGroupingProject, getUploadStatus, listDataGroupingProjects, listUploadedFiles, materializeDataGroupingProject, startDataGroupingCrawler } from '../hooks/useApi'
 
 const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.v2.projectMetadata'
 const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.v2.savedGroups'
 const METADATA_LEDGER_STORAGE_KEY = 'arbiter.dataGrouping.v2.metadataLedger'
 const MCP_CHAT_DRAFT_KEY = 'arbiter.mcpChat.sessionDraft.v1'
+const GROUP_STATUS_SAMPLE_LIMIT = 60
 
 const GROUP_TYPE_OPTIONS = [
   { value: 'special_project', label: 'Special Project', suggestedName: 'Special_Project', summaryFile: '' },
@@ -74,6 +75,169 @@ function formatShortDate(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return 'Unknown'
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+function dateSortValue(value) {
+  if (!value) return 0
+  const time = new Date(value).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
+function fileAddedSortValue(file) {
+  return Math.max(
+    dateSortValue(file?.groupedAt),
+    dateSortValue(file?.addedAt),
+    dateSortValue(file?.assignedAt),
+    dateSortValue(file?.last_modified),
+    dateSortValue(file?.lastModified),
+  )
+}
+
+function newestFilesFirst(files) {
+  return [...(files || [])].sort((a, b) => (
+    fileAddedSortValue(b) - fileAddedSortValue(a)
+    || String(a?.name || '').localeCompare(String(b?.name || ''))
+  ))
+}
+
+function fileHasMaterializedEvidence(file) {
+  return Boolean(
+    file?.projectKey
+    || file?.structuredKey
+    || file?.glueTableHint
+    || file?.sourceKey
+    || String(fileKey(file)).startsWith('projects/')
+    || String(fileKey(file)).startsWith('structured/')
+  )
+}
+
+function groupHasStructuredEvidence(group) {
+  return Boolean(
+    group?.structuredTableHint
+    || group?.glueTableHint
+    || (Array.isArray(group?.structuredTableHints) && group.structuredTableHints.length)
+    || (group?.files || []).some(file => file?.glueTableHint || file?.structuredKey)
+  )
+}
+
+function normalizedGroupName(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+}
+
+function findRemoteGroupRecord(group, remoteGroups) {
+  const localName = normalizedGroupName(group?.name || group?.groupName)
+  const localProjectId = String(group?.projectId || '').toLowerCase()
+  return (remoteGroups || []).find(remote => {
+    const remoteName = normalizedGroupName(remote.groupName || remote.value || remote.name)
+    const remoteProjectId = String(remote.projectId || '').toLowerCase()
+    return remoteName === localName && (!localProjectId || !remoteProjectId || remoteProjectId === localProjectId)
+  })
+}
+
+function readinessFromRemoteGroup(group, remoteGroup, localFileCount, localCsvCount) {
+  if (!remoteGroup) return null
+  const remoteFileCount = Number(remoteGroup.fileCount || 0)
+  const remoteCsvCount = Number(remoteGroup.csvCount || 0)
+  const remoteTableCount = Number(remoteGroup.tableCount || 0)
+  const readyTableCount = Number(remoteGroup.readyTableCount ?? remoteTableCount)
+  const expectedTableCount = Number(remoteGroup.expectedTableCount || 0)
+  const crawler = remoteGroup.crawler || {}
+  const crawlerState = String(crawler.state || '').toUpperCase()
+  const lastCrawlStatus = String(crawler.lastCrawlStatus || '').toUpperCase()
+  const hasTables = remoteTableCount > 0 || (remoteGroup.tableHints || []).length > 0
+  const profileKind = remoteGroup.groupProfile?.kind || group?.groupProfile?.kind || ''
+  const needsShapeReadyTables = profileKind === 'sales'
+  const localUpdatedAt = dateSortValue(group?.updatedAt)
+  const recentlyChanged = localUpdatedAt && Date.now() - localUpdatedAt < 30 * 60 * 1000
+  if (!remoteFileCount) {
+    return {
+      state: 'yellow',
+      message: 'Group metadata found; waiting for published file count.',
+      remoteGroup,
+    }
+  }
+  if (remoteCsvCount || localCsvCount) {
+    if (lastCrawlStatus === 'FAILED') {
+      return {
+        state: 'red',
+        message: crawler.lastCrawlError || 'Glue crawler failed while indexing this group.',
+        remoteGroup,
+      }
+    }
+    if (crawlerState === 'RUNNING') {
+      return {
+        state: 'yellow',
+        message: `${remoteFileCount || localFileCount} files published; Glue crawler is still running.`,
+        remoteGroup,
+      }
+    }
+    if (expectedTableCount && remoteTableCount < expectedTableCount) {
+      return {
+        state: 'yellow',
+        message: `${remoteFileCount || localFileCount} files published; ${remoteTableCount}/${expectedTableCount} Glue table${expectedTableCount === 1 ? '' : 's'} ready.`,
+        remoteGroup,
+      }
+    }
+    if (needsShapeReadyTables && !readyTableCount) {
+      return {
+        state: 'yellow',
+        message: `${remoteFileCount || localFileCount} files published; waiting for sales-shaped Glue columns to be available.`,
+        remoteGroup,
+      }
+    }
+    if (!expectedTableCount && !hasTables) {
+      return {
+        state: 'yellow',
+        message: `${remoteFileCount || localFileCount} files published; waiting for Glue table hints.`,
+        remoteGroup,
+      }
+    }
+  }
+  if (recentlyChanged && localFileCount && remoteFileCount < localFileCount) {
+    return {
+      state: 'yellow',
+      message: `${remoteFileCount}/${localFileCount} files published in group metadata.`,
+      remoteGroup,
+    }
+  }
+  return {
+    state: 'green',
+    message: `${remoteFileCount || localFileCount} files published${hasTables ? `; ${needsShapeReadyTables ? readyTableCount : remoteTableCount || (remoteGroup.tableHints || []).length} Glue table${(needsShapeReadyTables ? readyTableCount : remoteTableCount || (remoteGroup.tableHints || []).length) === 1 ? '' : 's'} ready.` : '.'}`,
+    remoteGroup,
+  }
+}
+
+function groupStatusTone(status) {
+  if (!status) return {
+    label: 'Status',
+    detail: 'Not checked yet',
+    className: 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100',
+    dotClassName: 'bg-slate-400',
+  }
+  if (status.state === 'checking') return {
+    label: 'Status',
+    detail: 'Checking group readiness',
+    className: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100',
+    dotClassName: 'bg-amber-400',
+  }
+  if (status.state === 'green') return {
+    label: 'Status',
+    detail: status.message || 'Group is ready',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
+    dotClassName: 'bg-emerald-500',
+  }
+  if (status.state === 'red') return {
+    label: 'Status',
+    detail: status.message || 'Group has readiness issues',
+    className: 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100',
+    dotClassName: 'bg-red-500',
+  }
+  return {
+    label: 'Status',
+    detail: status.message || 'Group is still processing',
+    className: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100',
+    dotClassName: 'bg-amber-400',
+  }
 }
 
 function fileKind(file) {
@@ -360,6 +524,63 @@ function columnsForCsv(file) {
   return ['source_file', 'source_key', 'note']
 }
 
+function normalizeProfileColumn(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+}
+
+function salesStarterPrompts(groupName) {
+  return [
+    `For this ${groupName} group, rank stores from highest to lowest total sales. Include branch city, branch state, total revenue, units sold, transaction count, top category, and a short explanation.`,
+    `For this ${groupName} group, rank product categories by revenue and units sold. Include part category, total revenue, units sold, average unit price, and the leading branch if available.`,
+    `For this ${groupName} group, identify the top products by revenue. Include Part_SKU, Part_Name, Part_Category, total revenue, units sold, average unit price, and the stores where each product is strongest.`,
+    `For this ${groupName} group, compare sales channels by revenue, units sold, transaction count, and average line revenue. Include a short explanation of channel mix.`,
+    `For this ${groupName} group, analyze gross margin using Unit_Cost and Unit_Price. Rank stores or products by estimated margin dollars and margin percent.`,
+    `For this ${groupName} group, find underperforming stores by total revenue and units sold. Include branch city, branch state, total revenue, units sold, transaction count, and likely next review question.`,
+  ]
+}
+
+function genericStarterPrompts(groupName) {
+  return [
+    `List the available files and tables in this ${groupName} group and briefly explain what each one appears to contain.`,
+    `Summarize this ${groupName} group. Include row counts if available, important columns, and the most useful first questions to ask.`,
+    `Show the first records from the main table in this ${groupName} group and explain the likely purpose of the data.`,
+  ]
+}
+
+function buildGroupProfile(group) {
+  const groupName = group?.name || 'selected'
+  const columns = new Set()
+  ;(group?.files || []).forEach(file => {
+    if (/\.csv$/i.test(file?.name || '')) {
+      columnsForCsv(file).forEach(column => {
+        const normalized = normalizeProfileColumn(column)
+        if (normalized) columns.add(normalized)
+      })
+    }
+  })
+  const columnList = [...columns].sort()
+  const salesColumns = new Set([
+    'sale_id', 'sales_date', 'branch_city', 'branch_state', 'part_sku',
+    'part_name', 'part_category', 'quantity_sold', 'unit_cost', 'unit_price',
+    'line_revenue', 'sales_channel', 'customer_type',
+  ])
+  const salesMatches = columnList.filter(column => salesColumns.has(column)).length
+  if (salesMatches >= 8 || (normalizeProfileColumn(groupName).includes('sales') && columns.has('line_revenue'))) {
+    return {
+      kind: 'sales',
+      confidence: salesMatches >= 8 ? 'high' : 'medium',
+      columns: columnList,
+      starterPrompts: salesStarterPrompts(groupName),
+    }
+  }
+  return {
+    kind: 'generic',
+    confidence: 'low',
+    columns: columnList,
+    starterPrompts: genericStarterPrompts(groupName),
+  }
+}
+
 function validateGroup(group) {
   const csvFiles = group.files.filter(file => !file.summary && /\.csv$/i.test(file.name || ''))
   const instructionFiles = group.files.filter(file => /\.(pdf|docx|txt|md)$/i.test(file.name || ''))
@@ -424,6 +645,7 @@ function buildMetadata({ projectName, projectId, processedPrefix, groups, summar
       id: group.id,
       name: group.name,
       type: group.type,
+      groupProfile: group.groupProfile || buildGroupProfile(group),
       groupRule: 'manual_file_selection',
       targetPrefix: `${processedPrefix}${projectId}/${group.name}/`,
       sourceFiles: group.files.map(file => ({
@@ -1027,6 +1249,11 @@ export default function DataGrouping() {
   const [fileStatusFilter, setFileStatusFilter] = useState('available')
   const [fileTypeFilter, setFileTypeFilter] = useState('all')
   const [showSavedGroups, setShowSavedGroups] = useState(false)
+  const [selectedManageGroupId, setSelectedManageGroupId] = useState('')
+  const [selectedManageFileKeys, setSelectedManageFileKeys] = useState([])
+  const [groupFileSearch, setGroupFileSearch] = useState('')
+  const [groupReadiness, setGroupReadiness] = useState({})
+  const autoStatusKeyRef = useRef('')
 
   const projectId = slugify(projectName)
   const processedPrefix = 'projects/'
@@ -1051,7 +1278,10 @@ export default function DataGrouping() {
       files: groupFileKeys(group)
         .map(key => fileMap.get(key) || (group.files || []).find(file => fileKey(file) === key))
         .filter(Boolean),
-    }))
+    })).sort((a, b) => (
+      dateSortValue(b.updatedAt) - dateSortValue(a.updatedAt)
+      || String(a.name || '').localeCompare(String(b.name || ''))
+    ))
   ), [groups, fileMap])
   const assignedKeySet = useMemo(
     () => new Set(hydratedGroups.flatMap(group => group.fileKeys)),
@@ -1076,7 +1306,7 @@ export default function DataGrouping() {
   const csvCount = files.filter(file => /\.csv$/i.test(file.name || '')).length
   const csvDraftCount = selectedDraftFiles.filter(file => /\.csv$/i.test(file.name || '')).length
   const documentCount = files.filter(file => isDocumentAnalysisFile(file)).length
-  const groupedFileCount = assignedKeySet.size
+  const groupedFileCount = new Set(queryableGroups.flatMap(group => group.fileKeys || [])).size
   const filteredFiles = useMemo(() => {
     const query = fileSearch.trim().toLowerCase()
     return files.filter(file => {
@@ -1101,6 +1331,22 @@ export default function DataGrouping() {
     const key = fileKey(file)
     return !draftKeySet.has(key) && !isLockedFileKey(key)
   }).length
+  const selectedManageGroup = useMemo(() => (
+    queryableGroups.find(group => group.id === selectedManageGroupId) || queryableGroups[0] || null
+  ), [queryableGroups, selectedManageGroupId])
+  const selectedManageFileKeySet = useMemo(() => new Set(selectedManageFileKeys), [selectedManageFileKeys])
+  const visibleGroupFiles = useMemo(() => {
+    const query = groupFileSearch.trim().toLowerCase()
+    const groupFiles = newestFilesFirst((selectedManageGroup?.files || []).filter(file => !file.summary))
+    if (!query) return groupFiles
+    return groupFiles.filter(file => `${file.name || ''} ${file.key || ''}`.toLowerCase().includes(query))
+  }, [selectedManageGroup, groupFileSearch])
+  const selectedManageCsvCount = (selectedManageGroup?.files || []).filter(file => !file.summary && /\.csv$/i.test(file.name || '')).length
+  const selectedManageDocCount = (selectedManageGroup?.files || []).filter(file => !file.summary && !/\.csv$/i.test(file.name || '')).length
+  const visibleGroupFileKeys = visibleGroupFiles.map(file => fileKey(file)).filter(Boolean)
+  const visibleSelectedGroupFileCount = visibleGroupFileKeys.filter(key => selectedManageFileKeySet.has(key)).length
+  const selectedGroupReadiness = selectedManageGroup ? groupReadiness[selectedManageGroup.id] : null
+  const selectedGroupStatusTone = groupStatusTone(selectedGroupReadiness)
 
   async function loadFiles() {
     setLoading(true)
@@ -1160,6 +1406,37 @@ export default function DataGrouping() {
     setAnalysisErrors(prev => Object.fromEntries(Object.entries(prev).filter(([groupId]) => validGroupIds.has(groupId))))
   }, [hydratedGroups])
 
+  useEffect(() => {
+    if (!queryableGroups.length) {
+      setSelectedManageGroupId('')
+      setSelectedManageFileKeys([])
+      return
+    }
+    const groupExists = queryableGroups.some(group => group.id === selectedManageGroupId)
+    if (!groupExists) {
+      setSelectedManageGroupId(queryableGroups[0].id)
+      setSelectedManageFileKeys([])
+    }
+  }, [queryableGroups, selectedManageGroupId])
+
+  useEffect(() => {
+    if (!selectedManageGroup) {
+      setSelectedManageFileKeys([])
+      return
+    }
+    const validFileKeys = new Set((selectedManageGroup.files || []).map(file => fileKey(file)).filter(Boolean))
+    setSelectedManageFileKeys(prev => prev.filter(key => validFileKeys.has(key)))
+  }, [selectedManageGroup])
+
+  useEffect(() => {
+    if (!selectedManageGroup?.id) return
+    const fileCount = (selectedManageGroup.files || []).filter(file => !file.summary && fileKey(file)).length
+    const statusKey = `${selectedManageGroup.id}|${selectedManageGroup.updatedAt || ''}|${fileCount}`
+    if (autoStatusKeyRef.current === statusKey) return
+    autoStatusKeyRef.current = statusKey
+    checkGroupReadiness(selectedManageGroup)
+  }, [selectedManageGroup?.id, selectedManageGroup?.updatedAt, selectedManageGroup?.files?.length])
+
   function nextGroupType(groupsToCheck = hydratedGroups) {
     const usedTypes = new Set(groupsToCheck.map(group => group.type))
     return GROUP_TYPE_OPTIONS.find(option => !usedTypes.has(option.value))?.value || 'special_project'
@@ -1175,6 +1452,19 @@ export default function DataGrouping() {
   function startNewGroup(type = nextGroupType()) {
     setMetadata(null)
     resetDraft(type)
+  }
+
+  function startNewProject() {
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 13)
+    setProjectName(`New Project ${stamp}`)
+    setMetadata(null)
+    setPersistedProject(null)
+    setS3Materialize(null)
+    setUploadMessage('New project started. It has no groups until files are added through Data Pipeline.')
+    setSelectedManageGroupId('')
+    setSelectedManageFileKeys([])
+    setGroupFileSearch('')
+    resetDraft('special_project')
   }
 
   function changeDraftType(type) {
@@ -1227,6 +1517,7 @@ export default function DataGrouping() {
       id: group.id,
       name: group.name,
       type: group.type,
+      groupProfile: group.groupProfile || buildGroupProfile(group),
       files: (group.files || [])
         .filter(file => !file.summary)
         .map(file => ({
@@ -1240,12 +1531,14 @@ export default function DataGrouping() {
 
   async function publishGroupToS3(group) {
     if (!group?.id) return
+    const targetProjectName = group.projectName || projectName
+    const targetProjectId = group.projectId || slugify(targetProjectName)
     setPublishingGroupIds(prev => (prev.includes(group.id) ? prev : [...prev, group.id]))
     setError('')
     try {
       const result = await materializeDataGroupingProject({
-        projectName,
-        projectId,
+        projectName: targetProjectName,
+        projectId: targetProjectId,
         groups: [groupPublishPayload(group)],
         move: false,
       })
@@ -1267,12 +1560,14 @@ export default function DataGrouping() {
 
   async function removeGroupFromS3(group) {
     if (!group?.id) return
+    const targetProjectName = group.projectName || projectName
+    const targetProjectId = group.projectId || slugify(targetProjectName)
     setPublishingGroupIds(prev => (prev.includes(group.id) ? prev : [...prev, group.id]))
     setError('')
     try {
       const result = await materializeDataGroupingProject({
-        projectName,
-        projectId,
+        projectName: targetProjectName,
+        projectId: targetProjectId,
         deleteGroups: [groupPublishPayload(group)],
         move: false,
       })
@@ -1291,6 +1586,73 @@ export default function DataGrouping() {
     }
   }
 
+  function removeGroupLocally(groupId) {
+    setMetadata(null)
+    setGroups(prev => {
+      const nextGroups = prev.filter(group => group.id !== groupId)
+      persistGroups(nextGroups)
+      return nextGroups
+    })
+    setSummaries(prev => {
+      const next = { ...prev }
+      delete next[groupId]
+      return next
+    })
+    setDocumentAnalyses(prev => {
+      const next = { ...prev }
+      delete next[groupId]
+      return next
+    })
+    setAnalysisErrors(prev => {
+      const next = { ...prev }
+      delete next[groupId]
+      return next
+    })
+    setGroupReadiness(prev => {
+      const next = { ...prev }
+      delete next[groupId]
+      return next
+    })
+    setSelectedManageFileKeys([])
+    if (selectedManageGroupId === groupId) setSelectedManageGroupId('')
+    if (editingGroupId === groupId) resetDraft()
+  }
+
+  async function deleteGroup(groupId) {
+    const groupToDelete = queryableGroups.find(group => group.id === groupId)
+      || hydratedGroups.find(group => group.id === groupId)
+    if (!groupToDelete) return
+    const confirmed = window.confirm(`Delete the ${groupToDelete.name} group? This removes the group metadata and Glue-ready structured folders. Source files remain in /processed and can be regrouped.`)
+    if (!confirmed) return
+
+    setError('')
+    setUploadMessage('')
+    setPublishingGroupIds(prev => (prev.includes(groupId) ? prev : [...prev, groupId]))
+    try {
+      const targetProjectName = groupToDelete.projectName || projectName
+      const targetProjectId = groupToDelete.projectId || slugify(targetProjectName)
+      const result = await materializeDataGroupingProject({
+        projectName: targetProjectName,
+        projectId: targetProjectId,
+        deleteGroups: [groupPublishPayload(groupToDelete)],
+        move: false,
+      })
+      setS3Materialize(result)
+      setPersistedProject(result.metadata ? {
+        ...result.metadata,
+        exists: true,
+        assignedSourceKeys: (result.metadata.groups || [])
+          .flatMap(item => (item.files || []).map(file => file.sourceKey).filter(Boolean)),
+      } : persistedProject)
+      removeGroupLocally(groupId)
+      setUploadMessage(`${groupToDelete.name} deleted. Source files remain in /processed and can be assigned to another group.`)
+    } catch (err) {
+      setError(err.message || `Unable to delete ${groupToDelete.name}`)
+    } finally {
+      setPublishingGroupIds(prev => prev.filter(item => item !== groupId))
+    }
+  }
+
   function saveGroup() {
     if (!draftName.trim() || !selectedDraftFiles.length) return
     const savedFileKeys = selectedDraftFiles.map(file => fileKey(file))
@@ -1302,6 +1664,7 @@ export default function DataGrouping() {
       type: draftType,
       fileKeys: savedFileKeys,
       files: selectedDraftFiles,
+      groupProfile: buildGroupProfile({ name: draftName.trim().replace(/\s+/g, '_'), files: selectedDraftFiles }),
       updatedAt: new Date().toISOString(),
     }
     setMetadata(null)
@@ -1335,31 +1698,174 @@ export default function DataGrouping() {
     ))
   }
 
-  function deleteGroup(groupId) {
-    const groupToDelete = hydratedGroups.find(group => group.id === groupId)
+  function toggleManageFile(file) {
+    const key = fileKey(file)
+    if (!key) return
+    setSelectedManageFileKeys(prev => (
+      prev.includes(key)
+        ? prev.filter(item => item !== key)
+        : [...prev, key]
+    ))
+  }
+
+  function selectVisibleGroupFiles() {
+    setSelectedManageFileKeys(prev => [...new Set([...prev, ...visibleGroupFileKeys])])
+  }
+
+  function clearSelectedGroupFiles() {
+    setSelectedManageFileKeys([])
+  }
+
+  function releaseSelectedGroupFiles() {
+    if (!selectedManageGroup || !selectedManageFileKeys.length) return
+    const releaseKeys = new Set(selectedManageFileKeys)
+    let nextGroup = null
     setMetadata(null)
     setGroups(prev => {
-      const nextGroups = prev.filter(group => group.id !== groupId)
+      const nextGroups = prev.map(group => {
+        if (group.id !== selectedManageGroup.id) return group
+        const nextFiles = (group.files || []).filter(file => !releaseKeys.has(fileKey(file)))
+        nextGroup = {
+          ...group,
+          fileKeys: groupFileKeys(group).filter(key => !releaseKeys.has(key)),
+          files: nextFiles,
+          groupProfile: buildGroupProfile({ ...group, files: nextFiles }),
+          updatedAt: new Date().toISOString(),
+        }
+        return nextGroup
+      })
       persistGroups(nextGroups)
       return nextGroups
     })
-    setSummaries(prev => {
-      const next = { ...prev }
-      delete next[groupId]
-      return next
-    })
-    setDocumentAnalyses(prev => {
-      const next = { ...prev }
-      delete next[groupId]
-      return next
-    })
-    setAnalysisErrors(prev => {
-      const next = { ...prev }
-      delete next[groupId]
-      return next
-    })
-    if (editingGroupId === groupId) resetDraft()
-    removeGroupFromS3(groupToDelete)
+    setSelectedManageFileKeys([])
+    setUploadMessage(`${releaseKeys.size} file${releaseKeys.size === 1 ? '' : 's'} released from ${selectedManageGroup.name}.`)
+    if (nextGroup) publishGroupToS3(nextGroup)
+  }
+
+  async function checkGroupReadiness(group) {
+    if (!group?.id) return
+    const groupFiles = (group.files || []).filter(file => !file.summary && fileKey(file))
+    const sampledFiles = groupFiles.slice(0, GROUP_STATUS_SAMPLE_LIMIT)
+    const sampledCsvCount = sampledFiles.filter(file => /\.csv$/i.test(file.name || '')).length
+    const totalCsvCount = groupFiles.filter(file => /\.csv$/i.test(file.name || '')).length
+    setGroupReadiness(prev => ({
+      ...prev,
+      [group.id]: {
+        state: 'checking',
+        checkedAt: new Date().toISOString(),
+        message: `Checking ${sampledFiles.length}${groupFiles.length > sampledFiles.length ? ` of ${groupFiles.length}` : ''} files...`,
+      },
+    }))
+    if (!groupFiles.length) {
+      setGroupReadiness(prev => ({
+        ...prev,
+        [group.id]: {
+          state: 'red',
+          checkedAt: new Date().toISOString(),
+          message: 'No files found in this group.',
+          totalFiles: 0,
+        },
+      }))
+      return
+    }
+    try {
+      try {
+        const remote = await listDataGroupingProjects()
+        const remoteGroup = findRemoteGroupRecord(group, remote?.groups || [])
+        const remoteReadiness = readinessFromRemoteGroup(group, remoteGroup, groupFiles.length, totalCsvCount)
+        if (remoteReadiness) {
+          setGroupReadiness(prev => ({
+            ...prev,
+            [group.id]: {
+              state: remoteReadiness.state,
+              checkedAt: new Date().toISOString(),
+              message: remoteReadiness.message,
+              totalFiles: groupFiles.length,
+              sampledFiles: 0,
+              totalCsvCount,
+              sampledCsvCount: 0,
+              readyCount: remoteReadiness.state === 'green' ? groupFiles.length : 0,
+              processingCount: remoteReadiness.state === 'yellow' ? Math.max(0, groupFiles.length - Number(remoteGroup?.fileCount || 0)) : 0,
+              failedCount: 0,
+              remoteFileCount: Number(remoteGroup?.fileCount || 0),
+              remoteCsvCount: Number(remoteGroup?.csvCount || 0),
+              remoteTableCount: Number(remoteGroup?.tableCount || 0),
+              remoteExpectedTableCount: Number(remoteGroup?.expectedTableCount || 0),
+              remotePendingTableCount: (remoteGroup?.pendingTableHints || []).length,
+            },
+          }))
+          return
+        }
+      } catch {
+        // Fall back to per-upload status checks when project metadata is unavailable.
+      }
+      const statuses = await Promise.all(sampledFiles.map(async file => {
+        if (fileHasMaterializedEvidence(file)) {
+          return { file, status: { status: 'materialized', processed: { exists: true }, structured: file.glueTableHint || file.structuredKey ? { exists: true } : null } }
+        }
+        try {
+          return { file, status: await getUploadStatus(fileKey(file)) }
+        } catch (err) {
+          const message = err.message || 'status check failed'
+          if (/outside caller upload prefix|outside allowed processed prefixes|403/i.test(message)) {
+            return { file, status: { status: 'saved_group_file', processed: { exists: true }, inferred: true } }
+          }
+          return { file, error: message }
+        }
+      }))
+      const failed = statuses.filter(item => item.error)
+      const ready = statuses.filter(({ file, status }) => {
+        if (!status) return false
+        if (status.status === 'materialized') return true
+        if (status.status === 'saved_group_file') return true
+        if (/\.csv$/i.test(file.name || '')) {
+          return Boolean(status.structured?.exists || status.status === 'catalog_done')
+        }
+        return Boolean(status.processed?.exists || status.raw?.exists)
+      })
+      const uncertain = statuses.filter(({ file, status }) => (
+        status?.status === 'catalog_failed'
+        || (/\.csv$/i.test(file.name || '') && status && !status.structured?.exists && status.status !== 'catalog_done' && status.status !== 'materialized' && status.status !== 'saved_group_file')
+      ))
+      const processing = statuses.length - ready.length - failed.length
+      const hasUnsampledFiles = groupFiles.length > sampledFiles.length
+      const state = failed.length ? 'red' : uncertain.length || processing ? 'yellow' : 'green'
+      const message = failed.length
+        ? `${failed.length} sampled file${failed.length === 1 ? '' : 's'} need attention.`
+        : uncertain.length
+          ? `${ready.length}/${statuses.length} sampled files ready; ${uncertain.length} need indexing confirmation.`
+        : processing
+          ? `${ready.length}/${statuses.length} sampled files ready; ${processing} still processing.`
+        : hasUnsampledFiles
+            ? `${ready.length}/${statuses.length} sampled files ready; ${groupFiles.length - sampledFiles.length} additional files are published but not sampled.`
+            : `${ready.length}/${statuses.length} files ready.`
+      setGroupReadiness(prev => ({
+        ...prev,
+        [group.id]: {
+          state,
+          checkedAt: new Date().toISOString(),
+          message,
+          totalFiles: groupFiles.length,
+          sampledFiles: statuses.length,
+          totalCsvCount,
+          sampledCsvCount,
+          readyCount: ready.length,
+          processingCount: processing,
+          failedCount: failed.length,
+          uncertainCount: uncertain.length,
+        },
+      }))
+    } catch (err) {
+      setGroupReadiness(prev => ({
+        ...prev,
+        [group.id]: {
+          state: 'red',
+          checkedAt: new Date().toISOString(),
+          message: err.message || 'Unable to check group status.',
+          totalFiles: groupFiles.length,
+        },
+      }))
+    }
   }
 
   async function analyzeProjectDocuments(group) {
@@ -1629,7 +2135,7 @@ export default function DataGrouping() {
           <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Processed data intelligence</p>
           <h1 className="mt-1 text-lg font-bold tracking-tight text-slate-900">Data Grouping</h1>
           <p className="mt-1 max-w-3xl text-xs text-slate-500">
-            Start from files uploaded through Data Pipeline and cleared into /processed. Saving a group publishes just that group to S3 and routes its CSVs through Glue/Athena.
+            Inspect existing data groups, review their files, query them with Structured Data Specialist, or release files back out of a group.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -1675,10 +2181,10 @@ export default function DataGrouping() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
-        <Stat label="Processed files" value={files.length} />
-        <Stat label="Addable files" value={addableFileCount} />
         <Stat label="Saved groups" value={queryableGroups.length} />
         <Stat label="Grouped files" value={groupedFileCount} />
+        <Stat label="Selected CSV" value={selectedManageCsvCount} />
+        <Stat label="Selected docs" value={selectedManageDocCount} />
       </div>
 
       {USE_MOCK && (
@@ -1755,20 +2261,12 @@ export default function DataGrouping() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          editGroup(group)
-                          setShowSavedGroups(false)
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                      >
-                        <Edit3 size={13} /> Edit
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => deleteGroup(group.id)}
+                        disabled={publishingGroupIds.includes(group.id)}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
                       >
-                        <Trash2 size={13} /> Delete
+                        {publishingGroupIds.includes(group.id) ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                        Delete
                       </button>
                     </div>
                   </div>
@@ -1782,16 +2280,25 @@ export default function DataGrouping() {
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.7fr)]">
           <div>
-            <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400" htmlFor="project-name">Project</label>
+            <div className="flex items-center justify-between gap-3">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400" htmlFor="project-name">Project</label>
+              <button
+                type="button"
+                onClick={startNewProject}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <Plus size={13} /> New project
+              </button>
+            </div>
             <input
-              id="project-name"
-              value={projectName}
-              onChange={(event) => {
-                setMetadata(null)
-                setProjectName(event.target.value)
-              }}
-              className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-            />
+                id="project-name"
+                value={projectName}
+                onChange={(event) => {
+                  setMetadata(null)
+                  setProjectName(event.target.value)
+                }}
+                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              />
             <p className="mt-2 text-xs text-slate-500">
               Project ID: <span className="font-mono text-slate-700">{projectId}</span>
             </p>
@@ -1803,10 +2310,7 @@ export default function DataGrouping() {
               {hydratedGroups.length ? hydratedGroups.map(group => (
                 <p key={group.id}>{processedPrefix}{projectId}/{group.name}/</p>
               )) : (
-                <>
-                  <p>{processedPrefix}{projectId}/AR_Invoices/</p>
-                  <p>{processedPrefix}{projectId}/AP_Invoices/</p>
-                </>
+                <p className="font-sans text-slate-500">No groups yet</p>
               )}
               <p>{processedPrefix}{projectId}/metadata/project.json</p>
             </div>
@@ -1814,6 +2318,181 @@ export default function DataGrouping() {
         </div>
       </section>
 
+      <section id="group-file-manager" className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">Select an existing group</h2>
+            <p className="mt-1 text-xs text-slate-500">Examine the files currently owned by a group, then release selected files if they need to be regrouped.</p>
+          </div>
+          {selectedManageGroup && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => checkGroupReadiness(selectedManageGroup)}
+                disabled={selectedGroupReadiness?.state === 'checking'}
+                title={selectedGroupStatusTone.detail}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold disabled:cursor-wait disabled:opacity-80 ${selectedGroupStatusTone.className}`}
+              >
+                {selectedGroupReadiness?.state === 'checking' ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <span className={`h-2.5 w-2.5 rounded-full ${selectedGroupStatusTone.dotClassName}`} />
+                )}
+                Status
+              </button>
+              <button
+                type="button"
+                onClick={() => querySavedGroup(selectedManageGroup)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+              >
+                <MessageSquare size={13} /> Query group
+              </button>
+              <button
+                type="button"
+                onClick={() => publishGroupToS3(selectedManageGroup)}
+                disabled={publishingGroupIds.includes(selectedManageGroup.id)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                {publishingGroupIds.includes(selectedManageGroup.id) ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+                Republish group
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteGroup(selectedManageGroup.id)}
+                disabled={publishingGroupIds.includes(selectedManageGroup.id)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+              >
+                {publishingGroupIds.includes(selectedManageGroup.id) ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                Delete group
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(240px,360px)_minmax(0,1fr)]">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400" htmlFor="manage-group-select">Group</label>
+            <select
+              id="manage-group-select"
+              value={selectedManageGroup?.id || ''}
+              onChange={(event) => {
+                setSelectedManageGroupId(event.target.value)
+                setSelectedManageFileKeys([])
+                setGroupFileSearch('')
+              }}
+              disabled={!queryableGroups.length}
+              className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:text-slate-400"
+            >
+              {queryableGroups.length ? queryableGroups.map(group => (
+                <option key={group.id} value={group.id}>{group.name} ({(group.files || []).filter(file => !file.summary).length} files)</option>
+              )) : (
+                <option value="">No saved groups</option>
+              )}
+            </select>
+            {selectedManageGroup ? (
+              <div className="mt-3 space-y-2 text-xs text-slate-600">
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Selected group</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-slate-900" title={selectedManageGroup.name}>{selectedManageGroup.name}</p>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    {(selectedManageGroup.files || []).filter(file => !file.summary).length} files · {selectedManageCsvCount} CSV · {selectedManageDocCount} docs
+                  </p>
+                  <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
+                    <span className={`h-2 w-2 rounded-full ${selectedGroupStatusTone.dotClassName}`} />
+                    {selectedGroupStatusTone.detail}
+                  </p>
+                </div>
+                <p className="leading-5">
+                  Releasing a file removes it from this group’s ownership list and republishes the group metadata. The source file remains in /processed.
+                </p>
+              </div>
+            ) : (
+              <p className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-500">
+                Create or select groups from Data Pipeline, then return here to examine them.
+              </p>
+            )}
+          </div>
+
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label className="relative block min-w-[220px] flex-1">
+                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={groupFileSearch}
+                  onChange={(event) => setGroupFileSearch(event.target.value)}
+                  placeholder="Search files in selected group"
+                  disabled={!selectedManageGroup}
+                  className="w-full rounded-lg border border-slate-200 py-2 pl-9 pr-3 text-xs font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                />
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={selectVisibleGroupFiles}
+                  disabled={!visibleGroupFileKeys.length || visibleSelectedGroupFileCount === visibleGroupFileKeys.length}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                >
+                  <CheckCircle size={13} /> Select visible
+                </button>
+                <button
+                  type="button"
+                  onClick={clearSelectedGroupFiles}
+                  disabled={!selectedManageFileKeys.length}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                >
+                  <XCircle size={13} /> Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={releaseSelectedGroupFiles}
+                  disabled={!selectedManageFileKeys.length || publishingGroupIds.includes(selectedManageGroup?.id)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
+                >
+                  {publishingGroupIds.includes(selectedManageGroup?.id) ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  Release selected
+                </button>
+              </div>
+            </div>
+            <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+              {visibleGroupFiles.length} shown · {visibleSelectedGroupFileCount} selected
+            </div>
+            <div className="mt-3 max-h-[520px] space-y-1.5 overflow-auto pr-1">
+              {selectedManageGroup ? (
+                visibleGroupFiles.length ? visibleGroupFiles.map(file => {
+                  const key = fileKey(file)
+                  return (
+                    <label key={key} className="grid cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:border-indigo-200 hover:bg-indigo-50" style={{ gridTemplateColumns: 'auto minmax(0,1fr) auto' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedManageFileKeySet.has(key)}
+                        onChange={() => toggleManageFile(file)}
+                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        aria-label={`Select ${file.name}`}
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-semibold text-slate-800" title={file.name}>{file.name}</p>
+                        <p className="truncate font-mono text-[10px] text-slate-400" title={file.key}>{file.key}</p>
+                      </div>
+                      <div className="hidden shrink-0 items-center gap-2 text-[10px] text-slate-500 md:flex">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 font-semibold uppercase text-slate-500">{fileKind(file)}</span>
+                        <span>{formatBytes(file.size)}</span>
+                        <span>{formatShortDate(file.last_modified)}</span>
+                      </div>
+                    </label>
+                  )
+                }) : (
+                  <p className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-500">No files match the selected group/search.</p>
+                )
+              ) : (
+                <p className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-500">No saved group selected.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {false && (
+        <>
       <section className="grid gap-4">
         <div id="create-group" className="scroll-mt-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="grid items-end gap-3 lg:grid-cols-[minmax(160px,0.7fr)_minmax(240px,1fr)_220px_auto]">
@@ -2064,6 +2743,8 @@ export default function DataGrouping() {
           )}
         </div>
       </section>
+        </>
+      )}
     </div>
   )
 }

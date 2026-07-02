@@ -44,6 +44,9 @@ Env vars:
   PROCESSED_BUCKET           S3 bucket for processed files (read-only list).
   GLUE_CRAWLER_NAME          Optional structured crawler to start after project
                              files are materialized.
+  KB_ID                      Optional Bedrock Knowledge Base ID to sync after
+                             group materialization writes project copies.
+  KB_DATA_SOURCE_ID          Optional Bedrock KB data source ID.
   S3_KMS_KEY_ARN             Optional. CMK ARN that encrypts both buckets;
                              when set, the presigned PUT includes the SSE-KMS
                              headers so the browser PUT succeeds.
@@ -105,6 +108,12 @@ GLUE_CRAWLER_NAME = (
     os.environ.get("GLUE_CRAWLER_NAME", "").strip()
     or f"{os.environ.get('ENVIRONMENT', 'dev')}-{os.environ.get('PROJECT_NAME', 'st21arbiter-poc')}-structured-crawler"
 )
+GLUE_DATABASE = (
+    os.environ.get("GLUE_DATABASE", "").strip()
+    or re.sub(r"[^A-Za-z0-9_]+", "_", f"{os.environ.get('ENVIRONMENT', 'dev')}_{os.environ.get('PROJECT_NAME', 'st21arbiter-poc')}_structured")
+)
+KB_ID = os.environ.get("KB_ID", "").strip()
+KB_DATA_SOURCE_ID = os.environ.get("KB_DATA_SOURCE_ID", "").strip()
 REPORT_URL_EXPIRES_SECONDS = int(os.environ.get("REPORT_URL_EXPIRES_SECONDS", "86400"))
 ORG_NAME = os.environ.get("ORG_NAME", "Meridian Insurance Group")
 S3_KMS_KEY_ARN = os.environ.get("S3_KMS_KEY_ARN", "").strip()
@@ -131,6 +140,7 @@ _emit_cors_headers = True
 agentcore = boto3.client("bedrock-agentcore", region_name=REGION)
 # Control-plane client for runtime lifecycle/status (list_agent_runtimes).
 agentcore_control = boto3.client("bedrock-agentcore-control", region_name=REGION)
+bedrock_agent = boto3.client("bedrock-agent", region_name=REGION)
 lambda_client = boto3.client("lambda", region_name=REGION)
 ddb = boto3.resource("dynamodb", region_name=REGION)
 sessions_table = ddb.Table(SESSIONS_TABLE) if SESSIONS_TABLE else None
@@ -812,6 +822,319 @@ def _csv_structured_table_hints(project_id: str, group_name: str, files: list[di
     }
 
 
+def _normalize_profile_column(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", str(value or "").strip().lower()).strip("_")
+
+
+def _sales_group_starter_prompts(group_name: str) -> list[str]:
+    return [
+        f"For this {group_name} group, rank stores from highest to lowest total sales. Include branch city, branch state, total revenue, units sold, transaction count, top category, and a short explanation.",
+        f"For this {group_name} group, rank product categories by revenue and units sold. Include part category, total revenue, units sold, average unit price, and the leading branch if available.",
+        f"For this {group_name} group, identify the top products by revenue. Include Part_SKU, Part_Name, Part_Category, total revenue, units sold, average unit price, and the stores where each product is strongest.",
+        f"For this {group_name} group, compare sales channels by revenue, units sold, transaction count, and average line revenue. Include a short explanation of channel mix.",
+        f"For this {group_name} group, analyze gross margin using Unit_Cost and Unit_Price. Rank stores or products by estimated margin dollars and margin percent.",
+        f"For this {group_name} group, find underperforming stores by total revenue and units sold. Include branch city, branch state, total revenue, units sold, transaction count, and likely next review question.",
+    ]
+
+
+def _generic_group_starter_prompts(group_name: str) -> list[str]:
+    return [
+        f"List the available files and tables in this {group_name} group and briefly explain what each one appears to contain.",
+        f"Summarize this {group_name} group. Include row counts if available, important columns, and the most useful first questions to ask.",
+        f"Show the first records from the main table in this {group_name} group and explain the likely purpose of the data.",
+    ]
+
+
+def _infer_data_group_profile(group_name: str, files: list[dict[str, Any]], table_hints: list[str]) -> dict[str, Any]:
+    columns: set[str] = set()
+    for file in files:
+        key = str(file.get("key") or file.get("sourceKey") or "")
+        name = str(file.get("name") or key)
+        if not name.lower().endswith(".csv") or not key:
+            continue
+        columns.update(_normalize_profile_column(column) for column in _csv_header_signature(PROCESSED_BUCKET, key))
+    columns.discard("")
+    sales_columns = {
+        "sale_id", "sales_date", "branch_city", "branch_state", "part_sku",
+        "part_name", "part_category", "quantity_sold", "unit_cost",
+        "unit_price", "line_revenue", "sales_channel", "customer_type",
+    }
+    alternate_sales_columns = {
+        "sale_id", "sale_date", "branch_city", "state", "product_sku",
+        "product_name", "category", "quantity", "unit_cost", "unit_price",
+        "gross_sales", "net_sales", "estimated_margin", "sales_channel",
+        "customer_type",
+    }
+    normalized_name = _normalize_profile_column(group_name).replace("_", " ")
+    table_text = " ".join(table_hints).lower()
+    if (
+        len(columns & sales_columns) >= 8
+        or len(columns & alternate_sales_columns) >= 8
+        or ("sales" in normalized_name and ("line_revenue" in columns or "net_sales" in columns or "gross_sales" in columns))
+        or any(term in table_text for term in ("line_revenue", "net_sales", "gross_sales", "electronics"))
+    ):
+        return {
+            "kind": "sales",
+            "confidence": "high" if len(columns & sales_columns) >= 8 or len(columns & alternate_sales_columns) >= 8 else "medium",
+            "columns": sorted(columns),
+            "starterPrompts": _sales_group_starter_prompts(group_name),
+        }
+    return {
+        "kind": "generic",
+        "confidence": "low",
+        "columns": sorted(columns),
+        "starterPrompts": _generic_group_starter_prompts(group_name),
+    }
+
+
+_TEXT_FACT_EXTENSIONS = (".txt", ".md")
+_US_STATE_CODES = {
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "IA",
+    "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN", "MO",
+    "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH", "OK",
+    "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI",
+    "WV", "WY", "DC",
+}
+
+
+def _normalize_fact_key(value: str) -> str:
+    key = re.sub(r"[^a-z0-9]+", "_", str(value or "").strip().lower()).strip("_")
+    aliases = {
+        "manager": "manager_name",
+        "branch_manager": "manager_name",
+        "manager_name": "manager_name",
+        "city": "branch_city",
+        "state": "branch_state",
+        "branch": "branch_name",
+        "store": "branch_name",
+        "store_manager": "manager_name",
+        "location": "branch_location",
+        "department": "department",
+        "owner": "owner",
+        "contact": "contact",
+        "vendor": "vendor_name",
+        "provider": "provider_name",
+    }
+    return aliases.get(key, key)
+
+
+def _fact_lookup_token(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", str(value or "").strip().lower()).strip("_")
+
+
+def _read_text_fact_sample(bucket: str, key: str, max_bytes: int = 65535) -> str:
+    try:
+        obj = s3.get_object(Bucket=bucket, Key=key, Range=f"bytes=0-{max_bytes}")
+        raw = obj.get("Body").read()
+    except ClientError:
+        logger.exception("text fact sample read failed: %s", key)
+        return ""
+    return raw.decode("utf-8-sig", errors="replace")
+
+
+def _extract_key_value_facts(text: str) -> dict[str, str]:
+    facts: dict[str, str] = {}
+    for raw_line in (text or "").splitlines()[:250]:
+        line = raw_line.strip(" \t-\u2022")
+        if not line or len(line) > 320:
+            continue
+        match = re.match(r"^([A-Za-z][A-Za-z0-9 /&()._-]{1,60})\s*(?::|=| - | \u2013 | \u2014 )\s*(.{1,220})$", line)
+        if not match:
+            continue
+        key = _normalize_fact_key(match.group(1))
+        value = re.sub(r"\s+", " ", match.group(2)).strip(" .;\t")
+        if key and value and key not in facts:
+            facts[key] = value[:220]
+        if len(facts) >= 40:
+            break
+    return facts
+
+
+def _infer_location_from_filename(filename: str) -> dict[str, str]:
+    stem = _dataset_name_from_file(filename)
+    stem = re.sub(r"\.[^.]+$", "", stem)
+    parts = [part for part in re.split(r"[^A-Za-z0-9]+", stem) if part]
+    facts: dict[str, str] = {}
+    for index, part in enumerate(parts):
+        state = part.upper()
+        if state not in _US_STATE_CODES:
+            continue
+        prior = []
+        cursor = index - 1
+        while cursor >= 0 and parts[cursor].lower() not in {
+            "branch", "store", "profile", "manager", "sales", "region", "report", "record", "records",
+        }:
+            prior.insert(0, parts[cursor])
+            cursor -= 1
+            if len(prior) >= 3:
+                break
+        if prior:
+            facts.setdefault("branch_city", " ".join(prior).replace("_", " ").title())
+            facts.setdefault("branch_state", state)
+            break
+    return facts
+
+
+def _infer_text_fact_type(filename: str, text: str, facts: dict[str, str]) -> str:
+    sample = f"{filename}\n{text[:2000]}".lower()
+    if "branch" in sample or "store" in sample or "manager_name" in facts:
+        return "branch_profile"
+    if "vendor" in sample:
+        return "vendor_profile"
+    if "provider" in sample:
+        return "provider_profile"
+    if "claim" in sample or "policy" in sample:
+        return "case_note"
+    if "department" in facts or "governance" in sample or "compliance" in sample:
+        return "department_note"
+    return "generic_text"
+
+
+def _structured_fact_lookup_keys(fact_type: str, facts: dict[str, str], filename: str) -> list[str]:
+    keys: list[str] = []
+    city = _fact_lookup_token(facts.get("branch_city") or facts.get("city") or "")
+    state = _fact_lookup_token(facts.get("branch_state") or facts.get("state") or "")
+    branch_name = _fact_lookup_token(facts.get("branch_name") or facts.get("store_name") or "")
+    if fact_type == "branch_profile":
+        if city and state:
+            keys.append(f"branch:{city}:{state}")
+        if branch_name:
+            keys.append(f"branch:{branch_name}")
+    for key in ("vendor_name", "provider_name", "department", "owner", "contact"):
+        token = _fact_lookup_token(facts.get(key) or "")
+        if token:
+            keys.append(f"{key}:{token}")
+    file_token = _fact_lookup_token(_dataset_name_from_file(filename))
+    if file_token:
+        keys.append(f"file:{file_token}")
+    return list(dict.fromkeys(keys))[:12]
+
+
+def _extract_group_structured_facts(group_name: str, materialized_files: list[dict[str, Any]]) -> dict[str, Any]:
+    sources: list[dict[str, Any]] = []
+    lookup: dict[str, dict[str, str]] = {}
+    type_counts: dict[str, int] = {}
+    text_count = 0
+
+    for file_info in materialized_files[:500]:
+        filename = str(file_info.get("name") or "")
+        if not filename.lower().endswith(_TEXT_FACT_EXTENSIONS):
+            continue
+        text_count += 1
+        project_key = str(file_info.get("projectKey") or file_info.get("sourceKey") or "")
+        if not project_key:
+            continue
+        text = _read_text_fact_sample(PROCESSED_BUCKET, project_key)
+        if not text.strip():
+            continue
+        facts = _extract_key_value_facts(text)
+        for key, value in _infer_location_from_filename(filename).items():
+            facts.setdefault(key, value)
+        fact_type = _infer_text_fact_type(filename, text, facts)
+        lookup_keys = _structured_fact_lookup_keys(fact_type, facts, filename)
+        preview = re.sub(r"\s+", " ", text).strip()[:300]
+        source = {
+            "name": filename,
+            "sourceKey": file_info.get("sourceKey"),
+            "projectKey": project_key,
+            "type": fact_type,
+            "facts": facts,
+            "lookupKeys": lookup_keys,
+            "textPreview": preview,
+        }
+        sources.append(source)
+        type_counts[fact_type] = type_counts.get(fact_type, 0) + 1
+        for lookup_key in lookup_keys:
+            if len(lookup) >= 1000:
+                break
+            lookup.setdefault(lookup_key, {
+                **{k: v for k, v in facts.items() if k in {
+                    "branch_city", "branch_state", "branch_name", "manager_name",
+                    "department", "owner", "contact", "vendor_name", "provider_name",
+                }},
+                "sourceFile": filename,
+                "sourceKey": str(file_info.get("sourceKey") or ""),
+            })
+
+    return {
+        "version": "0.1",
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "groupName": group_name,
+        "counts": {
+            "textFiles": text_count,
+            "factSources": len(sources),
+            "lookupKeys": len(lookup),
+            "types": type_counts,
+        },
+        "sources": sources[:300],
+        "lookup": lookup,
+    }
+
+
+def _structured_fact_summary(structured_facts: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(structured_facts, dict):
+        return {}
+    counts = structured_facts.get("counts") if isinstance(structured_facts.get("counts"), dict) else {}
+    return {
+        "version": structured_facts.get("version") or "0.1",
+        "counts": counts,
+        "sampleSources": [
+            {
+                "name": source.get("name"),
+                "type": source.get("type"),
+                "lookupKeys": source.get("lookupKeys") or [],
+                "facts": {
+                    key: value
+                    for key, value in (source.get("facts") or {}).items()
+                    if key in {"branch_city", "branch_state", "branch_name", "manager_name", "department", "vendor_name", "provider_name"}
+                },
+            }
+            for source in (structured_facts.get("sources") or [])[:10]
+            if isinstance(source, dict)
+        ],
+    }
+
+
+def _start_kb_sync(reason: str) -> dict[str, Any]:
+    if not (KB_ID and KB_DATA_SOURCE_ID):
+        return {
+            "started": False,
+            "message": "not_configured",
+        }
+    try:
+        resp = bedrock_agent.start_ingestion_job(
+            knowledgeBaseId=KB_ID,
+            dataSourceId=KB_DATA_SOURCE_ID,
+            description=(reason or "Data Grouping materialization")[:200],
+        )
+        job = resp.get("ingestionJob") or {}
+        return {
+            "started": True,
+            "message": "started",
+            "knowledgeBaseId": KB_ID,
+            "dataSourceId": KB_DATA_SOURCE_ID,
+            "ingestionJobId": job.get("ingestionJobId"),
+            "status": job.get("status"),
+        }
+    except ClientError as e:
+        code = e.response.get("Error", {}).get("Code", "")
+        if code in {"ConflictException", "ThrottlingException", "TooManyRequestsException"}:
+            logger.info("KB sync already busy after %s: %s", reason, code)
+            return {
+                "started": True,
+                "message": "already_running",
+                "knowledgeBaseId": KB_ID,
+                "dataSourceId": KB_DATA_SOURCE_ID,
+            }
+        logger.exception("KB sync start failed after %s", reason)
+        return {
+            "started": False,
+            "message": f"{type(e).__name__}: {e}",
+            "knowledgeBaseId": KB_ID,
+            "dataSourceId": KB_DATA_SOURCE_ID,
+        }
+
+
 def _delete_s3_prefix(bucket: str, prefix: str) -> list[str]:
     deleted: list[str] = []
     token = None
@@ -920,6 +1243,82 @@ def _collect_data_grouping_table_hints(group: dict[str, Any]) -> set[str]:
     return hints
 
 
+def _data_grouping_crawler_status() -> dict[str, Any] | None:
+    if not GLUE_CRAWLER_NAME:
+        return None
+    try:
+        crawler = glue.get_crawler(Name=GLUE_CRAWLER_NAME).get("Crawler", {})
+        last_crawl = crawler.get("LastCrawl") or {}
+        return {
+            "name": GLUE_CRAWLER_NAME,
+            "state": crawler.get("State") or "UNKNOWN",
+            "lastCrawlStatus": last_crawl.get("Status") or "",
+            "lastCrawlError": last_crawl.get("ErrorMessage") or "",
+            "lastCrawlStartedOn": last_crawl.get("StartedOn"),
+            "lastCrawlCompletedOn": last_crawl.get("CompletedOn"),
+        }
+    except ClientError:
+        logger.exception("crawler status read failed")
+        return {
+            "name": GLUE_CRAWLER_NAME,
+            "state": "UNKNOWN",
+            "lastCrawlStatus": "",
+            "lastCrawlError": "Unable to read crawler status",
+        }
+
+
+def _resolved_glue_table_hints(table_hints: set[str]) -> set[str]:
+    resolved: set[str] = set()
+    if not GLUE_DATABASE:
+        return resolved
+    for hint in table_hints:
+        try:
+            glue.get_table(DatabaseName=GLUE_DATABASE, Name=hint)
+            resolved.add(hint)
+        except glue.exceptions.EntityNotFoundException:
+            continue
+        except ClientError:
+            logger.exception("Glue table hint lookup failed: %s", hint)
+            continue
+    return resolved
+
+
+def _glue_columns_for_table_hint(table_name: str) -> set[str]:
+    if not table_name or not GLUE_DATABASE:
+        return set()
+    try:
+        table = glue.get_table(DatabaseName=GLUE_DATABASE, Name=table_name).get("Table", {})
+        columns = table.get("StorageDescriptor", {}).get("Columns", [])
+        return {_normalize_profile_column(column.get("Name") or "") for column in columns}
+    except ClientError:
+        logger.exception("Glue column lookup failed: %s", table_name)
+        return set()
+
+
+def _sales_profile_columns_ready(columns: set[str]) -> bool:
+    aliases = {
+        "branch_city": ("branch_city", "city", "store_city"),
+        "branch_state": ("branch_state", "state", "branch_st", "store_state"),
+        "part_sku": ("part_sku", "product_sku", "sku", "item_sku"),
+        "part_name": ("part_name", "product_name", "item_name", "name"),
+        "part_category": ("part_category", "category", "product_category", "item_category"),
+        "quantity_sold": ("quantity_sold", "quantity", "qty", "units_sold", "units"),
+        "line_revenue": ("line_revenue", "net_sales", "gross_sales", "revenue", "sales_amount", "amount"),
+    }
+    return all(any(option in columns for option in options) for options in aliases.values())
+
+
+def _ready_glue_table_hints_for_profile(table_hints: set[str], group_profile: dict[str, Any]) -> set[str]:
+    resolved = _resolved_glue_table_hints(table_hints)
+    if group_profile.get("kind") != "sales":
+        return resolved
+    return {
+        table
+        for table in resolved
+        if _sales_profile_columns_ready(_glue_columns_for_table_hint(table))
+    }
+
+
 def _handle_data_grouping_projects(event):
     """Return compact Data Grouping project/group options for chat scoping."""
     if not PROCESSED_BUCKET:
@@ -929,6 +1328,7 @@ def _handle_data_grouping_projects(event):
         return _err(401, "Could not resolve caller identity")
 
     groups: list[dict[str, Any]] = []
+    crawler_status = _data_grouping_crawler_status()
     token = None
     try:
         while True:
@@ -953,6 +1353,9 @@ def _handle_data_grouping_projects(event):
                         continue
                     files = group.get("files") or []
                     table_hints = _collect_data_grouping_table_hints(group)
+                    resolved_table_hints = _resolved_glue_table_hints(table_hints)
+                    group_profile = group.get("groupProfile") or _infer_data_group_profile(group_name, files, sorted(table_hints))
+                    ready_table_hints = _ready_glue_table_hints_for_profile(table_hints, group_profile)
                     groups.append({
                         "id": f"{project_id}::{group_name}",
                         "projectId": project_id,
@@ -962,8 +1365,15 @@ def _handle_data_grouping_projects(event):
                         "value": group_name,
                         "fileCount": len(files),
                         "csvCount": sum(1 for item in files if item.get("type") == "csv"),
-                        "tableCount": len(table_hints),
-                        "tableHints": sorted(table_hints)[:40],
+                        "expectedTableCount": len(table_hints),
+                        "tableCount": len(resolved_table_hints),
+                        "readyTableCount": len(ready_table_hints),
+                        "tableHints": sorted(resolved_table_hints)[:40],
+                        "readyTableHints": sorted(ready_table_hints)[:40],
+                        "pendingTableHints": sorted(table_hints - resolved_table_hints)[:40],
+                        "crawler": crawler_status,
+                        "groupProfile": group_profile,
+                        "structuredFacts": _structured_fact_summary(group.get("structuredFacts")),
                         "files": [
                             {
                                 "name": item.get("name") or item.get("filename") or item.get("key"),
@@ -985,7 +1395,7 @@ def _handle_data_grouping_projects(event):
         return _err(502, f"project list: {type(e).__name__}: {e}")
 
     groups.sort(key=lambda item: (item.get("updatedAt") or "", item.get("label") or ""), reverse=True)
-    return _ok({"groups": groups[:250], "truncated": len(groups) > 250})
+    return _ok({"groups": groups[:250], "truncated": len(groups) > 250, "crawler": crawler_status})
 
 
 def _handle_data_grouping_materialize(event):
@@ -1036,6 +1446,7 @@ def _handle_data_grouping_materialize(event):
     moved_sources: set[str] = set()
     materialized_groups: list[dict[str, Any]] = []
     move_sources = bool(body.get("move", True))
+    sync_knowledge_base = body.get("syncKnowledgeBase", True) is not False
     deleted: list[str] = []
 
     metadata_key = f"projects/{project_id}/metadata/project.json"
@@ -1168,6 +1579,20 @@ def _handle_data_grouping_materialize(event):
             if move_sources and source_key.startswith(caller_prefix):
                 moved_sources.add(source_key)
 
+        structured_facts = _extract_group_structured_facts(group_name, materialized_files)
+        group_profile = group.get("groupProfile") or _infer_data_group_profile(group_name, files, structured_table_hints)
+        fact_counts = structured_facts.get("counts") or {}
+        if fact_counts.get("factSources"):
+            group_profile = {
+                **group_profile,
+                "factIndex": {
+                    "available": True,
+                    "sourceCount": fact_counts.get("factSources", 0),
+                    "lookupKeyCount": fact_counts.get("lookupKeys", 0),
+                    "types": fact_counts.get("types") or {},
+                },
+            }
+
         materialized_groups.append({
             "id": group.get("id") or group_name,
             "name": group_name,
@@ -1175,6 +1600,8 @@ def _handle_data_grouping_materialize(event):
             "targetPrefix": f"projects/{project_id}/{group_name}/",
             "structuredTableHint": group_table_name if len(structured_table_hints) <= 1 else None,
             "structuredTableHints": structured_table_hints,
+            "groupProfile": group_profile,
+            "structuredFacts": structured_facts,
             "files": materialized_files,
         })
 
@@ -1231,6 +1658,10 @@ def _handle_data_grouping_materialize(event):
             logger.exception("Glue crawler start failed")
             crawler_message = f"{type(e).__name__}: {e}"
 
+    kb_sync = {"started": False, "message": "skipped"}
+    if sync_knowledge_base and (copied or deleted):
+        kb_sync = _start_kb_sync(f"Data Grouping materialized {project_id}")
+
     return _ok({
         "bucket": PROCESSED_BUCKET,
         "projectPrefix": f"projects/{project_id}/",
@@ -1240,6 +1671,7 @@ def _handle_data_grouping_materialize(event):
         "deletedSources": deleted,
         "crawlerStarted": crawler_started,
         "crawlerMessage": crawler_message,
+        "kbSync": kb_sync,
         "metadata": metadata,
     })
 
