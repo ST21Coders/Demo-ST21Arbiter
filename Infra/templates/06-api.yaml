@@ -38,6 +38,14 @@ Parameters:
       CORS allow-list for the /chat Lambda Function URL. Set to the Vite dev origin
       plus the CloudFront SPA URL (e.g. "http://localhost:5173,https://dxxxx.cloudfront.net").
       Function URL CORS is not the same as API Gateway CORS — it has its own allow-list.
+  KbId:
+    Type: String
+    Default: ""
+    Description: Bedrock Knowledge Base ID used for Data Grouping sync after group materialization.
+  KbDataSourceId:
+    Type: String
+    Default: ""
+    Description: Bedrock Knowledge Base data source ID used for Data Grouping sync.
 
 Globals:
   Function:
@@ -375,6 +383,10 @@ Resources:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-TokenUsageTableName"
           GLUE_CRAWLER_NAME:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-StructuredCrawlerName"
+          GLUE_DATABASE:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-StructuredGlueDatabaseName"
+          KB_ID: !Ref KbId
+          KB_DATA_SOURCE_ID: !Ref KbDataSourceId
           # Comma-separated MCP endpoint URLs for /mcp-health pings. Empty by
           # default — UI shows all MCP servers as "unknown" until configured.
           MCP_ENDPOINTS: ""

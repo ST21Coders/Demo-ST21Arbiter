@@ -40,6 +40,42 @@ async function apiFetch(path, options = {}) {
   return payload || {}
 }
 
+function joinUrl(base, path) {
+  return `${String(base || '').replace(/\/+$/, '')}/${String(path || '').replace(/^\/+/, '')}`
+}
+
+async function functionUrlFetch(path, options = {}) {
+  const base = CHAT_URL || API_URL
+  const doFetch = (extraAuth) => fetch(joinUrl(base, path), {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(extraAuth || authHeaders()),
+      ...(options.headers || {}),
+    },
+  })
+  let res = await doFetch()
+  if (res.status === 401) {
+    const newToken = await refresh()
+    if (!newToken) { signIn(); throw new Error('Auth expired') }
+    res = await doFetch({ Authorization: `Bearer ${newToken}` })
+  }
+  const responseText = await res.text()
+  let payload = null
+  if (responseText) {
+    try {
+      payload = JSON.parse(responseText)
+    } catch {
+      payload = null
+    }
+  }
+  if (!res.ok) {
+    const detail = payload?.error || payload?.message || responseText || res.statusText
+    throw new Error(`${res.status} ${detail}`)
+  }
+  return payload || {}
+}
+
 // Simulated scan delay for mock mode
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
@@ -725,8 +761,24 @@ export async function uploadToPresignedUrl(url, headers, body) {
     await sleep(400)
     return { ok: true, status: 200 }
   }
-  const res = await fetch(url, { method: 'PUT', headers: headers || {}, body })
-  return { ok: res.ok, status: res.status }
+  const s3Headers = new Headers()
+  Object.entries(headers || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null) return
+    if (key.toLowerCase() === 'authorization') return
+    s3Headers.set(key, String(value))
+  })
+  s3Headers.delete('authorization')
+  s3Headers.delete('Authorization')
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: s3Headers,
+    body,
+    credentials: 'omit',
+    cache: 'no-store',
+    referrerPolicy: 'no-referrer',
+  })
+  const text = await res.text().catch(() => '')
+  return { ok: res.ok, status: res.status, detail: text }
 }
 
 export async function listScanRuns(limit = 20) {
@@ -784,7 +836,7 @@ export async function getUploadStatus(key) {
   return apiFetch(`/uploads/status?${qs}`)
 }
 
-export async function materializeDataGroupingProject({ projectName, projectId, groups = [], deleteGroups = [], move = true }) {
+export async function materializeDataGroupingProject({ projectName, projectId, groups = [], deleteGroups = [], move = true, syncKnowledgeBase = true }) {
   if (USE_MOCK) {
     await sleep(400)
     return {
@@ -799,11 +851,12 @@ export async function materializeDataGroupingProject({ projectName, projectId, g
       deletedSources: [],
       crawlerStarted: false,
       crawlerMessage: 'mock',
+      kbSync: { started: syncKnowledgeBase, message: syncKnowledgeBase ? 'mock_started' : 'skipped' },
     }
   }
-  return apiFetch('/data-grouping/materialize', {
+  return functionUrlFetch('/data-grouping/materialize', {
     method: 'POST',
-    body: JSON.stringify({ projectName, projectId, groups, deleteGroups, move }),
+    body: JSON.stringify({ projectName, projectId, groups, deleteGroups, move, syncKnowledgeBase }),
   })
 }
 

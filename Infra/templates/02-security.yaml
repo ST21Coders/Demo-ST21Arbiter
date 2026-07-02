@@ -181,6 +181,27 @@ Resources:
                   - glue:GetCrawler
                 Resource:
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:crawler/${Environment}-${ProjectName}-structured-crawler"
+              - Sid: DataGroupingGlueCatalogRead
+                Effect: Allow
+                Action:
+                  - glue:GetDatabase
+                  - glue:GetTable
+                  - glue:GetTables
+                Resource:
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog"
+                  - !Sub
+                    - "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/${Db}"
+                    - Db: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}-structured"]]
+                  - !Sub
+                    - "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/${Db}/*"
+                    - Db: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}-structured"]]
+              - Sid: DataGroupingKnowledgeBaseSync
+                Effect: Allow
+                Action:
+                  - bedrock:StartIngestionJob
+                  - bedrock:GetIngestionJob
+                  - bedrock:ListIngestionJobs
+                Resource: "*"
               # Config Drift reads current security group state for baseline and
               # drift comparison. The first remediation POC is deliberately
               # allowlisted to the one security group used in manual testing.

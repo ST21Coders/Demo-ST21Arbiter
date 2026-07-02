@@ -3,12 +3,14 @@ import {
   Terminal, Send, Loader2, ChevronRight, Server, Zap,
   CheckCircle, AlertTriangle, Activity, Clock, Copy,
   Shield, Wifi, WifiOff, MessageSquare, Plus, RotateCcw, Database,
+  Download,
 } from 'lucide-react'
 import { CHAT_URL } from '../config'
 import { listDataGroupingProjects, useConversations, sendChat, useAgentStatus } from '../hooks/useApi'
 import { detectProblem } from '../detectProblem'
 import CreateTicketButton from '../components/CreateTicketButton'
 import ClearChatsButton from '../components/ClearChatsButton'
+import { downloadChatPdf } from '../utils/pdfReport'
 
 /* ─── MCP server registry ────────────────────────────────────────────
    Each entry maps to a real ARBITER AgentCore runtime. `id` is the routing
@@ -152,6 +154,11 @@ function ToolBadge({ name }) {
   )
 }
 
+function reportTitleFromMessage(msg) {
+  const firstLine = String(msg.content || '').split('\n').find(line => line.trim())
+  return firstLine?.replace(/^#+\s*/, '').replace(/\*\*/g, '').trim() || 'ARBITER Report'
+}
+
 function Message({ msg }) {
   const isUser = msg.role === 'user'
 
@@ -275,6 +282,7 @@ function readLocalDataGroupingGroups() {
           csvCount,
           tableCount: 0,
           files,
+          groupProfile: group.groupProfile,
           local: true,
         }
       })
@@ -317,10 +325,35 @@ function findOutOfScopeGroup(prompt, selectedGroup, groups) {
   }) || null
 }
 
+function looksLikeGroupInventoryQuestion(question) {
+  const text = normalizeGroupMention(question)
+  return (
+    (text.includes('list') || text.includes('show') || text.includes('summarize') || text.includes('describe'))
+    && (
+      text.includes('available files')
+      || text.includes('available tables')
+      || text.includes('files and tables')
+      || text.includes('files found')
+      || text.includes('tables in this group')
+      || (text.includes('files') && text.includes('intent'))
+    )
+  )
+}
+
 function buildStructuredScopedPrompt(question, selectedGroup) {
   if (!selectedGroup) return question
+  const includeFileInventory = looksLikeGroupInventoryQuestion(question)
   const fileLines = selectedGroup.files?.length
     ? selectedGroup.files.slice(0, 100).map(file => `- ${file.name || 'Unnamed file'} (${file.type || 'file'}${file.glueTableHint ? `, table: ${file.glueTableHint}` : ''})`).join('\n')
+    : ''
+  const profile = selectedGroup.groupProfile || {}
+  const profileText = profile.kind
+    ? `Group setup profile: kind=${profile.kind}; confidence=${profile.confidence || 'unknown'}; columns=${(profile.columns || []).slice(0, 60).join(', ') || 'unknown'}`
+    : ''
+  const factCounts = selectedGroup.structuredFacts?.counts || profile.factIndex || {}
+  const factTypes = factCounts.types ? Object.keys(factCounts.types).join(', ') : ''
+  const factText = factCounts.factSources || factCounts.sourceCount
+    ? `Structured text facts: sources=${factCounts.factSources || factCounts.sourceCount || 0}; lookupKeys=${factCounts.lookupKeys || factCounts.lookupKeyCount || 0}; types=${factTypes || 'generic'}`
     : ''
 
   return [
@@ -332,12 +365,14 @@ function buildStructuredScopedPrompt(question, selectedGroup) {
       : selectedGroup.local
         ? 'Allowed Glue table hints: none available for this local browser group; answer from the selected group file inventory.'
         : 'Allowed Glue table hints: use only tables that resolve to this selected group.',
-    fileLines
+    includeFileInventory && fileLines
       ? `Available files for selected group:\n${fileLines}`
-      : 'Available files for selected group: not loaded in the UI selector.',
+      : `Selected group file count: ${selectedGroup.fileCount || selectedGroup.files?.length || 0}`,
+    profileText,
+    factText,
     '',
     `User request:\n${question}`,
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 }
 
 /* ─── Main page ─────────────────────────────────────────────────────── */
@@ -701,6 +736,16 @@ export default function MCPChat() {
                 {detected?.hasProblem && (
                   <div className="ml-10 mt-1 flex items-start gap-2">
                     <CreateTicketButton detected={detected} />
+                    <button
+                      onClick={() => downloadChatPdf({
+                        title: reportTitleFromMessage(msg),
+                        content: msg.content,
+                      })}
+                      title="Download this response as a PDF report"
+                      className="mt-2 inline-flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-indigo-700 hover:border-indigo-200 hover:bg-indigo-50 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      <Download size={13} /> PDF
+                    </button>
                     {selectedServer.id === 'structured' && (
                       <button
                         onClick={clearChat}
