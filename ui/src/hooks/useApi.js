@@ -422,13 +422,13 @@ export function useConversations(opts = {}) {
 }
 
 // Hits an agent runtime via the Lambda Function URL (CHAT_URL) so we bypass
-// API Gateway's 29s timeout. Body shape: { prompt, session_id, chat_type, target, data_group }.
+// API Gateway's 29s timeout. Body shape: { prompt, session_id, chat_type, target, data_group, data_project_id, data_project_name }.
 // chat_type ('analyst' | 'mcp') is stamped onto new session rows so the two
 // chats can be listed separately. `target` selects which agent runtime handles
 // the message: absent/'master' → orchestrator fan-out (Analyst page); a
 // specialist id ('sharepoint' | 'zscaler' | 'awsconfig' | 'jira' | 'servicenow')
 // → that agent directly (MCP page). Response: { reply, session_id }.
-export async function sendChat({ prompt, session_id, chat_type, target, data_group }) {
+export async function sendChat({ prompt, session_id, chat_type, target, data_group, data_project_id, data_project_name, data_group_id }) {
   if (USE_MOCK || !CHAT_URL) {
     await sleep(600 + Math.random() * 800)
     return { reply: `(mock reply) You asked: "${prompt}". Wire VITE_CHAT_URL to get a real answer.`, session_id }
@@ -436,7 +436,16 @@ export async function sendChat({ prompt, session_id, chat_type, target, data_gro
   const res = await fetch(`${CHAT_URL}chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ prompt, session_id, chat_type: chat_type || 'analyst', target, data_group }),
+    body: JSON.stringify({
+      prompt,
+      session_id,
+      chat_type: chat_type || 'analyst',
+      target,
+      data_group,
+      data_project_id,
+      data_project_name,
+      data_group_id,
+    }),
   })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
   return res.json()
@@ -833,7 +842,9 @@ export async function getUploadStatus(key) {
     }
   }
   const qs = new URLSearchParams({ key }).toString()
-  return apiFetch(`/uploads/status?${qs}`)
+  return CHAT_URL
+    ? functionUrlFetch(`/uploads/status?${qs}`)
+    : apiFetch(`/uploads/status?${qs}`)
 }
 
 export async function materializeDataGroupingProject({ projectName, projectId, groups = [], deleteGroups = [], move = true, syncKnowledgeBase = true }) {

@@ -199,6 +199,16 @@ def _load_projects() -> list[dict[str, Any]]:
                 table_hints = _collect_table_hints(group)
                 project_table_hints.update(table_hints)
                 files = group.get("files") or []
+                group_key = group.get("groupKey") or _load_group_key_from_files(bucket, files)
+                file_sample = [
+                    {
+                        "name": item.get("name") or item.get("filename") or item.get("key"),
+                        "type": item.get("type") or "file",
+                        "glueTableHint": item.get("glueTableHint"),
+                    }
+                    for item in files[:100]
+                    if isinstance(item, dict)
+                ]
                 groups.append({
                     "name": group.get("name") or group.get("id"),
                     "type": group.get("type"),
@@ -207,10 +217,11 @@ def _load_projects() -> list[dict[str, Any]]:
                     "tableCount": len(table_hints),
                     "tableHints": table_hints[:12],
                     "groupProfile": group.get("groupProfile") or {},
+                    "groupKey": group_key if isinstance(group_key, dict) else {},
                     "structuredFacts": {
                         "counts": (group.get("structuredFacts") or {}).get("counts") or {},
                     },
-                    "files": [],
+                    "files": file_sample,
                 })
 
             projects.append({
@@ -223,6 +234,27 @@ def _load_projects() -> list[dict[str, Any]]:
             })
     projects.sort(key=lambda item: item.get("updatedAt") or "", reverse=True)
     return projects[:50]
+
+
+def _load_group_key_from_files(bucket: str, files: list[dict[str, Any]]) -> dict[str, Any]:
+    for file_info in files or []:
+        if not isinstance(file_info, dict):
+            continue
+        name = str(file_info.get("name") or "").lower()
+        role = str(file_info.get("role") or "").lower()
+        if name != "group_key.json" and role != "group_key":
+            continue
+        key = str(file_info.get("projectKey") or file_info.get("sourceKey") or file_info.get("key") or "")
+        if not key:
+            continue
+        try:
+            body = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+            parsed = json.loads(body.decode("utf-8"))
+            return parsed if isinstance(parsed, dict) else {}
+        except Exception as e:
+            log.warning("group_key.json load failed for %s: %s", key, e)
+            return {}
+    return {}
 
 
 def _format_projects_for_selection(projects: list[dict[str, Any]]) -> str:
@@ -277,6 +309,13 @@ def _normalize_lookup_text(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", (value or "").lower()).strip()
 
 
+def _normalize_group_lookup(value: str) -> str:
+    normalized = _normalize_lookup_text(value)
+    if normalized.startswith("project "):
+        normalized = normalized[len("project "):].strip()
+    return normalized
+
+
 def _project_group_aliases(project: dict[str, Any], group: dict[str, Any]) -> set[str]:
     aliases: set[str] = set()
     for value in (
@@ -287,6 +326,7 @@ def _project_group_aliases(project: dict[str, Any], group: dict[str, Any]) -> se
         normalized = _normalize_lookup_text(str(value or ""))
         if normalized:
             aliases.add(normalized)
+            aliases.add(_normalize_group_lookup(normalized))
             aliases.update(
                 token for token in normalized.split()
                 if len(token) >= 5 and token not in {"project", "group", "audit", "review"}
@@ -307,13 +347,13 @@ def _resolve_single_group_context(prompt: str) -> dict[str, Any] | None:
 
     explicit_group = _extract_group_fragment(prompt)
     if explicit_group:
-        explicit_normalized = _normalize_lookup_text(_canonical_group_label(explicit_group))
+        explicit_normalized = _normalize_group_lookup(_canonical_group_label(explicit_group))
         exact_matches: list[dict[str, Any]] = []
         for project in projects:
             if project.get("error"):
                 continue
             for group in project.get("groups") or []:
-                group_normalized = _normalize_lookup_text(str(group.get("name") or ""))
+                group_normalized = _normalize_group_lookup(str(group.get("name") or ""))
                 if group_normalized == explicit_normalized:
                     exact_matches.append({"project": project, "group": group})
         if len(exact_matches) == 1:
@@ -327,6 +367,7 @@ def _resolve_single_group_context(prompt: str) -> dict[str, Any] | None:
                 "groupType": group.get("type"),
                 "tableHints": group.get("tableHints") or [],
                 "groupProfile": group.get("groupProfile") or {},
+                "groupKey": group.get("groupKey") or {},
                 "structuredFacts": group.get("structuredFacts") or {},
                 "files": group.get("files") or [],
             }
@@ -362,6 +403,7 @@ def _resolve_single_group_context(prompt: str) -> dict[str, Any] | None:
         "groupType": group.get("type"),
         "tableHints": group.get("tableHints") or [],
         "groupProfile": group.get("groupProfile") or {},
+        "groupKey": group.get("groupKey") or {},
         "structuredFacts": group.get("structuredFacts") or {},
         "files": group.get("files") or [],
     }
@@ -531,6 +573,7 @@ def _context_from_ui_selector_prompt(prompt: str) -> dict[str, Any] | None:
         "files": files,
         "groupProfile": group_profile,
         "structuredFacts": structured_facts,
+        "fromUiSelector": True,
     }
 
 
@@ -661,7 +704,807 @@ def _format_group_inventory(context: dict[str, Any]) -> str:
     starter_prompts = group_profile.get("starterPrompts") or []
     if starter_prompts:
         lines.extend(["", "Suggested starter prompts"])
-        lines.extend(f"- {prompt}" for prompt in starter_prompts[:8])
+        for prompt in starter_prompts[:8]:
+            safe_prompt = _copy_safe_prompt(prompt, group_name)
+            if safe_prompt:
+                lines.append(f"- {safe_prompt}")
+    return "\n".join(lines)
+
+
+def _looks_like_vendor_document_lookup_request(prompt: str) -> bool:
+    text = _normalize_lookup_text(prompt)
+    return (
+        re.search(r"\bV\d{3,6}\b", prompt or "", re.IGNORECASE) is not None
+        and any(term in text for term in (
+            "invoice", "invoices", "contract", "contracts", "audit", "audits",
+            "credentialing", "legal review", "security review", "rate sheet",
+            "payment reconciliation", "performance review", "renewal memo",
+            "scope of work", "amendment", "email thread", "meeting notes",
+            "document", "documents", "record", "records", "catalog",
+        ))
+    )
+
+
+def _vendor_document_terms(prompt: str) -> list[str]:
+    text = _normalize_lookup_text(prompt)
+    terms = [
+        "invoice", "contract", "audit", "credentialing", "legal review",
+        "security review", "rate sheet", "payment reconciliation",
+        "performance review", "renewal memo", "scope of work", "amendment",
+        "email thread", "meeting notes",
+    ]
+    return [term for term in terms if term in text or f"{term}s" in text]
+
+
+def _vendor_document_type_from_name(name: str) -> str:
+    text = _normalize_lookup_text(name)
+    for term in (
+        "payment reconciliation", "performance review", "security review",
+        "legal review", "rate sheet", "renewal memo", "scope of work",
+        "email thread", "meeting notes", "credentialing", "contract",
+        "invoice", "amendment", "audit",
+    ):
+        if term in text:
+            return term
+    return "document"
+
+
+def _context_file_inventory(context: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not context:
+        return []
+    group_key = context.get("groupKey") if isinstance(context.get("groupKey"), dict) else {}
+    inventory = group_key.get("file_inventory") if isinstance(group_key.get("file_inventory"), list) else []
+    files = []
+    for item in inventory:
+        if not isinstance(item, dict):
+            continue
+        files.append({
+            "name": item.get("name"),
+            "type": item.get("type") or "file",
+            "glueTableHint": item.get("glue_table_hint") or item.get("glueTableHint") or "",
+            "projectKey": item.get("project_key") or item.get("projectKey") or "",
+            "sourceKey": item.get("source_key") or item.get("sourceKey") or "",
+        })
+    for item in context.get("files") or []:
+        if isinstance(item, dict):
+            files.append(item)
+    seen: set[str] = set()
+    unique: list[dict[str, Any]] = []
+    for item in files:
+        key = str(item.get("projectKey") or item.get("sourceKey") or item.get("name") or "")
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        unique.append(item)
+    return unique
+
+
+def _vendor_master_table(context: dict[str, Any] | None) -> str | None:
+    table_hints = list((context or {}).get("tableHints") or [])
+    for file_info in _context_file_inventory(context):
+        hint = str(file_info.get("glueTableHint") or "")
+        if hint:
+            table_hints.append(hint)
+    for table in table_hints:
+        table_name = str(table)
+        if "vendor_master" in table_name.lower():
+            return table_name
+    return None
+
+
+def _handle_vendor_document_lookup_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_vendor_document_lookup_request(prompt):
+        return None
+    if not context:
+        return (
+            "I need a selected Data Group before looking up vendor document records.\n\n"
+            f"{_list_projects_payload()}"
+        )
+    vendor_match = re.search(r"\b(V\d{3,6})\b", prompt or "", re.IGNORECASE)
+    if not vendor_match:
+        return None
+    vendor_id = vendor_match.group(1).upper()
+    wanted_terms = _vendor_document_terms(prompt)
+    files = _context_file_inventory(context)
+    table_hints = context.get("tableHints") or []
+    matching_files: list[dict[str, str]] = []
+    for file_info in files:
+        if not isinstance(file_info, dict):
+            continue
+        name = str(file_info.get("name") or "")
+        lookup = _normalize_lookup_text(name)
+        if vendor_id.lower() not in name.lower():
+            continue
+        doc_type = _vendor_document_type_from_name(name)
+        if wanted_terms and not any(term in lookup for term in wanted_terms):
+            continue
+        matching_files.append({
+            "filename": name,
+            "document_type": doc_type,
+            "file_type": str(file_info.get("type") or "file"),
+            "table": str(file_info.get("glueTableHint") or ""),
+        })
+
+    matching_tables = []
+    for table in table_hints:
+        table_name = str(table)
+        lookup = _normalize_lookup_text(table_name)
+        if vendor_id.lower() not in table_name.lower():
+            continue
+        if wanted_terms and not any(term in lookup for term in wanted_terms):
+            continue
+        matching_tables.append({
+            "table": table_name,
+            "document_type": _vendor_document_type_from_name(table_name),
+        })
+
+    project_name = context.get("projectName") or context.get("projectId") or "Selected project"
+    group_name = context.get("groupName") or "Selected group"
+    title_terms = ", ".join(wanted_terms) if wanted_terms else "documents"
+    lines = [
+        f"Vendor document catalog lookup",
+        "",
+        f"Project: {project_name}",
+        f"Group: {group_name}",
+        f"Vendor ID: {vendor_id}",
+        f"Document filter: {title_terms}",
+        "",
+        "Matching files",
+        "",
+        _format_rows_as_markdown(matching_files, "No matching files found in the selected group metadata."),
+        "",
+        "Matching structured tables",
+        "",
+        _format_rows_as_markdown(matching_tables, "No matching structured tables found for that vendor/document filter."),
+    ]
+    if not matching_files and not matching_tables:
+        lines.extend([
+            "",
+            "Next step",
+            f"- Try a broader lookup: `For this group, show all visible records related to vendor_id {vendor_id}. Group the results by document type.`",
+        ])
+    return "\n".join(lines)
+
+
+def _looks_like_expired_contract_activity_request(prompt: str) -> bool:
+    text = _normalize_lookup_text(prompt)
+    return (
+        "expired contract" in text
+        and ("invoice" in text or "payment" in text or "payments" in text)
+    )
+
+
+def _document_date_from_name(name: str) -> str:
+    match = re.search(r"\b(20\d{2}-\d{2}-\d{2})\b", name or "")
+    return match.group(1) if match else ""
+
+
+def _handle_expired_contract_activity_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_expired_contract_activity_request(prompt):
+        return None
+    if not context:
+        return (
+            "I need a selected Data Group before checking expired contract activity.\n\n"
+            f"{_list_projects_payload()}"
+        )
+    vendor_table = _vendor_master_table(context)
+    if not vendor_table:
+        group_name = context.get("groupName") or "selected group"
+        return (
+            f"I could not find a vendor master table for `{group_name}`. "
+            "Try the group inventory first, then republish if the vendor master table is missing."
+        )
+
+    expired_rows: list[dict[str, Any]] = []
+    errors: list[str] = []
+    try:
+        expired_rows = _athena_rows(f"""
+            SELECT
+                CAST(vendor_id AS VARCHAR) AS vendor_id,
+                CAST(name AS VARCHAR) AS vendor_name,
+                CAST(vendor_type AS VARCHAR) AS vendor_type,
+                CAST(city AS VARCHAR) AS city,
+                CAST(state AS VARCHAR) AS state,
+                CAST(manager AS VARCHAR) AS manager,
+                CAST(contract_start AS VARCHAR) AS contract_start,
+                CAST(contract_end AS VARCHAR) AS contract_end,
+                TRY_CAST(base_rate AS DOUBLE) AS base_rate,
+                TRY_CAST(risk_score AS DOUBLE) AS risk_score
+            FROM "{vendor_table}"
+            WHERE TRY_CAST(contract_end AS DATE) < CURRENT_DATE
+            ORDER BY TRY_CAST(contract_end AS DATE) DESC, TRY_CAST(risk_score AS DOUBLE) DESC
+            LIMIT 250
+        """)
+    except Exception as e:
+        errors.append(f"Vendor master query: {e}")
+
+    files = _context_file_inventory(context)
+    activity_terms = ("invoice", "payment_reconciliation", "payment reconciliation", "payment")
+    candidate_rows: list[dict[str, Any]] = []
+    for vendor in expired_rows:
+        vendor_id = str(vendor.get("vendor_id") or "").upper()
+        if not vendor_id:
+            continue
+        matches = []
+        after_contract = 0
+        contract_end = str(vendor.get("contract_end") or "")
+        for file_info in files:
+            name = str(file_info.get("name") or "")
+            lookup = _normalize_lookup_text(name)
+            if vendor_id.lower() not in name.lower():
+                continue
+            if not any(term in lookup for term in activity_terms):
+                continue
+            doc_date = _document_date_from_name(name)
+            if contract_end and doc_date and doc_date > contract_end:
+                after_contract += 1
+            matches.append({
+                "name": name,
+                "document_type": _vendor_document_type_from_name(name),
+                "document_date": doc_date,
+                "table": str(file_info.get("glueTableHint") or ""),
+            })
+        if not matches:
+            continue
+        candidate_rows.append({
+            "vendor_id": vendor_id,
+            "vendor_name": vendor.get("vendor_name") or "",
+            "vendor_type": vendor.get("vendor_type") or "",
+            "contract_end": contract_end,
+            "risk_score": vendor.get("risk_score") or "",
+            "activity_document_count": len(matches),
+            "documents_after_contract_end": after_contract,
+            "example_documents": "; ".join(match["name"] for match in matches[:3]),
+        })
+
+    candidate_rows.sort(
+        key=lambda row: (
+            int(row.get("documents_after_contract_end") or 0),
+            int(row.get("activity_document_count") or 0),
+            float(row.get("risk_score") or 0),
+        ),
+        reverse=True,
+    )
+    project_name = context.get("projectName") or context.get("projectId") or "Selected project"
+    group_name = context.get("groupName") or "Selected group"
+    lines = [
+        "Expired contract activity lookup",
+        "",
+        f"Project: {project_name}",
+        f"Group: {group_name}",
+        f"Vendor master table: `{vendor_table}`",
+        "",
+        "Expired vendors with invoice/payment catalog records",
+        "",
+        _format_rows_as_markdown(candidate_rows[:25], "No expired vendors with invoice/payment catalog records were found."),
+        "",
+        "How to read this",
+        "- `activity_document_count` counts matching invoice or payment-reconciliation catalog records for vendors whose contract_end is before today.",
+        "- `documents_after_contract_end` counts matching records whose filename date is after the vendor contract_end date.",
+        "- Treat this as a catalog review queue; open the source files or related tables before drawing conclusions.",
+    ]
+    if errors:
+        lines.extend(["", "Query issues"])
+        lines.extend(f"- {error}" for error in errors)
+    return "\n".join(lines)
+
+
+def _looks_like_vendor_security_review_request(prompt: str) -> bool:
+    text = _normalize_lookup_text(prompt)
+    return "security review" in text and "risk" in text
+
+
+def _looks_like_vendor_payment_without_review_request(prompt: str) -> bool:
+    text = _normalize_lookup_text(prompt)
+    return "payment reconciliation" in text and "performance review" in text
+
+
+def _looks_like_contract_document_after_end_request(prompt: str) -> bool:
+    text = _normalize_lookup_text(prompt)
+    return (
+        ("contract" in text or "amendment" in text)
+        and "contract end" in text
+    )
+
+
+def _vendor_rows(context: dict[str, Any] | None, limit: int = 500) -> tuple[list[dict[str, Any]], str | None, list[str]]:
+    vendor_table = _vendor_master_table(context)
+    if not vendor_table:
+        return [], None, []
+    errors: list[str] = []
+    try:
+        rows = _athena_rows(f"""
+            SELECT
+                CAST(vendor_id AS VARCHAR) AS vendor_id,
+                CAST(name AS VARCHAR) AS vendor_name,
+                CAST(vendor_type AS VARCHAR) AS vendor_type,
+                CAST(city AS VARCHAR) AS city,
+                CAST(state AS VARCHAR) AS state,
+                CAST(manager AS VARCHAR) AS manager,
+                CAST(contract_start AS VARCHAR) AS contract_start,
+                CAST(contract_end AS VARCHAR) AS contract_end,
+                TRY_CAST(base_rate AS DOUBLE) AS base_rate,
+                TRY_CAST(risk_score AS DOUBLE) AS risk_score
+            FROM "{vendor_table}"
+            LIMIT {int(limit)}
+        """)
+        return rows, vendor_table, errors
+    except Exception as e:
+        errors.append(f"Vendor master query: {e}")
+        return [], vendor_table, errors
+
+
+def _vendor_document_matches(files: list[dict[str, Any]], vendor_id: str, terms: tuple[str, ...]) -> list[dict[str, str]]:
+    matches: list[dict[str, str]] = []
+    for file_info in files:
+        name = str(file_info.get("name") or "")
+        lookup = _normalize_lookup_text(name)
+        if vendor_id.lower() not in name.lower():
+            continue
+        if terms and not any(term in lookup for term in terms):
+            continue
+        matches.append({
+            "name": name,
+            "document_type": _vendor_document_type_from_name(name),
+            "document_date": _document_date_from_name(name),
+            "table": str(file_info.get("glueTableHint") or ""),
+        })
+    return matches
+
+
+def _handle_vendor_security_review_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_vendor_security_review_request(prompt):
+        return None
+    if not context:
+        return "I need a selected Data Group before reviewing vendor security-review catalog records."
+    vendors, vendor_table, errors = _vendor_rows(context)
+    files = _context_file_inventory(context)
+    rows: list[dict[str, Any]] = []
+    for vendor in vendors:
+        vendor_id = str(vendor.get("vendor_id") or "").upper()
+        matches = _vendor_document_matches(files, vendor_id, ("security review",))
+        if not matches:
+            continue
+        dates = sorted(match["document_date"] for match in matches if match.get("document_date"))
+        rows.append({
+            "vendor_id": vendor_id,
+            "vendor_name": vendor.get("vendor_name") or "",
+            "vendor_type": vendor.get("vendor_type") or "",
+            "state": vendor.get("state") or "",
+            "risk_score": vendor.get("risk_score") or "",
+            "security_review_document_count": len(matches),
+            "latest_review_date": dates[-1] if dates else "",
+            "example_documents": "; ".join(match["name"] for match in matches[:3]),
+            "recommended_next_action": "Review latest security-review record and compare with vendor master fields.",
+        })
+    rows.sort(key=lambda row: (float(row.get("risk_score") or 0), int(row.get("security_review_document_count") or 0)), reverse=True)
+    lines = [
+        "Vendor security-review catalog report",
+        "",
+        f"Vendor master table: `{vendor_table or 'not found'}`",
+        "",
+        _format_rows_as_markdown(rows[:25], "No vendors with security-review catalog records were found."),
+    ]
+    if errors:
+        lines.extend(["", "Query issues", *[f"- {error}" for error in errors]])
+    return "\n".join(lines)
+
+
+def _handle_vendor_payment_without_review_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_vendor_payment_without_review_request(prompt):
+        return None
+    if not context:
+        return "I need a selected Data Group before comparing payment and performance-review catalog records."
+    vendors, vendor_table, errors = _vendor_rows(context)
+    files = _context_file_inventory(context)
+    rows: list[dict[str, Any]] = []
+    for vendor in vendors:
+        vendor_id = str(vendor.get("vendor_id") or "").upper()
+        payment_matches = _vendor_document_matches(files, vendor_id, ("payment reconciliation", "payment"))
+        if not payment_matches:
+            continue
+        review_matches = _vendor_document_matches(files, vendor_id, ("performance review",))
+        payment_dates = sorted(match["document_date"] for match in payment_matches if match.get("document_date"))
+        review_dates = sorted(match["document_date"] for match in review_matches if match.get("document_date"))
+        if review_dates and payment_dates and review_dates[-1] >= payment_dates[-1]:
+            continue
+        rows.append({
+            "vendor_id": vendor_id,
+            "vendor_name": vendor.get("vendor_name") or "",
+            "vendor_type": vendor.get("vendor_type") or "",
+            "payment_document_count": len(payment_matches),
+            "latest_payment_document_date": payment_dates[-1] if payment_dates else "",
+            "performance_review_document_count": len(review_matches),
+            "latest_performance_review_date": review_dates[-1] if review_dates else "",
+            "example_payment_documents": "; ".join(match["name"] for match in payment_matches[:3]),
+            "recommended_next_action": "Check whether performance-review coverage should be refreshed before the next payment cycle.",
+        })
+    rows.sort(key=lambda row: (int(row.get("payment_document_count") or 0), row.get("latest_payment_document_date") or ""), reverse=True)
+    lines = [
+        "Vendor payment/performance-review coverage report",
+        "",
+        f"Vendor master table: `{vendor_table or 'not found'}`",
+        "",
+        _format_rows_as_markdown(rows[:25], "No payment-reconciliation vendors lacking recent performance-review coverage were found."),
+    ]
+    if errors:
+        lines.extend(["", "Query issues", *[f"- {error}" for error in errors]])
+    return "\n".join(lines)
+
+
+def _handle_contract_document_after_end_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_contract_document_after_end_request(prompt):
+        return None
+    if not context:
+        return "I need a selected Data Group before comparing contract document dates to contract end dates."
+    vendors, vendor_table, errors = _vendor_rows(context)
+    files = _context_file_inventory(context)
+    rows: list[dict[str, Any]] = []
+    for vendor in vendors:
+        vendor_id = str(vendor.get("vendor_id") or "").upper()
+        contract_end = str(vendor.get("contract_end") or "")
+        if not contract_end:
+            continue
+        matches = _vendor_document_matches(files, vendor_id, ("contract", "amendment"))
+        for match in matches:
+            doc_date = match.get("document_date") or ""
+            if not doc_date or doc_date <= contract_end:
+                continue
+            rows.append({
+                "vendor_id": vendor_id,
+                "vendor_name": vendor.get("vendor_name") or "",
+                "contract_end": contract_end,
+                "document_type": match.get("document_type") or "",
+                "document_date": doc_date,
+                "filename": match.get("name") or "",
+                "recommended_next_action": "Review contract status and confirm whether this document represents renewal, extension, or cleanup.",
+            })
+    rows.sort(key=lambda row: (row.get("document_date") or "", row.get("contract_end") or ""), reverse=True)
+    lines = [
+        "Contract document timing report",
+        "",
+        f"Vendor master table: `{vendor_table or 'not found'}`",
+        "",
+        _format_rows_as_markdown(rows[:25], "No contract or amendment records after contract_end were found."),
+    ]
+    if errors:
+        lines.extend(["", "Query issues", *[f"- {error}" for error in errors]])
+    return "\n".join(lines)
+
+
+def _looks_like_group_key_summary_request(prompt: str) -> bool:
+    text = _normalize_lookup_text(prompt)
+    return (
+        ("group key" in text or "group_key" in text or "groupkey" in text)
+        and (
+            "summary" in text
+            or "summarize" in text
+            or "examine" in text
+            or "review" in text
+            or "describe" in text
+        )
+    )
+
+
+def _as_list(value: Any) -> list[Any]:
+    if isinstance(value, list):
+        return value
+    if value in (None, ""):
+        return []
+    return [value]
+
+
+def _append_group_key_value(lines: list[str], label: str, value: Any) -> None:
+    if value in (None, "", [], {}):
+        return
+    if isinstance(value, dict):
+        compact = "; ".join(f"{key}: {item}" for key, item in value.items() if item not in (None, "", [], {}))
+        if compact:
+            lines.append(f"- {label}: {compact}.")
+        return
+    if isinstance(value, list):
+        rendered = ", ".join(str(item) for item in value[:10] if item not in (None, "", [], {}))
+        if rendered:
+            lines.append(f"- {label}: {rendered}.")
+        return
+    lines.append(f"- {label}: {value}.")
+
+
+def _copy_safe_prompt(prompt: Any, group_name: str | None = None) -> str:
+    text = str(prompt or "").strip()
+    text = re.sub(r"^[^\w`\"']+\s*", "", text).strip()
+    text = re.sub(r"^\d+[\).:-]\s*", "", text).strip()
+    if group_name:
+        escaped = re.escape(str(group_name))
+        text = re.sub(rf"\bthis\s+{escaped}\s+group\b", "this group", text, flags=re.IGNORECASE)
+        text = re.sub(rf"\bthe\s+{escaped}\s+group\b", "this group", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bfor\s+this\s+[A-Za-z0-9_ -]{3,80}\s+group,", "For this group,", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bin\s+this\s+[A-Za-z0-9_ -]{3,80}\s+group\b", "in this group", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bthis\s+group\s+group\b", "this group", text, flags=re.IGNORECASE)
+    return text
+
+
+def _format_group_key_summary(context: dict[str, Any]) -> str:
+    project_name = context.get("projectName") or context.get("projectId") or "Selected project"
+    group_name = context.get("groupName") or "Selected group"
+    group_key = context.get("groupKey") or {}
+    if not isinstance(group_key, dict) or not group_key:
+        return (
+            f"Group key summary\n\n"
+            f"Project: {project_name}\n"
+            f"Group: {group_name}\n\n"
+            "No `group_key.json` metadata is available to the Structured Data Specialist for this group yet. "
+            "Republish the selected group, then run this summary again."
+        )
+
+    lines = [
+        "Group key summary",
+        "",
+        f"Project: {project_name}",
+        f"Group: {group_name}",
+        "",
+        "Purpose and domain",
+    ]
+    _append_group_key_value(lines, "Purpose", group_key.get("purpose") or group_key.get("group_purpose") or group_key.get("description"))
+    _append_group_key_value(lines, "Domain", group_key.get("domain") or group_key.get("business_domain"))
+    _append_group_key_value(lines, "Review theme", group_key.get("review_theme") or group_key.get("hidden_fraud_summary") or group_key.get("summary"))
+    _append_group_key_value(lines, "Contents", group_key.get("contents") or group_key.get("content_summary"))
+
+    file_structure = (
+        group_key.get("file_structure")
+        or group_key.get("fileStructure")
+        or group_key.get("data_structure")
+        or group_key.get("csv_structure")
+    )
+    content_mix = group_key.get("content_mix") or group_key.get("contentMix")
+    if file_structure or content_mix:
+        lines.extend(["", "File and table structure"])
+        _append_group_key_value(lines, "File mix", content_mix)
+        _append_group_key_value(lines, "Structure", file_structure)
+    profile = context.get("groupProfile") or {}
+    if profile:
+        _append_group_key_value(lines, "Setup profile", profile)
+
+    relationships = (
+        group_key.get("relationships")
+        or group_key.get("table_relationships")
+        or group_key.get("csv_relationships")
+        or group_key.get("related_groups")
+        or group_key.get("sister_organizations")
+    )
+    if relationships:
+        lines.extend(["", "Relationships"])
+        for item in _as_list(relationships)[:12]:
+            lines.append(f"- {item}")
+
+    detection_notes = (
+        group_key.get("detection_notes")
+        or group_key.get("analysis_notes")
+        or group_key.get("query_notes")
+        or group_key.get("join_notes")
+    )
+    if detection_notes:
+        lines.extend(["", "Analysis notes"])
+        for item in _as_list(detection_notes)[:10]:
+            lines.append(f"- {item}")
+
+    starter_prompts = (
+        group_key.get("starter_prompts")
+        or group_key.get("starterPrompts")
+        or (context.get("groupProfile") or {}).get("starterPrompts")
+    )
+    if starter_prompts:
+        lines.extend(["", "Starter prompts"])
+        for item in _as_list(starter_prompts)[:8]:
+            prompt = _copy_safe_prompt(item, group_name)
+            if prompt:
+                lines.append(f"- {prompt}")
+
+    wording = (
+        group_key.get("wording_guidance")
+        or group_key.get("query_wording")
+        or group_key.get("safe_language_guidance")
+    )
+    if wording:
+        lines.extend(["", "Query wording"])
+        for item in _as_list(wording)[:8]:
+            lines.append(f"- {item}")
+
+    next_questions = (
+        group_key.get("recommended_next_questions")
+        or group_key.get("next_questions")
+        or group_key.get("recommended_prompts")
+    )
+    if next_questions:
+        lines.extend(["", "Recommended next questions"])
+        for item in _as_list(next_questions)[:8]:
+            prompt = _copy_safe_prompt(item, group_name)
+            if prompt:
+                lines.append(f"- {prompt}")
+
+    return "\n".join(lines)
+
+
+def _looks_like_group_summary_request(prompt: str) -> bool:
+    text = _normalize_lookup_text(prompt)
+    if "logical first query" in text or "first query" in text:
+        return True
+    return (
+        "summarize" in text
+        and "group" in text
+        and (
+            "row count" in text
+            or "row counts" in text
+            or "important columns" in text
+            or "useful first questions" in text
+            or "first questions" in text
+        )
+    )
+
+
+def _glue_table_columns(table_name: str) -> list[str]:
+    try:
+        table = glue.get_table(DatabaseName=GLUE_DATABASE, Name=table_name).get("Table") or {}
+        columns = table.get("StorageDescriptor", {}).get("Columns") or []
+        return [str(column.get("Name") or "") for column in columns if column.get("Name")]
+    except Exception as e:
+        log.warning("Glue column lookup failed for %s: %s", table_name, e)
+        return []
+
+
+def _important_columns(columns: list[str]) -> list[str]:
+    if not columns:
+        return []
+    priority_terms = (
+        "id", "date", "amount", "revenue", "cost", "price", "quantity", "status",
+        "vendor", "provider", "attorney", "claim", "policy", "branch", "city",
+        "state", "category", "score", "reason", "description", "type",
+    )
+    scored: list[tuple[int, int, str]] = []
+    for index, column in enumerate(columns):
+        normalized = _normalize_lookup_text(column)
+        score = sum(1 for term in priority_terms if term in normalized.split() or term in normalized)
+        scored.append((-score, index, column))
+    scored.sort()
+    selected = [column for _, _, column in scored[:10]]
+    return selected
+
+
+def _starter_questions_for_group(context: dict[str, Any], table_summaries: list[dict[str, Any]]) -> list[str]:
+    group_name = context.get("groupName") or "this group"
+    group_key = context.get("groupKey") if isinstance(context.get("groupKey"), dict) else {}
+    profile = context.get("groupProfile") or {}
+    objective_text = _normalize_lookup_text(
+        " ".join(
+            str(group_key.get(key) or "")
+            for key in (
+                "purpose", "group_purpose", "description", "summary", "review_theme",
+                "hidden_fraud_summary", "domain", "primary_questions",
+                "detection_notes", "analysis_notes",
+            )
+        )
+    )
+    starters = (
+        group_key.get("starter_prompts")
+        or group_key.get("starterPrompts")
+        or group_key.get("recommended_prompts")
+        or profile.get("starterPrompts")
+        or []
+    )
+    if any(term in objective_text for term in ("fraud", "suspicious", "audit", "review", "risk", "compliance", "governance")):
+        return [
+            "For this group, review claim and payment records with invoice, weather, policy, call-log, note, and score tables. Include claim_id, policy_id, vendor or provider fields, invoice or payment totals, key dates, score fields, and source tables used.",
+            "For this group, review claims by vendor, adjuster, provider, and attorney activity using invoice, payment, policy, call-log, note, and score tables. Include identifiers, record count, amount total, earliest date, latest date, and source table.",
+            "For this group, compare claim records with invoice, payment, weather, policy, call-log, and note tables. Include claim_id, matched table names, dates, amounts, status fields, and a neutral data summary.",
+        ]
+    if any(term in objective_text for term in ("sales", "revenue", "margin", "store", "branch", "objective")):
+        return [
+            "For this group, create a sales performance report aligned to the group objective. Rank branches or stores by revenue, units sold, transaction count, top category, best-selling product, and gross margin if available.",
+            "For this group, compare product categories, sales channels, and customer types by revenue, units sold, average line revenue, and margin if available.",
+            "For this group, identify the strongest and weakest branches or stores and recommend the next sales question to investigate.",
+        ]
+    if starters:
+        starter_list = [
+            prompt
+            for prompt in (_copy_safe_prompt(item, group_name) for item in _as_list(starters)[:5])
+            if prompt
+        ]
+        if starter_list:
+            return starter_list
+
+    column_text = _normalize_lookup_text(
+        " ".join(
+            " ".join(str(column) for column in summary.get("importantColumns") or [])
+            for summary in table_summaries
+        )
+    )
+    if any(term in column_text for term in ("revenue", "sales", "quantity", "unit price", "branch", "sku")):
+        return [
+            "For this group, rank branches from highest to lowest total revenue and include units sold, transaction count, and top product category.",
+            "For this group, compare product categories by revenue, units sold, and average unit price.",
+            "For this group, identify underperforming branches by revenue and units sold and suggest the next review question.",
+        ]
+    if any(term in column_text for term in ("claim", "policy", "invoice", "provider", "attorney", "siu")):
+        return [
+            "For this group, summarize claim and invoice activity by claim type, status, and total amount.",
+            "For this group, compare providers, vendors, or attorneys by claim count and total amount.",
+            "For this group, identify records that deserve review based on amount, timing, duplicate indicators, or unusual status values.",
+        ]
+    return [
+        "For this group, summarize the largest tables and explain what each table appears to contain.",
+        "For this group, identify the most important entities, dates, amounts, and status fields available for analysis.",
+        "For this group, suggest three focused analysis questions based on the available columns.",
+    ]
+
+
+def _format_group_summary(context: dict[str, Any]) -> str:
+    project_name = context.get("projectName") or context.get("projectId") or "Selected project"
+    group_name = context.get("groupName") or "Selected group"
+    table_hints = context.get("tableHints") or []
+    files = context.get("files") or []
+    file_count = context.get("fileCount") if context.get("fileCount") is not None else len(files)
+    group_key = context.get("groupKey") if isinstance(context.get("groupKey"), dict) else {}
+    table_summaries: list[dict[str, Any]] = []
+    count_errors: list[str] = []
+
+    for table in table_hints[:25]:
+        columns = _glue_table_columns(table)
+        row_count = "not available"
+        try:
+            rows = _athena_rows(f'SELECT COUNT(*) AS row_count FROM "{table}"')
+            if rows:
+                row_count = str(rows[0].get("row_count") or "0")
+        except Exception as e:
+            count_errors.append(f"`{table}`: {e}")
+        table_summaries.append({
+            "table": table,
+            "rowCount": row_count,
+            "columnCount": len(columns),
+            "importantColumns": _important_columns(columns),
+        })
+
+    first_questions = _starter_questions_for_group(context, table_summaries)
+    lines = [
+        "Logical first query",
+        "",
+        f"Project: {project_name}",
+        f"Group: {group_name}",
+        f"Files: {file_count}",
+        f"Tables: {len(table_hints)}",
+    ]
+    purpose = group_key.get("purpose") or group_key.get("group_purpose") or group_key.get("description")
+    domain = group_key.get("domain") or group_key.get("business_domain")
+    if purpose or domain:
+        lines.extend(["", "Purpose"])
+        _append_group_key_value(lines, "Domain", domain)
+        _append_group_key_value(lines, "Purpose", purpose)
+
+    lines.extend(["", "Best first query"])
+    if first_questions:
+        lines.append(first_questions[0])
+    else:
+        lines.append("List the available files and tables in this group and briefly explain what each one appears to contain.")
+
+    lines.extend(["", "Tables and row counts"])
+    if table_summaries:
+        lines.append("| table | row_count | column_count | important_columns |")
+        lines.append("| --- | --- | --- | --- |")
+        for summary in table_summaries:
+            columns = ", ".join(summary.get("importantColumns") or [])
+            lines.append(
+                f"| `{summary['table']}` | {summary['rowCount']} | "
+                f"{summary['columnCount']} | {columns} |"
+            )
+    else:
+        lines.append("No Glue tables found for this group yet.")
+
+    lines.extend(["", "Other useful first questions"])
+    for question in first_questions[1:]:
+        lines.append(f"- {question}")
+
+    if count_errors:
+        lines.extend(["", "Row count issues"])
+        lines.extend(f"- {error}" for error in count_errors[:8])
     return "\n".join(lines)
 
 
@@ -670,6 +1513,15 @@ def _group_name_to_table_token(group_name: str) -> str:
     if normalized.startswith("project_"):
         normalized = normalized[len("project_"):]
     return normalized
+
+
+def _context_project_table_tokens(context: dict[str, Any]) -> set[str]:
+    tokens: set[str] = set()
+    for value in (context.get("projectId"), context.get("projectName")):
+        normalized = _normalize_lookup_text(str(value or "")).replace(" ", "_")
+        if normalized and normalized not in {"selected_project", "unknown"}:
+            tokens.add(normalized)
+    return tokens
 
 
 def _context_with_glue_table_hints(context: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -684,15 +1536,67 @@ def _context_with_glue_table_hints(context: dict[str, Any] | None) -> dict[str, 
     try:
         paginator = glue.get_paginator("get_tables")
         hints: list[str] = []
+        project_tokens = _context_project_table_tokens(context)
         for page in paginator.paginate(DatabaseName=GLUE_DATABASE):
             for table in page.get("TableList", []):
                 name = table.get("Name", "")
-                if token in name.lower():
+                name_lower = name.lower()
+                if token not in name_lower:
+                    continue
+                if project_tokens and not any(project_token in name_lower for project_token in project_tokens):
+                    continue
+                if context.get("fromUiSelector") and not project_tokens:
+                    continue
+                if token in name_lower:
                     hints.append(name)
         if hints:
             return {**context, "tableHints": sorted(set(hints))}
     except Exception as e:
         log.warning("Glue table hint fill failed: %s", e)
+    return context
+
+
+def _context_with_project_metadata(context: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not context:
+        return None
+    if context.get("groupKey"):
+        return context
+    group_name = _normalize_group_lookup(str(context.get("groupName") or ""))
+    project_id = _normalize_lookup_text(str(context.get("projectId") or ""))
+    project_name = _normalize_lookup_text(str(context.get("projectName") or ""))
+    if not group_name:
+        return context
+    try:
+        for project in _load_projects():
+            if project.get("error"):
+                continue
+            project_match = True
+            if project_id or project_name:
+                candidates = {
+                    _normalize_lookup_text(str(project.get("projectId") or "")),
+                    _normalize_lookup_text(str(project.get("projectName") or "")),
+                }
+                project_match = bool(({project_id, project_name} - {""}) & candidates)
+            if not project_match:
+                continue
+            for group in project.get("groups") or []:
+                if _normalize_group_lookup(str(group.get("name") or "")) != group_name:
+                    continue
+                enriched = {**context}
+                for key in ("groupKey", "groupProfile", "structuredFacts"):
+                    if group.get(key) and not enriched.get(key):
+                        enriched[key] = group.get(key)
+                if group.get("tableHints") and not enriched.get("tableHints"):
+                    enriched["tableHints"] = group.get("tableHints") or []
+                if group.get("fileCount") is not None and enriched.get("fileCount") is None:
+                    enriched["fileCount"] = group.get("fileCount")
+                if group.get("files") and not enriched.get("files"):
+                    enriched["files"] = group.get("files") or []
+                if group.get("type") and not enriched.get("groupType"):
+                    enriched["groupType"] = group.get("type")
+                return enriched
+    except Exception as e:
+        log.warning("Project metadata enrichment skipped: %s", e)
     return context
 
 
@@ -726,6 +1630,8 @@ def _matching_glue_tables(fragment: str, context: dict[str, Any] | None = None) 
     scoped = [table for table in context_hints if needle in table.lower()]
     if scoped:
         return sorted(set(scoped))
+    if (context or {}).get("groupName") or (context or {}).get("projectId"):
+        return []
     try:
         paginator = glue.get_paginator("get_tables")
         matches: list[str] = []
@@ -1251,7 +2157,7 @@ def _sales_column_aliases(columns: set[str]) -> dict[str, str]:
         "branch_city": ("branch_city", "city", "store_city"),
         "branch_state": ("branch_state", "state", "branch_st", "store_state"),
         "part_sku": ("part_sku", "product_sku", "sku", "item_sku"),
-        "part_name": ("part_name", "product_name", "item_name", "name"),
+        "part_name": ("part_name", "product_name", "product_description", "item_name", "name"),
         "part_category": ("part_category", "category", "product_category", "item_category"),
         "sales_channel": ("sales_channel", "channel"),
         "customer_type": ("customer_type", "customer_segment"),
@@ -1259,7 +2165,7 @@ def _sales_column_aliases(columns: set[str]) -> dict[str, str]:
         "unit_cost": ("unit_cost", "cost"),
         "unit_price": ("unit_price", "price"),
         "line_revenue": ("line_revenue", "net_sales", "gross_sales", "revenue", "sales_amount", "amount"),
-        "estimated_margin": ("estimated_margin", "margin", "gross_margin"),
+        "estimated_margin": ("estimated_margin", "gross_margin", "margin"),
     }
     aliases: dict[str, str] = {}
     for canonical, options in candidates.items():
@@ -1485,12 +2391,483 @@ def _handle_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] 
         _format_rows_as_markdown(margin_rows, "No margin rows returned."),
         "",
         "Suggested follow-up prompts",
-        f"- For this {group_name} group, rank stores from highest to lowest total sales. Include branch city, branch state, total revenue, units sold, transaction count, top category, and a short explanation.",
-        f"- For this {group_name} group, rank product categories by revenue and units sold. Include part category, total revenue, units sold, average unit price, and the leading branch if available.",
-        f"- For this {group_name} group, compare sales channels by revenue, units sold, transaction count, and average line revenue. Include a short explanation of channel mix.",
-        f"- For this {group_name} group, analyze gross margin using Unit_Cost and Unit_Price. Rank stores or products by estimated margin dollars and margin percent.",
-        f"- For this {group_name} group, find underperforming stores by total revenue and units sold. Include branch city, branch state, total revenue, units sold, transaction count, and likely next review question.",
+        "- For this group, rank stores from highest to lowest total sales. Include branch city, branch state, total revenue, units sold, transaction count, top category, and a short explanation.",
+        "- For this group, rank product categories by revenue and units sold. Include part category, total revenue, units sold, average unit price, and the leading branch if available.",
+        "- For this group, compare sales channels by revenue, units sold, transaction count, and average line revenue. Include a short explanation of channel mix.",
+        "- For this group, analyze gross margin using Unit_Cost and Unit_Price. Rank stores or products by estimated margin dollars and margin percent.",
+        "- For this group, find underperforming stores by total revenue and units sold. Include branch city, branch state, total revenue, units sold, transaction count, and likely next review question.",
     ]
+    if errors:
+        lines.extend(["", "Query issues"])
+        lines.extend(f"- {error}" for error in errors)
+    return "\n".join(lines)
+
+
+def _looks_like_operational_asset_performance_request(prompt: str, context: dict[str, Any] | None) -> bool:
+    text = _normalize_lookup_text(prompt)
+    profile = (context or {}).get("groupProfile") or {}
+    context_text = _normalize_lookup_text(
+        " ".join(str((context or {}).get(key) or "") for key in ("projectId", "projectName", "groupName"))
+    )
+    table_text = _normalize_lookup_text(" ".join(str(table) for table in ((context or {}).get("tableHints") or [])))
+    scope = f"{text} {context_text} {table_text}"
+    asset_scope = (
+        profile.get("kind") == "operational_asset_performance"
+        or "gaming analysis" in scope
+        or "machine master" in scope
+        or "slot performance" in scope
+        or ("floor" in scope and "machine" in scope)
+    )
+    return (
+        asset_scope
+        and any(term in text for term in (
+            "floor", "zone", "area", "location", "machine", "equipment", "asset",
+            "performance", "utilization", "revenue", "activity", "maintenance",
+            "summary", "rank", "compare", "perform",
+        ))
+    )
+
+
+def _asset_performance_period_label(table_name: str) -> str:
+    normalized = table_name.lower()
+    month_numbers = {
+        "jan": "01", "january": "01",
+        "feb": "02", "february": "02",
+        "mar": "03", "march": "03",
+        "apr": "04", "april": "04",
+        "may": "05",
+        "jun": "06", "june": "06",
+        "jul": "07", "july": "07",
+        "aug": "08", "august": "08",
+        "sep": "09", "sept": "09", "september": "09",
+        "oct": "10", "october": "10",
+        "nov": "11", "november": "11",
+        "dec": "12", "december": "12",
+    }
+    for month_name, month_number in month_numbers.items():
+        match = re.search(rf"(?:^|_){month_name}_(20\d{{2}})(?:_|$)", normalized)
+        if match:
+            return f"{match.group(1)}-{month_number}"
+    match = re.search(r"(20\d{2})[_-]?(0[1-9]|1[0-2])", normalized)
+    if match:
+        return f"{match.group(1)}-{match.group(2)}"
+    return table_name
+
+
+def _asset_performance_period_tables(context: dict[str, Any] | None) -> list[tuple[str, str]]:
+    tables: list[tuple[str, str]] = []
+    for table in (context or {}).get("tableHints") or []:
+        table_name = str(table)
+        normalized = table_name.lower()
+        if "performance" not in normalized:
+            continue
+        if any(term in normalized for term in ("behavior", "summary", "maintenance", "scorecard")):
+            continue
+        columns = _glue_columns_for_table(table_name)
+        required = {"machine_id", "actual_win"}
+        if not required.issubset(columns):
+            continue
+        tables.append((_asset_performance_period_label(table_name), table_name))
+    return sorted(set(tables), key=lambda item: item[0])
+
+
+def _looks_like_asset_month_over_month_request(prompt: str, context: dict[str, Any] | None) -> bool:
+    text = _normalize_lookup_text(prompt)
+    group_key = (context or {}).get("groupKey") if isinstance((context or {}).get("groupKey"), dict) else {}
+    time_series = group_key.get("time_series") if isinstance(group_key.get("time_series"), dict) else {}
+    wants_time_series = (
+        time_series.get("enabled") is True
+        or "month over month" in text
+        or "monthly" in text
+        or "trend" in text
+        or "variance" in text
+    )
+    return (
+        wants_time_series
+        and _looks_like_operational_asset_performance_request(prompt, context)
+        and len(_asset_performance_period_tables(context)) >= 2
+    )
+
+
+def _handle_asset_month_over_month_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_asset_month_over_month_request(prompt, context):
+        return None
+
+    master_table = _table_for_fragments(("machine_master", "asset_master", "slot_machine_master"), context, prompt)
+    maintenance_table = _table_for_fragments(("maintenance_90_days", "maintenance"), context, prompt)
+    period_tables = _asset_performance_period_tables(context)
+    if not master_table or len(period_tables) < 2:
+        return None
+
+    maintenance_join = ""
+    maintenance_select = "CAST(NULL AS DOUBLE) AS service_calls_90_days, CAST(NULL AS DOUBLE) AS uptime_percent"
+    if maintenance_table:
+        maintenance_join = f"""
+            LEFT JOIN "{maintenance_table}" mt
+              ON CAST(mt.machine_id AS VARCHAR) = CAST(m.machine_id AS VARCHAR)
+        """
+        maintenance_select = """
+            TRY_CAST(mt.service_calls_90_days AS DOUBLE) AS service_calls_90_days,
+            TRY_CAST(mt.uptime_percent AS DOUBLE) AS uptime_percent
+        """
+
+    period_selects = []
+    for period, table in period_tables:
+        period_selects.append(f"""
+            SELECT
+                '{period}' AS reporting_period,
+                CAST(p.machine_id AS VARCHAR) AS asset_id,
+                COALESCE(CAST(m.floor_zone AS VARCHAR), 'unknown') AS floor_zone,
+                COALESCE(CAST(m.cabinet_model AS VARCHAR), CAST(m.theme AS VARCHAR), 'unknown') AS equipment_category,
+                COALESCE(CAST(m.game_title AS VARCHAR), CAST(m.theme AS VARCHAR), 'unknown') AS asset_title,
+                TRY_CAST(p.coin_in AS DOUBLE) AS activity_volume,
+                TRY_CAST(p.actual_win AS DOUBLE) AS revenue,
+                TRY_CAST(p.theoretical_win AS DOUBLE) AS theoretical_revenue,
+                TRY_CAST(p.spins AS DOUBLE) AS spins,
+                TRY_CAST(p.occupancy_percent AS DOUBLE) AS utilization_percent,
+                TRY_CAST(p.player_popularity_score AS DOUBLE) AS popularity_score,
+                {maintenance_select}
+            FROM "{table}" p
+            JOIN "{master_table}" m
+              ON CAST(p.machine_id AS VARCHAR) = CAST(m.machine_id AS VARCHAR)
+            {maintenance_join}
+        """)
+    base_cte = "base AS (\n" + "\nUNION ALL\n".join(period_selects) + "\n)"
+
+    period_sql = f"""
+        WITH {base_cte}
+        SELECT
+            reporting_period,
+            COUNT(DISTINCT asset_id) AS asset_count,
+            ROUND(SUM(COALESCE(revenue, 0)), 2) AS revenue,
+            ROUND(SUM(COALESCE(activity_volume, 0)), 2) AS activity_volume,
+            ROUND(SUM(COALESCE(revenue, 0)) / NULLIF(COUNT(DISTINCT asset_id), 0), 2) AS revenue_per_asset,
+            ROUND(AVG(utilization_percent), 2) AS avg_utilization_percent,
+            ROUND(AVG(uptime_percent), 2) AS avg_uptime_percent,
+            ROUND(SUM(COALESCE(service_calls_90_days, 0)), 2) AS service_calls_90_days
+        FROM base
+        GROUP BY reporting_period
+        ORDER BY reporting_period
+    """
+    zone_delta_sql = f"""
+        WITH {base_cte},
+        zone_period AS (
+            SELECT
+                reporting_period,
+                floor_zone,
+                COUNT(DISTINCT asset_id) AS asset_count,
+                SUM(COALESCE(revenue, 0)) AS revenue,
+                AVG(utilization_percent) AS avg_utilization_percent
+            FROM base
+            GROUP BY reporting_period, floor_zone
+        ),
+        deltas AS (
+            SELECT
+                reporting_period,
+                floor_zone,
+                asset_count,
+                ROUND(revenue, 2) AS revenue,
+                ROUND(revenue - LAG(revenue) OVER (PARTITION BY floor_zone ORDER BY reporting_period), 2) AS revenue_change,
+                ROUND(100 * (revenue - LAG(revenue) OVER (PARTITION BY floor_zone ORDER BY reporting_period)) / NULLIF(LAG(revenue) OVER (PARTITION BY floor_zone ORDER BY reporting_period), 0), 2) AS revenue_change_percent,
+                ROUND(avg_utilization_percent, 2) AS avg_utilization_percent,
+                ROUND(avg_utilization_percent - LAG(avg_utilization_percent) OVER (PARTITION BY floor_zone ORDER BY reporting_period), 2) AS utilization_point_change
+            FROM zone_period
+        )
+        SELECT *
+        FROM deltas
+        WHERE revenue_change IS NOT NULL
+        ORDER BY ABS(revenue_change) DESC
+        LIMIT 12
+    """
+    category_delta_sql = f"""
+        WITH {base_cte},
+        category_period AS (
+            SELECT
+                reporting_period,
+                equipment_category,
+                COUNT(DISTINCT asset_id) AS asset_count,
+                SUM(COALESCE(revenue, 0)) AS revenue,
+                SUM(COALESCE(activity_volume, 0)) AS activity_volume,
+                AVG(utilization_percent) AS avg_utilization_percent
+            FROM base
+            GROUP BY reporting_period, equipment_category
+        ),
+        deltas AS (
+            SELECT
+                reporting_period,
+                equipment_category,
+                asset_count,
+                ROUND(revenue, 2) AS revenue,
+                ROUND(revenue - LAG(revenue) OVER (PARTITION BY equipment_category ORDER BY reporting_period), 2) AS revenue_change,
+                ROUND(activity_volume - LAG(activity_volume) OVER (PARTITION BY equipment_category ORDER BY reporting_period), 2) AS activity_change,
+                ROUND(avg_utilization_percent - LAG(avg_utilization_percent) OVER (PARTITION BY equipment_category ORDER BY reporting_period), 2) AS utilization_point_change
+            FROM category_period
+        )
+        SELECT *
+        FROM deltas
+        WHERE revenue_change IS NOT NULL
+        ORDER BY ABS(revenue_change) DESC
+        LIMIT 12
+    """
+    machine_delta_sql = f"""
+        WITH {base_cte},
+        machine_period AS (
+            SELECT
+                reporting_period,
+                asset_id,
+                MAX(floor_zone) AS floor_zone,
+                MAX(equipment_category) AS equipment_category,
+                MAX(asset_title) AS asset_title,
+                SUM(COALESCE(revenue, 0)) AS revenue,
+                AVG(utilization_percent) AS avg_utilization_percent
+            FROM base
+            GROUP BY reporting_period, asset_id
+        ),
+        deltas AS (
+            SELECT
+                reporting_period,
+                asset_id,
+                floor_zone,
+                equipment_category,
+                asset_title,
+                ROUND(revenue, 2) AS revenue,
+                ROUND(revenue - LAG(revenue) OVER (PARTITION BY asset_id ORDER BY reporting_period), 2) AS revenue_change,
+                ROUND(avg_utilization_percent - LAG(avg_utilization_percent) OVER (PARTITION BY asset_id ORDER BY reporting_period), 2) AS utilization_point_change
+            FROM machine_period
+        )
+        SELECT *
+        FROM deltas
+        WHERE revenue_change IS NOT NULL
+        ORDER BY ABS(revenue_change) DESC
+        LIMIT 15
+    """
+
+    errors: list[str] = []
+    try:
+        period_rows = _athena_rows(period_sql)
+    except Exception as e:
+        period_rows = []
+        errors.append(f"Monthly summary: {e}")
+    try:
+        zone_delta_rows = _athena_rows(zone_delta_sql)
+    except Exception as e:
+        zone_delta_rows = []
+        errors.append(f"Floor-zone month-over-month deltas: {e}")
+    try:
+        category_delta_rows = _athena_rows(category_delta_sql)
+    except Exception as e:
+        category_delta_rows = []
+        errors.append(f"Machine-type month-over-month deltas: {e}")
+    try:
+        machine_delta_rows = _athena_rows(machine_delta_sql)
+    except Exception as e:
+        machine_delta_rows = []
+        errors.append(f"Machine-level month-over-month deltas: {e}")
+
+    group_name = (context or {}).get("groupName") or "selected group"
+    lines = [
+        f"{group_name} month-over-month slot performance report",
+        "",
+        "Scope",
+        f"- Master table: `{master_table}`",
+        *[f"- Performance period {period}: `{table}`" for period, table in period_tables],
+        f"- Maintenance table: `{maintenance_table or 'not available'}`",
+        "",
+        "Monthly performance summary",
+        "",
+        _format_rows_as_markdown(period_rows, "No monthly summary rows returned."),
+        "",
+        "Largest floor-zone changes",
+        "",
+        _format_rows_as_markdown(zone_delta_rows, "No floor-zone month-over-month rows returned."),
+        "",
+        "Largest machine-type changes",
+        "",
+        _format_rows_as_markdown(category_delta_rows, "No machine-type month-over-month rows returned."),
+        "",
+        "Largest machine-level changes",
+        "",
+        _format_rows_as_markdown(machine_delta_rows, "No machine-level month-over-month rows returned."),
+        "",
+        "Suggested follow-up prompts",
+        "- For this group, explain the biggest month-over-month floor-zone revenue changes and identify which machine types contributed most.",
+        "- For this group, compare machines with the largest revenue declines against uptime, service calls, floor zone, and cabinet model.",
+        "- For this group, identify persistent floor hot spots across monthly performance periods and recommend floor-layout follow-up.",
+    ]
+    if errors:
+        lines.extend(["", "Query issues"])
+        lines.extend(f"- {error}" for error in errors)
+    return "\n".join(lines)
+
+
+def _handle_operational_asset_performance_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_operational_asset_performance_request(prompt, context):
+        return None
+
+    master_table = _table_for_fragments(("machine_master", "asset_master", "slot_machine_master"), context, prompt)
+    performance_table = _table_for_fragments(("performance_june", "slot_performance", "asset_performance", "performance"), context, prompt)
+    maintenance_table = _table_for_fragments(("maintenance_90_days", "maintenance"), context, prompt)
+    behavior_table = _table_for_fragments(("player_behavior", "behavior_summary", "customer_behavior"), context, prompt)
+    missing = []
+    if not master_table:
+        missing.append("asset or machine master")
+    if not performance_table:
+        missing.append("performance")
+    if missing:
+        group_name = (context or {}).get("groupName") or "selected group"
+        return (
+            f"I could not resolve the operational asset tables for `{group_name}`. "
+            f"Missing: {', '.join(missing)}. "
+            f"Try: `List the available files and tables in this {group_name} group and briefly explain what each one appears to contain.`"
+        )
+
+    maintenance_join = ""
+    maintenance_select = "CAST(NULL AS DOUBLE) AS service_calls_90_days, CAST(NULL AS DOUBLE) AS uptime_percent, CAST(NULL AS DOUBLE) AS maintenance_cost_90_days"
+    if maintenance_table:
+        maintenance_join = f"""
+            LEFT JOIN "{maintenance_table}" mt
+              ON CAST(mt.machine_id AS VARCHAR) = CAST(m.machine_id AS VARCHAR)
+        """
+        maintenance_select = """
+            TRY_CAST(mt.service_calls_90_days AS DOUBLE) AS service_calls_90_days,
+            TRY_CAST(mt.uptime_percent AS DOUBLE) AS uptime_percent,
+            TRY_CAST(mt.maintenance_cost_90_days AS DOUBLE) AS maintenance_cost_90_days
+        """
+
+    behavior_join = ""
+    behavior_select = "CAST(NULL AS VARCHAR) AS dominant_segment, CAST(NULL AS DOUBLE) AS satisfaction_score"
+    if behavior_table:
+        behavior_join = f"""
+            LEFT JOIN "{behavior_table}" bh
+              ON CAST(bh.machine_id AS VARCHAR) = CAST(m.machine_id AS VARCHAR)
+        """
+        behavior_select = """
+            CAST(bh.dominant_player_segment AS VARCHAR) AS dominant_segment,
+            TRY_CAST(bh.customer_satisfaction_score AS DOUBLE) AS satisfaction_score
+        """
+
+    base_cte = f"""
+        base AS (
+            SELECT
+                CAST(m.machine_id AS VARCHAR) AS asset_id,
+                COALESCE(CAST(m.floor_zone AS VARCHAR), 'unknown') AS floor_zone,
+                COALESCE(CAST(m.cabinet_model AS VARCHAR), CAST(m.theme AS VARCHAR), 'unknown') AS equipment_category,
+                COALESCE(CAST(m.game_title AS VARCHAR), CAST(m.theme AS VARCHAR), 'unknown') AS asset_title,
+                TRY_CAST(m.traffic_score AS DOUBLE) AS traffic_score,
+                TRY_CAST(m.visibility_score AS DOUBLE) AS visibility_score,
+                TRY_CAST(p.coin_in AS DOUBLE) AS activity_volume,
+                TRY_CAST(p.actual_win AS DOUBLE) AS revenue,
+                TRY_CAST(p.theoretical_win AS DOUBLE) AS theoretical_revenue,
+                TRY_CAST(p.spins AS DOUBLE) AS sessions_or_events,
+                TRY_CAST(p.occupancy_percent AS DOUBLE) AS utilization_percent,
+                TRY_CAST(p.player_popularity_score AS DOUBLE) AS popularity_score,
+                {maintenance_select},
+                {behavior_select}
+            FROM "{master_table}" m
+            JOIN "{performance_table}" p
+              ON CAST(p.machine_id AS VARCHAR) = CAST(m.machine_id AS VARCHAR)
+            {maintenance_join}
+            {behavior_join}
+        )
+    """
+    zone_sql = f"""
+        WITH {base_cte}
+        SELECT
+            floor_zone,
+            COUNT(DISTINCT asset_id) AS asset_count,
+            ROUND(SUM(COALESCE(activity_volume, 0)), 2) AS activity_volume,
+            ROUND(SUM(COALESCE(revenue, 0)), 2) AS revenue,
+            ROUND(SUM(COALESCE(revenue, 0)) / NULLIF(COUNT(DISTINCT asset_id), 0), 2) AS revenue_per_asset,
+            ROUND(AVG(utilization_percent), 2) AS avg_utilization_percent,
+            ROUND(AVG(traffic_score), 2) AS avg_traffic_score,
+            ROUND(SUM(COALESCE(service_calls_90_days, 0)), 2) AS service_calls_90_days,
+            ROUND(AVG(uptime_percent), 2) AS avg_uptime_percent,
+            MAX_BY(equipment_category, revenue) AS leading_equipment_category
+        FROM base
+        GROUP BY floor_zone
+        ORDER BY revenue DESC
+        LIMIT 12
+    """
+    category_sql = f"""
+        WITH {base_cte}
+        SELECT
+            equipment_category,
+            COUNT(DISTINCT asset_id) AS asset_count,
+            ROUND(SUM(COALESCE(activity_volume, 0)), 2) AS activity_volume,
+            ROUND(SUM(COALESCE(revenue, 0)), 2) AS revenue,
+            ROUND(SUM(COALESCE(revenue, 0)) / NULLIF(COUNT(DISTINCT asset_id), 0), 2) AS revenue_per_asset,
+            ROUND(AVG(utilization_percent), 2) AS avg_utilization_percent,
+            ROUND(SUM(COALESCE(service_calls_90_days, 0)), 2) AS service_calls_90_days,
+            ROUND(AVG(satisfaction_score), 2) AS avg_satisfaction_score
+        FROM base
+        GROUP BY equipment_category
+        ORDER BY revenue DESC
+        LIMIT 12
+    """
+    maintenance_sql = f"""
+        WITH {base_cte}
+        SELECT
+            floor_zone,
+            COUNT(DISTINCT asset_id) AS asset_count,
+            ROUND(SUM(COALESCE(service_calls_90_days, 0)), 2) AS service_calls_90_days,
+            ROUND(AVG(uptime_percent), 2) AS avg_uptime_percent,
+            ROUND(SUM(COALESCE(maintenance_cost_90_days, 0)), 2) AS maintenance_cost_90_days,
+            ROUND(SUM(COALESCE(revenue, 0)), 2) AS revenue
+        FROM base
+        GROUP BY floor_zone
+        ORDER BY service_calls_90_days DESC, maintenance_cost_90_days DESC
+        LIMIT 12
+    """
+
+    errors: list[str] = []
+    try:
+        zone_rows = _athena_rows(zone_sql)
+    except Exception as e:
+        zone_rows = []
+        errors.append(f"Zone summary: {e}")
+    try:
+        category_rows = _athena_rows(category_sql)
+    except Exception as e:
+        category_rows = []
+        errors.append(f"Equipment category summary: {e}")
+    try:
+        maintenance_rows = _athena_rows(maintenance_sql) if maintenance_table else []
+    except Exception as e:
+        maintenance_rows = []
+        errors.append(f"Maintenance summary: {e}")
+
+    group_name = (context or {}).get("groupName") or "selected group"
+    lines = [
+        f"{group_name} operational asset performance report",
+        "",
+        "Scope",
+        f"- Master table: `{master_table}`",
+        f"- Performance table: `{performance_table}`",
+        f"- Maintenance table: `{maintenance_table or 'not available'}`",
+        f"- Behavior table: `{behavior_table or 'not available'}`",
+        "",
+        "Floor zone performance",
+        "",
+        _format_rows_as_markdown(zone_rows, "No floor-zone rows returned."),
+        "",
+        "Equipment category performance",
+        "",
+        _format_rows_as_markdown(category_rows, "No equipment-category rows returned."),
+    ]
+    if maintenance_table:
+        lines.extend([
+            "",
+            "Maintenance context by floor zone",
+            "",
+            _format_rows_as_markdown(maintenance_rows, "No maintenance rows returned."),
+        ])
+    lines.extend([
+        "",
+        "Suggested follow-up prompts",
+        "- For this group, compare equipment categories by revenue, activity volume, utilization, and maintenance activity. Rank categories by total revenue.",
+        "- For this group, summarize maintenance impact by floor zone. Include service calls, uptime, maintenance cost, asset count, and related performance totals.",
+        "- For this group, show the top floor zones by revenue per asset. Include asset count, activity volume, utilization, and leading equipment category.",
+    ])
     if errors:
         lines.extend(["", "Query issues"])
         lines.extend(f"- {error}" for error in errors)
@@ -1513,10 +2890,14 @@ def _looks_like_storm_glass_claim_review_request(prompt: str, context: dict[str,
         "policy",
         "upgrade",
         "upgrades",
+        "payment",
+        "payments",
         "call",
         "logs",
         "notes",
         "siu",
+        "score",
+        "scores",
     )
     followup_terms = (
         "claim ids above",
@@ -1524,6 +2905,7 @@ def _looks_like_storm_glass_claim_review_request(prompt: str, context: dict[str,
         "top storm glass claim",
         "claim packet",
         "claim level",
+        "claim and payment overview",
         "evidence summary",
     )
     if (
@@ -1539,7 +2921,7 @@ def _looks_like_storm_glass_claim_review_request(prompt: str, context: dict[str,
         and has_claim
         and (
             (
-                ("normal" in text or "combined" in text or "cross" in text or "review" in text or "suspicious" in text)
+                ("normal" in text or "combined" in text or "cross" in text or "review" in text or "compare" in text or "overview" in text or "suspicious" in text)
                 and cross_evidence_count >= 3
             )
             or (
@@ -2075,11 +3457,11 @@ def _handle_storm_glass_claim_review_request(prompt: str, context: dict[str, Any
         "- Call and note signals are short excerpts from the project tables; they should be reviewed against source records before drawing conclusions.",
         "",
         "Suggested follow-up prompts",
-        "- Create a neutral claim-level evidence summary for the top Storm Glass claim IDs above. Include claim_id, policy_id, loss date, invoice total, benchmark high, weather match status, recent upgrade date, call context, note context, SIU score if available, and joined data factors.",
-        "- Review Storm Glass claims where invoice totals exceed repair benchmarks. Include claim_id, loss_type, state, vendor, invoice total, benchmark high, estimated loss, and the amount above benchmark.",
-        "- Find Storm Glass claims with recent policy upgrades before the loss date and supporting invoice or call-log signals. Include claim_id, policy_id, upgrade date, loss date, days between upgrade and loss, invoice total, and call or note evidence.",
-        "- Validate Storm Glass weather support for the highest-value claims. Include claim_id, ZIP, loss date, loss type, invoice total, nearby weather event count, max hail inches, max wind mph, and whether weather evidence supports the claim.",
-        "- Summarize Storm Glass claims using combined invoice, weather, policy upgrade, call-log, adjuster-note, and SIU-score context. Include claim_id, review_signal_count, SIU score if available, top vendor, invoice total, and concise joined data factors.",
+        "- Create a neutral claim-level evidence summary for the top claim IDs above. Include claim_id, policy_id, loss date, invoice total, benchmark high, weather match status, recent upgrade date, call context, note context, SIU score if available, and joined data factors.",
+        "- For this group, review claims where invoice totals exceed repair benchmarks. Include claim_id, loss_type, state, vendor, invoice total, benchmark high, estimated loss, and the amount above benchmark.",
+        "- For this group, find claims with recent policy upgrades before the loss date and supporting invoice or call-log signals. Include claim_id, policy_id, upgrade date, loss date, days between upgrade and loss, invoice total, and call or note evidence.",
+        "- For this group, validate weather support for the highest-value claims. Include claim_id, ZIP, loss date, loss type, invoice total, nearby weather event count, max hail inches, max wind mph, and whether weather evidence supports the claim.",
+        "- For this group, summarize claims using combined invoice, weather, policy upgrade, call-log, adjuster-note, and SIU-score context. Include claim_id, review_signal_count, SIU score if available, top vendor, invoice total, and concise joined data factors.",
     ])
 
 
@@ -2160,8 +3542,8 @@ def _handle_legal_department_specific_review(prompt: str, context: dict[str, Any
             _format_rows_as_markdown(rows, "No marketing budget variance rows found."),
             "",
             "Suggested follow-up prompts",
-            "- For this Legal_Department group, compare AP invoices for the same marketing vendors. Include invoice_id, vendor, amount, invoice_date, related_group, and issue_hint.",
-            "- For this Legal_Department group, review cross-department relationship signals for the top marketing vendors. Include source object, relationship, target, and follow-up question.",
+            "- For this group, compare AP invoices for the same marketing vendors. Include invoice_id, vendor, amount, invoice_date, related_group, and issue_hint.",
+            "- For this group, review cross-department relationship signals for the top marketing vendors. Include source object, relationship, target, and follow-up question.",
         ])
 
     if "invoice" in text or "ap " in f"{text} ":
@@ -2383,11 +3765,11 @@ def _handle_legal_department_enterprise_review(prompt: str, context: dict[str, A
         "- `recommended_action` is a practical next step for management review and evidence validation.",
         "",
         "Suggested follow-up prompts",
-        "- For this Legal_Department group, review AP invoice items marked for review. Include invoice_id, vendor, amount, invoice_date, related_group, and recommended next action.",
-        "- For this Legal_Department group, summarize flagged claims by vendor and adjuster. Include claim count, reserve total, loss types, and affected departments.",
-        "- For this Legal_Department group, review expired contracts and related vendor activity. Include contract_id, vendor, end_date, status, hourly_rate, and likely business impact.",
-        "- For this Legal_Department group, review cross-department relationship signals. Include source group, source object, relationship, target, affected departments, and follow-up question.",
-        "- For this Legal_Department group, compare marketing budget variances by campaign and vendor. Include budget, actual, variance, affected department, and recommended next action.",
+        "- For this group, review AP invoice items marked for review. Include invoice_id, vendor, amount, invoice_date, related_group, and recommended next action.",
+        "- For this group, summarize flagged claims by vendor and adjuster. Include claim count, reserve total, loss types, and affected departments.",
+        "- For this group, review expired contracts and related vendor activity. Include contract_id, vendor, end_date, status, hourly_rate, and likely business impact.",
+        "- For this group, review cross-department relationship signals. Include source group, source object, relationship, target, affected departments, and follow-up question.",
+        "- For this group, compare marketing budget variances by campaign and vendor. Include budget, actual, variance, affected department, and recommended next action.",
     ])
 
 
@@ -2836,10 +4218,10 @@ def _handle_nightingale_pattern_request(prompt: str, context: dict[str, Any] | N
     lines.extend([
         "",
         "Suggested follow-up prompts",
-        "- Pull the top provider IDs and attorney IDs above into a claim packet review for this Nightingale group. Include claim_id, provider_id or provider name, attorney_id or attorney name, billed amount, MRI indicators, duplicate candidate count, and why each claim should be reviewed.",
-        "- Review duplicate bill candidates in this Nightingale group against payment records. Include bill_id, claim_id, provider_id, duplicate_reason, confidence, paid amount if available, and a short recommendation.",
-        "- Validate Sunday service dates in this Nightingale group against provider operating records and treatment/session logs. Include provider_id, claim_id, service_date, billed amount, and whether the provider appears open.",
-        "- Compare delayed-treatment claims in this Nightingale group against call-center intake logs and witness or document narrative tables. Include days from loss to first treatment and the evidence that supports review.",
+        "- Pull the top provider IDs and attorney IDs above into a claim packet review for this group. Include claim_id, provider_id or provider name, attorney_id or attorney name, billed amount, MRI indicators, duplicate candidate count, and why each claim should be reviewed.",
+        "- For this group, review duplicate bill candidates against payment records. Include bill_id, claim_id, provider_id, duplicate_reason, confidence, paid amount if available, and a short recommendation.",
+        "- For this group, validate Sunday service dates against provider operating records and treatment/session logs. Include provider_id, claim_id, service_date, billed amount, and whether the provider appears open.",
+        "- For this group, compare delayed-treatment claims against call-center intake logs and witness or document narrative tables. Include days from loss to first treatment and the evidence that supports review.",
         "- Prioritize low-severity and high-billing Nightingale claims for SIU review before payment escalation. Include claim_id, severity, provider, attorney, billed amount, duplicate indicator, and SIU reason if available.",
     ])
     return "\n".join(lines)
@@ -3148,7 +4530,27 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     )
     if explicit_context and session_id != "adhoc":
         SESSION_GROUP_CONTEXTS[session_id] = explicit_context
-    resolved_context = _context_with_glue_table_hints(explicit_context or SESSION_GROUP_CONTEXTS.get(session_id))
+    resolved_context = _context_with_project_metadata(
+        _context_with_glue_table_hints(explicit_context or SESSION_GROUP_CONTEXTS.get(session_id))
+    )
+    if _looks_like_group_key_summary_request(request_prompt):
+        if resolved_context:
+            return {"result": _format_group_key_summary(resolved_context)}
+        return {
+            "result": (
+                "I need a selected Data Group before summarizing `group_key.json`.\n\n"
+                f"{_list_projects_payload()}"
+            )
+        }
+    if _looks_like_group_summary_request(request_prompt):
+        if resolved_context:
+            return {"result": _format_group_summary(resolved_context)}
+        return {
+            "result": (
+                "I need a selected Data Group before summarizing the group.\n\n"
+                f"{_list_projects_payload()}"
+            )
+        }
     if _looks_like_group_inventory_request(request_prompt):
         if resolved_context:
             return {"result": _format_group_inventory(resolved_context)}
@@ -3158,12 +4560,33 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
                 f"{_list_projects_payload()}"
             )
         }
+    vendor_document_lookup_result = _handle_vendor_document_lookup_request(request_prompt, resolved_context)
+    if vendor_document_lookup_result:
+        return {"result": vendor_document_lookup_result}
+    expired_contract_activity_result = _handle_expired_contract_activity_request(request_prompt, resolved_context)
+    if expired_contract_activity_result:
+        return {"result": expired_contract_activity_result}
+    vendor_security_review_result = _handle_vendor_security_review_request(request_prompt, resolved_context)
+    if vendor_security_review_result:
+        return {"result": vendor_security_review_result}
+    vendor_payment_without_review_result = _handle_vendor_payment_without_review_request(request_prompt, resolved_context)
+    if vendor_payment_without_review_result:
+        return {"result": vendor_payment_without_review_result}
+    contract_document_after_end_result = _handle_contract_document_after_end_request(request_prompt, resolved_context)
+    if contract_document_after_end_result:
+        return {"result": contract_document_after_end_result}
     row_count_result = _handle_row_count_request(request_prompt, resolved_context)
     if row_count_result:
         return {"result": row_count_result}
     daily_sales_multi_zone_result = _handle_daily_sales_multi_zone_request(request_prompt, resolved_context)
     if daily_sales_multi_zone_result:
         return {"result": daily_sales_multi_zone_result}
+    asset_month_over_month_result = _handle_asset_month_over_month_request(request_prompt, resolved_context)
+    if asset_month_over_month_result:
+        return {"result": asset_month_over_month_result}
+    operational_asset_result = _handle_operational_asset_performance_request(request_prompt, resolved_context)
+    if operational_asset_result:
+        return {"result": operational_asset_result}
     storm_glass_claim_review_result = _handle_storm_glass_claim_review_request(request_prompt, resolved_context)
     if storm_glass_claim_review_result:
         return {"result": storm_glass_claim_review_result}

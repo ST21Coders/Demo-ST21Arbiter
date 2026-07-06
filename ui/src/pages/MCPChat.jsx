@@ -155,8 +155,38 @@ function ToolBadge({ name }) {
 }
 
 function reportTitleFromMessage(msg) {
-  const firstLine = String(msg.content || '').split('\n').find(line => line.trim())
-  return firstLine?.replace(/^#+\s*/, '').replace(/\*\*/g, '').trim() || 'ARBITER Report'
+  const lines = String(msg.content || '')
+    .split('\n')
+    .map(line => line.replace(/^#+\s*/, '').replace(/\*\*/g, '').trim())
+    .filter(Boolean)
+  const genericHeadings = new Set([
+    'logical first query',
+    'matching files',
+    'matching structured tables',
+    'available tables',
+    'available files',
+    'summary',
+    'scope',
+    'how to read this',
+    'suggested follow-up prompts',
+    'other useful first questions',
+  ])
+  const reportLine = lines.find(line => (
+    /report|lookup|review|summary/i.test(line)
+    && !genericHeadings.has(line.toLowerCase())
+    && line.length <= 120
+  ))
+  if (reportLine) return reportLine
+
+  const groupLine = lines.find(line => /^Group:\s*/i.test(line))
+  const projectLine = lines.find(line => /^Project:\s*/i.test(line))
+  const group = groupLine?.replace(/^Group:\s*/i, '').trim()
+  const project = projectLine?.replace(/^Project:\s*/i, '').replace(/\s*\([^)]*\)\s*$/, '').trim()
+  if (group && project) return `${project} ${group} Report`
+  if (group) return `${group} Report`
+
+  const firstUseful = lines.find(line => !genericHeadings.has(line.toLowerCase()) && line.length <= 120)
+  return firstUseful || 'ARBITER Report'
 }
 
 function Message({ msg }) {
@@ -213,7 +243,17 @@ const SUGGESTED = {
   zscaler: ['Is dropbox.com allowed?', 'What URL categories are blocked?', 'Check the TeamViewer category'],
   paloalto: ['Is outbound tor traffic allowed at the perimeter?', 'Show the egress security rules', 'What does PAN-SEC-EGRESS-ANYANY-ALLOW-001 permit?'],
   awsconfig: ['List non-compliant resources', 'Which Config rules are failing?', 'Show S3 encryption compliance'],
-  structured: ['Show Available Projects', 'Summarize AR invoices by status', 'Count rows in the latest invoice dataset'],
+  structured: [
+    'List the available files and tables in this group and briefly explain what each one appears to contain.',
+    {
+      label: 'AI Summary group_key.json',
+      prompt: 'Summarize this group\'s group_key.json for the user. Include purpose, domain, file mix, table/file structure, relationships, starter prompts, query wording guidance, and useful next questions.',
+    },
+    {
+      label: 'Logical first query',
+      prompt: 'Recommend a logical first query for this group. Use the group purpose, detailed description, available tables, row counts if available, and important columns. Return one best query first, then a few useful alternatives.',
+    },
+  ],
   jira: ['List my open issues', 'Show issues in the MIG project', 'What is the status of MIG-123?'],
   servicenow: [
     'What is the impact of changing alb-mig-prod-claims-api-001?',
@@ -226,6 +266,8 @@ const SUGGESTED = {
 
 const MCP_CHAT_DRAFT_KEY = 'arbiter.mcpChat.sessionDraft.v1'
 const DATA_GROUPING_GROUPS_KEY = 'arbiter.dataGrouping.v2.savedGroups'
+const DEFAULT_DATA_PROJECT_ID = 'discovery'
+const DEFAULT_DATA_PROJECT_NAME = 'Discovery'
 
 function readMcpChatDraft() {
   if (typeof window === 'undefined') return null
@@ -271,12 +313,14 @@ function readLocalDataGroupingGroups() {
         }))
         const fileCount = Array.isArray(group.files) ? group.files.length : Array.isArray(group.fileKeys) ? group.fileKeys.length : 0
         const csvCount = files.filter(file => file.type === 'csv').length
+        const projectId = group.projectId || DEFAULT_DATA_PROJECT_ID
+        const projectName = group.projectName || DEFAULT_DATA_PROJECT_NAME
         return {
-          id: `local::${group.id || group.name}`,
-          projectId: 'local-browser',
-          projectName: 'Local Data Grouping',
+          id: `local::${projectId}::${group.id || group.name}`,
+          projectId,
+          projectName,
           groupName: group.name,
-          label: `Local Data Grouping / ${group.name}`,
+          label: `${projectName} / ${group.name}`,
           value: group.name,
           fileCount,
           csvCount,
@@ -292,12 +336,25 @@ function readLocalDataGroupingGroups() {
 }
 
 function mergeDataGroupOptions(primary = [], fallback = []) {
-  const byGroupName = new Map()
+  const byProjectGroup = new Map()
   ;[...fallback, ...primary].forEach(group => {
     if (!group?.groupName) return
-    byGroupName.set(group.groupName, group)
+    const projectId = group.projectId || 'unknown-project'
+    const groupName = normalizeGroupMention(group.groupName)
+    byProjectGroup.set(`${projectId}::${groupName}`, group)
   })
-  return [...byGroupName.values()].sort((a, b) => String(a.label || '').localeCompare(String(b.label || '')))
+  return [...byProjectGroup.values()].sort((a, b) => String(a.label || '').localeCompare(String(b.label || '')))
+}
+
+function projectOptionsFromGroups(groups = []) {
+  const byId = new Map()
+  groups.forEach(group => {
+    const projectId = group.projectId || DEFAULT_DATA_PROJECT_ID
+    const projectName = group.projectName || projectId || DEFAULT_DATA_PROJECT_NAME
+    if (projectId) byId.set(projectId, { id: projectId, name: projectName })
+  })
+  if (!byId.size) byId.set(DEFAULT_DATA_PROJECT_ID, { id: DEFAULT_DATA_PROJECT_ID, name: DEFAULT_DATA_PROJECT_NAME })
+  return [...byId.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)))
 }
 
 function normalizeGroupMention(value) {
@@ -325,6 +382,22 @@ function findOutOfScopeGroup(prompt, selectedGroup, groups) {
   }) || null
 }
 
+function findGroupOutsideSelectedProject(prompt, selectedProjectId, groups) {
+  if (!selectedProjectId) return null
+  const text = ` ${normalizeGroupMention(prompt)} `
+  return groups.find(group => {
+    if (!group?.groupName || (group.projectId || DEFAULT_DATA_PROJECT_ID) === selectedProjectId) return false
+    const candidates = [
+      normalizeGroupMention(group.groupName),
+      normalizeGroupMention(group.label),
+    ].filter(Boolean)
+    return candidates.some(candidate => (
+      candidate.length >= 5
+      && text.includes(` ${candidate} `)
+    ))
+  }) || null
+}
+
 function looksLikeGroupInventoryQuestion(question) {
   const text = normalizeGroupMention(question)
   return (
@@ -340,8 +413,60 @@ function looksLikeGroupInventoryQuestion(question) {
   )
 }
 
+function looksLikeDeterministicStructuredQuestion(question) {
+  const text = normalizeGroupMention(question)
+  const rawText = String(question || '')
+  const hasVendorId = /\bV\d{3,6}\b/i.test(rawText)
+  const hasDocumentTerm = [
+    'invoice', 'invoices', 'contract', 'contracts', 'audit', 'audits',
+    'credentialing', 'legal review', 'security review', 'rate sheet',
+    'payment reconciliation', 'performance review', 'renewal memo',
+    'scope of work', 'amendment', 'email thread', 'meeting notes',
+  ].some(term => text.includes(term))
+  const hasContractActivityLookup = (
+    text.includes('expired contract')
+    && (text.includes('invoice') || text.includes('payment'))
+  )
+  const hasVendorIntelligenceLookup = (
+    (text.includes('security review') && text.includes('risk score'))
+    || (text.includes('payment reconciliation') && text.includes('performance review'))
+    || ((text.includes('contract') || text.includes('amendment')) && text.includes('contract end'))
+  )
+  return (
+    looksLikeGroupInventoryQuestion(question)
+    || (hasVendorId && hasDocumentTerm)
+    || hasContractActivityLookup
+    || hasVendorIntelligenceLookup
+    || text.includes('logical first query')
+    || text.includes('group key')
+    || text.includes('groupkey')
+    || text.includes('group key json')
+    || text.includes('group_key json')
+    || (
+      text.includes('summarize')
+      && text.includes('group')
+      && (
+        text.includes('row count')
+        || text.includes('important columns')
+        || text.includes('first questions')
+      )
+    )
+  )
+}
+
 function buildStructuredScopedPrompt(question, selectedGroup) {
   if (!selectedGroup) return question
+  const minimalContext = looksLikeDeterministicStructuredQuestion(question)
+  if (minimalContext) {
+    return [
+      'Resolved project/group context from the UI selector.',
+      `Project: ${selectedGroup.projectName || selectedGroup.projectId || 'Selected project'} (${selectedGroup.projectId || 'unknown'})`,
+      `Group: ${selectedGroup.groupName}`,
+      `Selected group file count: ${selectedGroup.fileCount || selectedGroup.files?.length || 0}`,
+      '',
+      `User request:\n${question}`,
+    ].filter(Boolean).join('\n')
+  }
   const includeFileInventory = looksLikeGroupInventoryQuestion(question)
   const fileLines = selectedGroup.files?.length
     ? selectedGroup.files.slice(0, 100).map(file => `- ${file.name || 'Unnamed file'} (${file.type || 'file'}${file.glueTableHint ? `, table: ${file.glueTableHint}` : ''})`).join('\n')
@@ -388,6 +513,7 @@ export default function MCPChat() {
   const [activeSessionTitle, setActiveSessionTitle] = useState(restoredDraftRef.current?.activeSessionTitle || null)
   const [dataGroups, setDataGroups] = useState([])
   const [dataGroupsLoading, setDataGroupsLoading] = useState(false)
+  const [selectedDataProjectId, setSelectedDataProjectId] = useState(restoredDraftRef.current?.selectedDataProjectId || '')
   const [selectedDataGroupId, setSelectedDataGroupId] = useState(restoredDraftRef.current?.selectedDataGroupId || '')
   const bottomRef = useRef(null)
   const statusById = useAgentStatus()
@@ -402,6 +528,10 @@ export default function MCPChat() {
   const servers = MCP_SERVERS.map(decorate)
   const sel = decorate(selectedServer)
   const selectedDataGroup = dataGroups.find(group => group.id === selectedDataGroupId) || null
+  const dataProjectOptions = projectOptionsFromGroups(dataGroups)
+  const filteredDataGroups = selectedDataProjectId
+    ? dataGroups.filter(group => (group.projectId || DEFAULT_DATA_PROJECT_ID) === selectedDataProjectId)
+    : dataGroups
 
   const introMessage = (s) => ({
     role: 'assistant',
@@ -423,10 +553,11 @@ export default function MCPChat() {
       selectedServerId: selectedServer.id,
       activeSessionId,
       activeSessionTitle,
+      selectedDataProjectId,
       selectedDataGroupId,
       messages,
     })
-  }, [selectedServer.id, activeSessionId, activeSessionTitle, selectedDataGroupId, messages])
+  }, [selectedServer.id, activeSessionId, activeSessionTitle, selectedDataProjectId, selectedDataGroupId, messages])
 
   // Fetch the user's session list once on mount.
   useEffect(() => {
@@ -443,7 +574,11 @@ export default function MCPChat() {
       .then(data => {
         if (cancelled) return
         const groups = mergeDataGroupOptions(data.groups || [], localGroups)
+        const projects = projectOptionsFromGroups(groups)
         setDataGroups(groups)
+        if (!selectedDataProjectId && projects[0]?.id) {
+          setSelectedDataProjectId(projects.find(project => project.id === DEFAULT_DATA_PROJECT_ID)?.id || projects[0].id)
+        }
         if (selectedDataGroupId && !groups.some(group => group.id === selectedDataGroupId)) {
           setSelectedDataGroupId('')
         }
@@ -451,6 +586,10 @@ export default function MCPChat() {
       .catch(() => {
         if (!cancelled) {
           setDataGroups(localGroups)
+          const projects = projectOptionsFromGroups(localGroups)
+          if (!selectedDataProjectId && projects[0]?.id) {
+            setSelectedDataProjectId(projects.find(project => project.id === DEFAULT_DATA_PROJECT_ID)?.id || projects[0].id)
+          }
           if (selectedDataGroupId && !localGroups.some(group => group.id === selectedDataGroupId)) {
             setSelectedDataGroupId('')
           }
@@ -461,6 +600,14 @@ export default function MCPChat() {
       })
     return () => { cancelled = true }
   }, [selectedServer.id])
+
+  useEffect(() => {
+    if (!selectedDataGroupId) return
+    const selected = dataGroups.find(group => group.id === selectedDataGroupId)
+    if (selected && selectedDataProjectId && (selected.projectId || DEFAULT_DATA_PROJECT_ID) !== selectedDataProjectId) {
+      setSelectedDataGroupId('')
+    }
+  }, [dataGroups, selectedDataProjectId, selectedDataGroupId])
 
   // Reset chat when the user picks a different server (only if no session is loaded).
   useEffect(() => {
@@ -532,6 +679,33 @@ export default function MCPChat() {
       return
     }
 
+    const outsideProjectGroup = selectedServer.id === 'structured' && !selectedDataGroup
+      ? findGroupOutsideSelectedProject(q, selectedDataProjectId, dataGroups)
+      : null
+    if (outsideProjectGroup) {
+      const projectName = dataProjectOptions.find(project => project.id === selectedDataProjectId)?.name || selectedDataProjectId || 'the selected project'
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        system: true,
+        content: `This chat is scoped to **${projectName}**, but **${outsideProjectGroup.groupName}** is published under **${outsideProjectGroup.projectName || outsideProjectGroup.projectId || 'another project'}**. Select that project/group, or publish the group inside **${projectName}** before querying it here.`,
+        toolCalls: [],
+        time: new Date().toLocaleTimeString(),
+      }])
+      return
+    }
+
+    if (selectedServer.id === 'structured' && selectedDataProjectId && !selectedDataGroup) {
+      const projectName = dataProjectOptions.find(project => project.id === selectedDataProjectId)?.name || selectedDataProjectId || 'the selected project'
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        system: true,
+        content: `Select a data group inside **${projectName}** before running this structured-data query. This prevents the specialist from inferring a same-named group from another project.`,
+        toolCalls: [],
+        time: new Date().toLocaleTimeString(),
+      }])
+      return
+    }
+
     setLoading(true)
 
     // Generate a session_id the first time the user sends a message in this chat.
@@ -559,7 +733,15 @@ export default function MCPChat() {
     try {
       const scopedPrompt = selectedServer.id === 'structured' && selectedDataGroup
         ? buildStructuredScopedPrompt(q, selectedDataGroup)
-        : q
+        : selectedServer.id === 'structured' && selectedDataProjectId
+          ? [
+              'Resolved project context from the UI selector.',
+              `Project: ${dataProjectOptions.find(project => project.id === selectedDataProjectId)?.name || selectedDataProjectId} (${selectedDataProjectId})`,
+              'Group: not selected',
+              '',
+              `User request:\n${q}`,
+            ].join('\n')
+          : q
       const { reply } = await sendChat({
         prompt: scopedPrompt,
         session_id: sid,
@@ -567,6 +749,19 @@ export default function MCPChat() {
         target: selectedServer.id,
         data_group: selectedServer.id === 'structured' && selectedDataGroup
           ? selectedDataGroup.groupName
+          : '',
+        data_project_id: selectedServer.id === 'structured' && selectedDataGroup
+          ? selectedDataGroup.projectId
+          : selectedServer.id === 'structured'
+            ? selectedDataProjectId
+            : '',
+        data_project_name: selectedServer.id === 'structured' && selectedDataGroup
+          ? selectedDataGroup.projectName
+          : selectedServer.id === 'structured'
+            ? dataProjectOptions.find(project => project.id === selectedDataProjectId)?.name || ''
+            : '',
+        data_group_id: selectedServer.id === 'structured' && selectedDataGroup
+          ? selectedDataGroup.id
           : '',
       })
       setMessages(prev => [...prev, {
@@ -777,17 +972,21 @@ export default function MCPChat() {
         </div>
 
         {/* Suggestions */}
-        {suggestions.length > 0 && messages.length <= 1 && (
+        {suggestions.length > 0 && (messages.length <= 1 || selectedServer.id === 'structured') && (
           <div className="px-5 pb-2 flex flex-wrap gap-1.5">
-            {suggestions.map(s => (
+            {suggestions.map(s => {
+              const label = typeof s === 'string' ? s : s.label
+              const prompt = typeof s === 'string' ? s : s.prompt
+              return (
               <button
-                key={s}
-                onClick={() => send(s)}
+                key={label}
+                onClick={() => send(prompt)}
                 className="text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors"
               >
-                {s}
+                {label}
               </button>
-            ))}
+              )
+            })}
           </div>
         )}
 
@@ -795,26 +994,48 @@ export default function MCPChat() {
         <div className="p-4 border-t border-slate-200 bg-white">
           <div className="flex gap-2">
             {selectedServer.id === 'structured' && (
-              <label className="relative flex min-w-[260px] max-w-[340px] flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <Database size={14} className="shrink-0 text-indigo-600" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Data group</p>
-                  <select
-                    value={selectedDataGroupId}
-                    onChange={(event) => setSelectedDataGroupId(event.target.value)}
-                    disabled={loading || dataGroupsLoading}
-                    className="mt-0.5 w-full bg-transparent text-xs font-semibold text-slate-800 outline-none disabled:text-slate-400"
-                    title={selectedDataGroup?.label || 'All data'}
-                  >
-                    <option value="">{dataGroupsLoading ? 'Loading groups...' : 'All data'}</option>
-                    {dataGroups.map(group => (
-                      <option key={group.id} value={group.id}>
-                        {group.label}{group.local ? ' · local' : ` · ${group.tableCount || 0} tables`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </label>
+              <>
+                <label className="relative flex min-w-[190px] max-w-[260px] flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <Database size={14} className="shrink-0 text-indigo-600" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Project</p>
+                    <select
+                      value={selectedDataProjectId}
+                      onChange={(event) => {
+                        setSelectedDataProjectId(event.target.value)
+                        setSelectedDataGroupId('')
+                      }}
+                      disabled={loading || dataGroupsLoading}
+                      className="mt-0.5 w-full bg-transparent text-xs font-semibold text-slate-800 outline-none disabled:text-slate-400"
+                      title={dataProjectOptions.find(project => project.id === selectedDataProjectId)?.name || 'Project'}
+                    >
+                      {dataProjectOptions.map(project => (
+                        <option key={project.id} value={project.id}>{project.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </label>
+                <label className="relative flex min-w-[260px] max-w-[360px] flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <Database size={14} className="shrink-0 text-indigo-600" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Data group</p>
+                    <select
+                      value={selectedDataGroupId}
+                      onChange={(event) => setSelectedDataGroupId(event.target.value)}
+                      disabled={loading || dataGroupsLoading}
+                      className="mt-0.5 w-full bg-transparent text-xs font-semibold text-slate-800 outline-none disabled:text-slate-400"
+                      title={selectedDataGroup?.label || 'All data'}
+                    >
+                      <option value="">{dataGroupsLoading ? 'Loading groups...' : 'Select group'}</option>
+                      {filteredDataGroups.map(group => (
+                        <option key={group.id} value={group.id}>
+                          {group.groupName}{group.local ? ' · local' : ` · ${group.tableCount || 0} tables`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </label>
+              </>
             )}
             <input
               value={input}
