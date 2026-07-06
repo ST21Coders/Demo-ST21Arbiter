@@ -63,6 +63,14 @@ function slugify(value) {
     .replace(/^-+|-+$/g, '') || 'project'
 }
 
+function defaultProject() {
+  return {
+    id: 'discovery',
+    name: 'Discovery',
+    source: 'default',
+  }
+}
+
 function formatBytes(bytes) {
   const value = Number(bytes) || 0
   if (value < 1024) return `${value} B`
@@ -253,9 +261,39 @@ function fileKey(file) {
   return file?.key || file?.sourceKey || file?.source_key || file?.s3_key || file?.path || file?.name || ''
 }
 
+function isGroupKeyFile(file) {
+  return file?.role === 'group_key' || String(file?.name || '').toLowerCase() === 'group_key.json'
+}
+
 function groupFileKeys(group) {
   if (Array.isArray(group.fileKeys)) return group.fileKeys
   return (group.files || []).map(file => fileKey(file)).filter(Boolean)
+}
+
+function groupKeyDisplayFile(group) {
+  const projectId = group?.projectId || defaultProject().id
+  const groupName = group?.name || group?.groupName || group?.id || 'group'
+  const key = group?.groupKeyFile || `projects/${projectId}/${groupName}/group_key.json`
+  const groupKeyText = group?.groupKey ? JSON.stringify(group.groupKey, null, 2) : ''
+  return {
+    key,
+    sourceKey: key,
+    projectKey: key,
+    name: 'group_key.json',
+    type: 'json',
+    role: 'group_key',
+    size: groupKeyText.length,
+    last_modified: group?.updatedAt,
+    groupedAt: group?.updatedAt,
+  }
+}
+
+function withVisibleGroupKeyFile(group) {
+  const files = [...(group?.files || [])]
+  if ((group?.groupKey || group?.groupKeyFile) && !files.some(isGroupKeyFile)) {
+    files.unshift(groupKeyDisplayFile(group))
+  }
+  return files
 }
 
 function isDocumentAnalysisFile(file) {
@@ -691,6 +729,34 @@ function stripRetiredGroupFields(group) {
 
 function persistGroups(groups) {
   localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups.map(stripRetiredGroupFields)))
+}
+
+function groupIdentity(group) {
+  return `${group?.projectId || defaultProject().id}::${normalizedGroupName(group?.name || group?.groupName || group?.id)}`
+}
+
+function remoteMetadataGroupToLocal(project, group) {
+  const projectId = project?.projectId || defaultProject().id
+  const projectName = project?.projectName || project?.displayName || projectId || defaultProject().name
+  const name = group?.name || group?.groupName || group?.id || 'Group'
+  return stripRetiredGroupFields({
+    ...group,
+    id: group?.id || `${projectId}::${name}`,
+    projectId,
+    projectName,
+    name,
+    type: group?.type || 'pipeline_upload',
+    fileKeys: (group?.files || []).map(file => fileKey(file)).filter(Boolean),
+    updatedAt: project?.updatedAt || group?.updatedAt || new Date().toISOString(),
+    source: 'remote',
+  })
+}
+
+function mergeGroupsByProject(existingGroups, incomingGroups) {
+  const byIdentity = new Map()
+  existingGroups.forEach(group => byIdentity.set(groupIdentity(group), stripRetiredGroupFields(group)))
+  incomingGroups.forEach(group => byIdentity.set(groupIdentity(group), stripRetiredGroupFields(group)))
+  return [...byIdentity.values()]
 }
 
 function Stat({ label, value }) {
@@ -1220,7 +1286,8 @@ function GroupCard({
 
 export default function DataGrouping() {
   const navigate = useNavigate()
-  const [projectName, setProjectName] = useState('Vendor Audit June 2026')
+  const [projectName, setProjectName] = useState('Discovery')
+  const [selectedProjectId, setSelectedProjectId] = useState(defaultProject().id)
   const [files, setFiles] = useState([])
   const [filesTruncated, setFilesTruncated] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -1253,36 +1320,61 @@ export default function DataGrouping() {
   const [selectedManageFileKeys, setSelectedManageFileKeys] = useState([])
   const [groupFileSearch, setGroupFileSearch] = useState('')
   const [groupReadiness, setGroupReadiness] = useState({})
+  const [groupKeyPreview, setGroupKeyPreview] = useState(null)
   const autoStatusKeyRef = useRef('')
 
-  const projectId = slugify(projectName)
+  const projectId = selectedProjectId || slugify(projectName)
   const processedPrefix = 'projects/'
   const fileMap = useMemo(() => new Map(files.map(file => [fileKey(file), file])), [files])
+  const projectOptions = useMemo(() => {
+    const byId = new Map([[defaultProject().id, defaultProject()]])
+    groups.forEach(group => {
+      const id = group.projectId || slugify(group.projectName || projectName)
+      const name = group.projectName || group.projectId || projectName
+      if (id && name) byId.set(id, { id, name, source: group.source || 'group' })
+    })
+    if (!byId.has(selectedProjectId)) byId.set(selectedProjectId, { id: selectedProjectId, name: projectName, source: 'selected' })
+    return [...byId.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)))
+  }, [groups, projectName, selectedProjectId])
   const activeGroups = useMemo(
-    () => groups.filter(group => group.projectId === projectId),
+    () => groups.filter(group => (group.projectId || defaultProject().id) === projectId),
     [groups, projectId],
   )
   const hydratedGroups = useMemo(() => (
-    activeGroups.map(group => ({
-      ...group,
-      fileKeys: groupFileKeys(group),
-      files: groupFileKeys(group)
+    activeGroups.map(group => {
+      const files = groupFileKeys(group)
         .map(key => fileMap.get(key) || (group.files || []).find(file => fileKey(file) === key))
-        .filter(Boolean),
-    }))
+        .filter(Boolean)
+      const hydratedGroup = {
+        ...group,
+        fileKeys: groupFileKeys(group),
+        files,
+      }
+      return {
+        ...hydratedGroup,
+        files: withVisibleGroupKeyFile(hydratedGroup),
+      }
+    })
   ), [activeGroups, fileMap])
   const queryableGroups = useMemo(() => (
-    groups.map(group => ({
-      ...group,
-      fileKeys: groupFileKeys(group),
-      files: groupFileKeys(group)
+    activeGroups.map(group => {
+      const files = groupFileKeys(group)
         .map(key => fileMap.get(key) || (group.files || []).find(file => fileKey(file) === key))
-        .filter(Boolean),
-    })).sort((a, b) => (
+        .filter(Boolean)
+      const hydratedGroup = {
+        ...group,
+        fileKeys: groupFileKeys(group),
+        files,
+      }
+      return {
+        ...hydratedGroup,
+        files: withVisibleGroupKeyFile(hydratedGroup),
+      }
+    }).sort((a, b) => (
       dateSortValue(b.updatedAt) - dateSortValue(a.updatedAt)
       || String(a.name || '').localeCompare(String(b.name || ''))
     ))
-  ), [groups, fileMap])
+  ), [activeGroups, fileMap])
   const assignedKeySet = useMemo(
     () => new Set(hydratedGroups.flatMap(group => group.fileKeys)),
     [hydratedGroups],
@@ -1344,7 +1436,11 @@ export default function DataGrouping() {
   const selectedManageCsvCount = (selectedManageGroup?.files || []).filter(file => !file.summary && /\.csv$/i.test(file.name || '')).length
   const selectedManageDocCount = (selectedManageGroup?.files || []).filter(file => !file.summary && !/\.csv$/i.test(file.name || '')).length
   const visibleGroupFileKeys = visibleGroupFiles.map(file => fileKey(file)).filter(Boolean)
-  const visibleSelectedGroupFileCount = visibleGroupFileKeys.filter(key => selectedManageFileKeySet.has(key)).length
+  const releasableVisibleGroupFileKeys = visibleGroupFiles
+    .filter(file => !isGroupKeyFile(file))
+    .map(file => fileKey(file))
+    .filter(Boolean)
+  const visibleSelectedGroupFileCount = releasableVisibleGroupFileKeys.filter(key => selectedManageFileKeySet.has(key)).length
   const selectedGroupReadiness = selectedManageGroup ? groupReadiness[selectedManageGroup.id] : null
   const selectedGroupStatusTone = groupStatusTone(selectedGroupReadiness)
 
@@ -1371,6 +1467,31 @@ export default function DataGrouping() {
     }
   }
 
+  async function loadRemoteSavedGroups() {
+    try {
+      const data = await listDataGroupingProjects()
+      const projectIds = [...new Set((data.groups || []).map(group => group.projectId).filter(Boolean))]
+      const metadataResults = await Promise.all(projectIds.map(async remoteProjectId => {
+        try {
+          return await getDataGroupingProject(remoteProjectId)
+        } catch {
+          return null
+        }
+      }))
+      const remoteGroups = metadataResults
+        .filter(project => project?.exists)
+        .flatMap(project => (project.groups || []).map(group => remoteMetadataGroupToLocal(project, group)))
+      if (!remoteGroups.length) return
+      setGroups(prev => {
+        const nextGroups = mergeGroupsByProject(prev, remoteGroups)
+        persistGroups(nextGroups)
+        return nextGroups
+      })
+    } catch {
+      // Remote hydration is best effort; local saved groups still drive the page.
+    }
+  }
+
   useEffect(() => {
     loadFiles()
     try {
@@ -1389,11 +1510,24 @@ export default function DataGrouping() {
     } finally {
       setGroupsLoaded(true)
     }
+    loadRemoteSavedGroups()
   }, [])
 
   useEffect(() => {
     loadPersistedProject()
   }, [projectId])
+
+  useEffect(() => {
+    const selected = projectOptions.find(project => project.id === selectedProjectId)
+    if (selected?.name && selected.name !== projectName) {
+      setProjectName(selected.name)
+      setMetadata(null)
+      setSelectedManageGroupId('')
+      setSelectedManageFileKeys([])
+      setGroupFileSearch('')
+      autoStatusKeyRef.current = ''
+    }
+  }, [projectOptions, selectedProjectId, projectName])
 
   useEffect(() => {
     if (groupsLoaded) persistGroups(groups)
@@ -1424,7 +1558,10 @@ export default function DataGrouping() {
       setSelectedManageFileKeys([])
       return
     }
-    const validFileKeys = new Set((selectedManageGroup.files || []).map(file => fileKey(file)).filter(Boolean))
+    const validFileKeys = new Set((selectedManageGroup.files || [])
+      .filter(file => !isGroupKeyFile(file))
+      .map(file => fileKey(file))
+      .filter(Boolean))
     setSelectedManageFileKeys(prev => prev.filter(key => validFileKeys.has(key)))
   }, [selectedManageGroup])
 
@@ -1518,8 +1655,9 @@ export default function DataGrouping() {
       name: group.name,
       type: group.type,
       groupProfile: group.groupProfile || buildGroupProfile(group),
+      groupKey: group.groupKey,
       files: (group.files || [])
-        .filter(file => !file.summary)
+        .filter(file => !file.summary && !isGroupKeyFile(file))
         .map(file => ({
           key: file.key,
           name: file.name,
@@ -1586,36 +1724,43 @@ export default function DataGrouping() {
     }
   }
 
-  function removeGroupLocally(groupId) {
+  function removeGroupLocally(groupToRemove) {
+    if (!groupToRemove?.id) return
+    const targetProjectId = groupToRemove.projectId || projectId
     setMetadata(null)
     setGroups(prev => {
-      const nextGroups = prev.filter(group => group.id !== groupId)
+      const nextGroups = prev.filter(group => {
+        const sameProject = (group.projectId || defaultProject().id) === targetProjectId
+        const sameId = group.id === groupToRemove.id
+        const sameName = group.name === groupToRemove.name
+        return !(sameProject && (sameId || sameName))
+      })
       persistGroups(nextGroups)
       return nextGroups
     })
     setSummaries(prev => {
       const next = { ...prev }
-      delete next[groupId]
+      delete next[groupToRemove.id]
       return next
     })
     setDocumentAnalyses(prev => {
       const next = { ...prev }
-      delete next[groupId]
+      delete next[groupToRemove.id]
       return next
     })
     setAnalysisErrors(prev => {
       const next = { ...prev }
-      delete next[groupId]
+      delete next[groupToRemove.id]
       return next
     })
     setGroupReadiness(prev => {
       const next = { ...prev }
-      delete next[groupId]
+      delete next[groupToRemove.id]
       return next
     })
     setSelectedManageFileKeys([])
-    if (selectedManageGroupId === groupId) setSelectedManageGroupId('')
-    if (editingGroupId === groupId) resetDraft()
+    if (selectedManageGroupId === groupToRemove.id) setSelectedManageGroupId('')
+    if (editingGroupId === groupToRemove.id) resetDraft()
   }
 
   async function deleteGroup(groupId) {
@@ -1644,7 +1789,7 @@ export default function DataGrouping() {
         assignedSourceKeys: (result.metadata.groups || [])
           .flatMap(item => (item.files || []).map(file => file.sourceKey).filter(Boolean)),
       } : persistedProject)
-      removeGroupLocally(groupId)
+      removeGroupLocally(groupToDelete)
       setUploadMessage(`${groupToDelete.name} deleted. Source files remain in /processed and can be assigned to another group.`)
     } catch (err) {
       setError(err.message || `Unable to delete ${groupToDelete.name}`)
@@ -1699,6 +1844,7 @@ export default function DataGrouping() {
   }
 
   function toggleManageFile(file) {
+    if (isGroupKeyFile(file)) return
     const key = fileKey(file)
     if (!key) return
     setSelectedManageFileKeys(prev => (
@@ -1709,11 +1855,23 @@ export default function DataGrouping() {
   }
 
   function selectVisibleGroupFiles() {
-    setSelectedManageFileKeys(prev => [...new Set([...prev, ...visibleGroupFileKeys])])
+    setSelectedManageFileKeys(prev => [...new Set([...prev, ...releasableVisibleGroupFileKeys])])
   }
 
   function clearSelectedGroupFiles() {
     setSelectedManageFileKeys([])
+  }
+
+  function openGroupKeyPreview(event, file) {
+    event.stopPropagation()
+    event.preventDefault()
+    if (!selectedManageGroup || !isGroupKeyFile(file)) return
+    setGroupKeyPreview({
+      groupName: selectedManageGroup.name,
+      projectName: selectedManageGroup.projectName || projectName,
+      file,
+      json: selectedManageGroup.groupKey || null,
+    })
   }
 
   function releaseSelectedGroupFiles() {
@@ -1904,11 +2062,14 @@ export default function DataGrouping() {
 
   function querySavedGroup(group) {
     if (!group?.name) return
-    const selectedDataGroupId = `local::${group.id || group.name}`
+    const selectedDataGroupId = `local::${group.projectId || defaultProject().id}::${group.id || group.name}`
     try {
       sessionStorage.setItem(MCP_CHAT_DRAFT_KEY, JSON.stringify({
         selectedServerId: 'structured',
         selectedDataGroupId,
+        selectedDataProjectId: group.projectId || defaultProject().id,
+        selectedDataProjectName: group.projectName || defaultProject().name,
+        selectedDataGroupName: group.name,
         activeSessionId: null,
         activeSessionTitle: null,
         messages: [],
@@ -2280,25 +2441,25 @@ export default function DataGrouping() {
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.7fr)]">
           <div>
-            <div className="flex items-center justify-between gap-3">
-              <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400" htmlFor="project-name">Project</label>
-              <button
-                type="button"
-                onClick={startNewProject}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                <Plus size={13} /> New project
-              </button>
-            </div>
-            <input
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400" htmlFor="project-name">Project</label>
+            <select
                 id="project-name"
-                value={projectName}
+                value={selectedProjectId}
                 onChange={(event) => {
+                  const nextProject = projectOptions.find(project => project.id === event.target.value)
                   setMetadata(null)
-                  setProjectName(event.target.value)
+                  setSelectedProjectId(event.target.value)
+                  if (nextProject?.name) setProjectName(nextProject.name)
+                  setSelectedManageGroupId('')
+                  setSelectedManageFileKeys([])
+                  setGroupFileSearch('')
                 }}
-                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-              />
+                className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              >
+                {projectOptions.map(project => (
+                  <option key={project.id} value={project.id}>{project.name}</option>
+                ))}
+              </select>
             <p className="mt-2 text-xs text-slate-500">
               Project ID: <span className="font-mono text-slate-700">{projectId}</span>
             </p>
@@ -2429,7 +2590,7 @@ export default function DataGrouping() {
                 <button
                   type="button"
                   onClick={selectVisibleGroupFiles}
-                  disabled={!visibleGroupFileKeys.length || visibleSelectedGroupFileCount === visibleGroupFileKeys.length}
+                  disabled={!releasableVisibleGroupFileKeys.length || visibleSelectedGroupFileCount === releasableVisibleGroupFileKeys.length}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
                 >
                   <CheckCircle size={13} /> Select visible
@@ -2460,17 +2621,31 @@ export default function DataGrouping() {
               {selectedManageGroup ? (
                 visibleGroupFiles.length ? visibleGroupFiles.map(file => {
                   const key = fileKey(file)
+                  const systemFile = isGroupKeyFile(file)
                   return (
                     <label key={key} className="grid cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:border-indigo-200 hover:bg-indigo-50" style={{ gridTemplateColumns: 'auto minmax(0,1fr) auto' }}>
                       <input
                         type="checkbox"
                         checked={selectedManageFileKeySet.has(key)}
                         onChange={() => toggleManageFile(file)}
+                        disabled={systemFile}
                         className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                         aria-label={`Select ${file.name}`}
                       />
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-semibold text-slate-800" title={file.name}>{file.name}</p>
+                        <p className="truncate text-xs font-semibold text-slate-800" title={file.name}>
+                          {file.name}
+                          {systemFile ? (
+                            <button
+                              type="button"
+                              onClick={(event) => openGroupKeyPreview(event, file)}
+                              className="ml-2 rounded-full border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-indigo-600 hover:border-indigo-200 hover:bg-indigo-100"
+                              title="Preview group_key.json"
+                            >
+                              group key
+                            </button>
+                          ) : null}
+                        </p>
                         <p className="truncate font-mono text-[10px] text-slate-400" title={file.key}>{file.key}</p>
                       </div>
                       <div className="hidden shrink-0 items-center gap-2 text-[10px] text-slate-500 md:flex">
@@ -2490,6 +2665,40 @@ export default function DataGrouping() {
           </div>
         </div>
       </section>
+
+      {groupKeyPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+          <div className="flex max-h-[86vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-500">group_key.json</p>
+                <h3 className="mt-1 truncate text-sm font-bold text-slate-900">{groupKeyPreview.groupName}</h3>
+                <p className="mt-1 truncate text-[11px] text-slate-500">
+                  {groupKeyPreview.projectName} · {groupKeyPreview.file?.projectKey || groupKeyPreview.file?.key}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setGroupKeyPreview(null)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <XCircle size={13} /> Close
+              </button>
+            </div>
+            <div className="overflow-auto bg-slate-950 p-4">
+              {groupKeyPreview.json ? (
+                <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-emerald-100">
+                  {JSON.stringify(groupKeyPreview.json, null, 2)}
+                </pre>
+              ) : (
+                <div className="rounded-lg border border-amber-300/30 bg-amber-100/10 p-3 text-xs leading-5 text-amber-100">
+                  This group key file is listed, but its JSON body has not been loaded into local page state yet. Republish or refresh the group metadata to hydrate the preview.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {false && (
         <>

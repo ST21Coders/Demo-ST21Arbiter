@@ -357,6 +357,9 @@ def _handle_chat(event):
         return _err(400, "Missing 'prompt' in request body")
 
     selected_data_group = _canonical_structured_group_name((body.get("data_group") or "").strip())
+    selected_data_project_id = _s3_segment(body.get("data_project_id") or "", "")
+    selected_data_project_name = (body.get("data_project_name") or "").strip()[:200]
+    selected_data_group_id = (body.get("data_group_id") or "").strip()[:300]
 
     # Direct per-agent routing: the MCP page sends a "target" naming the
     # specialist to invoke; the Analyst page sends none → master orchestrator.
@@ -389,14 +392,30 @@ def _handle_chat(event):
     if target == "structured":
         selected_group = selected_data_group
         explicit_group = selected_group or _extract_structured_group_context(prompt)
+        selected_context_lines = []
+        if selected_data_project_name or selected_data_project_id or selected_group:
+            selected_context_lines = [
+                "Resolved project/group context from the UI selector.",
+                f"Project: {selected_data_project_name or selected_data_project_id or 'Selected project'} ({selected_data_project_id or 'unknown'})",
+                f"Group: {selected_group or 'Selected group'}",
+            ]
+            if selected_data_group_id:
+                selected_context_lines.append(f"Group option id: {selected_data_group_id}")
         if explicit_group:
             _remember_structured_group_context(session_id, actor_id, chat_type, prompt, explicit_group)
-            if selected_group and selected_group not in prompt:
+            if selected_context_lines:
+                runtime_prompt = "\n".join([*selected_context_lines, "", prompt])
+            elif selected_group and selected_group not in prompt:
                 runtime_prompt = f"Use the {selected_group} group. {prompt}"
         elif session_id != "adhoc":
             stored_group = _load_structured_group_context(session_id)
             if stored_group:
-                runtime_prompt = f"Use the {stored_group} group. {prompt}"
+                if selected_context_lines:
+                    runtime_prompt = "\n".join([*selected_context_lines, f"Previously remembered group: {stored_group}", "", prompt])
+                else:
+                    runtime_prompt = f"Use the {stored_group} group. {prompt}"
+        elif selected_context_lines:
+            runtime_prompt = "\n".join([*selected_context_lines, "", prompt])
 
     try:
         resp = agentcore.invoke_agent_runtime(
@@ -756,7 +775,8 @@ def _handle_uploads_status(event):
 # ──────────────────────────── /data-grouping ────────────────────
 def _s3_segment(value: str, default: str = "item") -> str:
     """S3-prefix-safe path segment for project/group/table names."""
-    cleaned = _SAFE_FILENAME_RE.sub("_", (value or "").strip()).strip("._-")
+    cleaned = _SAFE_FILENAME_RE.sub("_", (value or "").strip())
+    cleaned = re.sub(r"_+", "_", cleaned).strip("._-")
     return cleaned[:160] or default
 
 
@@ -826,34 +846,134 @@ def _normalize_profile_column(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", str(value or "").strip().lower()).strip("_")
 
 
+def _glue_column_name(value: str, index: int) -> str:
+    name = _normalize_profile_column(value)
+    return name or f"col{index}"
+
+
+def _csv_glue_columns(bucket: str, key: str) -> list[dict[str, str]]:
+    raw_headers = _csv_header_signature(bucket, key)
+    if not raw_headers:
+        return [{"Name": "col0", "Type": "string"}]
+    seen: dict[str, int] = {}
+    columns = []
+    for index, header in enumerate(raw_headers):
+        base = _glue_column_name(header, index)
+        count = seen.get(base, 0)
+        seen[base] = count + 1
+        name = base if count == 0 else f"{base}_{count + 1}"
+        columns.append({"Name": name[:255], "Type": "string"})
+    return columns
+
+
+def _ensure_glue_csv_table(table_name: str, structured_key: str) -> dict[str, Any]:
+    """Create or update the exact project-scoped Glue table for a CSV folder."""
+    if not (GLUE_DATABASE and table_name and structured_key):
+        return {"table": table_name, "status": "skipped", "message": "Glue database or table name not configured"}
+    table_name = _table_segment(table_name, "dataset")
+    location = f"s3://{PROCESSED_BUCKET}/{structured_key.rsplit('/', 1)[0]}/"
+    columns = _csv_glue_columns(PROCESSED_BUCKET, structured_key)
+    table_input = {
+        "Name": table_name,
+        "TableType": "EXTERNAL_TABLE",
+        "Parameters": {
+            "classification": "csv",
+            "skip.header.line.count": "1",
+            "typeOfData": "file",
+            "arbiter.managed": "true",
+        },
+        "StorageDescriptor": {
+            "Columns": columns,
+            "Location": location,
+            "InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+            "Compressed": False,
+            "SerdeInfo": {
+                "SerializationLibrary": "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe",
+                "Parameters": {
+                    "field.delim": ",",
+                    "serialization.format": ",",
+                },
+            },
+        },
+    }
+    try:
+        glue.get_table(DatabaseName=GLUE_DATABASE, Name=table_name)
+        glue.update_table(DatabaseName=GLUE_DATABASE, TableInput=table_input)
+        return {"table": table_name, "status": "updated", "location": location, "columnCount": len(columns)}
+    except glue.exceptions.EntityNotFoundException:
+        try:
+            glue.create_table(DatabaseName=GLUE_DATABASE, TableInput=table_input)
+            return {"table": table_name, "status": "created", "location": location, "columnCount": len(columns)}
+        except ClientError as e:
+            logger.exception("Glue table create failed: %s", table_name)
+            return {"table": table_name, "status": "failed", "message": f"{type(e).__name__}: {e}"}
+    except ClientError as e:
+        logger.exception("Glue table update failed: %s", table_name)
+        return {"table": table_name, "status": "failed", "message": f"{type(e).__name__}: {e}"}
+
+
 def _sales_group_starter_prompts(group_name: str) -> list[str]:
     return [
-        f"For this {group_name} group, rank stores from highest to lowest total sales. Include branch city, branch state, total revenue, units sold, transaction count, top category, and a short explanation.",
-        f"For this {group_name} group, rank product categories by revenue and units sold. Include part category, total revenue, units sold, average unit price, and the leading branch if available.",
-        f"For this {group_name} group, identify the top products by revenue. Include Part_SKU, Part_Name, Part_Category, total revenue, units sold, average unit price, and the stores where each product is strongest.",
-        f"For this {group_name} group, compare sales channels by revenue, units sold, transaction count, and average line revenue. Include a short explanation of channel mix.",
-        f"For this {group_name} group, analyze gross margin using Unit_Cost and Unit_Price. Rank stores or products by estimated margin dollars and margin percent.",
-        f"For this {group_name} group, find underperforming stores by total revenue and units sold. Include branch city, branch state, total revenue, units sold, transaction count, and likely next review question.",
+        "For this group, rank stores from highest to lowest total sales. Include branch city, branch state, total revenue, units sold, transaction count, top category, and a short explanation.",
+        "For this group, rank product categories by revenue and units sold. Include part category, total revenue, units sold, average unit price, and the leading branch if available.",
+        "For this group, identify the top products by revenue. Include Part_SKU, Part_Name, Part_Category, total revenue, units sold, average unit price, and the stores where each product is strongest.",
+        "For this group, compare sales channels by revenue, units sold, transaction count, and average line revenue. Include a short explanation of channel mix.",
+        "For this group, analyze gross margin using Unit_Cost and Unit_Price. Rank stores or products by estimated margin dollars and margin percent.",
+        "For this group, find underperforming stores by total revenue and units sold. Include branch city, branch state, total revenue, units sold, transaction count, and likely next review question.",
     ]
 
 
 def _generic_group_starter_prompts(group_name: str) -> list[str]:
     return [
-        f"List the available files and tables in this {group_name} group and briefly explain what each one appears to contain.",
-        f"Summarize this {group_name} group. Include row counts if available, important columns, and the most useful first questions to ask.",
-        f"Show the first records from the main table in this {group_name} group and explain the likely purpose of the data.",
+        "List the available files and tables in this group and briefly explain what each one appears to contain.",
+        "Summarize this group. Include row counts if available, important columns, and the most useful first questions to ask.",
+        "Show the first records from the main table in this group and explain the likely purpose of the data.",
+    ]
+
+
+def _operational_asset_group_starter_prompts(group_name: str) -> list[str]:
+    return [
+        "For this group, create an operational asset performance summary by floor zone. Include asset count, activity volume, revenue, utilization, service calls, uptime, and revenue per asset.",
+        "For this group, compare equipment categories by revenue, activity volume, utilization, and maintenance activity. Rank categories by total revenue.",
+        "For this group, summarize maintenance impact by floor zone. Include service calls, uptime, maintenance cost, asset count, and related performance totals.",
     ]
 
 
 def _infer_data_group_profile(group_name: str, files: list[dict[str, Any]], table_hints: list[str]) -> dict[str, Any]:
     columns: set[str] = set()
+    ext_counts = {"csv": 0, "text": 0, "media": 0, "other": 0}
     for file in files:
         key = str(file.get("key") or file.get("sourceKey") or "")
         name = str(file.get("name") or key)
+        lower_name = name.lower()
+        if lower_name.endswith(".csv"):
+            ext_counts["csv"] += 1
+        elif lower_name.endswith((".txt", ".md", ".json")):
+            ext_counts["text"] += 1
+        elif lower_name.endswith((".png", ".jpg", ".jpeg", ".webp", ".tif", ".tiff", ".pdf", ".docx")):
+            ext_counts["media"] += 1
+        else:
+            ext_counts["other"] += 1
         if not name.lower().endswith(".csv") or not key:
             continue
         columns.update(_normalize_profile_column(column) for column in _csv_header_signature(PROCESSED_BUCKET, key))
     columns.discard("")
+    if ext_counts["csv"] and not ext_counts["text"] and not ext_counts["media"]:
+        file_mix = "csv_only"
+        file_mix_label = "CSV only"
+    elif not ext_counts["csv"] and ext_counts["text"] and not ext_counts["media"]:
+        file_mix = "text_only"
+        file_mix_label = "Text only"
+    elif ext_counts["csv"] and ext_counts["text"] and not ext_counts["media"]:
+        file_mix = "csv_text"
+        file_mix_label = "CSV + text"
+    elif ext_counts["csv"] and (ext_counts["text"] or ext_counts["media"]):
+        file_mix = "csv_text_media"
+        file_mix_label = "CSV + text + images/docs"
+    else:
+        file_mix = "mixed"
+        file_mix_label = "Mixed files"
     sales_columns = {
         "sale_id", "sales_date", "branch_city", "branch_state", "part_sku",
         "part_name", "part_category", "quantity_sold", "unit_cost",
@@ -861,9 +981,16 @@ def _infer_data_group_profile(group_name: str, files: list[dict[str, Any]], tabl
     }
     alternate_sales_columns = {
         "sale_id", "sale_date", "branch_city", "state", "product_sku",
-        "product_name", "category", "quantity", "unit_cost", "unit_price",
-        "gross_sales", "net_sales", "estimated_margin", "sales_channel",
+        "product_name", "product_description", "category", "quantity", "unit_cost", "unit_price",
+        "revenue", "gross_sales", "net_sales", "estimated_margin", "gross_margin", "sales_channel",
         "customer_type",
+    }
+    operational_asset_columns = {
+        "machine_id", "asset_number", "cabinet_model", "game_title", "theme",
+        "floor_x", "floor_y", "floor_zone", "traffic_score", "visibility_score",
+        "coin_in", "coin_out", "actual_win", "theoretical_win", "hold_percent",
+        "spins", "occupancy_percent", "service_calls_90_days", "uptime_percent",
+        "maintenance_cost_90_days",
     }
     normalized_name = _normalize_profile_column(group_name).replace("_", " ")
     table_text = " ".join(table_hints).lower()
@@ -875,12 +1002,29 @@ def _infer_data_group_profile(group_name: str, files: list[dict[str, Any]], tabl
     ):
         return {
             "kind": "sales",
+            "fileMix": file_mix,
+            "fileMixLabel": file_mix_label,
             "confidence": "high" if len(columns & sales_columns) >= 8 or len(columns & alternate_sales_columns) >= 8 else "medium",
             "columns": sorted(columns),
             "starterPrompts": _sales_group_starter_prompts(group_name),
         }
+    if (
+        len(columns & operational_asset_columns) >= 8
+        or any(term in normalized_name for term in ("gaming", "casino", "floor", "asset performance"))
+        or any(term in table_text for term in ("machine_master", "slot_performance", "maintenance_90_days", "player_behavior"))
+    ):
+        return {
+            "kind": "operational_asset_performance",
+            "fileMix": file_mix,
+            "fileMixLabel": file_mix_label,
+            "confidence": "high" if len(columns & operational_asset_columns) >= 8 else "medium",
+            "columns": sorted(columns),
+            "starterPrompts": _operational_asset_group_starter_prompts(group_name),
+        }
     return {
         "kind": "generic",
+        "fileMix": file_mix,
+        "fileMixLabel": file_mix_label,
         "confidence": "low",
         "columns": sorted(columns),
         "starterPrompts": _generic_group_starter_prompts(group_name),
@@ -1092,6 +1236,142 @@ def _structured_fact_summary(structured_facts: dict[str, Any] | None) -> dict[st
             for source in (structured_facts.get("sources") or [])[:10]
             if isinstance(source, dict)
         ],
+    }
+
+
+def _default_group_key(project_name: str, project_id: str, group_name: str, files: list[dict[str, Any]], group_profile: dict[str, Any]) -> dict[str, Any]:
+    now = datetime.now(timezone.utc).isoformat()
+    file_type_counts: dict[str, int] = {}
+    for file in files:
+        name = str(file.get("name") or file.get("key") or "")
+        suffix = name.rsplit(".", 1)[-1].lower() if "." in name else "unknown"
+        file_type_counts[suffix] = file_type_counts.get(suffix, 0) + 1
+    return {
+        "schema_version": "1.0",
+        "group_name": group_name,
+        "project": project_name or project_id,
+        "summary": f"Data group for {group_name}.",
+        "purpose": "Review and query this grouped dataset using its published files, tables, and supporting context.",
+        "domain": group_profile.get("kind") or "general data analysis",
+        "file_structure": {
+            "pattern": "Files selected together during Data Pipeline group setup.",
+            "file_type_counts": file_type_counts,
+        },
+        "column_definitions": {},
+        "relationships": [],
+        "primary_questions": [
+            "What files and tables are available in this group?",
+            "Which records, entities, categories, or locations stand out after combining the available evidence?",
+            "What follow-up prompts should a user run next?",
+        ],
+        "starter_prompts": group_profile.get("starterPrompts") or [],
+        "safe_language": {
+            "use": ["review candidates", "unusual patterns", "audit signals", "needs follow-up"],
+            "avoid": ["unsupported conclusions", "definitive accusations without evidence"],
+        },
+        "generation_notes": {
+            "generated_by": "arbiter_data_grouping_materialize",
+            "system_inferred": True,
+            "created_at": now,
+            "updated_at": now,
+            "update_reason": "materialization fallback",
+        },
+    }
+
+
+def _group_key_file_id(file: dict[str, Any]) -> str:
+    return str(
+        file.get("project_key")
+        or file.get("projectKey")
+        or file.get("source_key")
+        or file.get("sourceKey")
+        or file.get("key")
+        or file.get("name")
+        or ""
+    )
+
+
+def _group_key_file_inventory(files: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    inventory: list[dict[str, Any]] = []
+    for file in files:
+        if not isinstance(file, dict):
+            continue
+        name = str(file.get("name") or file.get("filename") or file.get("key") or "unnamed file")
+        if name.lower() == "group_key.json":
+            continue
+        inventory.append({
+            "name": name,
+            "type": file.get("type") or (name.rsplit(".", 1)[-1].lower() if "." in name else "file"),
+            "source_key": file.get("sourceKey") or file.get("key") or "",
+            "project_key": file.get("projectKey") or "",
+            "structured_key": file.get("structuredKey") or "",
+            "glue_table_hint": file.get("glueTableHint") or "",
+            "added_at": file.get("addedAt") or "",
+        })
+    return inventory
+
+
+def _group_key_recent_changes(existing_group_key: dict[str, Any] | None, inventory: list[dict[str, Any]], now: str) -> dict[str, Any]:
+    previous = existing_group_key.get("file_inventory") if isinstance(existing_group_key, dict) else []
+    if not isinstance(previous, list):
+        previous = []
+    previous_by_id = {
+        _group_key_file_id(file): file
+        for file in previous
+        if isinstance(file, dict) and _group_key_file_id(file)
+    }
+    current_by_id = {
+        _group_key_file_id(file): file
+        for file in inventory
+        if isinstance(file, dict) and _group_key_file_id(file)
+    }
+    added_files = [
+        str(file.get("name") or file_id)
+        for file_id, file in current_by_id.items()
+        if file_id not in previous_by_id
+    ]
+    removed_files = [
+        str(file.get("name") or file_id)
+        for file_id, file in previous_by_id.items()
+        if file_id not in current_by_id
+    ]
+    return {
+        "updated_at": now,
+        "added_files": added_files,
+        "removed_files": removed_files,
+        "file_count_before": len(previous),
+        "file_count_after": len(inventory),
+        "change_summary": (
+            f"{len(added_files)} file(s) added; {len(removed_files)} file(s) removed."
+            if added_files or removed_files
+            else "No file membership changes detected; metadata refreshed."
+        ),
+    }
+
+
+def _refresh_group_key_file_metadata(group_key: dict[str, Any], files: list[dict[str, Any]]) -> dict[str, Any]:
+    now = datetime.now(timezone.utc).isoformat()
+    inventory = _group_key_file_inventory(files)
+    file_type_counts: dict[str, int] = {}
+    for file in inventory:
+        suffix = str(file.get("type") or "file").lower()
+        file_type_counts[suffix] = file_type_counts.get(suffix, 0) + 1
+    file_structure = group_key.get("file_structure") if isinstance(group_key.get("file_structure"), dict) else {}
+    generation_notes = group_key.get("generation_notes") if isinstance(group_key.get("generation_notes"), dict) else {}
+    return {
+        **group_key,
+        "file_structure": {
+            **file_structure,
+            "file_type_counts": file_type_counts,
+            "file_count": len(inventory),
+        },
+        "file_inventory": inventory,
+        "recent_changes": _group_key_recent_changes(group_key, inventory, now),
+        "generation_notes": {
+            **generation_notes,
+            "updated_at": now,
+            "update_reason": "group files or setup context changed",
+        },
     }
 
 
@@ -1443,6 +1723,7 @@ def _handle_data_grouping_materialize(event):
     caller_prefix = f"{UPLOAD_PREFIX}{user_id}/"
     copied: list[dict[str, Any]] = []
     structured_copies: list[dict[str, Any]] = []
+    glue_table_registrations: list[dict[str, Any]] = []
     moved_sources: set[str] = set()
     materialized_groups: list[dict[str, Any]] = []
     move_sources = bool(body.get("move", True))
@@ -1529,6 +1810,7 @@ def _handle_data_grouping_materialize(event):
                 logger.exception("group prefix cleanup failed")
                 return _err(502, f"delete {prefix}: {type(e).__name__}: {e}")
         materialized_files: list[dict[str, Any]] = []
+        registered_table_hints: set[str] = set()
         for file in files:
             source_key = str(file.get("key") or "")
             if not source_key.startswith(caller_prefix) and not source_key.startswith("structured/"):
@@ -1572,6 +1854,9 @@ def _handle_data_grouping_materialize(event):
                     "destinationKey": structured_key,
                     "glueTableHint": structured_table_hint,
                 })
+                if structured_table_hint not in registered_table_hints:
+                    glue_table_registrations.append(_ensure_glue_csv_table(structured_table_hint, structured_key))
+                    registered_table_hints.add(structured_table_hint)
                 file_entry["structuredKey"] = structured_key
                 file_entry["glueTableHint"] = structured_table_hint
 
@@ -1579,8 +1864,37 @@ def _handle_data_grouping_materialize(event):
             if move_sources and source_key.startswith(caller_prefix):
                 moved_sources.add(source_key)
 
-        structured_facts = _extract_group_structured_facts(group_name, materialized_files)
         group_profile = group.get("groupProfile") or _infer_data_group_profile(group_name, files, structured_table_hints)
+        group_key = group.get("groupKey") if isinstance(group.get("groupKey"), dict) else None
+        if not group_key:
+            group_key = _default_group_key(project_name, project_id, group_name, files, group_profile)
+        group_key = {
+            **group_key,
+            "group_name": group_key.get("group_name") or group_name,
+            "project": group_key.get("project") or project_name or project_id,
+        }
+        group_key = _refresh_group_key_file_metadata(group_key, materialized_files)
+        group_key_body = json.dumps(group_key, indent=2, sort_keys=True).encode("utf-8")
+        group_key_project_key = f"projects/{project_id}/{group_name}/group_key.json"
+        try:
+            s3.put_object(
+                Bucket=PROCESSED_BUCKET,
+                Key=group_key_project_key,
+                Body=group_key_body,
+                ContentType="application/json",
+            )
+        except ClientError as e:
+            logger.exception("group key write failed")
+            return _err(502, f"group_key.json write: {type(e).__name__}: {e}")
+        materialized_files.append({
+            "name": "group_key.json",
+            "sourceKey": group_key_project_key,
+            "projectKey": group_key_project_key,
+            "type": "file",
+            "role": "group_key",
+        })
+
+        structured_facts = _extract_group_structured_facts(group_name, materialized_files)
         fact_counts = structured_facts.get("counts") or {}
         if fact_counts.get("factSources"):
             group_profile = {
@@ -1601,6 +1915,7 @@ def _handle_data_grouping_materialize(event):
             "structuredTableHint": group_table_name if len(structured_table_hints) <= 1 else None,
             "structuredTableHints": structured_table_hints,
             "groupProfile": group_profile,
+            "groupKey": group_key,
             "structuredFacts": structured_facts,
             "files": materialized_files,
         })
@@ -1623,6 +1938,10 @@ def _handle_data_grouping_materialize(event):
                     if copy.get("glueTableHint") not in removed_table_hints
                 ],
                 *structured_copies,
+            ],
+            "tableRegistrations": [
+                *existing_metadata.get("glue", {}).get("tableRegistrations", []),
+                *glue_table_registrations,
             ],
         },
     }
@@ -1668,6 +1987,7 @@ def _handle_data_grouping_materialize(event):
         "metadataKey": metadata_key,
         "copied": copied,
         "structuredCopies": structured_copies,
+        "glueTableRegistrations": glue_table_registrations,
         "deletedSources": deleted,
         "crawlerStarted": crawler_started,
         "crawlerMessage": crawler_message,

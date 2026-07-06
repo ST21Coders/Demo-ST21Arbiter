@@ -22,8 +22,15 @@ const SOURCES = [
 ]
 
 const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.v2.savedGroups'
-const PIPELINE_PROJECT_NAME = 'Vendor Audit June 2026'
-const PIPELINE_PROJECT_ID = 'vendor-audit-june-2026'
+const PROJECTS_STORAGE_KEY = 'arbiter.dataGrouping.v2.projects'
+const PIPELINE_PROJECT_NAME = 'Discovery'
+const PIPELINE_PROJECT_ID = 'discovery'
+const GROUP_FILE_MIX_OPTIONS = [
+  { id: 'csv_only', label: 'CSV only', description: 'Structured tables only' },
+  { id: 'text_only', label: 'Text only', description: 'Notes, docs, facts' },
+  { id: 'csv_text', label: 'CSV + text', description: 'Tables plus context' },
+  { id: 'csv_text_media', label: 'CSV + text + images/docs', description: 'Tables plus evidence files' },
+]
 
 function slugify(value) {
   return String(value || '')
@@ -34,7 +41,24 @@ function slugify(value) {
 }
 
 function groupNameFromInput(value) {
-  return String(value || '').trim().replace(/\s+/g, '_')
+  return String(value || '')
+    .replace(/[^\p{L}\p{N}\s_-]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
+function projectNameFromInput(value) {
+  return String(value || '').trim()
+}
+
+function defaultProject() {
+  return {
+    id: PIPELINE_PROJECT_ID,
+    name: PIPELINE_PROJECT_NAME,
+    source: 'default',
+  }
 }
 
 function fileKey(file) {
@@ -55,36 +79,235 @@ function persistLocalGroups(groups) {
   localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups))
 }
 
+function readLocalProjects() {
+  if (typeof window === 'undefined') return [defaultProject()]
+  try {
+    const saved = JSON.parse(localStorage.getItem(PROJECTS_STORAGE_KEY) || '[]')
+    const projects = Array.isArray(saved) ? saved.filter(project => project?.id && project?.name) : []
+    const byId = new Map([[PIPELINE_PROJECT_ID, defaultProject()]])
+    projects.forEach(project => byId.set(project.id, { ...project, source: project.source || 'local' }))
+    return [...byId.values()]
+  } catch {
+    return [defaultProject()]
+  }
+}
+
+function persistLocalProjects(projects) {
+  const byId = new Map([[PIPELINE_PROJECT_ID, defaultProject()]])
+  projects.forEach(project => {
+    if (project?.id && project?.name) byId.set(project.id, project)
+  })
+  localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify([...byId.values()]))
+}
+
+function upsertLocalProject(project) {
+  if (!project?.id || !project?.name) return
+  persistLocalProjects([...readLocalProjects(), { ...project, source: project.source || 'local' }])
+}
+
+function projectKey(projectId, groupName = '') {
+  return `${projectId || PIPELINE_PROJECT_ID}::${groupName}`
+}
+
 function starterPromptsForGroup(groupName) {
   return [
-    `For this ${groupName} group, rank stores from highest to lowest total sales. Include branch city, branch state, total revenue, units sold, transaction count, top category, and a short explanation.`,
-    `For this ${groupName} group, rank product categories by revenue and units sold. Include part category, total revenue, units sold, average unit price, and the leading branch if available.`,
-    `For this ${groupName} group, compare sales channels by revenue, units sold, transaction count, and average line revenue. Include a short explanation of channel mix.`,
-    `For this ${groupName} group, analyze gross margin using Unit_Cost and Unit_Price. Rank stores or products by estimated margin dollars and margin percent.`,
+    'For this group, rank stores from highest to lowest total sales. Include branch city, branch state, total revenue, units sold, transaction count, top category, and a short explanation.',
+    'For this group, rank product categories by revenue and units sold. Include part category, total revenue, units sold, average unit price, and the leading branch if available.',
+    'For this group, compare sales channels by revenue, units sold, transaction count, and average line revenue. Include a short explanation of channel mix.',
+    'For this group, analyze gross margin using Unit_Cost and Unit_Price. Rank stores or products by estimated margin dollars and margin percent.',
   ]
 }
 
-function localGroupProfile(groupName, files) {
+function operationalStarterPromptsForGroup(groupName) {
+  return [
+    'For this group, create an operational asset performance summary by floor zone. Include asset count, activity volume, revenue, utilization, service calls, uptime, and revenue per asset.',
+    'For this group, compare equipment categories by revenue, activity volume, utilization, and maintenance activity. Rank categories by total revenue.',
+    'For this group, summarize maintenance impact by floor zone. Include service calls, uptime, maintenance cost, asset count, and related performance totals.',
+  ]
+}
+
+function fileExtension(name = '') {
+  const match = String(name).toLowerCase().match(/\.([a-z0-9]+)$/)
+  return match ? match[1] : 'unknown'
+}
+
+function summarizeFileTypes(files = []) {
+  return files.reduce((counts, file) => {
+    const ext = fileExtension(file?.name || file?.key || '')
+    counts[ext] = (counts[ext] || 0) + 1
+    return counts
+  }, {})
+}
+
+function groupKeyFileId(file = {}) {
+  return file?.projectKey || file?.sourceKey || file?.key || file?.name || ''
+}
+
+function groupKeyFileInventory(files = []) {
+  return files
+    .filter(file => file && String(file.name || file.key || '').toLowerCase() !== 'group_key.json')
+    .map(file => ({
+      name: file.name || file.filename || file.key || 'unnamed file',
+      type: file.type || fileExtension(file.name || file.key || ''),
+      source_key: file.sourceKey || file.key || '',
+      project_key: file.projectKey || '',
+      structured_key: file.structuredKey || '',
+      glue_table_hint: file.glueTableHint || '',
+      added_at: file.addedAt || '',
+    }))
+}
+
+function groupKeyRecentChanges(existing, inventory, now) {
+  const previous = Array.isArray(existing?.file_inventory) ? existing.file_inventory : []
+  const previousIds = new Map(previous.map(file => [groupKeyFileId({
+    projectKey: file.project_key,
+    sourceKey: file.source_key,
+    key: file.key,
+    name: file.name,
+  }), file]).filter(([id]) => id))
+  const currentIds = new Map(inventory.map(file => [groupKeyFileId({
+    projectKey: file.project_key,
+    sourceKey: file.source_key,
+    key: file.key,
+    name: file.name,
+  }), file]).filter(([id]) => id))
+  const added = [...currentIds.entries()]
+    .filter(([id]) => !previousIds.has(id))
+    .map(([, file]) => file.name)
+  const removed = [...previousIds.entries()]
+    .filter(([id]) => !currentIds.has(id))
+    .map(([, file]) => file.name)
+  return {
+    updated_at: now,
+    added_files: added,
+    removed_files: removed,
+    file_count_before: previous.length,
+    file_count_after: inventory.length,
+    change_summary: added.length || removed.length
+      ? `${added.length} file(s) added; ${removed.length} file(s) removed.`
+      : 'No file membership changes detected; metadata refreshed.',
+  }
+}
+
+function starterPromptsForProfile(groupName, profile) {
+  if (profile?.kind === 'sales') return starterPromptsForGroup(groupName)
+  if (profile?.kind === 'operational_asset_performance') return operationalStarterPromptsForGroup(groupName)
+  return [
+    'List the available files and tables in this group and briefly explain what each one appears to contain.',
+    'Summarize this group. Include row counts if available, important columns, and the most useful first questions to ask.',
+    'Show the first records from the main table in this group and explain the likely purpose of the data.',
+  ]
+}
+
+function buildGroupKey({ project, groupName, purpose, fileMix, files = [], profile = null, existing = null }) {
+  const now = new Date().toISOString()
+  const safePurpose = String(purpose || existing?.purpose || '').trim()
+  const inferredProfile = profile || localGroupProfile(groupName, files, fileMix) || {}
+  const fileInventory = groupKeyFileInventory(files)
+  return {
+    schema_version: existing?.schema_version || '1.0',
+    group_name: groupName,
+    project: project?.name || existing?.project || PIPELINE_PROJECT_NAME,
+    summary: existing?.summary || safePurpose || `Data group for ${groupName}.`,
+    purpose: safePurpose || existing?.purpose || 'Review and query this grouped dataset using its published files, tables, and supporting context.',
+    domain: existing?.domain || (inferredProfile.kind === 'sales' ? 'sales operations' : inferredProfile.kind === 'operational_asset_performance' ? 'operational asset performance' : 'general data analysis'),
+    file_structure: {
+      pattern: existing?.file_structure?.pattern || 'Files selected together by the user during Data Pipeline group setup.',
+      content_mix: GROUP_FILE_MIX_OPTIONS.find(option => option.id === fileMix)?.label || existing?.file_structure?.content_mix || '',
+      file_type_counts: summarizeFileTypes(files),
+      file_count: fileInventory.length,
+      combine_strategy: existing?.file_structure?.combine_strategy || (inferredProfile.kind === 'sales'
+        ? 'Union compatible sales CSV files into one logical table and preserve branch, source file, product, channel, and customer fields when available.'
+        : 'Use shared identifiers, filenames, table schemas, and supporting text to determine useful joins and analysis paths.'),
+    },
+    file_inventory: fileInventory,
+    recent_changes: groupKeyRecentChanges(existing, fileInventory, now),
+    column_definitions: existing?.column_definitions || {},
+    relationships: existing?.relationships || [],
+    primary_questions: existing?.primary_questions || [
+      'What files and tables are available in this group?',
+      'Which records, entities, categories, or locations stand out after combining the available evidence?',
+      'What follow-up prompts should a user run next?',
+    ],
+    starter_prompts: existing?.starter_prompts || starterPromptsForProfile(groupName, inferredProfile),
+    safe_language: existing?.safe_language || {
+      use: ['review candidates', 'unusual patterns', 'audit signals', 'needs follow-up', 'operational signal'],
+      avoid: ['unsupported conclusions', 'definitive accusations without evidence', 'claiming causation without supporting data'],
+    },
+    generation_notes: {
+      generated_by: 'arbiter_data_pipeline',
+      user_supplied_context: safePurpose,
+      system_inferred: true,
+      created_at: existing?.generation_notes?.created_at || now,
+      updated_at: now,
+      update_reason: existing ? 'group files or setup context changed' : 'initial group setup',
+    },
+  }
+}
+
+function localGroupProfile(groupName, files, fileMix = '') {
   const text = `${groupName} ${(files || []).map(file => file.name || file.key || '').join(' ')}`.toLowerCase()
+  const base = {
+    fileMix,
+    fileMixLabel: GROUP_FILE_MIX_OPTIONS.find(option => option.id === fileMix)?.label || '',
+  }
   if (text.includes('electronics') || text.includes('sales') || text.includes('line_revenue')) {
     return {
+      ...base,
       kind: 'sales',
       confidence: 'medium',
       starterPrompts: starterPromptsForGroup(groupName),
     }
   }
-  return null
+  if (text.includes('gaming') || text.includes('casino') || text.includes('slot') || text.includes('machine') || text.includes('floor')) {
+    return {
+      ...base,
+      kind: 'operational_asset_performance',
+      confidence: 'medium',
+      starterPrompts: operationalStarterPromptsForGroup(groupName),
+    }
+  }
+  return fileMix ? { ...base, kind: fileMix, confidence: 'low' } : null
 }
 
-function upsertLocalGroupFile(groupTarget, fileInfo) {
-  if (!groupTarget?.name || !fileInfo?.key) return
+function resetLocalGroupForNewUpload(projectTarget, groupTarget, fileMix, purpose = '') {
+  if (!groupTarget?.name) return
+  const project = projectTarget || defaultProject()
+  upsertLocalProject(project)
   const current = readLocalGroups()
-  const existing = current.find(group => group.id === groupTarget.id || group.name === groupTarget.name)
+  const nextGroup = {
+    id: groupTarget.id || `${project.id}::${slugify(groupTarget.name)}`,
+    projectId: project.id,
+    projectName: project.name,
+    name: groupTarget.name,
+    type: 'pipeline_upload',
+    files: [],
+    fileKeys: [],
+    groupProfile: localGroupProfile(groupTarget.name, [], fileMix),
+    groupKey: buildGroupKey({ project, groupName: groupTarget.name, purpose, fileMix, files: [] }),
+    updatedAt: new Date().toISOString(),
+  }
+  const others = current.filter(group => (
+    group.id !== nextGroup.id
+    && !(group.name === groupTarget.name && (group.projectId || PIPELINE_PROJECT_ID) === project.id)
+  ))
+  persistLocalGroups([...others, nextGroup])
+}
+
+function upsertLocalGroupFile(projectTarget, groupTarget, fileInfo, fileMix = '', purpose = '') {
+  if (!groupTarget?.name || !fileInfo?.key) return
+  const project = projectTarget || defaultProject()
+  upsertLocalProject(project)
+  const current = readLocalGroups()
+  const existing = current.find(group => (
+    group.id === groupTarget.id
+    || (group.name === groupTarget.name && (group.projectId || PIPELINE_PROJECT_ID) === project.id)
+  ))
   const nextGroup = {
     ...(existing || {}),
-    id: existing?.id || groupTarget.id || `${slugify(groupTarget.name)}-${Date.now()}`,
-    projectId: PIPELINE_PROJECT_ID,
-    projectName: PIPELINE_PROJECT_NAME,
+    id: existing?.id || groupTarget.id || `${project.id}::${slugify(groupTarget.name)}`,
+    projectId: project.id,
+    projectName: project.name,
     name: groupTarget.name,
     type: existing?.type || 'pipeline_upload',
     updatedAt: new Date().toISOString(),
@@ -98,15 +321,35 @@ function upsertLocalGroupFile(groupTarget, fileInfo) {
   })
   nextGroup.files = [...byKey.values()]
   nextGroup.fileKeys = nextGroup.files.map(file => fileKey(file)).filter(Boolean)
-  nextGroup.groupProfile = existing?.groupProfile || localGroupProfile(nextGroup.name, nextGroup.files)
-  const others = current.filter(group => group.id !== nextGroup.id && group.name !== nextGroup.name)
+  const inferredProfile = localGroupProfile(nextGroup.name, nextGroup.files, fileMix) || {}
+  nextGroup.groupProfile = {
+    ...(existing?.groupProfile || {}),
+    ...(existing?.groupProfile ? {} : inferredProfile),
+    fileMix: existing?.groupProfile?.fileMix || fileMix,
+    fileMixLabel: existing?.groupProfile?.fileMixLabel || GROUP_FILE_MIX_OPTIONS.find(option => option.id === fileMix)?.label || '',
+  }
+  nextGroup.groupKey = buildGroupKey({
+    project,
+    groupName: nextGroup.name,
+    purpose,
+    fileMix: nextGroup.groupProfile.fileMix || fileMix,
+    files: nextGroup.files,
+    profile: nextGroup.groupProfile,
+    existing: existing?.groupKey,
+  })
+  const others = current.filter(group => (
+    group.id !== nextGroup.id
+    && !(group.name === nextGroup.name && (group.projectId || PIPELINE_PROJECT_ID) === project.id)
+  ))
   persistLocalGroups([...others, nextGroup])
 }
 
 function dataGroupOptionsFromLocal() {
   return readLocalGroups().map(group => ({
-    id: `local::${group.id || group.name}`,
+    id: `local::${group.projectId || PIPELINE_PROJECT_ID}::${group.id || group.name}`,
     localId: group.id,
+    projectId: group.projectId || PIPELINE_PROJECT_ID,
+    projectName: group.projectName || PIPELINE_PROJECT_NAME,
     groupName: group.name,
     label: `${group.projectName || 'Local Data Grouping'} / ${group.name}`,
     fileCount: Array.isArray(group.files) ? group.files.length : Array.isArray(group.fileKeys) ? group.fileKeys.length : 0,
@@ -147,6 +390,20 @@ function isStructuredUpload(u) {
 
 function stepDefsFor(u) {
   return isStructuredUpload(u) ? STEP_DEFS_STRUCTURED : STEP_DEFS
+}
+
+function uploadReadyForGroupPublish(upload) {
+  return Boolean(
+    upload?.key
+    && !upload.error
+    && upload.state !== 'upload_failed'
+    && (
+      upload.processingStatus?.processed?.exists
+      || upload.processingStatus?.structured?.exists
+      || upload.processingStatus?.status === 'catalog_done'
+      || upload.scanRun?.status === 'COMPLETED'
+    )
+  )
 }
 
 const STATUS_STYLE = {
@@ -190,8 +447,8 @@ function stepStatesFor(upload) {
       s.processed = 'running'
       return s
     }
-    if (status.status === 'catalog_done') s.catalog = 'done'
-    else if (status.status === 'catalog_failed') s.catalog = 'failed'
+    if (status.status === 'catalog_failed') s.catalog = 'failed'
+    else if (status.status === 'catalog_done' || status.structured?.exists) s.catalog = 'done'
     else s.catalog = 'running'
     return s
   }
@@ -210,6 +467,13 @@ function stepStatesFor(upload) {
   states.raw = 'done'
 
   const run = upload.scanRun
+  const status = upload.processingStatus
+  if (!run && (status?.processed?.exists || status?.raw?.exists)) {
+    states.processed = 'done'
+    states.kb = 'done'
+    states.scan = 'done'
+    return states
+  }
   if (!run) {
     // No scan-run yet — assume processing_pipeline + KB ingestion are in flight.
     states.processed = 'running'
@@ -233,6 +497,57 @@ function shortKey(key) {
 
 // ── Upload dropzone ─────────────────────────────────────────────────────────
 
+function ProjectSelector({
+  creatingNewProject,
+  setCreatingNewProject,
+  selectedProjectId,
+  setSelectedProjectId,
+  newProjectName,
+  setNewProjectName,
+  projectOptions,
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="min-w-[120px]">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Project</p>
+          <p className="mt-1 text-xs text-slate-500">Choose this before ingesting data.</p>
+        </div>
+        <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700">
+          <input
+            type="checkbox"
+            checked={creatingNewProject}
+            onChange={event => setCreatingNewProject(event.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+          />
+          New Project
+        </label>
+        {creatingNewProject ? (
+          <input
+            type="text"
+            value={newProjectName}
+            onChange={event => setNewProjectName(event.target.value)}
+            placeholder="Project name"
+            className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          />
+        ) : (
+          <select
+            value={selectedProjectId}
+            onChange={event => setSelectedProjectId(event.target.value)}
+            className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          >
+            {projectOptions.map(project => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function UploadDropzone({
   onFile,
   disabled,
@@ -240,6 +555,10 @@ function UploadDropzone({
   setCreatingNewGroup,
   newGroupName,
   setNewGroupName,
+  newGroupPurpose,
+  setNewGroupPurpose,
+  groupFileMix,
+  setGroupFileMix,
   selectedGroupId,
   setSelectedGroupId,
   groupOptions,
@@ -250,7 +569,7 @@ function UploadDropzone({
 
   function handleFiles(files) {
     if (!files || !files.length) return
-    Array.from(files).forEach(f => onFile(f))
+    Array.from(files).forEach((f, index) => onFile(f, { resetNewGroup: creatingNewGroup && index === 0 }))
   }
 
   return (
@@ -301,6 +620,19 @@ function UploadDropzone({
             ))}
           </select>
         )}
+        <select
+          value={groupFileMix}
+          onChange={event => setGroupFileMix(event.target.value)}
+          className="min-w-[220px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+          title="Group content mix"
+        >
+          <option value="">Group contents</option>
+          {GROUP_FILE_MIX_OPTIONS.map(option => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           disabled={!canBrowse}
@@ -311,21 +643,34 @@ function UploadDropzone({
           Click to browse
         </button>
       </div>
+      {creatingNewGroup && (
+        <textarea
+          value={newGroupPurpose}
+          onChange={event => setNewGroupPurpose(event.target.value)}
+          placeholder="Briefly describe what this group contains and what the user wants to learn from it."
+          rows={2}
+          className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+        />
+      )}
       <div className="mt-4 flex flex-col items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-4 py-6 text-center">
         <div className="w-12 h-12 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center">
           <Upload size={20} className="text-indigo-600" />
         </div>
         <p className="text-sm font-semibold text-slate-900">
-          {disabled ? 'Choose or create a group before selecting files' : 'Drop files here to add them to the selected group'}
+          {disabled ? 'Choose a project, group, and content mix before selecting files' : 'Drop files here to add them to the selected group'}
         </p>
-        <p className="text-xs text-slate-500">Policy docs (.md, .pdf, .docx, .json, .txt) → Knowledge Base · structured exports (.csv) → Glue/Athena</p>
+        <p className="text-xs text-slate-500">
+          {groupFileMix
+            ? GROUP_FILE_MIX_OPTIONS.find(option => option.id === groupFileMix)?.description
+            : 'Choose the group content mix before selecting files'}
+        </p>
       </div>
       <input
         ref={inputRef}
         type="file"
         multiple
         disabled={disabled}
-        accept=".md,.pdf,.docx,.json,.txt,.csv"
+        accept=".md,.pdf,.docx,.json,.txt,.csv,.png,.jpg,.jpeg,.webp,.tif,.tiff"
         className="hidden"
         onChange={e => handleFiles(e.target.files)}
       />
@@ -340,6 +685,7 @@ function UploadRow({ upload }) {
   const states = stepStatesFor(upload)
   const structured = isStructuredUpload(upload)
   const finished = stepDefs.every(d => states[d.key] === 'done') || stepDefs.some(d => states[d.key] === 'failed')
+  const readyForPublish = uploadReadyForGroupPublish(upload)
   const ts = upload.startedAt ? new Date(upload.startedAt) : null
   const statusMessage = structured ? upload.processingStatus?.message : null
   const structuredKey = structured ? upload.processingStatus?.structured?.key : null
@@ -365,7 +711,10 @@ function UploadRow({ upload }) {
         {finished && structured && states.catalog === 'failed' && (
           <p className="text-xs text-red-700 flex-shrink-0">Catalog failed</p>
         )}
-        {!finished && structured && statusMessage && (
+        {readyForPublish && !upload.groupMaterialized && (
+          <p className="text-xs text-emerald-700 flex-shrink-0">Ready to publish</p>
+        )}
+        {!readyForPublish && !finished && structured && statusMessage && (
           <p className="text-xs text-amber-700 flex-shrink-0">{statusMessage}</p>
         )}
         {finished && !structured && upload.scanRun?.totals && (
@@ -373,7 +722,7 @@ function UploadRow({ upload }) {
             {upload.scanRun.totals.conflicts ?? 0} conflicts · {upload.scanRun.totals.compliant ?? 0} compliant
           </p>
         )}
-        {!finished && (
+        {!finished && !readyForPublish && (
           <p className="text-xs text-amber-700 flex-shrink-0 flex items-center gap-1">
             <Loader2 size={11} className="animate-spin" /> in progress
           </p>
@@ -393,6 +742,11 @@ function UploadRow({ upload }) {
       {upload.error && (
         <p className="text-xs text-red-700 mt-2 flex items-center gap-1.5">
           <AlertTriangle size={12} /> {upload.error}
+        </p>
+      )}
+      {!upload.error && upload.statusCheckError && !readyForPublish && (
+        <p className="text-xs text-slate-500 mt-2">
+          Status check delayed; retrying quietly.
         </p>
       )}
       {upload.groupError && (
@@ -540,11 +894,17 @@ function PipelinePaths() {
 
 export default function DataPipeline() {
   const [uploads, setUploads] = useState([])     // newest first
+  const [projectOptions, setProjectOptions] = useState(() => readLocalProjects())
+  const [creatingNewProject, setCreatingNewProject] = useState(false)
+  const [selectedProjectId, setSelectedProjectId] = useState(PIPELINE_PROJECT_ID)
+  const [newProjectName, setNewProjectName] = useState('')
   const [groupOptions, setGroupOptions] = useState([])
   const [groupsLoading, setGroupsLoading] = useState(false)
   const [creatingNewGroup, setCreatingNewGroup] = useState(false)
   const [selectedGroupId, setSelectedGroupId] = useState('')
   const [newGroupName, setNewGroupName] = useState('')
+  const [newGroupPurpose, setNewGroupPurpose] = useState('')
+  const [groupFileMix, setGroupFileMix] = useState('')
   const [groupPublishStatus, setGroupPublishStatus] = useState({})
   const groupPublishInFlightRef = useRef(new Set())
 
@@ -557,23 +917,50 @@ export default function DataPipeline() {
   const refreshGroups = useCallback(async () => {
     const local = dataGroupOptionsFromLocal()
     setGroupOptions(local)
+    const projectsById = new Map([[PIPELINE_PROJECT_ID, defaultProject()]])
+    local.forEach(group => {
+      if (group.projectId && group.projectName) {
+        projectsById.set(group.projectId, {
+          id: group.projectId,
+          name: group.projectName,
+          source: group.source || 'local',
+        })
+      }
+    })
     setGroupsLoading(true)
     try {
       const data = await listDataGroupingProjects()
       const remote = (data.groups || []).map(group => ({
         ...group,
         id: group.id || `${group.projectId || PIPELINE_PROJECT_ID}::${group.groupName}`,
+        projectId: group.projectId || PIPELINE_PROJECT_ID,
+        projectName: group.projectName || PIPELINE_PROJECT_NAME,
         source: 'remote',
       }))
-      const byName = new Map()
+      remote.forEach(group => {
+        if (group.projectId && group.projectName) {
+          projectsById.set(group.projectId, {
+            id: group.projectId,
+            name: group.projectName,
+            source: 'remote',
+          })
+        }
+      })
+      const byProjectGroup = new Map()
       ;[...local, ...remote].forEach(group => {
         if (!group?.groupName) return
-        byName.set(group.groupName, group)
+        byProjectGroup.set(projectKey(group.projectId, group.groupName), group)
       })
-      setGroupOptions([...byName.values()].sort((a, b) => String(a.groupName).localeCompare(String(b.groupName))))
+      setGroupOptions([...byProjectGroup.values()].sort((a, b) => (
+        String(a.projectName || '').localeCompare(String(b.projectName || ''))
+        || String(a.groupName).localeCompare(String(b.groupName))
+      )))
     } catch {
       setGroupOptions(local)
     } finally {
+      const projects = [...projectsById.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)))
+      persistLocalProjects(projects)
+      setProjectOptions(projects)
       setGroupsLoading(false)
     }
   }, [])
@@ -582,12 +969,31 @@ export default function DataPipeline() {
     refreshGroups()
   }, [refreshGroups])
 
+  useEffect(() => {
+    setSelectedGroupId('')
+  }, [creatingNewProject, selectedProjectId, newProjectName])
+
+  function currentProjectTarget() {
+    if (creatingNewProject) {
+      const name = projectNameFromInput(newProjectName)
+      if (!name) return null
+      return {
+        id: slugify(name),
+        name,
+        source: 'new',
+      }
+    }
+    return projectOptions.find(project => project.id === selectedProjectId) || defaultProject()
+  }
+
   function currentGroupTarget() {
+    const project = currentProjectTarget()
+    if (!project) return null
     if (creatingNewGroup) {
       const name = groupNameFromInput(newGroupName)
       if (!name) return null
       return {
-        id: `${slugify(name)}-${Date.now()}`,
+        id: `${project.id}::${slugify(name)}`,
         name,
         source: 'new',
         files: [],
@@ -603,9 +1009,19 @@ export default function DataPipeline() {
     }
   }
 
-  async function handleFile(file) {
+  async function handleFile(file, options = {}) {
+    const projectTarget = currentProjectTarget()
     const groupTarget = currentGroupTarget()
-    if (!groupTarget) return
+    if (!projectTarget || !groupTarget) return
+    const publishKey = projectKey(projectTarget.id, groupTarget.name)
+    if (creatingNewGroup && options.resetNewGroup) {
+      resetLocalGroupForNewUpload(projectTarget, groupTarget, groupFileMix, newGroupPurpose)
+      setGroupPublishStatus(prev => {
+        const next = { ...prev }
+        delete next[publishKey]
+        return next
+      })
+    }
     const id = `upl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const upload = {
       id,
@@ -617,6 +1033,8 @@ export default function DataPipeline() {
       key: null,
       scanRun: null,
       processingStatus: null,
+      projectId: projectTarget.id,
+      projectName: projectTarget.name,
       groupId: groupTarget.id,
       groupName: groupTarget.name,
       groupMaterializing: false,
@@ -661,23 +1079,14 @@ export default function DataPipeline() {
       return
     }
     updateUpload(id, { state: 'uploaded' })
-    upsertLocalGroupFile(groupTarget, {
+    upsertLocalGroupFile(projectTarget, groupTarget, {
       key: pre.key,
       name: file.name,
       size: file.size,
       last_modified: new Date().toISOString(),
-    })
+    }, groupFileMix, creatingNewGroup ? newGroupPurpose : '')
     refreshGroups()
     // Polling effect will pick this up and update scanRun as the chain progresses.
-  }
-
-  function uploadReadyForGroupPublish(upload) {
-    return Boolean(
-      upload?.key
-      && !upload.error
-      && upload.state !== 'upload_failed'
-      && (upload.processingStatus?.processed?.exists || upload.processingStatus?.structured?.exists)
-    )
   }
 
   function selectedGroupName() {
@@ -685,31 +1094,51 @@ export default function DataPipeline() {
     return groupOptions.find(group => group.id === selectedGroupId)?.groupName || ''
   }
 
-  async function filesReadyForGroupPublish(groupName, files) {
+  async function filesReadyForGroupPublish(projectTarget, groupName, files) {
+    const publishKey = projectKey(projectTarget?.id, groupName)
     setGroupPublishStatus(prev => ({
       ...prev,
-      [groupName]: { state: 'checking', message: `Checking ${files.length} files before publishing ${groupName}...` },
+      [publishKey]: {
+        projectName: projectTarget?.name || PIPELINE_PROJECT_NAME,
+        groupName,
+        state: 'checking',
+        message: `Checking ${files.length} files before publishing ${groupName}...`,
+      },
     }))
     const pending = []
     const failed = []
-    for (const file of files) {
-      const key = fileKey(file)
-      if (!key) continue
-      try {
-        const status = await getUploadStatus(key)
-        if (!status?.processed?.exists && !status?.structured?.exists) {
-          pending.push(file.name || key)
+    const concurrency = 12
+    let index = 0
+    async function checkNext() {
+      while (index < files.length) {
+        const file = files[index]
+        index += 1
+        const key = fileKey(file)
+        if (!key) continue
+        try {
+          const status = await getUploadStatus(key)
+          if (!status?.processed?.exists && !status?.structured?.exists) {
+            pending.push(file.name || key)
+          }
+        } catch (err) {
+          const message = err.message || 'status check failed'
+          if (/401|403|outside caller upload prefix|auth expired/i.test(message)) {
+            failed.push(`${file.name || key}: ${message}`)
+          } else {
+            pending.push(file.name || key)
+          }
         }
-      } catch (err) {
-        failed.push(`${file.name || key}: ${err.message || 'status check failed'}`)
       }
     }
+    await Promise.all(Array.from({ length: Math.min(concurrency, files.length) }, () => checkNext()))
     if (failed.length) {
       setGroupPublishStatus(prev => ({
         ...prev,
-        [groupName]: {
+        [publishKey]: {
+          projectName: projectTarget?.name || PIPELINE_PROJECT_NAME,
+          groupName,
           state: 'failed',
-          message: `Could not verify ${failed.length} file${failed.length === 1 ? '' : 's'} before publishing.`,
+          message: `Could not verify ${failed.length} file${failed.length === 1 ? '' : 's'} before publishing. ${failed.slice(0, 2).join(' | ')}`,
         },
       }))
       return false
@@ -717,7 +1146,9 @@ export default function DataPipeline() {
     if (pending.length) {
       setGroupPublishStatus(prev => ({
         ...prev,
-        [groupName]: {
+        [publishKey]: {
+          projectName: projectTarget?.name || PIPELINE_PROJECT_NAME,
+          groupName,
           state: 'waiting',
           message: `${pending.length}/${files.length} file${pending.length === 1 ? '' : 's'} still moving into processed storage.`,
         },
@@ -728,33 +1159,45 @@ export default function DataPipeline() {
   }
 
   async function materializeGroup(groupName) {
-    if (!groupName || groupPublishInFlightRef.current.has(groupName)) return
+    const projectTarget = currentProjectTarget()
+    if (!projectTarget || !groupName) return
+    const publishKey = projectKey(projectTarget.id, groupName)
+    if (groupPublishInFlightRef.current.has(publishKey)) return
     const localGroups = readLocalGroups()
-    const localGroup = localGroups.find(group => group.name === groupName)
+    const localGroup = localGroups.find(group => (
+      group.name === groupName
+      && (group.projectId || PIPELINE_PROJECT_ID) === projectTarget.id
+    ))
     const files = (localGroup?.files || []).filter(file => fileKey(file))
     if (!localGroup || !files.length) return
 
-    groupPublishInFlightRef.current.add(groupName)
+    groupPublishInFlightRef.current.add(publishKey)
     setUploads(prev => prev.map(upload => (
-      upload.groupName === groupName
+      upload.groupName === groupName && upload.projectId === projectTarget.id
         ? { ...upload, groupMaterializing: true, groupError: null }
         : upload
     )))
     try {
-      const ready = await filesReadyForGroupPublish(groupName, files)
+      const ready = await filesReadyForGroupPublish(projectTarget, groupName, files)
       if (!ready) return
       setGroupPublishStatus(prev => ({
         ...prev,
-        [groupName]: { state: 'publishing', message: `Publishing ${files.length} files into ${groupName}...` },
+        [publishKey]: {
+          projectName: projectTarget.name,
+          groupName,
+          state: 'publishing',
+          message: `Publishing ${files.length} files into ${groupName}...`,
+        },
       }))
       const result = await materializeDataGroupingProject({
-        projectName: PIPELINE_PROJECT_NAME,
-        projectId: PIPELINE_PROJECT_ID,
+        projectName: projectTarget.name,
+        projectId: projectTarget.id,
         groups: [{
           id: localGroup.id || slugify(groupName),
           name: groupName,
           type: localGroup?.type || 'pipeline_upload',
-          groupProfile: localGroup?.groupProfile || localGroupProfile(groupName, files),
+          groupProfile: localGroup?.groupProfile || localGroupProfile(groupName, files, groupFileMix),
+          groupKey: localGroup?.groupKey,
           files,
         }],
         move: false,
@@ -763,7 +1206,9 @@ export default function DataPipeline() {
       const factSources = materializedGroup?.structuredFacts?.counts?.factSources || 0
       setGroupPublishStatus(prev => ({
         ...prev,
-        [groupName]: {
+        [publishKey]: {
+          projectName: projectTarget.name,
+          groupName,
           state: 'published',
           message: `${groupName} published with ${files.length} files${factSources ? ` and ${factSources} text fact source${factSources === 1 ? '' : 's'}` : ''}.`,
           kbSyncMessage: result?.kbSync?.message || '',
@@ -771,7 +1216,7 @@ export default function DataPipeline() {
         },
       }))
       setUploads(prev => prev.map(upload => (
-        upload.groupName === groupName
+        upload.groupName === groupName && upload.projectId === projectTarget.id
           ? {
               ...upload,
               groupMaterializing: false,
@@ -786,17 +1231,22 @@ export default function DataPipeline() {
       const message = err.message || `unable to publish ${groupName}`
       setGroupPublishStatus(prev => ({
         ...prev,
-        [groupName]: { state: 'failed', message },
+        [publishKey]: {
+          projectName: projectTarget.name,
+          groupName,
+          state: 'failed',
+          message,
+        },
       }))
       setUploads(prev => prev.map(upload => (
-        upload.groupName === groupName
+        upload.groupName === groupName && upload.projectId === projectTarget.id
           ? { ...upload, groupMaterializing: false, groupError: message }
           : upload
       )))
     } finally {
-      groupPublishInFlightRef.current.delete(groupName)
+      groupPublishInFlightRef.current.delete(publishKey)
       setUploads(prev => prev.map(upload => (
-        upload.groupName === groupName && upload.groupMaterializing && !upload.groupMaterialized
+        upload.groupName === groupName && upload.projectId === projectTarget.id && upload.groupMaterializing && !upload.groupMaterialized
           ? { ...upload, groupMaterializing: false }
           : upload
       )))
@@ -809,7 +1259,7 @@ export default function DataPipeline() {
   useEffect(() => {
     const active = uploads.some(u => {
       if (u.state === 'upload_failed') return false
-      if (u.key && !u.groupMaterialized && !u.groupError) return true
+      if (uploadReadyForGroupPublish(u)) return false
       if (isStructuredUpload(u)) {
         return !['catalog_done', 'catalog_failed'].includes(u.processingStatus?.status)
       }
@@ -828,6 +1278,7 @@ export default function DataPipeline() {
             isStructuredUpload(u)
             || (!u.groupMaterialized && !u.groupError)
           ) &&
+          !uploadReadyForGroupPublish(u) &&
           !['catalog_done', 'catalog_failed'].includes(u.processingStatus?.status)
         )
         const statusById = {}
@@ -835,13 +1286,22 @@ export default function DataPipeline() {
           try {
             statusById[u.id] = await getUploadStatus(u.key)
           } catch (err) {
-            statusById[u.id] = { status: 'catalog_failed', message: err.message || 'status check failed' }
+            statusById[u.id] = { status: 'status_check_delayed', message: err.message || 'status check delayed' }
           }
         }))
         // For each upload that has a key but no terminal scanRun, see if a row
         // matching its triggered_by has appeared.
         setUploads(prev => prev.map(u => {
-          if (statusById[u.id]) return { ...u, processingStatus: statusById[u.id] }
+          if (statusById[u.id]) {
+            if (statusById[u.id].status === 'status_check_delayed') {
+              return {
+                ...u,
+                statusCheckError: statusById[u.id].message,
+                statusCheckDelayedAt: new Date().toISOString(),
+              }
+            }
+            return { ...u, processingStatus: statusById[u.id], statusCheckError: null }
+          }
           if (!u.key) return u
           if (u.scanRun?.status === 'COMPLETED' || u.scanRun?.status === 'FAILED') return u
           const wanted = `auto-ingest:${u.key}`
@@ -858,23 +1318,23 @@ export default function DataPipeline() {
     return () => { cancelled = true; clearInterval(handle) }
   }, [uploads])
 
-  useEffect(() => {
-    const groupNames = [...new Set(uploads.map(upload => upload.groupName).filter(Boolean))]
-    const timers = groupNames.map(groupName => window.setTimeout(() => {
-      const groupUploads = uploads.filter(upload => upload.groupName === groupName)
-      if (!groupUploads.length) return
-      if (groupUploads.every(upload => upload.groupMaterialized)) return
-      if (groupUploads.some(upload => upload.groupMaterializing || upload.groupError)) return
-      if (groupUploads.some(upload => !upload.key || upload.state === 'uploading')) return
-      if (groupUploads.some(upload => !uploadReadyForGroupPublish(upload))) return
-      materializeGroup(groupName)
-    }, 2500))
-    return () => timers.forEach(timer => window.clearTimeout(timer))
-  }, [uploads])
-
-  const groupTargetReady = creatingNewGroup ? Boolean(groupNameFromInput(newGroupName)) : Boolean(selectedGroupId)
+  const currentProject = currentProjectTarget()
+  const currentProjectReady = Boolean(currentProject?.id && currentProject?.name)
+  const filteredGroupOptions = groupOptions.filter(group => (group.projectId || PIPELINE_PROJECT_ID) === currentProject?.id)
+  const groupTargetReady = currentProjectReady && (creatingNewGroup ? Boolean(groupNameFromInput(newGroupName)) && Boolean(newGroupPurpose.trim()) : Boolean(selectedGroupId)) && Boolean(groupFileMix)
   const currentSelectedGroupName = selectedGroupName()
-  const currentPublishStatus = currentSelectedGroupName ? groupPublishStatus[currentSelectedGroupName] : null
+  const currentPublishKey = currentProject?.id && currentSelectedGroupName ? projectKey(currentProject.id, currentSelectedGroupName) : ''
+  const currentPublishStatus = currentPublishKey ? groupPublishStatus[currentPublishKey] : null
+  const currentGroupUploads = uploads.filter(upload => (
+    upload.projectId === currentProject?.id
+    && upload.groupName === currentSelectedGroupName
+  ))
+  const currentGroupReadyUploads = currentGroupUploads.filter(uploadReadyForGroupPublish)
+  const currentGroupFailedUploads = currentGroupUploads.filter(upload => upload.state === 'upload_failed' || upload.error)
+  const currentLiveBatchReady = !currentGroupUploads.length || (
+    currentGroupReadyUploads.length === currentGroupUploads.length
+    && !currentGroupFailedUploads.length
+  )
 
   return (
     <div className="p-6 space-y-6 page-container">
@@ -886,6 +1346,15 @@ export default function DataPipeline() {
       </div>
 
       {/* Upload zone */}
+      <ProjectSelector
+        creatingNewProject={creatingNewProject}
+        setCreatingNewProject={setCreatingNewProject}
+        selectedProjectId={selectedProjectId}
+        setSelectedProjectId={setSelectedProjectId}
+        newProjectName={newProjectName}
+        setNewProjectName={setNewProjectName}
+        projectOptions={projectOptions}
+      />
       <UploadDropzone
         onFile={handleFile}
         disabled={!groupTargetReady}
@@ -893,20 +1362,30 @@ export default function DataPipeline() {
         setCreatingNewGroup={setCreatingNewGroup}
         newGroupName={newGroupName}
         setNewGroupName={setNewGroupName}
+        newGroupPurpose={newGroupPurpose}
+        setNewGroupPurpose={setNewGroupPurpose}
+        groupFileMix={groupFileMix}
+        setGroupFileMix={setGroupFileMix}
         selectedGroupId={selectedGroupId}
         setSelectedGroupId={setSelectedGroupId}
-        groupOptions={groupOptions}
+        groupOptions={filteredGroupOptions}
       />
       <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600">
         {groupTargetReady ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>
-              Uploads will be assigned to <span className="font-semibold text-slate-800">{currentSelectedGroupName}</span>. Each uploaded file is owned by that group and will be published into group metadata after processing.
+              Uploads will be assigned to <span className="font-semibold text-slate-800">{currentProject?.name}</span> / <span className="font-semibold text-slate-800">{currentSelectedGroupName}</span>. Each uploaded file is owned by that group and will be published into group metadata after processing.
+              {currentGroupUploads.length ? (
+                <span className="ml-2 font-semibold text-slate-700">
+                  {currentGroupReadyUploads.length}/{currentGroupUploads.length} ready to publish
+                  {currentGroupFailedUploads.length ? ` · ${currentGroupFailedUploads.length} need attention` : ''}
+                </span>
+              ) : null}
             </span>
             <button
               type="button"
               onClick={() => materializeGroup(currentSelectedGroupName)}
-              disabled={!currentSelectedGroupName || currentPublishStatus?.state === 'checking' || currentPublishStatus?.state === 'publishing'}
+              disabled={!currentSelectedGroupName || !currentLiveBatchReady || currentPublishStatus?.state === 'checking' || currentPublishStatus?.state === 'publishing'}
               className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
             >
               {currentPublishStatus?.state === 'checking' || currentPublishStatus?.state === 'publishing' ? (
@@ -919,15 +1398,15 @@ export default function DataPipeline() {
           </div>
         ) : (
           <span>
-            {groupsLoading ? 'Loading existing groups...' : 'Choose an existing group or create a new group before selecting files.'}
+            {groupsLoading ? 'Loading existing groups...' : 'Choose or create a project, then choose or create a group and content mix before selecting files.'}
           </span>
         )}
       </div>
       {Object.keys(groupPublishStatus).length > 0 && (
         <div className="space-y-2">
-          {Object.entries(groupPublishStatus).map(([groupName, status]) => (
+          {Object.entries(groupPublishStatus).map(([statusKey, status]) => (
             <div
-              key={groupName}
+              key={statusKey}
               className={`rounded-xl border px-4 py-3 text-xs ${
                 status.state === 'failed'
                   ? 'border-red-200 bg-red-50 text-red-700'
@@ -944,7 +1423,7 @@ export default function DataPipeline() {
                 ) : (
                   <CheckCircle size={13} />
                 )}
-                <span className="font-semibold">{groupName}</span>
+                <span className="font-semibold">{status.projectName ? `${status.projectName} / ` : ''}{status.groupName || statusKey}</span>
                 <span>{status.message}</span>
                 {status.kbSyncMessage ? <span>KB sync {status.kbSyncMessage}</span> : null}
               </div>
