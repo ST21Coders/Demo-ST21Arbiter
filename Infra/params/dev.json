@@ -127,6 +127,11 @@
     "ParameterValue": "us.amazon.nova-2-lite-v1:0"
   },
   {
+    "_comment_memory": "AgentCore Memory for the master orchestrator, created out-of-band. scripts/deploy_agents.py falls back to this when MASTER_MEMORY_ID is not exported. Refresh after memory recreation.",
+    "ParameterKey": "MasterMemoryId",
+    "ParameterValue": "dev_st21arbiter_poc_master_memory-wBBqr6FuXf"
+  },
+  {
     "_comment_guardrail": "Bedrock Guardrail (name dev-st21arbiter-poc-guardrail) created by scripts/setup_bedrock_kb.py. Refresh GuardrailId after KB setup, same as KbId. GuardrailVersions is the comma-separated switcher list shown on the LLM Control page; add new published versions here as they exist.",
     "ParameterKey": "GuardrailId",
     "ParameterValue": "e0axl6y90il0"
