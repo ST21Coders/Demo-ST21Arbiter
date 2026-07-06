@@ -69,8 +69,8 @@ GUARDRAIL_ID = os.environ.get("GUARDRAIL_ID", "") or PARAMS.get("GuardrailId", "
 GUARDRAIL_VERSION = (os.environ.get("GUARDRAIL_VERSION", "")
                      or PARAMS.get("GuardrailVersion", "") or "DRAFT")
 # Only the master orchestrator uses memory in the current design.
-# Set via env var when invoking the script; leave empty to disable memory.
-MASTER_MEMORY_ID = os.environ.get("MASTER_MEMORY_ID", "")
+# Env var wins; otherwise fall back to params/dev.json. Empty disables memory.
+MASTER_MEMORY_ID = os.environ.get("MASTER_MEMORY_ID", "") or PARAMS.get("MasterMemoryId", "")
 
 
 def resolve_model_id(agent: dict[str, Any]) -> str:
