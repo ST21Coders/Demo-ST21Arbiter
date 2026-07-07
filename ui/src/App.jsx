@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { PersonaProvider, usePersona } from './contexts/PersonaContext'
 import { handleCallback, isAuthenticated } from './hooks/useAuth'
 import { usePreferences, getPreferences, setPreference, resolveTheme } from './hooks/usePreferences'
+import { useNavCounts } from './hooks/useApi'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
 import Dashboard from './pages/Dashboard'
@@ -146,6 +147,9 @@ function Shell() {
   // keys off (see index.css): compact density on dense tables, reduced motion.
   // (Theme is applied to <html> by ThemeManager at the App root.)
   const { appearance } = usePreferences()
+  // One shared 60s poll feeds both the sidebar badges and the TopBar
+  // notifications bell — don't add per-component useNavCounts() calls.
+  const { findingsOpen, actionsPending, openFindings } = useNavCounts()
   return (
     <div
       data-density={appearance.density}
@@ -153,9 +157,9 @@ function Shell() {
       className="flex h-screen overflow-hidden bg-slate-50 text-slate-900"
     >
       <PersonaRouteSync />
-      <Sidebar />
+      <Sidebar findingsOpen={findingsOpen} actionsPending={actionsPending} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar />
+        <TopBar openFindings={openFindings} />
         <main className="flex-1 overflow-y-auto">
           <Routes>
             <Route path="/"            element={<Guarded path="/"><Dashboard /></Guarded>} />

@@ -7,10 +7,10 @@ import {
 } from 'lucide-react'
 import { CHAT_URL, USE_MOCK, APP_VERSION } from '../config'
 import { usePersona } from '../contexts/PersonaContext'
-import { useNavCounts } from '../hooks/useApi'
 
-// Badge counts are wired live in the component (see useNavCounts). Static
-// `badge` literals were removed — only badgeKey 'findings' / 'actions' here.
+// Badge counts come in as props from the Shell's single useNavCounts() poll
+// (shared with the TopBar notifications bell). Static `badge` literals were
+// removed — only badgeKey 'findings' / 'actions' here.
 const NAV_GROUPS = [
   {
     label: 'OVERVIEW',
@@ -116,10 +116,9 @@ function PersonaBadge() {
   )
 }
 
-export default function Sidebar() {
+export default function Sidebar({ findingsOpen = 0, actionsPending = 0 }) {
   const isLive = !!CHAT_URL && !USE_MOCK
   const { persona, hasAccess } = usePersona()
-  const { findingsOpen, actionsPending } = useNavCounts()
   const liveCounts = { findings: findingsOpen, actions: actionsPending }
 
   const visibleGroups = NAV_GROUPS
