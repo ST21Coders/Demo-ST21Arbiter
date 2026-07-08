@@ -1,8 +1,9 @@
 import { useLocation, NavLink } from 'react-router-dom'
-import { Bell, ChevronRight, Home, LogOut } from 'lucide-react'
+import { ChevronRight, Home, LogOut } from 'lucide-react'
 import { USE_MOCK } from '../config'
 import { usePersona } from '../contexts/PersonaContext'
 import { signOut, isDevAuth, getDevPersonaId, setDevPersona } from '../hooks/useAuth'
+import NotificationsBell from './NotificationsBell'
 
 const ROUTE_META = {
   '/':           { title: 'Dashboard',     section: null },
@@ -21,7 +22,7 @@ const ROUTE_META = {
   '/settings':   { title: 'Settings',      section: null },
 }
 
-export default function TopBar() {
+export default function TopBar({ openFindings = [] }) {
   const location = useLocation()
   const { persona, firstAccessiblePath } = usePersona()
   const meta = ROUTE_META[location.pathname] || { title: 'ARBITER', section: null }
@@ -91,11 +92,8 @@ export default function TopBar() {
           {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </span>
 
-        {/* Notifications */}
-        <button className="relative p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
-          <Bell size={14} />
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full" />
-        </button>
+        {/* Notifications — hidden for personas without Findings/Actions access */}
+        <NotificationsBell openFindings={openFindings} />
 
         {/* Active persona user */}
         {persona && (
