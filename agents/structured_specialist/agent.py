@@ -209,6 +209,19 @@ def _load_projects() -> list[dict[str, Any]]:
                     for item in files[:100]
                     if isinstance(item, dict)
                 ]
+                structured_facts = group.get("structuredFacts") or {}
+                fact_sources = []
+                for source in structured_facts.get("sources") or []:
+                    if not isinstance(source, dict):
+                        continue
+                    fact_sources.append({
+                        "name": source.get("name"),
+                        "type": source.get("type"),
+                        "facts": source.get("facts") or {},
+                        "lookupKeys": source.get("lookupKeys") or [],
+                        "textPreview": source.get("textPreview") or "",
+                    })
+
                 groups.append({
                     "name": group.get("name") or group.get("id"),
                     "type": group.get("type"),
@@ -218,8 +231,12 @@ def _load_projects() -> list[dict[str, Any]]:
                     "tableHints": table_hints[:12],
                     "groupProfile": group.get("groupProfile") or {},
                     "groupKey": group_key if isinstance(group_key, dict) else {},
+                    "governancePolicyId": group.get("governancePolicyId") or (group_key or {}).get("governance_policy_id"),
+                    "governancePolicy": group.get("governancePolicy") or (group_key or {}).get("governance_policy") or {},
+                    "groupSchema": group.get("groupSchema") or {},
                     "structuredFacts": {
-                        "counts": (group.get("structuredFacts") or {}).get("counts") or {},
+                        "counts": structured_facts.get("counts") or {},
+                        "sources": fact_sources[:500],
                     },
                     "files": file_sample,
                 })
@@ -368,6 +385,9 @@ def _resolve_single_group_context(prompt: str) -> dict[str, Any] | None:
                 "tableHints": group.get("tableHints") or [],
                 "groupProfile": group.get("groupProfile") or {},
                 "groupKey": group.get("groupKey") or {},
+                "governancePolicyId": group.get("governancePolicyId") or "",
+                "governancePolicy": group.get("governancePolicy") or {},
+                "groupSchema": group.get("groupSchema") or {},
                 "structuredFacts": group.get("structuredFacts") or {},
                 "files": group.get("files") or [],
             }
@@ -404,6 +424,9 @@ def _resolve_single_group_context(prompt: str) -> dict[str, Any] | None:
         "tableHints": group.get("tableHints") or [],
         "groupProfile": group.get("groupProfile") or {},
         "groupKey": group.get("groupKey") or {},
+        "governancePolicyId": group.get("governancePolicyId") or "",
+        "governancePolicy": group.get("governancePolicy") or {},
+        "groupSchema": group.get("groupSchema") or {},
         "structuredFacts": group.get("structuredFacts") or {},
         "files": group.get("files") or [],
     }
@@ -584,6 +607,260 @@ def _user_request_from_scoped_prompt(prompt: str) -> str:
     return prompt
 
 
+def _active_governance_policy(context: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(context, dict):
+        return {}
+    policy = context.get("governancePolicy")
+    if isinstance(policy, dict) and policy:
+        return policy
+    group_key = context.get("groupKey")
+    if isinstance(group_key, dict) and isinstance(group_key.get("governance_policy"), dict):
+        return group_key.get("governance_policy") or {}
+    return {}
+
+
+def _classify_governed_request(prompt: str, context: dict[str, Any] | None) -> dict[str, Any]:
+    """Deterministic query-planning gate for the active group governance policy."""
+    text = _normalize_lookup_text(prompt)
+    policy = _active_governance_policy(context)
+    group_name = (context or {}).get("groupName") if isinstance(context, dict) else ""
+    policy_id = policy.get("policy_id") or (context or {}).get("governancePolicyId") or "default_runtime_governance"
+
+    intent = "structured_analysis"
+    risk_level = "low"
+    required_evidence = ["selected_project_and_group", "tables_or_files_used", "columns_used"]
+    constraints = ["stay_within_selected_group", "neutral_language"]
+
+    if any(term in text for term in ("create ticket", "open ticket", "draft ticket", "create jira", "servicenow")):
+        intent = "action_recommendation"
+        risk_level = "medium"
+        required_evidence = ["human_confirmation_required", "supporting_evidence_summary"]
+    elif any(term in text for term in ("memory leak", "traffic related", "scaling issue", "latency", "slower", "deployment", "caused by", "root cause")):
+        intent = "diagnose_operational_issue"
+        risk_level = "medium"
+        required_evidence = ["rule_used", "tables_or_files_used", "columns_used", "comparison_baseline", "limitations_or_missing_data"]
+    elif any(term in text for term in ("compromised credential", "attack", "invalid credential", "login failure", "unusual access", "suspicious", "security review")):
+        intent = "detect_unusual_patterns"
+        risk_level = "medium"
+        required_evidence = ["tables_or_files_used", "columns_used", "time_window_or_bucket", "limitations_or_missing_data"]
+    elif any(term in text for term in ("rank", "highest", "lowest", "summary", "total", "compare", "break out", "chronological", "date order")):
+        intent = "compare_or_rank_records"
+        required_evidence = ["tables_or_files_used", "columns_used", "filters_or_grouping_logic", "row_or_document_counts_when_available"]
+    elif any(term in text for term in ("list files", "available files", "available tables", "schema", "columns", "inventory")):
+        intent = "inventory_files_and_tables"
+        required_evidence = ["selected_project_and_group", "files_or_tables_listed"]
+
+    hard_accusation = any(term in text for term in ("fraud", "guilty", "criminal", "stole", "theft", "illegal", "malpractice"))
+    unsupported_certainty = any(term in text for term in ("prove", "proved", "definitive", "definitively", "confirm they", "confirmed that"))
+    auto_external_action = any(term in text for term in ("automatically send", "auto send", "email the vendor", "notify customer", "delete records", "change configuration"))
+
+    decision = "allowed"
+    reason = "Request is within the selected group governance baseline."
+    safe_rewrite = None
+    if auto_external_action:
+        decision = "safe_rewrite_required"
+        risk_level = "high"
+        reason = "External or configuration-changing actions require human approval under the active governance policy."
+        safe_rewrite = "Draft the recommended action with supporting evidence and ask for human confirmation before sending or changing anything."
+    elif hard_accusation or unsupported_certainty:
+        decision = "safe_rewrite_required"
+        risk_level = "high"
+        reason = "The prompt asks for a definitive accusation or conclusion that requires bounded evidence and neutral language."
+        safe_rewrite = (
+            "Identify evidence-backed review candidates and unusual patterns in the selected group. "
+            "Include source tables/files, columns used, counts, limitations, and avoid definitive accusations."
+        )
+    elif risk_level != "low":
+        decision = "allowed_with_constraints"
+        reason = "Higher-risk diagnostic or investigative request; answer must stay neutral and evidence-bound."
+
+    return {
+        "policy_id": policy_id,
+        "policy_name": policy.get("name") or "Runtime Governance Policy",
+        "group_name": group_name or "",
+        "intent": intent,
+        "risk_level": risk_level,
+        "decision": decision,
+        "reason": reason,
+        "required_evidence": required_evidence,
+        "response_constraints": constraints,
+        "safe_rewrite": safe_rewrite,
+    }
+
+
+def _format_governance_block(plan: dict[str, Any]) -> str:
+    evidence = ", ".join(plan.get("required_evidence") or [])
+    constraints = ", ".join(plan.get("response_constraints") or [])
+    lines = [
+        "Governance plan",
+        f"- Policy: {plan.get('policy_id')}",
+        f"- Decision: {plan.get('decision')} ({plan.get('risk_level')} risk)",
+        f"- Intent: {plan.get('intent')}",
+    ]
+    if evidence:
+        lines.append(f"- Required evidence: {evidence}")
+    if constraints:
+        lines.append(f"- Constraints: {constraints}")
+    if plan.get("reason"):
+        lines.append(f"- Reason: {plan.get('reason')}")
+    return "\n".join(lines)
+
+
+def _governance_safe_rewrite_response(plan: dict[str, Any]) -> str:
+    return "\n\n".join([
+        "I can help, but the active AI governance policy requires a safer bounded version of that request.",
+        _format_governance_block(plan),
+        f"Safe rewrite:\n{plan.get('safe_rewrite') or 'Ask for evidence-backed review candidates using neutral language.'}",
+    ])
+
+
+def _looks_like_model_block(result: str) -> bool:
+    text = _normalize_lookup_text(result)
+    return any(phrase in text for phrase in (
+        "blocked by content safety policies",
+        "content safety policies",
+        "guardrail blocked",
+        "cannot comply",
+        "can t comply",
+        "unable to comply",
+        "not able to assist",
+    ))
+
+
+def _safe_rewrite_for_plan(plan: dict[str, Any], prompt: str) -> str:
+    if plan.get("safe_rewrite"):
+        return str(plan.get("safe_rewrite"))
+    intent = plan.get("intent") or "structured_analysis"
+    if intent == "diagnose_operational_issue":
+        return (
+            "Run an evidence-bounded diagnostic for the selected group. Include tables/files used, "
+            "columns used, comparison baseline, rule used, candidate findings, and limitations."
+        )
+    if intent == "detect_unusual_patterns":
+        return (
+            "Identify unusual patterns that need security review in the selected group. Include user/service/entity, "
+            "time bucket, source columns, counts, supporting evidence, and limitations. Avoid definitive conclusions."
+        )
+    if intent == "action_recommendation":
+        return (
+            "Draft the recommended action with supporting evidence and ask for human confirmation before creating, "
+            "sending, changing, or deleting anything."
+        )
+    if intent == "compare_or_rank_records":
+        return (
+            "Compare or rank records inside the selected group using explicit tables/files, columns, grouping logic, "
+            "counts, and limitations."
+        )
+    return (
+        "Answer using only the selected group. Include source tables/files, columns used, neutral language, "
+        "and limitations."
+    )
+
+
+def _useful_blocked_response(prompt: str, raw_result: str, plan: dict[str, Any], context: dict[str, Any] | None) -> str:
+    context = context if isinstance(context, dict) else {}
+    missing: list[str] = []
+    if not context:
+        missing.append("selected project/group")
+    if "tables_or_files_used" in (plan.get("required_evidence") or []) and not context.get("tableHints") and not context.get("files"):
+        missing.append("source tables/files")
+    if "columns_used" in (plan.get("required_evidence") or []) and not (context.get("groupSchema") or {}).get("tables"):
+        missing.append("sampled schema/columns")
+    missing_text = ", ".join(missing) if missing else "none detected; original wording likely triggered model safety"
+    safe_rewrite = _safe_rewrite_for_plan(plan, prompt)
+    return "\n\n".join([
+        "The request was stopped by a safety or governance control, but here is the safe path forward.",
+        _format_governance_block({
+            **plan,
+            "decision": "safe_rewrite_required",
+            "reason": plan.get("reason") or "The original response was blocked before a usable evidence-bound answer could be returned.",
+        }),
+        f"Missing or risky element: {missing_text}",
+        f"Safe prompt to run:\n{safe_rewrite}",
+    ])
+
+
+def _extract_evidence_tables(result: str, context: dict[str, Any] | None) -> list[str]:
+    context_hints = [
+        str(table)
+        for table in ((context or {}).get("tableHints") or [])
+        if isinstance(table, str) and table
+    ]
+    found: list[str] = []
+    for table in context_hints:
+        if table in result:
+            found.append(table)
+    for value in re.findall(r"`([A-Za-z0-9_]+)`", result or ""):
+        if value in context_hints or re.match(r"^(?:discovery|vendor|project|storm|daily|casino|legal|mountain|midwest|west|hawaiian)_[a-z0-9_]+$", value):
+            found.append(value)
+    return sorted({table for table in found})[:20]
+
+
+def _extract_evidence_columns(result: str) -> list[str]:
+    columns: list[str] = []
+    for line in (result or "").splitlines():
+        if "columns used" not in line.lower():
+            continue
+        columns.extend(re.findall(r"`([^`]+)`", line))
+        _, _, after = line.partition(":")
+        if after and not columns:
+            columns.extend(part.strip(" .;") for part in re.split(r",|;", after) if part.strip())
+    return sorted({column for column in columns if column})[:30]
+
+
+def _evidence_contract_block(result: str, plan: dict[str, Any] | None, context: dict[str, Any] | None) -> str:
+    if not plan:
+        return ""
+    context = context if isinstance(context, dict) else {}
+    project = context.get("projectName") or context.get("projectId") or "selected project"
+    group = context.get("groupName") or plan.get("group_name") or "selected group"
+    tables = _extract_evidence_tables(result, context)
+    columns = _extract_evidence_columns(result)
+    required = ", ".join(plan.get("required_evidence") or [])
+    limitations: list[str] = []
+    if "limitations_or_missing_data" in (plan.get("required_evidence") or []):
+        limitations.append("Report any missing tables, missing columns, sparse buckets, or query issues before drawing conclusions.")
+    if "selected_project_and_group" in (plan.get("required_evidence") or []):
+        limitations.append("Analysis is bounded to the selected project/group and must not mix external tables.")
+
+    lines = [
+        "Evidence contract",
+        f"- Scope: {project} / {group}",
+        f"- Tables/files used: {', '.join(tables) if tables else 'See selected group context or result body.'}",
+        f"- Columns/signals used: {', '.join(columns) if columns else 'See result body; no explicit column list was detected.'}",
+    ]
+    if required:
+        lines.append(f"- Required evidence satisfied/planned: {required}")
+    if limitations:
+        lines.append(f"- Limitations: {' '.join(limitations)}")
+    return "\n".join(lines)
+
+
+def _append_governed_footer(result: str, plan: dict[str, Any] | None, context: dict[str, Any] | None) -> str:
+    if not plan:
+        return result
+    blocks: list[str] = []
+    if "Evidence contract" not in result:
+        evidence = _evidence_contract_block(result, plan, context)
+        if evidence:
+            blocks.append(evidence)
+    if plan.get("decision") in {"allowed_with_constraints", "safe_rewrite_required"} and "Governance plan" not in result:
+        blocks.append(_format_governance_block(plan))
+    if not blocks:
+        return result
+    return f"{result}\n\n" + "\n\n".join(blocks)
+
+
+def _prepend_governance_plan(prompt: str, plan: dict[str, Any] | None) -> str:
+    if not plan:
+        return prompt
+    return (
+        "Active AI governance plan for this request. Follow it while answering.\n"
+        f"{_format_governance_block(plan)}\n\n"
+        f"{prompt}"
+    )
+
+
 def _looks_like_group_inventory_request(prompt: str) -> bool:
     text = _normalize_lookup_text(prompt)
     return (
@@ -692,6 +969,19 @@ def _format_group_inventory(context: dict[str, Any]) -> str:
     else:
         lines.append("- No file metadata found for this group.")
     group_profile = context.get("groupProfile") or {}
+    schema_counts = (context.get("groupSchema") or {}).get("counts") or group_profile.get("schemaIndex") or {}
+    if schema_counts.get("csvFiles") or schema_counts.get("csvFileCount"):
+        lines.extend([
+            "",
+            "Structured CSV schema",
+            (
+                f"- Indexed {schema_counts.get('csvFiles') or schema_counts.get('csvFileCount')} CSV schema profiles "
+                f"with {schema_counts.get('columns') or schema_counts.get('columnCount') or 0} columns, "
+                f"{schema_counts.get('joinKeyColumns') or schema_counts.get('joinKeyColumnCount') or 0} join-key candidates, "
+                f"{schema_counts.get('amountColumns') or schema_counts.get('amountColumnCount') or 0} amount columns, and "
+                f"{schema_counts.get('relationships') or schema_counts.get('relationshipCount') or 0} relationship candidates."
+            ),
+        ])
     fact_counts = (context.get("structuredFacts") or {}).get("counts") or group_profile.get("factIndex") or {}
     if fact_counts.get("factSources") or fact_counts.get("sourceCount"):
         type_counts = fact_counts.get("types") or {}
@@ -792,6 +1082,61 @@ def _vendor_master_table(context: dict[str, Any] | None) -> str | None:
     return None
 
 
+def _context_fact_sources(context: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not context:
+        return []
+    structured_facts = context.get("structuredFacts") if isinstance(context.get("structuredFacts"), dict) else {}
+    return [source for source in structured_facts.get("sources") or [] if isinstance(source, dict)]
+
+
+def _fact_source_by_filename(context: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    sources: dict[str, dict[str, Any]] = {}
+    for source in _context_fact_sources(context):
+        name = str(source.get("name") or "")
+        if name:
+            sources[name.lower()] = source
+    return sources
+
+
+def _amount_reviewed_from_fact_source(source: dict[str, Any] | None) -> str:
+    if not source:
+        return ""
+    facts = source.get("facts") if isinstance(source.get("facts"), dict) else {}
+    amount_key_terms = ("amount", "invoice", "payment", "paid", "reviewed", "total", "cost")
+    for key, value in facts.items():
+        key_text = _normalize_lookup_text(str(key))
+        if not any(term in key_text for term in amount_key_terms):
+            continue
+        value_text = str(value or "").strip()
+        if not value_text:
+            continue
+        if re.search(r"\$?\d[\d,]*(?:\.\d{2})?", value_text):
+            return value_text
+
+    text = str(source.get("textPreview") or "")
+    labelled_amount = re.search(
+        r"(?i)\b(?:amount reviewed|reviewed amount|invoice amount|payment amount|paid amount|total amount|amount|total)\b"
+        r"\s*[:=]\s*(\$?\d[\d,]*(?:\.\d{2})?)",
+        text,
+    )
+    if labelled_amount:
+        return labelled_amount.group(1)
+    dollar_amount = re.search(r"\$\d[\d,]*(?:\.\d{2})?", text)
+    return dollar_amount.group(0) if dollar_amount else ""
+
+
+def _neutral_summary_from_fact_source(source: dict[str, Any] | None, document_type: str) -> str:
+    fallback = f"Catalogued {document_type} record for this vendor."
+    if not source:
+        return fallback
+    text = re.sub(r"\s+", " ", str(source.get("textPreview") or "")).strip()
+    if not text:
+        return fallback
+    if len(text) > 180:
+        return text[:177].rstrip() + "..."
+    return text
+
+
 def _handle_vendor_document_lookup_request(prompt: str, context: dict[str, Any] | None) -> str | None:
     if not _looks_like_vendor_document_lookup_request(prompt):
         return None
@@ -807,22 +1152,32 @@ def _handle_vendor_document_lookup_request(prompt: str, context: dict[str, Any] 
     wanted_terms = _vendor_document_terms(prompt)
     files = _context_file_inventory(context)
     table_hints = context.get("tableHints") or []
+    fact_sources_by_name = _fact_source_by_filename(context)
     matching_files: list[dict[str, str]] = []
+    seen_filenames: set[str] = set()
     for file_info in files:
         if not isinstance(file_info, dict):
             continue
         name = str(file_info.get("name") or "")
+        filename_key = name.lower()
+        if not name or filename_key in seen_filenames:
+            continue
         lookup = _normalize_lookup_text(name)
         if vendor_id.lower() not in name.lower():
             continue
         doc_type = _vendor_document_type_from_name(name)
         if wanted_terms and not any(term in lookup for term in wanted_terms):
             continue
+        seen_filenames.add(filename_key)
+        fact_source = fact_sources_by_name.get(filename_key)
         matching_files.append({
             "filename": name,
             "document_type": doc_type,
+            "document_date": _document_date_from_name(name),
+            "amount_reviewed": _amount_reviewed_from_fact_source(fact_source),
             "file_type": str(file_info.get("type") or "file"),
             "table": str(file_info.get("glueTableHint") or ""),
+            "neutral_summary": _neutral_summary_from_fact_source(fact_source, doc_type),
         })
 
     matching_tables = []
@@ -1007,6 +1362,28 @@ def _looks_like_contract_document_after_end_request(prompt: str) -> bool:
     )
 
 
+def _looks_like_vendor_spend_summary_request(prompt: str) -> bool:
+    text = _normalize_lookup_text(prompt)
+    return (
+        re.search(r"\bV\d{3,6}\b", prompt or "", re.IGNORECASE) is None
+        and
+        "vendor" in text
+        and (
+            "spend" in text
+            or "amount" in text
+            or "invoice" in text
+            or "payment" in text
+        )
+        and (
+            "rank" in text
+            or "highest" in text
+            or "lowest" in text
+            or "summary" in text
+            or "total" in text
+        )
+    )
+
+
 def _vendor_rows(context: dict[str, Any] | None, limit: int = 500) -> tuple[list[dict[str, Any]], str | None, list[str]]:
     vendor_table = _vendor_master_table(context)
     if not vendor_table:
@@ -1050,6 +1427,1131 @@ def _vendor_document_matches(files: list[dict[str, Any]], vendor_id: str, terms:
             "table": str(file_info.get("glueTableHint") or ""),
         })
     return matches
+
+
+def _first_matching_column(columns: set[str], aliases: tuple[str, ...]) -> str:
+    for alias in aliases:
+        if alias in columns:
+            return alias
+    return ""
+
+
+def _first_column_by_name(columns: set[str], exact: tuple[str, ...], contains: tuple[str, ...] = ()) -> str:
+    exact_match = _first_matching_column(columns, exact)
+    if exact_match:
+        return exact_match
+    for column in sorted(columns):
+        if any(fragment in column for fragment in contains):
+            return column
+    return ""
+
+
+_SERVICE_COLUMN_ALIASES = (
+    "service", "service_name", "target_service", "app", "application",
+    "component", "component_name", "workload",
+)
+_SERVICE_COLUMN_FRAGMENTS = ("service", "application", "component", "workload")
+_MEMORY_COLUMN_ALIASES = (
+    "memory_mb", "memory_usage_mb", "memory_used_mb", "mem_mb", "rss_mb",
+    "heap_used_mb", "heap_mb", "working_set_mb", "resident_memory_mb",
+    "memory_percent", "memory_usage",
+)
+_MEMORY_COLUMN_FRAGMENTS = ("memory", "mem_", "heap", "rss", "working_set", "resident")
+_TRAFFIC_COLUMN_ALIASES = (
+    "request_count", "requests", "request", "rps", "qps", "throughput", "traffic",
+    "request_rate", "requests_per_second", "http_requests", "active_users",
+    "connections", "transactions",
+)
+_TRAFFIC_COLUMN_FRAGMENTS = ("request", "traffic", "throughput", "rps", "qps", "connection", "transaction")
+_TIME_COLUMN_ALIASES = ("timestamp", "event_time", "time", "datetime", "observed_at", "created_at", "date", "sample_time")
+_TIME_COLUMN_FRAGMENTS = ("timestamp", "_time", "date", "observed")
+
+
+def _looks_like_service_memory_leak_request(prompt: str, context: dict[str, Any] | None) -> bool:
+    text = _normalize_lookup_text(prompt)
+    schema_counts = ((context or {}).get("groupSchema") or {}).get("counts") or {}
+    has_csv_schema = bool(schema_counts.get("csvFiles") or schema_counts.get("csvFileCount") or (context or {}).get("tableHints"))
+    service_terms = ("service", "services", "app", "application", "component")
+    traffic_terms = ("traffic", "scaling", "scale", "requests", "request count", "load")
+    diagnostic_phrase = (
+        "traffic related scaling candidate" in text
+        or "traffic-related scaling candidate" in text
+        or "memory leak candidate" in text
+        or ("average memory" in text and "request count" in text)
+    )
+    return (
+        has_csv_schema
+        and "memory" in text
+        and ("leak" in text or diagnostic_phrase)
+        and (diagnostic_phrase or any(term in text for term in service_terms))
+        and any(term in text for term in traffic_terms)
+    )
+
+
+def _requested_service_diagnostic_signal(prompt: str) -> str:
+    text = _normalize_lookup_text(prompt)
+    if (
+        "traffic related scaling candidate" in text
+        or "traffic-related scaling candidate" in text
+        or ("average memory" in text and "request count" in text and "rise" in text)
+    ):
+        return "traffic-related scaling candidate"
+    if "memory leak candidate" in text or "memory leak" in text:
+        return "memory leak candidate"
+    return ""
+
+
+def _service_column(columns: set[str]) -> str:
+    return _first_column_by_name(columns, _SERVICE_COLUMN_ALIASES, _SERVICE_COLUMN_FRAGMENTS)
+
+
+def _memory_column(columns: set[str]) -> str:
+    return _first_column_by_name(columns, _MEMORY_COLUMN_ALIASES, _MEMORY_COLUMN_FRAGMENTS)
+
+
+def _traffic_column(columns: set[str]) -> str:
+    return _first_column_by_name(columns, _TRAFFIC_COLUMN_ALIASES, _TRAFFIC_COLUMN_FRAGMENTS)
+
+
+def _time_column(columns: set[str]) -> str:
+    return _first_column_by_name(columns, _TIME_COLUMN_ALIASES, _TIME_COLUMN_FRAGMENTS)
+
+
+def _service_metrics_table(context: dict[str, Any] | None) -> tuple[str, dict[str, str]] | None:
+    best: tuple[int, str, dict[str, str]] | None = None
+    for table in (context or {}).get("tableHints") or []:
+        table_name = str(table)
+        columns = _glue_columns_for_table(table_name)
+        if not columns:
+            continue
+        service_col = _service_column(columns)
+        memory_col = _memory_column(columns)
+        traffic_col = _traffic_column(columns)
+        time_col = _time_column(columns)
+        score = sum(1 for value in (service_col, memory_col, traffic_col, time_col) if value)
+        if service_col and memory_col and traffic_col and (best is None or score > best[0]):
+            best = (score, table_name, {
+                "service": service_col,
+                "memory": memory_col,
+                "traffic": traffic_col,
+                "time": time_col,
+            })
+    if not best:
+        return None
+    return best[1], best[2]
+
+
+def _service_memory_table(context: dict[str, Any] | None) -> tuple[str, dict[str, str]] | None:
+    best: tuple[int, str, dict[str, str]] | None = None
+    for table in (context or {}).get("tableHints") or []:
+        table_name = str(table)
+        columns = _glue_columns_for_table(table_name)
+        if not columns:
+            continue
+        service_col = _service_column(columns)
+        memory_col = _memory_column(columns)
+        time_col = _time_column(columns)
+        if not (service_col and memory_col and time_col):
+            continue
+        name = table_name.lower()
+        score = 0
+        score += 4 if "ecs" in name else 0
+        score += 3 if "container" in name else 0
+        score += 2 if "metric" in name else 0
+        score += 1 if "memory" in memory_col else 0
+        if best is None or score > best[0]:
+            best = (score, table_name, {"service": service_col, "memory": memory_col, "time": time_col})
+    if not best:
+        return None
+    return best[1], best[2]
+
+
+def _service_traffic_table(context: dict[str, Any] | None) -> tuple[str, dict[str, str]] | None:
+    best: tuple[int, str, dict[str, str]] | None = None
+    for table in (context or {}).get("tableHints") or []:
+        table_name = str(table)
+        columns = _glue_columns_for_table(table_name)
+        if not columns:
+            continue
+        service_col = _service_column(columns)
+        time_col = _time_column(columns)
+        traffic_col = _traffic_column(columns)
+        if not (service_col and time_col):
+            continue
+        name = table_name.lower()
+        score = 0
+        score += 5 if "api_gateway" in name else 0
+        score += 4 if "load_balancer" in name else 0
+        score += 3 if "log" in name else 0
+        score += 2 if traffic_col else 0
+        score += 1 if service_col == "service" else 0
+        if best is None or score > best[0]:
+            best = (score, table_name, {
+                "service": service_col,
+                "time": time_col,
+                "traffic": traffic_col,
+            })
+    if not best:
+        return None
+    return best[1], best[2]
+
+
+def _service_memory_leak_split_result(prompt: str, context: dict[str, Any]) -> str | None:
+    memory_resolved = _service_memory_table(context)
+    traffic_resolved = _service_traffic_table(context)
+    if not memory_resolved or not traffic_resolved:
+        return None
+
+    memory_table, memory_cols = memory_resolved
+    traffic_table, traffic_cols = traffic_resolved
+    memory_service_col = memory_cols["service"]
+    memory_value_col = memory_cols["memory"]
+    memory_time_col = memory_cols["time"]
+    traffic_service_col = traffic_cols["service"]
+    traffic_time_col = traffic_cols["time"]
+    requested_signal = _requested_service_diagnostic_signal(prompt)
+    requested_order = "1"
+    if requested_signal:
+        requested_order = f"CASE WHEN diagnostic_signal = '{requested_signal}' THEN 0 ELSE 1 END"
+
+    rows = _athena_rows(f"""
+        WITH memory_by_bucket AS (
+            SELECT
+                CAST({memory_service_col} AS VARCHAR) AS service,
+                SUBSTR(CAST({memory_time_col} AS VARCHAR), 1, 13) AS sample_bucket,
+                AVG(TRY_CAST({memory_value_col} AS DOUBLE)) AS memory_value,
+                COUNT(*) AS memory_sample_count
+            FROM "{memory_table}"
+            WHERE {memory_service_col} IS NOT NULL
+              AND {memory_time_col} IS NOT NULL
+              AND TRY_CAST({memory_value_col} AS DOUBLE) IS NOT NULL
+            GROUP BY 1, 2
+        ),
+        memory_ranked AS (
+            SELECT
+                service,
+                sample_bucket,
+                memory_value,
+                memory_sample_count,
+                ROW_NUMBER() OVER (PARTITION BY service ORDER BY sample_bucket ASC) AS rn_first,
+                ROW_NUMBER() OVER (PARTITION BY service ORDER BY sample_bucket DESC) AS rn_last
+            FROM memory_by_bucket
+        ),
+        memory_compare AS (
+            SELECT
+                service,
+                COUNT(*) AS memory_bucket_count,
+                SUM(memory_sample_count) AS memory_sample_count,
+                MAX(CASE WHEN rn_first = 1 THEN sample_bucket END) AS first_memory_bucket,
+                MAX(CASE WHEN rn_last = 1 THEN sample_bucket END) AS latest_memory_bucket,
+                MAX(CASE WHEN rn_first = 1 THEN memory_value END) AS first_memory,
+                MAX(CASE WHEN rn_last = 1 THEN memory_value END) AS latest_memory,
+                AVG(memory_value) AS avg_memory,
+                MAX(memory_value) AS peak_memory
+            FROM memory_ranked
+            GROUP BY service
+        ),
+        traffic_by_bucket AS (
+            SELECT
+                CAST({traffic_service_col} AS VARCHAR) AS service,
+                SUBSTR(CAST({traffic_time_col} AS VARCHAR), 1, 13) AS sample_bucket,
+                COUNT(*) AS request_count
+            FROM "{traffic_table}"
+            WHERE {traffic_service_col} IS NOT NULL
+              AND {traffic_time_col} IS NOT NULL
+            GROUP BY 1, 2
+        ),
+        traffic_ranked AS (
+            SELECT
+                service,
+                sample_bucket,
+                request_count,
+                ROW_NUMBER() OVER (PARTITION BY service ORDER BY sample_bucket ASC) AS rn_first,
+                ROW_NUMBER() OVER (PARTITION BY service ORDER BY sample_bucket DESC) AS rn_last
+            FROM traffic_by_bucket
+        ),
+        traffic_compare AS (
+            SELECT
+                service,
+                COUNT(*) AS traffic_bucket_count,
+                SUM(request_count) AS total_requests,
+                MAX(CASE WHEN rn_first = 1 THEN sample_bucket END) AS first_traffic_bucket,
+                MAX(CASE WHEN rn_last = 1 THEN sample_bucket END) AS latest_traffic_bucket,
+                MAX(CASE WHEN rn_first = 1 THEN request_count END) AS first_traffic,
+                MAX(CASE WHEN rn_last = 1 THEN request_count END) AS latest_traffic
+            FROM traffic_ranked
+            GROUP BY service
+        ),
+        diagnostic_rows AS (
+            SELECT
+                m.service,
+                m.memory_bucket_count,
+                m.memory_sample_count,
+                t.traffic_bucket_count,
+                t.total_requests,
+                ROUND(m.first_memory, 2) AS first_memory,
+                ROUND(m.latest_memory, 2) AS latest_memory,
+                ROUND(m.latest_memory - m.first_memory, 2) AS memory_delta,
+                ROUND(100 * (m.latest_memory - m.first_memory) / NULLIF(m.first_memory, 0), 2) AS memory_delta_percent,
+                t.first_traffic,
+                t.latest_traffic,
+                t.latest_traffic - t.first_traffic AS traffic_delta,
+                ROUND(100 * (t.latest_traffic - t.first_traffic) / NULLIF(t.first_traffic, 0), 2) AS traffic_delta_percent,
+                CASE
+                    WHEN m.latest_memory > m.first_memory * 1.25
+                     AND t.latest_traffic <= t.first_traffic * 1.10
+                    THEN 'memory leak candidate'
+                    WHEN m.latest_memory > m.first_memory * 1.25
+                     AND t.latest_traffic > t.first_traffic * 1.25
+                    THEN 'traffic-related scaling candidate'
+                    ELSE 'no strong leak signal'
+                END AS diagnostic_signal
+            FROM memory_compare m
+            LEFT JOIN traffic_compare t ON LOWER(m.service) = LOWER(t.service)
+            WHERE m.memory_bucket_count >= 2
+              AND t.traffic_bucket_count >= 2
+        )
+        SELECT *
+        FROM diagnostic_rows
+        ORDER BY
+            {requested_order},
+            CASE
+                WHEN diagnostic_signal = 'memory leak candidate' THEN 0
+                WHEN diagnostic_signal = 'traffic-related scaling candidate' THEN 1
+                ELSE 2
+            END,
+            memory_delta DESC
+        LIMIT 25
+    """)
+
+    display_rows = rows
+    if requested_signal:
+        display_rows = [row for row in rows if row.get("diagnostic_signal") == requested_signal]
+    top = display_rows[0] if display_rows else {}
+    if requested_signal == "traffic-related scaling candidate" and not top:
+        answer = (
+            "No service meets the traffic-related scaling candidate rule: latest average memory must rise by at least 25% "
+            "and latest request count must also rise by at least 25%."
+        )
+    elif requested_signal == "memory leak candidate" and not top:
+        answer = (
+            "No service meets the memory leak candidate rule: latest average memory must rise by at least 25% "
+            "while latest request count is not more than 10% above the first request count."
+        )
+    elif top and top.get("diagnostic_signal") == "traffic-related scaling candidate":
+        answer = (
+            f"{top.get('service')} appears most consistent with traffic-related scaling: "
+            f"average memory rose by {top.get('memory_delta')} MB ({top.get('memory_delta_percent')}%), while request volume rose by "
+            f"{top.get('traffic_delta')} ({top.get('traffic_delta_percent')}%) across the first and latest observed buckets."
+        )
+    elif top and top.get("diagnostic_signal") == "memory leak candidate":
+        answer = (
+            f"{top.get('service')} appears most consistent with a memory leak rather than traffic-related scaling: "
+            f"average memory rose by {top.get('memory_delta')} MB ({top.get('memory_delta_percent')}%), while request volume changed by "
+            f"{top.get('traffic_delta')} ({top.get('traffic_delta_percent')}%) across the first and latest observed buckets."
+        )
+    elif top:
+        answer = (
+            "No service has a strong memory-leak signature by the bounded rule. "
+            f"The strongest row is `{top.get('service')}` with signal `{top.get('diagnostic_signal')}`."
+        )
+    else:
+        answer = "No comparable service rows were returned after joining memory metrics to request logs."
+
+    lines = [
+        "Service memory diagnostic",
+        "",
+        answer,
+        "",
+        f"Memory table: `{memory_table}`",
+        f"Traffic table: `{traffic_table}`",
+        (
+            "Columns used: "
+            f"memory service=`{memory_service_col}`, memory=`{memory_value_col}`, memory time=`{memory_time_col}`; "
+        f"traffic service=`{traffic_service_col}`, traffic time=`{traffic_time_col}`"
+        ),
+        "",
+        _format_rows_as_markdown(display_rows, f"No rows matched `{requested_signal}`." if requested_signal else "No service metrics rows returned."),
+        "",
+        "Rule used",
+        "- Memory leak candidate: latest average memory is at least 25% above first average memory while latest request count is not more than 10% above first request count.",
+        "- Traffic-related scaling candidate: both average memory and request count rise by at least 25%.",
+    ]
+    return "\n".join(lines)
+
+
+def _handle_service_memory_leak_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_service_memory_leak_request(prompt, context):
+        return None
+    if not context:
+        return "I need a selected Data Group before comparing service memory and traffic signals."
+    resolved = _service_metrics_table(context)
+    if not resolved:
+        try:
+            split_result = _service_memory_leak_split_result(prompt, context)
+        except Exception as e:
+            return f"(query error: {e})"
+        if split_result:
+            return split_result
+        return (
+            "I could not find comparable service memory and traffic/request CSV tables in this group. "
+            "Ask for the group schema inventory to confirm the available columns."
+        )
+    table, cols = resolved
+    service_col = cols["service"]
+    memory_col = cols["memory"]
+    traffic_col = cols["traffic"]
+    time_col = cols.get("time") or ""
+    order_expr = f"CAST({time_col} AS VARCHAR)" if time_col else f"CAST({service_col} AS VARCHAR)"
+    try:
+        rows = _athena_rows(f"""
+            WITH typed AS (
+                SELECT
+                    CAST({service_col} AS VARCHAR) AS service,
+                    TRY_CAST({memory_col} AS DOUBLE) AS memory_value,
+                    TRY_CAST({traffic_col} AS DOUBLE) AS traffic_value,
+                    {order_expr} AS sample_order
+                FROM "{table}"
+                WHERE {service_col} IS NOT NULL
+            ),
+            ranked AS (
+                SELECT
+                    service,
+                    memory_value,
+                    traffic_value,
+                    sample_order,
+                    ROW_NUMBER() OVER (PARTITION BY service ORDER BY sample_order ASC) AS rn_first,
+                    ROW_NUMBER() OVER (PARTITION BY service ORDER BY sample_order DESC) AS rn_last
+                FROM typed
+                WHERE memory_value IS NOT NULL
+                  AND traffic_value IS NOT NULL
+            ),
+            service_compare AS (
+                SELECT
+                    service,
+                    COUNT(*) AS sample_count,
+                    MAX(CASE WHEN rn_first = 1 THEN memory_value END) AS first_memory,
+                    MAX(CASE WHEN rn_last = 1 THEN memory_value END) AS latest_memory,
+                    MAX(CASE WHEN rn_first = 1 THEN traffic_value END) AS first_traffic,
+                    MAX(CASE WHEN rn_last = 1 THEN traffic_value END) AS latest_traffic,
+                    AVG(memory_value) AS avg_memory,
+                    AVG(traffic_value) AS avg_traffic,
+                    MAX(memory_value) AS peak_memory,
+                    MAX(traffic_value) AS peak_traffic
+                FROM ranked
+                GROUP BY service
+            )
+            SELECT
+                service,
+                sample_count,
+                ROUND(first_memory, 2) AS first_memory,
+                ROUND(latest_memory, 2) AS latest_memory,
+                ROUND(latest_memory - first_memory, 2) AS memory_delta,
+                ROUND(100 * (latest_memory - first_memory) / NULLIF(first_memory, 0), 2) AS memory_delta_percent,
+                ROUND(first_traffic, 2) AS first_traffic,
+                ROUND(latest_traffic, 2) AS latest_traffic,
+                ROUND(latest_traffic - first_traffic, 2) AS traffic_delta,
+                ROUND(100 * (latest_traffic - first_traffic) / NULLIF(first_traffic, 0), 2) AS traffic_delta_percent,
+                CASE
+                    WHEN latest_memory > first_memory * 1.25
+                     AND latest_traffic <= first_traffic * 1.10
+                    THEN 'memory leak candidate'
+                    WHEN latest_memory > first_memory * 1.25
+                     AND latest_traffic > first_traffic * 1.25
+                    THEN 'traffic-related scaling candidate'
+                    ELSE 'no strong leak signal'
+                END AS diagnostic_signal
+            FROM service_compare
+            WHERE sample_count >= 2
+            ORDER BY
+                CASE
+                    WHEN latest_memory > first_memory * 1.25
+                     AND latest_traffic <= first_traffic * 1.10
+                    THEN 0
+                    WHEN latest_memory > first_memory * 1.25
+                     AND latest_traffic > first_traffic * 1.25
+                    THEN 1
+                    ELSE 2
+                END,
+                (latest_memory - first_memory) DESC
+            LIMIT 12
+        """)
+    except Exception as e:
+        return f"(query error: {e})"
+
+    top = rows[0] if rows else {}
+    answer = ""
+    if top and top.get("diagnostic_signal") == "memory leak candidate":
+        answer = (
+            f"{top.get('service')} appears most consistent with a memory leak rather than traffic-related scaling: "
+            f"memory rose by {top.get('memory_delta')} ({top.get('memory_delta_percent')}%), while traffic changed by "
+            f"{top.get('traffic_delta')} ({top.get('traffic_delta_percent')}%)."
+        )
+    elif top:
+        answer = (
+            "No service has a strong memory-leak signature by the bounded rule. "
+            f"The strongest row is `{top.get('service')}` with signal `{top.get('diagnostic_signal')}`."
+        )
+    else:
+        answer = "No comparable service rows were returned."
+
+    lines = [
+        "Service memory diagnostic",
+        "",
+        answer,
+        "",
+        f"Table: `{table}`",
+        f"Columns used: service=`{service_col}`, memory=`{memory_col}`, traffic=`{traffic_col}`"
+        + (f", time=`{time_col}`" if time_col else ""),
+        "",
+        _format_rows_as_markdown(rows, "No service metrics rows returned."),
+        "",
+        "Rule used",
+        "- Memory leak candidate: latest memory is at least 25% above first memory while latest traffic is not more than 10% above first traffic.",
+        "- Traffic-related scaling candidate: both memory and traffic rise by at least 25%.",
+    ]
+    return "\n".join(lines)
+
+
+def _looks_like_unusual_access_request(prompt: str, context: dict[str, Any] | None) -> bool:
+    text = _normalize_lookup_text(prompt)
+    has_tables = bool((context or {}).get("tableHints"))
+    access_terms = any(term in text for term in ("access", "auth", "authentication", "login", "credential", "credentials"))
+    signal_terms = any(term in text for term in ("unusual", "suspicious", "compromised", "anomal", "review", "risk"))
+    return has_tables and access_terms and signal_terms
+
+
+def _table_hint_containing(context: dict[str, Any] | None, fragments: tuple[str, ...]) -> str:
+    for table in (context or {}).get("tableHints") or []:
+        table_name = str(table)
+        table_text = table_name.lower()
+        if any(fragment in table_text for fragment in fragments):
+            return table_name
+    return ""
+
+
+def _handle_unusual_access_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_unusual_access_request(prompt, context):
+        return None
+    if not context:
+        return "I need a selected Data Group before reviewing access-pattern signals."
+
+    auth_table = _table_hint_containing(context, ("auth_service", "auth"))
+    cloudtrail_table = _table_hint_containing(context, ("cloudtrail",))
+    waf_table = _table_hint_containing(context, ("waf",))
+    if not auth_table:
+        return "I could not find an authentication log table for this group."
+
+    auth_columns = _glue_columns_for_table(auth_table)
+    required_auth = {"timestamp", "user_id", "client_id", "auth_result", "retry_count", "ip_address"}
+    if not required_auth.issubset(auth_columns):
+        return (
+            "I found an authentication table, but it does not have the expected bounded columns: "
+            "`timestamp`, `user_id`, `client_id`, `auth_result`, `retry_count`, and `ip_address`."
+        )
+
+    cloudtrail_cte = "cloudtrail_by_user AS (SELECT CAST(NULL AS VARCHAR) AS user_id, 0 AS cloudtrail_events, 0 AS cloudtrail_source_ips WHERE FALSE)"
+    if cloudtrail_table and {"user_identity", "source_ip"}.issubset(_glue_columns_for_table(cloudtrail_table)):
+        cloudtrail_cte = f"""
+        cloudtrail_by_user AS (
+            SELECT
+                CAST(user_identity AS VARCHAR) AS user_id,
+                COUNT(*) AS cloudtrail_events,
+                COUNT(DISTINCT source_ip) AS cloudtrail_source_ips
+            FROM "{cloudtrail_table}"
+            WHERE user_identity IS NOT NULL
+            GROUP BY CAST(user_identity AS VARCHAR)
+        )
+        """
+
+    waf_cte = "waf_by_ip AS (SELECT CAST(NULL AS VARCHAR) AS ip_address, 0 AS waf_blocks WHERE FALSE)"
+    if waf_table and {"source_ip", "action"}.issubset(_glue_columns_for_table(waf_table)):
+        waf_cte = f"""
+        waf_by_ip AS (
+            SELECT
+                CAST(source_ip AS VARCHAR) AS ip_address,
+                SUM(CASE WHEN LOWER(CAST(action AS VARCHAR)) IN ('block', 'blocked', 'deny', 'denied') THEN 1 ELSE 0 END) AS waf_blocks
+            FROM "{waf_table}"
+            WHERE source_ip IS NOT NULL
+            GROUP BY CAST(source_ip AS VARCHAR)
+        )
+        """
+
+    try:
+        rows = _athena_rows(f"""
+            WITH auth_events AS (
+                SELECT
+                    CAST(user_id AS VARCHAR) AS user_id,
+                    CAST(client_id AS VARCHAR) AS client_id,
+                    CAST(ip_address AS VARCHAR) AS ip_address,
+                    CAST(user_agent AS VARCHAR) AS user_agent,
+                    CAST(auth_result AS VARCHAR) AS auth_result,
+                    TRY_CAST(retry_count AS INTEGER) AS retry_count,
+                    CAST(timestamp AS VARCHAR) AS event_time
+                FROM "{auth_table}"
+                WHERE user_id IS NOT NULL
+            ),
+            auth_by_user AS (
+                SELECT
+                    user_id,
+                    COUNT(*) AS auth_events,
+                    SUM(CASE WHEN LOWER(auth_result) NOT IN ('success', 'succeeded', 'allow', 'allowed', 'ok') THEN 1 ELSE 0 END) AS failed_auth_events,
+                    COUNT(DISTINCT ip_address) AS distinct_ips,
+                    COUNT(DISTINCT client_id) AS distinct_clients,
+                    COUNT(DISTINCT user_agent) AS distinct_user_agents,
+                    MAX(COALESCE(retry_count, 0)) AS max_retry_count,
+                    MIN(event_time) AS first_seen,
+                    MAX(event_time) AS last_seen
+                FROM auth_events
+                GROUP BY user_id
+            ),
+            {waf_cte},
+            user_waf AS (
+                SELECT
+                    a.user_id,
+                    SUM(COALESCE(w.waf_blocks, 0)) AS waf_blocks_on_auth_ips
+                FROM (
+                    SELECT DISTINCT user_id, ip_address
+                    FROM auth_events
+                    WHERE ip_address IS NOT NULL
+                ) a
+                LEFT JOIN waf_by_ip w ON a.ip_address = w.ip_address
+                GROUP BY a.user_id
+            ),
+            {cloudtrail_cte},
+            scored AS (
+                SELECT
+                    a.user_id,
+                    a.auth_events,
+                    a.failed_auth_events,
+                    a.distinct_ips,
+                    a.distinct_clients,
+                    a.distinct_user_agents,
+                    a.max_retry_count,
+                    COALESCE(c.cloudtrail_events, 0) AS cloudtrail_events,
+                    COALESCE(c.cloudtrail_source_ips, 0) AS cloudtrail_source_ips,
+                    COALESCE(w.waf_blocks_on_auth_ips, 0) AS waf_blocks_on_auth_ips,
+                    a.first_seen,
+                    a.last_seen,
+                    (
+                        CASE WHEN a.failed_auth_events >= 5 THEN 3 ELSE 0 END
+                        + CASE WHEN a.distinct_ips >= 3 THEN 2 ELSE 0 END
+                        + CASE WHEN a.distinct_clients >= 3 THEN 1 ELSE 0 END
+                        + CASE WHEN a.max_retry_count >= 3 THEN 2 ELSE 0 END
+                        + CASE WHEN COALESCE(c.cloudtrail_source_ips, 0) >= 3 THEN 2 ELSE 0 END
+                        + CASE WHEN COALESCE(w.waf_blocks_on_auth_ips, 0) > 0 THEN 2 ELSE 0 END
+                    ) AS review_score
+                FROM auth_by_user a
+                LEFT JOIN cloudtrail_by_user c ON LOWER(a.user_id) = LOWER(c.user_id)
+                LEFT JOIN user_waf w ON a.user_id = w.user_id
+            )
+            SELECT
+                user_id,
+                review_score,
+                auth_events,
+                failed_auth_events,
+                distinct_ips,
+                distinct_clients,
+                distinct_user_agents,
+                max_retry_count,
+                cloudtrail_events,
+                cloudtrail_source_ips,
+                waf_blocks_on_auth_ips,
+                first_seen,
+                last_seen,
+                CASE
+                    WHEN review_score >= 6 THEN 'high follow-up'
+                    WHEN review_score >= 3 THEN 'needs review'
+                    ELSE 'low signal'
+                END AS review_band
+            FROM scored
+            WHERE review_score > 0
+            ORDER BY review_score DESC, failed_auth_events DESC, distinct_ips DESC
+            LIMIT 15
+        """)
+    except Exception as e:
+        return f"(query error: {e})"
+
+    top = rows[0] if rows else {}
+    if top:
+        answer = (
+            f"`{top.get('user_id')}` has the strongest access-pattern review signal with score {top.get('review_score')}: "
+            f"{top.get('failed_auth_events')} failed auth events, {top.get('distinct_ips')} source IPs, "
+            f"{top.get('distinct_clients')} client IDs, max retry count {top.get('max_retry_count')}, and "
+            f"{top.get('waf_blocks_on_auth_ips')} WAF blocks on observed auth IPs."
+        )
+    else:
+        answer = "No users crossed the bounded unusual-access review thresholds."
+
+    lines = [
+        "Unusual access pattern review",
+        "",
+        answer,
+        "",
+        f"Auth table: `{auth_table}`",
+        f"CloudTrail table: `{cloudtrail_table or 'not found'}`",
+        f"WAF table: `{waf_table or 'not found'}`",
+        "",
+        _format_rows_as_markdown(rows, "No unusual access candidates returned."),
+        "",
+        "Rule used",
+        "- This is a review-candidate report, not a conclusion of compromise.",
+        "- Score signals: failed auth volume, many source IPs, many client IDs, high retry count, CloudTrail source-IP spread, and WAF blocks on auth IPs.",
+    ]
+    return "\n".join(lines)
+
+
+def _looks_like_login_failure_cause_request(prompt: str, context: dict[str, Any] | None) -> bool:
+    text = _normalize_lookup_text(prompt)
+    has_tables = bool((context or {}).get("tableHints"))
+    return (
+        has_tables
+        and any(term in text for term in ("login", "auth", "authentication", "credential", "credentials"))
+        and any(term in text for term in ("failure", "failures", "failed", "invalid", "attack", "retry", "bug", "caused"))
+    )
+
+
+def _handle_login_failure_cause_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_login_failure_cause_request(prompt, context):
+        return None
+    if not context:
+        return "I need a selected Data Group before classifying login failure causes."
+
+    auth_table = _table_hint_containing(context, ("auth_service", "auth"))
+    waf_table = _table_hint_containing(context, ("waf",))
+    if not auth_table:
+        return "I could not find an authentication log table for this group."
+    auth_columns = _glue_columns_for_table(auth_table)
+    required_auth = {"auth_result", "retry_count", "ip_address", "client_id"}
+    if not required_auth.issubset(auth_columns):
+        return (
+            "I found an authentication table, but it does not have the expected bounded columns: "
+            "`auth_result`, `retry_count`, `ip_address`, and `client_id`."
+        )
+
+    waf_cte = "waf_by_ip AS (SELECT CAST(NULL AS VARCHAR) AS ip_address, 0 AS waf_blocks WHERE FALSE)"
+    if waf_table and {"source_ip", "action"}.issubset(_glue_columns_for_table(waf_table)):
+        waf_cte = f"""
+        waf_by_ip AS (
+            SELECT
+                CAST(source_ip AS VARCHAR) AS ip_address,
+                SUM(CASE WHEN LOWER(CAST(action AS VARCHAR)) IN ('block', 'blocked', 'deny', 'denied') THEN 1 ELSE 0 END) AS waf_blocks
+            FROM "{waf_table}"
+            WHERE source_ip IS NOT NULL
+            GROUP BY CAST(source_ip AS VARCHAR)
+        )
+        """
+
+    try:
+        rows = _athena_rows(f"""
+            WITH auth_events AS (
+                SELECT
+                    CAST(auth_result AS VARCHAR) AS auth_result,
+                    TRY_CAST(retry_count AS INTEGER) AS retry_count,
+                    CAST(ip_address AS VARCHAR) AS ip_address,
+                    CAST(client_id AS VARCHAR) AS client_id,
+                    CAST(user_id AS VARCHAR) AS user_id,
+                    CAST(timestamp AS VARCHAR) AS event_time
+                FROM "{auth_table}"
+                WHERE auth_result IS NOT NULL
+            ),
+            {waf_cte},
+            result_rollup AS (
+                SELECT
+                    auth_result,
+                    COUNT(*) AS event_count,
+                    COUNT(DISTINCT user_id) AS users,
+                    COUNT(DISTINCT ip_address) AS source_ips,
+                    COUNT(DISTINCT client_id) AS client_ids,
+                    ROUND(AVG(COALESCE(retry_count, 0)), 2) AS avg_retry_count,
+                    MAX(COALESCE(retry_count, 0)) AS max_retry_count,
+                    SUM(CASE WHEN COALESCE(retry_count, 0) >= 3 THEN 1 ELSE 0 END) AS high_retry_events
+                FROM auth_events
+                WHERE LOWER(auth_result) NOT IN ('success', 'succeeded', 'allow', 'allowed', 'ok')
+                GROUP BY auth_result
+            ),
+            result_waf AS (
+                SELECT
+                    a.auth_result,
+                    SUM(COALESCE(w.waf_blocks, 0)) AS waf_blocks_on_source_ips
+                FROM (
+                    SELECT DISTINCT auth_result, ip_address
+                    FROM auth_events
+                    WHERE ip_address IS NOT NULL
+                      AND LOWER(auth_result) NOT IN ('success', 'succeeded', 'allow', 'allowed', 'ok')
+                ) a
+                LEFT JOIN waf_by_ip w ON a.ip_address = w.ip_address
+                GROUP BY a.auth_result
+            )
+            SELECT
+                r.auth_result,
+                r.event_count,
+                r.users,
+                r.source_ips,
+                r.client_ids,
+                r.avg_retry_count,
+                r.max_retry_count,
+                r.high_retry_events,
+                COALESCE(w.waf_blocks_on_source_ips, 0) AS waf_blocks_on_source_ips,
+                CASE
+                    WHEN LOWER(r.auth_result) LIKE '%invalid%' OR LOWER(r.auth_result) LIKE '%password%'
+                    THEN 'invalid credentials'
+                    WHEN r.avg_retry_count >= 3
+                      OR r.high_retry_events > r.event_count * 0.25
+                      OR LOWER(r.auth_result) IN ('token_expired', 'rate_limited')
+                    THEN 'client retry or token-refresh bug candidate'
+                    WHEN COALESCE(w.waf_blocks_on_source_ips, 0) > 0
+                      OR (r.source_ips >= 100 AND r.avg_retry_count < 3)
+                    THEN 'attack or broad probing candidate'
+                    ELSE 'mixed or needs review'
+                END AS likely_cause
+            FROM result_rollup r
+            LEFT JOIN result_waf w ON r.auth_result = w.auth_result
+            ORDER BY
+                CASE
+                    WHEN r.avg_retry_count >= 3
+                      OR r.high_retry_events > r.event_count * 0.25
+                      OR LOWER(r.auth_result) IN ('token_expired', 'rate_limited')
+                    THEN 0
+                    WHEN COALESCE(w.waf_blocks_on_source_ips, 0) > 0 THEN 1
+                    ELSE 2
+                END,
+                r.event_count DESC
+            LIMIT 12
+        """)
+    except Exception as e:
+        return f"(query error: {e})"
+
+    top = rows[0] if rows else {}
+    if top:
+        answer = (
+            f"The strongest signal is `{top.get('likely_cause')}` driven by `{top.get('auth_result')}`: "
+            f"{top.get('event_count')} events, average retry count {top.get('avg_retry_count')}, "
+            f"max retry count {top.get('max_retry_count')}, {top.get('source_ips')} source IPs, and "
+            f"{top.get('waf_blocks_on_source_ips')} WAF blocks on source IPs."
+        )
+    else:
+        answer = "No failed login/authentication rows were returned."
+
+    lines = [
+        "Login failure cause classification",
+        "",
+        answer,
+        "",
+        f"Auth table: `{auth_table}`",
+        f"WAF table: `{waf_table or 'not found'}`",
+        "",
+        _format_rows_as_markdown(rows, "No login failure rows returned."),
+        "",
+        "Rule used",
+        "- Invalid credentials: auth result explicitly indicates invalid password/credential.",
+        "- Attack or broad probing candidate: WAF blocks on source IPs or broad source-IP spread with low retries.",
+        "- Client retry or token-refresh bug candidate: high retry counts, many high-retry events, token expiration, or rate limiting.",
+    ]
+    return "\n".join(lines)
+
+
+def _looks_like_regional_latency_deployment_request(prompt: str, context: dict[str, Any] | None) -> bool:
+    text = _normalize_lookup_text(prompt)
+    has_tables = bool((context or {}).get("tableHints"))
+    return (
+        has_tables
+        and any(term in text for term in ("slow", "slower", "latency", "processing time", "response time"))
+        and "deployment" in text
+        and any(term in text for term in ("west coast", "west", "east coast", "east", "region", "regional"))
+    )
+
+
+def _handle_regional_latency_deployment_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_regional_latency_deployment_request(prompt, context):
+        return None
+    if not context:
+        return "I need a selected Data Group before comparing regional latency after deployment."
+
+    deployment_table = _table_hint_containing(context, ("deployment_history", "deployment"))
+    lb_table = _table_hint_containing(context, ("load_balancer",))
+    api_table = _table_hint_containing(context, ("api_gateway",))
+    if not lb_table and not api_table:
+        return "I could not find API Gateway or load balancer logs for this group."
+
+    deployment_cte = "deployment_cutoff AS (SELECT CAST(NULL AS VARCHAR) AS deployment_time)"
+    if deployment_table and {"timestamp"}.issubset(_glue_columns_for_table(deployment_table)):
+        deployment_cte = f"""
+        deployment_cutoff AS (
+            SELECT MAX(CAST(timestamp AS VARCHAR)) AS deployment_time
+            FROM "{deployment_table}"
+        )
+        """
+
+    selects: list[str] = []
+    if lb_table and {"timestamp", "client_region", "target_processing_time_ms"}.issubset(_glue_columns_for_table(lb_table)):
+        selects.append(f"""
+            SELECT
+                'load_balancer' AS source,
+                CAST(timestamp AS VARCHAR) AS event_time,
+                CASE
+                    WHEN LOWER(CAST(client_region AS VARCHAR)) LIKE '%west%' THEN 'West Coast'
+                    WHEN LOWER(CAST(client_region AS VARCHAR)) LIKE '%east%' THEN 'East Coast'
+                    ELSE CAST(client_region AS VARCHAR)
+                END AS user_region,
+                TRY_CAST(target_processing_time_ms AS DOUBLE) AS latency_ms,
+                CAST(target_service AS VARCHAR) AS service,
+                CAST(target_region AS VARCHAR) AS target_region
+            FROM "{lb_table}"
+            WHERE client_region IS NOT NULL
+              AND TRY_CAST(target_processing_time_ms AS DOUBLE) IS NOT NULL
+        """)
+    if api_table and {"timestamp", "region", "latency_ms"}.issubset(_glue_columns_for_table(api_table)):
+        selects.append(f"""
+            SELECT
+                'api_gateway' AS source,
+                CAST(timestamp AS VARCHAR) AS event_time,
+                CASE
+                    WHEN LOWER(CAST(region AS VARCHAR)) LIKE '%west%' THEN 'West Coast'
+                    WHEN LOWER(CAST(region AS VARCHAR)) LIKE '%east%' THEN 'East Coast'
+                    ELSE CAST(region AS VARCHAR)
+                END AS user_region,
+                TRY_CAST(latency_ms AS DOUBLE) AS latency_ms,
+                CAST(service AS VARCHAR) AS service,
+                CAST(region AS VARCHAR) AS target_region
+            FROM "{api_table}"
+            WHERE region IS NOT NULL
+              AND TRY_CAST(latency_ms AS DOUBLE) IS NOT NULL
+        """)
+    if not selects:
+        return "I found regional log tables, but not the expected timestamp, region, and latency columns."
+
+    union_sql = "\nUNION ALL\n".join(selects)
+    try:
+        rows = _athena_rows(f"""
+            WITH
+            {deployment_cte},
+            observations AS (
+                {union_sql}
+            ),
+            labelled AS (
+                SELECT
+                    o.*,
+                    CASE
+                        WHEN d.deployment_time IS NOT NULL AND o.event_time >= d.deployment_time THEN 'after deployment'
+                        WHEN d.deployment_time IS NOT NULL THEN 'before deployment'
+                        ELSE 'all observations'
+                    END AS period,
+                    d.deployment_time
+                FROM observations o
+                CROSS JOIN deployment_cutoff d
+                WHERE o.user_region IN ('West Coast', 'East Coast')
+            ),
+            regional AS (
+                SELECT
+                    period,
+                    user_region,
+                    COUNT(*) AS request_count,
+                    ROUND(AVG(latency_ms), 2) AS avg_latency_ms,
+                    ROUND(APPROX_PERCENTILE(latency_ms, 0.95), 2) AS p95_latency_ms,
+                    MAX(deployment_time) AS deployment_time
+                FROM labelled
+                GROUP BY period, user_region
+            ),
+            by_service AS (
+                SELECT
+                    service,
+                    target_region,
+                    COUNT(*) AS west_after_requests,
+                    ROUND(AVG(latency_ms), 2) AS west_after_avg_latency_ms,
+                    ROUND(APPROX_PERCENTILE(latency_ms, 0.95), 2) AS west_after_p95_latency_ms
+                FROM labelled
+                WHERE period = 'after deployment'
+                  AND user_region = 'West Coast'
+                GROUP BY service, target_region
+            )
+            SELECT
+                r.period,
+                r.user_region,
+                r.request_count,
+                r.avg_latency_ms,
+                r.p95_latency_ms,
+                r.deployment_time,
+                COALESCE(MAX_BY(b.service, b.west_after_avg_latency_ms), '') AS slowest_west_service,
+                COALESCE(MAX_BY(b.target_region, b.west_after_avg_latency_ms), '') AS slowest_west_target_region,
+                COALESCE(MAX(b.west_after_avg_latency_ms), 0) AS slowest_west_avg_latency_ms
+            FROM regional r
+            LEFT JOIN by_service b
+              ON r.period = 'after deployment'
+             AND r.user_region = 'West Coast'
+            GROUP BY
+                r.period,
+                r.user_region,
+                r.request_count,
+                r.avg_latency_ms,
+                r.p95_latency_ms,
+                r.deployment_time
+            ORDER BY
+                CASE r.period WHEN 'after deployment' THEN 0 WHEN 'before deployment' THEN 1 ELSE 2 END,
+                CASE r.user_region WHEN 'West Coast' THEN 0 ELSE 1 END
+        """)
+    except Exception as e:
+        return f"(query error: {e})"
+
+    after_west = next((row for row in rows if row.get("period") == "after deployment" and row.get("user_region") == "West Coast"), {})
+    after_east = next((row for row in rows if row.get("period") == "after deployment" and row.get("user_region") == "East Coast"), {})
+    if after_west and after_east:
+        try:
+            delta = round(float(after_west.get("avg_latency_ms") or 0) - float(after_east.get("avg_latency_ms") or 0), 2)
+        except (TypeError, ValueError):
+            delta = 0
+        answer = (
+            f"After the deployment, West Coast users are slower by about {delta} ms on average "
+            f"({after_west.get('avg_latency_ms')} ms vs {after_east.get('avg_latency_ms')} ms). "
+            f"The slowest West Coast service signal is `{after_west.get('slowest_west_service')}` targeting "
+            f"`{after_west.get('slowest_west_target_region')}`."
+        )
+    elif rows:
+        answer = "The regional latency rows were computed, but one of the after-deployment West/East cohorts was missing."
+    else:
+        answer = "No West Coast or East Coast latency observations were returned."
+
+    lines = [
+        "Regional latency after deployment",
+        "",
+        answer,
+        "",
+        f"Deployment table: `{deployment_table or 'not found'}`",
+        f"Load balancer table: `{lb_table or 'not found'}`",
+        f"API Gateway table: `{api_table or 'not found'}`",
+        "",
+        _format_rows_as_markdown(rows, "No regional latency rows returned."),
+        "",
+        "Rule used",
+        "- Compare West Coast and East Coast average and p95 latency before/after the latest deployment timestamp.",
+        "- Use load balancer `target_processing_time_ms` and API Gateway `latency_ms` when available.",
+    ]
+    return "\n".join(lines)
+
+
+def _vendor_amount_rollups(context: dict[str, Any] | None, errors: list[str]) -> dict[str, dict[str, Any]]:
+    rollups: dict[str, dict[str, Any]] = {}
+    table_hints = list((context or {}).get("tableHints") or [])
+    candidate_tables: list[tuple[str, str, str]] = []
+    for table in table_hints:
+        table_name = str(table)
+        columns = _glue_columns_for_table(table_name)
+        vendor_col = _first_matching_column(columns, (
+            "vendor_id", "vendorid", "vendor_number", "vendor_code", "vendor",
+        ))
+        amount_col = _first_matching_column(columns, (
+            "invoice_amount", "payment_amount", "paid_amount", "total_amount",
+            "amount", "invoice_total", "payment_total", "total",
+        ))
+        if vendor_col and amount_col:
+            candidate_tables.append((table_name, vendor_col, amount_col))
+    for table_name, vendor_col, amount_col in candidate_tables[:3]:
+        try:
+            rows = _athena_rows(f"""
+                SELECT
+                    UPPER(CAST({vendor_col} AS VARCHAR)) AS vendor_id,
+                    COUNT(*) AS amount_record_count,
+                    ROUND(SUM(COALESCE(TRY_CAST({amount_col} AS DOUBLE), 0)), 2) AS total_amount
+                FROM "{table_name}"
+                WHERE {vendor_col} IS NOT NULL
+                GROUP BY UPPER(CAST({vendor_col} AS VARCHAR))
+            """)
+        except Exception as e:
+            errors.append(f"{table_name}: {e}")
+            continue
+        for row in rows:
+            vendor_id = str(row.get("vendor_id") or "").upper()
+            if not vendor_id:
+                continue
+            current = rollups.setdefault(vendor_id, {
+                "total_amount": 0.0,
+                "amount_record_count": 0,
+                "amount_tables": set(),
+            })
+            try:
+                current["total_amount"] += float(row.get("total_amount") or 0)
+            except (TypeError, ValueError):
+                pass
+            try:
+                current["amount_record_count"] += int(float(row.get("amount_record_count") or 0))
+            except (TypeError, ValueError):
+                pass
+            current["amount_tables"].add(table_name)
+    return rollups
+
+
+def _handle_vendor_spend_summary_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_vendor_spend_summary_request(prompt):
+        return None
+    if not context:
+        return (
+            "I need a selected Data Group before creating a vendor spend summary.\n\n"
+            f"{_list_projects_payload()}"
+        )
+    vendors, vendor_table, errors = _vendor_rows(context)
+    files = _context_file_inventory(context)
+    # Keep chat latency bounded. EVI groups can contain many one-off CSV tables;
+    # fanning out across all of them caused API timeouts. Use the vendor master
+    # and catalog metadata for the first report, then let follow-up prompts drill in.
+    amount_rollups: dict[str, dict[str, Any]] = {}
+    rows: list[dict[str, Any]] = []
+    for vendor in vendors:
+        vendor_id = str(vendor.get("vendor_id") or "").upper()
+        if not vendor_id:
+            continue
+        all_docs = _vendor_document_matches(files, vendor_id, ())
+        invoice_docs = _vendor_document_matches(files, vendor_id, ("invoice",))
+        payment_docs = _vendor_document_matches(files, vendor_id, ("payment reconciliation", "payment"))
+        contract_docs = _vendor_document_matches(files, vendor_id, ("contract", "amendment", "rate sheet"))
+        rollup = amount_rollups.get(vendor_id) or {}
+        amount = rollup.get("total_amount")
+        rows.append({
+            "vendor_id": vendor_id,
+            "vendor_name": vendor.get("vendor_name") or "",
+            "vendor_type": vendor.get("vendor_type") or "",
+            "business_unit": vendor.get("manager") or "",
+            "total_amount": "" if amount is None else round(float(amount), 2),
+            "amount_record_count": rollup.get("amount_record_count") or 0,
+            "invoice_count": len(invoice_docs),
+            "payment_document_count": len(payment_docs),
+            "contract_or_rate_document_count": len(contract_docs),
+            "document_count": len(all_docs),
+            "example_documents": "; ".join(match["name"] for match in all_docs[:2]),
+        })
+    rows.sort(
+        key=lambda row: (
+            float(row.get("total_amount") or 0),
+            int(row.get("invoice_count") or 0),
+            int(row.get("document_count") or 0),
+        ),
+        reverse=True,
+    )
+    project_name = context.get("projectName") or context.get("projectId") or "Selected project"
+    group_name = context.get("groupName") or "Selected group"
+    amount_note = (
+        "This fast first-pass report ranks vendors by visible invoice and payment-reconciliation document counts. "
+        "Amount totals are left blank unless a follow-up drills into specific invoice/payment tables."
+    )
+    lines = [
+        "Vendor spend summary",
+        "",
+        f"Project: {project_name}",
+        f"Group: {group_name}",
+        f"Vendor master table: `{vendor_table or 'not found'}`",
+        "",
+        amount_note,
+        "",
+        _format_rows_as_markdown(rows[:25], "No vendor rows found for this group."),
+    ]
+    if errors:
+        lines.extend(["", "Query issues", *[f"- {error}" for error in errors[:8]]])
+    lines.extend([
+        "",
+        "Suggested next questions",
+        "- For this group, list records for vendor V0066. Include filename or table, document type, date if available, amount if available, and a short neutral summary.",
+        "- For this group, compare contract, invoice, rate sheet, and payment reconciliation records by vendor.",
+    ])
+    return "\n".join(lines)
 
 
 def _handle_vendor_security_review_request(prompt: str, context: dict[str, Any] | None) -> str | None:
@@ -1559,7 +3061,7 @@ def _context_with_glue_table_hints(context: dict[str, Any] | None) -> dict[str, 
 def _context_with_project_metadata(context: dict[str, Any] | None) -> dict[str, Any] | None:
     if not context:
         return None
-    if context.get("groupKey"):
+    if context.get("groupKey") and context.get("groupSchema"):
         return context
     group_name = _normalize_group_lookup(str(context.get("groupName") or ""))
     project_id = _normalize_lookup_text(str(context.get("projectId") or ""))
@@ -1583,9 +3085,20 @@ def _context_with_project_metadata(context: dict[str, Any] | None) -> dict[str, 
                 if _normalize_group_lookup(str(group.get("name") or "")) != group_name:
                     continue
                 enriched = {**context}
-                for key in ("groupKey", "groupProfile", "structuredFacts"):
+                for key in ("groupKey", "groupProfile", "groupSchema", "governancePolicy", "governancePolicyId"):
                     if group.get(key) and not enriched.get(key):
                         enriched[key] = group.get(key)
+                if group.get("structuredFacts"):
+                    current_facts = enriched.get("structuredFacts") if isinstance(enriched.get("structuredFacts"), dict) else {}
+                    group_facts = group.get("structuredFacts") if isinstance(group.get("structuredFacts"), dict) else {}
+                    if not current_facts:
+                        enriched["structuredFacts"] = group_facts
+                    elif group_facts.get("sources") and not current_facts.get("sources"):
+                        enriched["structuredFacts"] = {
+                            **group_facts,
+                            **current_facts,
+                            "sources": group_facts.get("sources") or [],
+                        }
                 if group.get("tableHints") and not enriched.get("tableHints"):
                     enriched["tableHints"] = group.get("tableHints") or []
                 if group.get("fileCount") is not None and enriched.get("fileCount") is None:
@@ -1615,6 +3128,9 @@ def _extract_table_fragment(prompt: str) -> str | None:
 
 def _extract_group_fragment(prompt: str) -> str | None:
     match = re.search(r"\b(Project_[A-Za-z0-9_]+)\b", prompt)
+    if match:
+        return match.group(1).strip()
+    match = re.search(r"\b(?:group|data group|project group)\s+([A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+)\b", prompt, re.IGNORECASE)
     if match:
         return match.group(1).strip()
     return None
@@ -1720,6 +3236,140 @@ def _handle_claims_loss_year_request(prompt: str, context: dict[str, Any] | None
         f"Claims from `{table}` with `loss_date` in {year}:\n\n"
         f"{_format_rows_as_markdown(rows, 'No rows.')}"
     )
+
+
+def _looks_like_claim_interview_chronology_request(prompt: str, context: dict[str, Any] | None) -> bool:
+    text = _normalize_lookup_text(prompt)
+    return (
+        bool((context or {}).get("tableHints"))
+        and "interview" in text
+        and ("claim" in text or "claim id" in text or "claim_id" in text)
+        and any(term in text for term in ("chronological", "date order", "order by date", "timeline", "list"))
+    )
+
+
+def _claim_interview_tables(context: dict[str, Any] | None) -> list[tuple[str, dict[str, str]]]:
+    matches: list[tuple[str, dict[str, str]]] = []
+    for table in (context or {}).get("tableHints") or []:
+        table_name = str(table)
+        columns = _glue_columns_for_table(table_name)
+        if not columns:
+            continue
+        table_text = table_name.lower()
+        claim_col = _first_column_by_name(
+            columns,
+            ("claim_id", "claimid", "claim_number", "claim_no", "claim"),
+            ("claim",),
+        )
+        date_col = _first_column_by_name(
+            columns,
+            ("interview_date", "interviewed_at", "statement_date", "date", "timestamp", "event_time", "created_at"),
+            ("interview_date", "statement_date", "timestamp", "_date", "_time"),
+        )
+        interview_signal = (
+            "interview" in table_text
+            or _first_column_by_name(
+                columns,
+                ("interviewee", "interviewer", "interview_type", "interview_summary", "transcript"),
+                ("interview", "statement", "witness"),
+            )
+        )
+        if not (claim_col and date_col and interview_signal):
+            continue
+        cols = {
+            "claim_id": claim_col,
+            "date": date_col,
+            "interviewee": _first_column_by_name(
+                columns,
+                ("interviewee", "participant", "claimant", "claimant_name", "witness", "person", "party"),
+                ("interviewee", "participant", "claimant", "witness"),
+            ),
+            "interviewer": _first_column_by_name(
+                columns,
+                ("interviewer", "adjuster", "investigator", "handler", "agent"),
+                ("interviewer", "adjuster", "investigator"),
+            ),
+            "topic": _first_column_by_name(
+                columns,
+                ("topic", "interview_type", "subject", "category", "reason"),
+                ("topic", "type", "subject", "reason"),
+            ),
+            "summary": _first_column_by_name(
+                columns,
+                ("summary", "notes", "note", "interview_summary", "transcript", "statement", "key_points", "outcome", "next_step"),
+                ("summary", "note", "transcript", "statement", "outcome", "next"),
+            ),
+        }
+        matches.append((table_name, cols))
+    return matches
+
+
+def _nullable_text_select(column: str, alias: str) -> str:
+    if column:
+        return f"CAST({column} AS VARCHAR) AS {alias}"
+    return f"CAST(NULL AS VARCHAR) AS {alias}"
+
+
+def _handle_claim_interview_chronology_request(prompt: str, context: dict[str, Any] | None) -> str | None:
+    if not _looks_like_claim_interview_chronology_request(prompt, context):
+        return None
+    if not context:
+        return "I need a selected Data Group before listing claim interviews."
+
+    tables = _claim_interview_tables(context)
+    if not tables:
+        return (
+            "I could not find an interview-shaped table with both claim ID and interview/date columns in this group. "
+            "Ask for the group schema inventory to confirm the available interview tables."
+        )
+
+    selects = []
+    for table, cols in tables[:6]:
+        selects.append(f"""
+            SELECT
+                CAST('{table}' AS VARCHAR) AS source_table,
+                CAST({cols['claim_id']} AS VARCHAR) AS claim_id,
+                CAST({cols['date']} AS VARCHAR) AS interview_date,
+                {_nullable_text_select(cols.get('interviewee', ''), 'interviewee')},
+                {_nullable_text_select(cols.get('interviewer', ''), 'interviewer')},
+                {_nullable_text_select(cols.get('topic', ''), 'topic')},
+                {_nullable_text_select(cols.get('summary', ''), 'summary')}
+            FROM "{table}"
+            WHERE {cols['claim_id']} IS NOT NULL
+              AND CAST({cols['claim_id']} AS VARCHAR) <> 'claim_id'
+        """)
+    union_sql = "\nUNION ALL\n".join(selects)
+    try:
+        rows = _athena_rows(f"""
+            WITH interviews AS (
+                {union_sql}
+            )
+            SELECT
+                claim_id,
+                interview_date,
+                interviewee,
+                interviewer,
+                topic,
+                summary,
+                source_table
+            FROM interviews
+            ORDER BY claim_id, interview_date, source_table
+            LIMIT 100
+        """)
+    except Exception as e:
+        return f"(query error: {e})"
+
+    lines = [
+        "Claim interview chronology",
+        "",
+        f"Interview tables used: {', '.join(f'`{table}`' for table, _ in tables[:6])}",
+        "",
+        _format_rows_as_markdown(rows, "No claim interview rows returned."),
+        "",
+        "Rule used",
+        "- Detected interview-shaped tables with claim ID and date columns, then ordered rows by claim ID and interview date.",
+    ]
+    return "\n".join(lines)
 
 
 def _looks_like_natural_language_query_request(prompt: str) -> bool:
@@ -2145,6 +3795,28 @@ def _looks_like_daily_sales_multi_zone_request(prompt: str, context: dict[str, A
     )
 
 
+def _looks_like_branch_sales_ranking_request(prompt: str) -> bool:
+    text = _normalize_lookup_text(prompt)
+    branch_terms = any(term in text for term in ("branch", "branches", "store", "stores"))
+    ranking_terms = any(term in text for term in ("rank", "highest", "lowest", "top", "from highest to lowest"))
+    sales_terms = any(term in text for term in ("sales", "revenue", "total sales"))
+    product_or_channel_terms = any(term in text for term in (
+        "product", "products", "category", "categories", "channel", "customer type",
+        "margin", "gross margin", "underperforming",
+    ))
+    return branch_terms and ranking_terms and sales_terms and not product_or_channel_terms
+
+
+def _looks_like_product_category_sales_ranking_request(prompt: str) -> bool:
+    text = _normalize_lookup_text(prompt)
+    category_terms = "category" in text or "categories" in text
+    product_terms = "product" in text or "products" in text or "part" in text
+    sales_terms = any(term in text for term in ("sales", "revenue", "units sold", "quantity"))
+    ranking_terms = any(term in text for term in ("rank", "highest", "lowest", "top", "compare"))
+    excluded_terms = any(term in text for term in ("branch", "store", "stores", "channel", "customer type", "margin"))
+    return category_terms and product_terms and sales_terms and ranking_terms and not excluded_terms
+
+
 def _table_has_sales_columns(table: str) -> bool:
     columns = _glue_columns_for_table(table)
     aliases = _sales_column_aliases(columns)
@@ -2259,6 +3931,13 @@ def _handle_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] 
         return "I could not resolve any sales-shaped Glue tables for this request."
 
     union_sql = "\nUNION ALL\n".join(_sales_select_expr(table, label) for label, table in tables)
+    text = _normalize_lookup_text(prompt)
+    branch_sort_direction = "ASC" if (
+        "lowest to highest" in text
+        or "low to high" in text
+        or "ascending" in text
+        or ("lowest" in text and "highest" not in text)
+    ) else "DESC"
     branch_sql = f"""
         WITH sales AS ({union_sql})
         SELECT
@@ -2269,7 +3948,7 @@ def _handle_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] 
             MAX_BY(part_category, line_revenue) AS top_category
         FROM sales
         GROUP BY branch_city, branch_state
-        ORDER BY total_revenue DESC
+        ORDER BY total_revenue {branch_sort_direction}
         LIMIT 12
     """
     product_sql = f"""
@@ -2298,6 +3977,48 @@ def _handle_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] 
         HAVING SUM(quantity_sold) > 0
         ORDER BY total_revenue ASC
         LIMIT 10
+    """
+    category_sql = f"""
+        WITH sales AS ({union_sql}),
+        branch_category AS (
+            SELECT
+                part_category,
+                CONCAT(branch_city, ', ', branch_state) AS branch,
+                SUM(line_revenue) AS branch_revenue
+            FROM sales
+            GROUP BY part_category, branch_city, branch_state
+        ),
+        category_totals AS (
+            SELECT
+                part_category,
+                COUNT(*) AS transaction_lines,
+                COUNT(DISTINCT part_sku) AS product_count,
+                SUM(quantity_sold) AS quantity_sold,
+                ROUND(SUM(line_revenue), 2) AS total_revenue,
+                ROUND(SUM(line_revenue) / NULLIF(SUM(quantity_sold), 0), 2) AS average_revenue_per_unit
+            FROM sales
+            GROUP BY part_category
+        )
+        SELECT
+            c.part_category,
+            c.transaction_lines,
+            c.product_count,
+            c.quantity_sold,
+            c.total_revenue,
+            c.average_revenue_per_unit,
+            MAX_BY(b.branch, b.branch_revenue) AS leading_branch
+        FROM category_totals c
+        LEFT JOIN branch_category b
+          ON b.part_category = c.part_category
+        GROUP BY
+            c.part_category,
+            c.transaction_lines,
+            c.product_count,
+            c.quantity_sold,
+            c.total_revenue,
+            c.average_revenue_per_unit
+        ORDER BY c.total_revenue DESC
+        LIMIT 20
     """
     channel_sql = f"""
         WITH sales AS ({union_sql})
@@ -2333,6 +4054,44 @@ def _handle_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] 
     except Exception as e:
         branch_rows = []
         errors.append(f"Branch ranking: {e}")
+
+    group_name = (context or {}).get("groupName") or "sales group"
+    if _looks_like_branch_sales_ranking_request(prompt):
+        ranking_title = (
+            "Branch revenue ranking, lowest to highest"
+            if branch_sort_direction == "ASC"
+            else "Branch revenue ranking, highest to lowest"
+        )
+        lines = [
+            f"{group_name} branch sales ranking",
+            "",
+            ranking_title,
+            "",
+            _format_rows_as_markdown(branch_rows, "No branch rows returned."),
+        ]
+        if errors:
+            lines.extend(["", "Query issues"])
+            lines.extend(f"- {error}" for error in errors)
+        return "\n".join(lines)
+
+    if _looks_like_product_category_sales_ranking_request(prompt):
+        try:
+            category_rows = _athena_rows(category_sql)
+        except Exception as e:
+            category_rows = []
+            errors.append(f"Product category ranking: {e}")
+        lines = [
+            f"{group_name} product category sales ranking",
+            "",
+            "Product categories by revenue and units sold",
+            "",
+            _format_rows_as_markdown(category_rows, "No product-category rows returned."),
+        ]
+        if errors:
+            lines.extend(["", "Query issues"])
+            lines.extend(f"- {error}" for error in errors)
+        return "\n".join(lines)
+
     try:
         product_rows = _athena_rows(product_sql)
     except Exception as e:
@@ -2357,7 +4116,6 @@ def _handle_daily_sales_multi_zone_request(prompt: str, context: dict[str, Any] 
     top_branch = branch_rows[0] if branch_rows else {}
     top_product = product_rows[0] if product_rows else {}
     bottom_product = product_bottom_rows[0] if product_bottom_rows else {}
-    group_name = (context or {}).get("groupName") or "sales group"
     table_lines = [f"- `{table}`" for _, table in tables]
     lines = [
         f"{group_name} sales discovery report",
@@ -4533,9 +6291,28 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     resolved_context = _context_with_project_metadata(
         _context_with_glue_table_hints(explicit_context or SESSION_GROUP_CONTEXTS.get(session_id))
     )
+    governance_plan = _classify_governed_request(request_prompt, resolved_context)
+    if governance_plan.get("decision") == "safe_rewrite_required":
+        return {"result": _governance_safe_rewrite_response(governance_plan)}
+
+    def governed_result(result: str) -> dict[str, Any]:
+        if _looks_like_model_block(result):
+            return {"result": _useful_blocked_response(request_prompt, result, governance_plan, resolved_context)}
+        return {"result": _append_governed_footer(result, governance_plan, resolved_context)}
+
+    if not resolved_context and governance_plan.get("intent") in {
+        "diagnose_operational_issue",
+        "detect_unusual_patterns",
+        "action_recommendation",
+    }:
+        return governed_result(
+            "I can answer that as a governed diagnostic, but I need a selected Data Group first so the analysis stays inside one project boundary.\n\n"
+            f"{_list_projects_payload()}"
+        )
+
     if _looks_like_group_key_summary_request(request_prompt):
         if resolved_context:
-            return {"result": _format_group_key_summary(resolved_context)}
+            return governed_result(_format_group_key_summary(resolved_context))
         return {
             "result": (
                 "I need a selected Data Group before summarizing `group_key.json`.\n\n"
@@ -4544,7 +6321,7 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
         }
     if _looks_like_group_summary_request(request_prompt):
         if resolved_context:
-            return {"result": _format_group_summary(resolved_context)}
+            return governed_result(_format_group_summary(resolved_context))
         return {
             "result": (
                 "I need a selected Data Group before summarizing the group.\n\n"
@@ -4553,7 +6330,7 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
         }
     if _looks_like_group_inventory_request(request_prompt):
         if resolved_context:
-            return {"result": _format_group_inventory(resolved_context)}
+            return governed_result(_format_group_inventory(resolved_context))
         return {
             "result": (
                 "I need a selected Data Group before listing files and tables for `this group`.\n\n"
@@ -4562,56 +6339,75 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
         }
     vendor_document_lookup_result = _handle_vendor_document_lookup_request(request_prompt, resolved_context)
     if vendor_document_lookup_result:
-        return {"result": vendor_document_lookup_result}
+        return governed_result(vendor_document_lookup_result)
+    vendor_spend_summary_result = _handle_vendor_spend_summary_request(request_prompt, resolved_context)
+    if vendor_spend_summary_result:
+        return governed_result(vendor_spend_summary_result)
     expired_contract_activity_result = _handle_expired_contract_activity_request(request_prompt, resolved_context)
     if expired_contract_activity_result:
-        return {"result": expired_contract_activity_result}
+        return governed_result(expired_contract_activity_result)
     vendor_security_review_result = _handle_vendor_security_review_request(request_prompt, resolved_context)
     if vendor_security_review_result:
-        return {"result": vendor_security_review_result}
+        return governed_result(vendor_security_review_result)
     vendor_payment_without_review_result = _handle_vendor_payment_without_review_request(request_prompt, resolved_context)
     if vendor_payment_without_review_result:
-        return {"result": vendor_payment_without_review_result}
+        return governed_result(vendor_payment_without_review_result)
     contract_document_after_end_result = _handle_contract_document_after_end_request(request_prompt, resolved_context)
     if contract_document_after_end_result:
-        return {"result": contract_document_after_end_result}
+        return governed_result(contract_document_after_end_result)
+    service_memory_leak_result = _handle_service_memory_leak_request(request_prompt, resolved_context)
+    if service_memory_leak_result:
+        return governed_result(service_memory_leak_result)
+    login_failure_cause_result = _handle_login_failure_cause_request(request_prompt, resolved_context)
+    if login_failure_cause_result:
+        return governed_result(login_failure_cause_result)
+    unusual_access_result = _handle_unusual_access_request(request_prompt, resolved_context)
+    if unusual_access_result:
+        return governed_result(unusual_access_result)
+    regional_latency_result = _handle_regional_latency_deployment_request(request_prompt, resolved_context)
+    if regional_latency_result:
+        return governed_result(regional_latency_result)
     row_count_result = _handle_row_count_request(request_prompt, resolved_context)
     if row_count_result:
-        return {"result": row_count_result}
+        return governed_result(row_count_result)
     daily_sales_multi_zone_result = _handle_daily_sales_multi_zone_request(request_prompt, resolved_context)
     if daily_sales_multi_zone_result:
-        return {"result": daily_sales_multi_zone_result}
+        return governed_result(daily_sales_multi_zone_result)
     asset_month_over_month_result = _handle_asset_month_over_month_request(request_prompt, resolved_context)
     if asset_month_over_month_result:
-        return {"result": asset_month_over_month_result}
+        return governed_result(asset_month_over_month_result)
     operational_asset_result = _handle_operational_asset_performance_request(request_prompt, resolved_context)
     if operational_asset_result:
-        return {"result": operational_asset_result}
+        return governed_result(operational_asset_result)
+    claim_interview_chronology_result = _handle_claim_interview_chronology_request(request_prompt, resolved_context)
+    if claim_interview_chronology_result:
+        return governed_result(claim_interview_chronology_result)
     storm_glass_claim_review_result = _handle_storm_glass_claim_review_request(request_prompt, resolved_context)
     if storm_glass_claim_review_result:
-        return {"result": storm_glass_claim_review_result}
+        return governed_result(storm_glass_claim_review_result)
     legal_department_review_result = _handle_legal_department_enterprise_review(request_prompt, resolved_context)
     if legal_department_review_result:
-        return {"result": legal_department_review_result}
+        return governed_result(legal_department_review_result)
     nightingale_claim_packet_result = _handle_nightingale_claim_packet_request(request_prompt, resolved_context)
     if nightingale_claim_packet_result:
-        return {"result": nightingale_claim_packet_result}
+        return governed_result(nightingale_claim_packet_result)
     nightingale_pattern_result = _handle_nightingale_pattern_request(request_prompt, resolved_context)
     if nightingale_pattern_result:
-        return {"result": nightingale_pattern_result}
+        return governed_result(nightingale_pattern_result)
     nightingale_benchmark_result = _handle_nightingale_benchmark_request(request_prompt, resolved_context)
     if nightingale_benchmark_result:
-        return {"result": nightingale_benchmark_result}
+        return governed_result(nightingale_benchmark_result)
     helios_project_risk_result = _handle_helios_project_risk_request(request_prompt, resolved_context)
     if helios_project_risk_result:
-        return {"result": helios_project_risk_result}
+        return governed_result(helios_project_risk_result)
     claims_year_result = _handle_claims_loss_year_request(request_prompt, resolved_context)
     if claims_year_result:
-        return {"result": claims_year_result}
+        return governed_result(claims_year_result)
     first_records_result = _handle_first_records_request(request_prompt, resolved_context)
     if first_records_result:
-        return {"result": first_records_result}
+        return governed_result(first_records_result)
     agent_prompt = _prepend_resolved_group_context(request_prompt, resolved_context) if resolved_context else request_prompt
+    agent_prompt = _prepend_governance_plan(agent_prompt, governance_plan)
     if resolved_context:
         log.info(
             "Structured specialist resolved group: project=%s group=%s",
@@ -4648,7 +6444,7 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
         agent_result, agent="structured", persona=persona, actor_id=actor_id,
         session_id=session_id, chat_type=chat_type, model_id=MODEL_ID, user_email=user_email,
     )
-    return {"result": str(agent_result)}
+    return governed_result(str(agent_result))
 
 
 if __name__ == "__main__":

@@ -181,12 +181,14 @@ Resources:
                   - glue:GetCrawler
                 Resource:
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:crawler/${Environment}-${ProjectName}-structured-crawler"
-              - Sid: DataGroupingGlueCatalogRead
+              - Sid: DataGroupingGlueCatalogManage
                 Effect: Allow
                 Action:
+                  - glue:CreateTable
                   - glue:GetDatabase
                   - glue:GetTable
                   - glue:GetTables
+                  - glue:UpdateTable
                 Resource:
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog"
                   - !Sub

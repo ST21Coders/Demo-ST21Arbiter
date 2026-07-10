@@ -31,6 +31,8 @@ const GROUP_FILE_MIX_OPTIONS = [
   { id: 'csv_text', label: 'CSV + text', description: 'Tables plus context' },
   { id: 'csv_text_media', label: 'CSV + text + images/docs', description: 'Tables plus evidence files' },
 ]
+const GROUP_KEY_FILE_SAMPLE_LIMIT = 40
+const GROUP_KEY_CHANGE_SAMPLE_LIMIT = 12
 
 function slugify(value) {
   return String(value || '')
@@ -126,6 +128,15 @@ function operationalStarterPromptsForGroup(groupName) {
   ]
 }
 
+function vendorIntelligenceStarterPromptsForGroup(groupName) {
+  return [
+    'For this group, create a vendor spend summary ranked from highest to lowest total amount. Include vendor ID, vendor name if available, total invoice amount, invoice count, document count, and business unit if available.',
+    'For this group, list records for vendor V0066. Include filename or table, document type, date if available, amount if available, and a short neutral summary.',
+    'For this group, compare contract, invoice, rate sheet, and payment reconciliation records by vendor. Include vendor ID, vendor name if available, record counts, total amounts if available, and useful next review steps.',
+    'For this group, summarize vendor relationships across documents and tables. Include vendor ID, vendor category if available, related departments, document types, and timing patterns.',
+  ]
+}
+
 function fileExtension(name = '') {
   const match = String(name).toLowerCase().match(/\.([a-z0-9]+)$/)
   return match ? match[1] : 'unknown'
@@ -149,28 +160,29 @@ function groupKeyFileInventory(files = []) {
     .map(file => ({
       name: file.name || file.filename || file.key || 'unnamed file',
       type: file.type || fileExtension(file.name || file.key || ''),
-      source_key: file.sourceKey || file.key || '',
-      project_key: file.projectKey || '',
-      structured_key: file.structuredKey || '',
       glue_table_hint: file.glueTableHint || '',
       added_at: file.addedAt || '',
     }))
+    .slice(0, GROUP_KEY_FILE_SAMPLE_LIMIT)
 }
 
-function groupKeyRecentChanges(existing, inventory, now) {
+function groupKeyFileCount(files = []) {
+  return files.filter(file => file && String(file.name || file.key || '').toLowerCase() !== 'group_key.json').length
+}
+
+function groupKeyRecentChanges(existing, files, inventory, now) {
   const previous = Array.isArray(existing?.file_inventory) ? existing.file_inventory : []
+  const previousCount = Number(existing?.file_structure?.file_count ?? previous.length) || previous.length
+  const currentCount = groupKeyFileCount(files)
   const previousIds = new Map(previous.map(file => [groupKeyFileId({
-    projectKey: file.project_key,
-    sourceKey: file.source_key,
-    key: file.key,
     name: file.name,
   }), file]).filter(([id]) => id))
-  const currentIds = new Map(inventory.map(file => [groupKeyFileId({
-    projectKey: file.project_key,
-    sourceKey: file.source_key,
-    key: file.key,
-    name: file.name,
-  }), file]).filter(([id]) => id))
+  const currentIds = new Map(files
+    .filter(file => file && String(file.name || file.key || '').toLowerCase() !== 'group_key.json')
+    .map(file => [groupKeyFileId({ name: file.name || file.filename || file.key }), {
+      name: file.name || file.filename || file.key || 'unnamed file',
+    }])
+    .filter(([id]) => id))
   const added = [...currentIds.entries()]
     .filter(([id]) => !previousIds.has(id))
     .map(([, file]) => file.name)
@@ -179,10 +191,12 @@ function groupKeyRecentChanges(existing, inventory, now) {
     .map(([, file]) => file.name)
   return {
     updated_at: now,
-    added_files: added,
-    removed_files: removed,
-    file_count_before: previous.length,
-    file_count_after: inventory.length,
+    added_file_samples: added.slice(0, GROUP_KEY_CHANGE_SAMPLE_LIMIT),
+    removed_file_samples: removed.slice(0, GROUP_KEY_CHANGE_SAMPLE_LIMIT),
+    added_sample_truncated: added.length > GROUP_KEY_CHANGE_SAMPLE_LIMIT,
+    removed_sample_truncated: removed.length > GROUP_KEY_CHANGE_SAMPLE_LIMIT,
+    file_count_before: previousCount,
+    file_count_after: currentCount,
     change_summary: added.length || removed.length
       ? `${added.length} file(s) added; ${removed.length} file(s) removed.`
       : 'No file membership changes detected; metadata refreshed.',
@@ -192,6 +206,7 @@ function groupKeyRecentChanges(existing, inventory, now) {
 function starterPromptsForProfile(groupName, profile) {
   if (profile?.kind === 'sales') return starterPromptsForGroup(groupName)
   if (profile?.kind === 'operational_asset_performance') return operationalStarterPromptsForGroup(groupName)
+  if (profile?.kind === 'enterprise_vendor_intelligence') return vendorIntelligenceStarterPromptsForGroup(groupName)
   return [
     'List the available files and tables in this group and briefly explain what each one appears to contain.',
     'Summarize this group. Include row counts if available, important columns, and the most useful first questions to ask.',
@@ -204,32 +219,52 @@ function buildGroupKey({ project, groupName, purpose, fileMix, files = [], profi
   const safePurpose = String(purpose || existing?.purpose || '').trim()
   const inferredProfile = profile || localGroupProfile(groupName, files, fileMix) || {}
   const fileInventory = groupKeyFileInventory(files)
+  const fileCount = groupKeyFileCount(files)
+  const domain = inferredProfile.kind === 'sales'
+    ? 'sales operations'
+    : inferredProfile.kind === 'operational_asset_performance'
+    ? 'operational asset performance'
+    : inferredProfile.kind === 'enterprise_vendor_intelligence'
+    ? 'enterprise vendor intelligence'
+    : existing?.domain || 'general data analysis'
   return {
     schema_version: existing?.schema_version || '1.0',
     group_name: groupName,
     project: project?.name || existing?.project || PIPELINE_PROJECT_NAME,
     summary: existing?.summary || safePurpose || `Data group for ${groupName}.`,
     purpose: safePurpose || existing?.purpose || 'Review and query this grouped dataset using its published files, tables, and supporting context.',
-    domain: existing?.domain || (inferredProfile.kind === 'sales' ? 'sales operations' : inferredProfile.kind === 'operational_asset_performance' ? 'operational asset performance' : 'general data analysis'),
+    domain: existing?.domain && existing.domain !== 'general data analysis' ? existing.domain : domain,
+    group_profile: {
+      kind: inferredProfile.kind || 'generic',
+      confidence: inferredProfile.confidence || 'low',
+      file_mix: inferredProfile.fileMix || fileMix || '',
+      file_mix_label: inferredProfile.fileMixLabel || GROUP_FILE_MIX_OPTIONS.find(option => option.id === fileMix)?.label || '',
+    },
     file_structure: {
       pattern: existing?.file_structure?.pattern || 'Files selected together by the user during Data Pipeline group setup.',
       content_mix: GROUP_FILE_MIX_OPTIONS.find(option => option.id === fileMix)?.label || existing?.file_structure?.content_mix || '',
       file_type_counts: summarizeFileTypes(files),
-      file_count: fileInventory.length,
+      file_count: fileCount,
+      file_inventory_sample_count: fileInventory.length,
       combine_strategy: existing?.file_structure?.combine_strategy || (inferredProfile.kind === 'sales'
         ? 'Union compatible sales CSV files into one logical table and preserve branch, source file, product, channel, and customer fields when available.'
+        : inferredProfile.kind === 'enterprise_vendor_intelligence'
+        ? 'Use vendor IDs, document types, dates, invoice/payment amounts, contract/rate-sheet references, and shared vendor names to connect CSV, text, and JSON records.'
         : 'Use shared identifiers, filenames, table schemas, and supporting text to determine useful joins and analysis paths.'),
     },
     file_inventory: fileInventory,
-    recent_changes: groupKeyRecentChanges(existing, fileInventory, now),
-    column_definitions: existing?.column_definitions || {},
-    relationships: existing?.relationships || [],
-    primary_questions: existing?.primary_questions || [
+    inventory_note: `Sample only. Complete membership is stored in project metadata; total files: ${fileCount}.`,
+    recent_changes: groupKeyRecentChanges(existing, files, fileInventory, now),
+    column_definitions: existing?.column_definitions || inferredProfile.columnDefinitions || {},
+    relationships: existing?.relationships || inferredProfile.relationships || [],
+    primary_questions: existing?.primary_questions || inferredProfile.primaryQuestions || [
       'What files and tables are available in this group?',
       'Which records, entities, categories, or locations stand out after combining the available evidence?',
       'What follow-up prompts should a user run next?',
     ],
-    starter_prompts: existing?.starter_prompts || starterPromptsForProfile(groupName, inferredProfile),
+    starter_prompts: existing?.starter_prompts?.length && inferredProfile.kind !== 'enterprise_vendor_intelligence'
+      ? existing.starter_prompts
+      : starterPromptsForProfile(groupName, inferredProfile),
     safe_language: existing?.safe_language || {
       use: ['review candidates', 'unusual patterns', 'audit signals', 'needs follow-up', 'operational signal'],
       avoid: ['unsupported conclusions', 'definitive accusations without evidence', 'claiming causation without supporting data'],
@@ -265,6 +300,36 @@ function localGroupProfile(groupName, files, fileMix = '') {
       kind: 'operational_asset_performance',
       confidence: 'medium',
       starterPrompts: operationalStarterPromptsForGroup(groupName),
+    }
+  }
+  if (
+    text.includes('enterprise vendor')
+    || text.includes('vendor intelligence')
+    || text.includes('vendor_master')
+    || (text.includes('invoice') && text.includes('contract') && text.includes('vendor'))
+    || (text.includes('payment_reconciliation') && text.includes('rate_sheet'))
+  ) {
+    return {
+      ...base,
+      kind: 'enterprise_vendor_intelligence',
+      confidence: 'medium',
+      starterPrompts: vendorIntelligenceStarterPromptsForGroup(groupName),
+      primaryQuestions: [
+        'Which vendors account for the largest invoice or payment totals?',
+        'Which vendors have contract, rate sheet, invoice, payment reconciliation, legal review, audit, or security review records that should be read together?',
+        'Which vendor relationships, timing patterns, or document clusters are most useful for business review?',
+      ],
+      relationships: [
+        'Join or group records by vendor_id values such as V0066 when available.',
+        'Use vendor names embedded in filenames as fallback relationship clues when a table column is not available.',
+        'Compare contract, rate sheet, invoice, payment reconciliation, audit, credentialing, legal review, and security review documents by vendor and date.',
+      ],
+      columnDefinitions: {
+        vendor_id: 'Stable vendor identifier such as V0066 when present.',
+        vendor_name: 'Vendor display name when available in tables or filenames.',
+        amount: 'Invoice, payment, rate, or reconciliation amount depending on source document type.',
+        document_type: 'Business document category inferred from filename, table, or content.',
+      },
     }
   }
   return fileMix ? { ...base, kind: fileMix, confidence: 'low' } : null
@@ -322,11 +387,12 @@ function upsertLocalGroupFile(projectTarget, groupTarget, fileInfo, fileMix = ''
   nextGroup.files = [...byKey.values()]
   nextGroup.fileKeys = nextGroup.files.map(file => fileKey(file)).filter(Boolean)
   const inferredProfile = localGroupProfile(nextGroup.name, nextGroup.files, fileMix) || {}
+  const existingKind = existing?.groupProfile?.kind || ''
+  const shouldUpgradeProfile = inferredProfile.kind && (!existingKind || ['generic', 'csv_text', 'csv_only', 'text_only', 'mixed'].includes(existingKind))
   nextGroup.groupProfile = {
-    ...(existing?.groupProfile || {}),
-    ...(existing?.groupProfile ? {} : inferredProfile),
-    fileMix: existing?.groupProfile?.fileMix || fileMix,
-    fileMixLabel: existing?.groupProfile?.fileMixLabel || GROUP_FILE_MIX_OPTIONS.find(option => option.id === fileMix)?.label || '',
+    ...(shouldUpgradeProfile ? inferredProfile : existing?.groupProfile || inferredProfile),
+    fileMix: (shouldUpgradeProfile ? inferredProfile.fileMix : existing?.groupProfile?.fileMix) || fileMix,
+    fileMixLabel: (shouldUpgradeProfile ? inferredProfile.fileMixLabel : existing?.groupProfile?.fileMixLabel) || GROUP_FILE_MIX_OPTIONS.find(option => option.id === fileMix)?.label || '',
   }
   nextGroup.groupKey = buildGroupKey({
     project,
@@ -392,17 +458,19 @@ function stepDefsFor(u) {
   return isStructuredUpload(u) ? STEP_DEFS_STRUCTURED : STEP_DEFS
 }
 
+function uploadHasPublishedBackendObject(upload) {
+  return Boolean(
+    upload?.processingStatus?.processed?.exists
+    || upload?.processingStatus?.structured?.exists
+    || upload?.processingStatus?.status === 'catalog_done'
+    || upload?.scanRun?.status === 'COMPLETED'
+  )
+}
+
 function uploadReadyForGroupPublish(upload) {
   return Boolean(
     upload?.key
-    && !upload.error
-    && upload.state !== 'upload_failed'
-    && (
-      upload.processingStatus?.processed?.exists
-      || upload.processingStatus?.structured?.exists
-      || upload.processingStatus?.status === 'catalog_done'
-      || upload.scanRun?.status === 'COMPLETED'
-    )
+    && uploadHasPublishedBackendObject(upload)
   )
 }
 
@@ -434,9 +502,12 @@ function stepStatesFor(upload) {
   if (isStructuredUpload(upload)) {
     const s = { raw: 'pending', processed: 'pending', catalog: 'pending' }
     if (upload.state === 'uploading')     { s.raw = 'running'; return s }
-    if (upload.state === 'upload_failed') { s.raw = 'failed';  return s }
     s.raw = 'done'
     const status = upload.processingStatus
+    if (upload.state === 'upload_failed' && !uploadHasPublishedBackendObject(upload)) {
+      s.processed = 'failed'
+      return s
+    }
     if (!status) {
       s.processed = 'running'
       return s
@@ -461,7 +532,11 @@ function stepStatesFor(upload) {
   //   - scan-run FAILED → raw + processed done, kb/scan failed
   const states = { raw: 'pending', processed: 'pending', kb: 'pending', scan: 'pending' }
   if (upload.state === 'uploading')      { states.raw = 'running'; return states }
-  if (upload.state === 'upload_failed')  { states.raw = 'failed';  return states }
+  if (upload.state === 'upload_failed' && !uploadHasPublishedBackendObject(upload)) {
+    states.raw = 'done'
+    states.processed = 'failed'
+    return states
+  }
 
   // PUT succeeded; raw is done.
   states.raw = 'done'
@@ -739,7 +814,7 @@ function UploadRow({ upload }) {
           </div>
         ))}
       </div>
-      {upload.error && (
+      {upload.error && !readyForPublish && (
         <p className="text-xs text-red-700 mt-2 flex items-center gap-1.5">
           <AlertTriangle size={12} /> {upload.error}
         </p>
@@ -1204,15 +1279,23 @@ export default function DataPipeline() {
       })
       const materializedGroup = (result?.metadata?.groups || []).find(group => group?.name === groupName)
       const factSources = materializedGroup?.structuredFacts?.counts?.factSources || 0
+      const materializationIssues = result?.materializationIssues?.length
+        ? result.materializationIssues
+        : (materializedGroup?.materializationIssues || [])
+      const needsAttention = result?.materializationStatus === 'needs_attention' || materializationIssues.length > 0
+      const issueMessage = materializationIssues[0]?.message || 'Glue table verification needs attention before Athena queries are reliable.'
       setGroupPublishStatus(prev => ({
         ...prev,
         [publishKey]: {
           projectName: projectTarget.name,
           groupName,
-          state: 'published',
-          message: `${groupName} published with ${files.length} files${factSources ? ` and ${factSources} text fact source${factSources === 1 ? '' : 's'}` : ''}.`,
+          state: needsAttention ? 'needs_attention' : 'published',
+          message: needsAttention
+            ? `${groupName} copied, but structured table verification needs attention: ${issueMessage}`
+            : `${groupName} published with ${files.length} files${factSources ? ` and ${factSources} text fact source${factSources === 1 ? '' : 's'} indexed` : ''}.`,
           kbSyncMessage: result?.kbSync?.message || '',
           structuredFactSources: factSources,
+          materializationIssues,
         },
       }))
       setUploads(prev => prev.map(upload => (
@@ -1221,6 +1304,7 @@ export default function DataPipeline() {
               ...upload,
               groupMaterializing: false,
               groupMaterialized: true,
+              groupError: needsAttention ? issueMessage : null,
               kbSyncMessage: result?.kbSync?.message || '',
               structuredFactSources: factSources,
             }
@@ -1330,7 +1414,10 @@ export default function DataPipeline() {
     && upload.groupName === currentSelectedGroupName
   ))
   const currentGroupReadyUploads = currentGroupUploads.filter(uploadReadyForGroupPublish)
-  const currentGroupFailedUploads = currentGroupUploads.filter(upload => upload.state === 'upload_failed' || upload.error)
+  const currentGroupFailedUploads = currentGroupUploads.filter(upload => (
+    (upload.state === 'upload_failed' || upload.error)
+    && !uploadReadyForGroupPublish(upload)
+  ))
   const currentLiveBatchReady = !currentGroupUploads.length || (
     currentGroupReadyUploads.length === currentGroupUploads.length
     && !currentGroupFailedUploads.length
@@ -1410,6 +1497,8 @@ export default function DataPipeline() {
               className={`rounded-xl border px-4 py-3 text-xs ${
                 status.state === 'failed'
                   ? 'border-red-200 bg-red-50 text-red-700'
+                : status.state === 'needs_attention'
+                  ? 'border-amber-200 bg-amber-50 text-amber-800'
                 : status.state === 'published'
                   ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
                   : 'border-amber-200 bg-amber-50 text-amber-800'
@@ -1418,7 +1507,7 @@ export default function DataPipeline() {
               <div className="flex flex-wrap items-center gap-2">
                 {status.state === 'publishing' || status.state === 'checking' ? (
                   <Loader2 size={13} className="animate-spin" />
-                ) : status.state === 'failed' ? (
+                ) : status.state === 'failed' || status.state === 'needs_attention' ? (
                   <AlertTriangle size={13} />
                 ) : (
                   <CheckCircle size={13} />
