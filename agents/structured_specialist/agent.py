@@ -4715,6 +4715,18 @@ def _union_from_tables(tables: list[str], select_body: str, where: str = "") -> 
     )
 
 
+def _storm_glass_column_expr(columns: set[str], exact: tuple[str, ...], contains: tuple[str, ...] = (), default: str = "NULL") -> str:
+    column = _first_column_by_name(columns, exact, contains)
+    return f'"{column}"' if column else default
+
+
+def _storm_glass_header_filter(column_expr: str, header_value: str) -> str:
+    if column_expr == "NULL":
+        return "FALSE"
+    escaped = header_value.replace("'", "''")
+    return f"{column_expr} IS NOT NULL AND CAST({column_expr} AS VARCHAR) <> '{escaped}'"
+
+
 def _storm_glass_02_claims_select(table: str) -> str:
     columns = _glue_columns_for_table(table)
 
@@ -4741,12 +4753,102 @@ def _storm_glass_02_claims_select(table: str) -> str:
     """
 
 
+def _storm_glass_02_call_select(table: str) -> str:
+    columns = _glue_columns_for_table(table)
+    claim_id = _storm_glass_column_expr(
+        columns,
+        ("claim_id", "claimid", "claim_number", "claim"),
+        ("claim_id", "claim"),
+    )
+    call_date = _storm_glass_column_expr(
+        columns,
+        ("call_date", "contact_date", "created_at", "timestamp", "event_time", "date"),
+        ("call_date", "contact", "timestamp", "date"),
+    )
+    caller_type = _storm_glass_column_expr(
+        columns,
+        ("caller_type", "caller", "contact_type", "channel", "source"),
+        ("caller", "contact_type", "channel"),
+    )
+    summary = _storm_glass_column_expr(
+        columns,
+        ("summary", "call_summary", "notes", "note", "context", "reason", "description", "transcript"),
+        ("summary", "note", "context", "reason", "description", "transcript"),
+    )
+    early_contact = _storm_glass_column_expr(
+        columns,
+        ("early_contact_flag", "early_contact", "first_notice", "fnol", "is_early_contact", "flag"),
+        ("early", "first_notice", "fnol"),
+    )
+    return f"""
+        SELECT
+            CAST({claim_id} AS VARCHAR) AS claim_id,
+            CAST({call_date} AS VARCHAR) AS call_date,
+            CAST({caller_type} AS VARCHAR) AS caller_type,
+            CAST({summary} AS VARCHAR) AS summary,
+            CAST({early_contact} AS VARCHAR) AS early_contact_flag
+        FROM "{table}"
+        WHERE {_storm_glass_header_filter(claim_id, "claim_id")}
+    """
+
+
+def _storm_glass_02_note_select(table: str) -> str:
+    columns = _glue_columns_for_table(table)
+    claim_id = _storm_glass_column_expr(
+        columns,
+        ("claim_id", "claimid", "claim_number", "claim"),
+        ("claim_id", "claim"),
+    )
+    note_date = _storm_glass_column_expr(
+        columns,
+        ("note_date", "created_at", "timestamp", "event_time", "date"),
+        ("note_date", "timestamp", "date"),
+    )
+    note_author = _storm_glass_column_expr(
+        columns,
+        ("note_author", "author", "adjuster", "user", "created_by"),
+        ("author", "adjuster", "created_by"),
+    )
+    note_type = _storm_glass_column_expr(
+        columns,
+        ("note_type", "type", "category", "reason", "review_status"),
+        ("note_type", "category", "reason"),
+    )
+    note_text = _storm_glass_column_expr(
+        columns,
+        ("note_text", "notes", "note", "summary", "context", "description", "adjuster_note", "supplement_reason", "review_status"),
+        ("note", "summary", "context", "description", "supplement", "review"),
+    )
+    review_flag = _storm_glass_column_expr(
+        columns,
+        ("review_flag", "needs_review", "siu_flag", "flag", "escalation_flag", "review_status"),
+        ("review", "siu", "flag", "escalation"),
+    )
+    return f"""
+        SELECT
+            CAST({claim_id} AS VARCHAR) AS claim_id,
+            CAST({note_date} AS VARCHAR) AS note_date,
+            CAST({note_author} AS VARCHAR) AS note_author,
+            CAST({note_type} AS VARCHAR) AS note_type,
+            CAST({note_text} AS VARCHAR) AS note_text,
+            CAST({review_flag} AS VARCHAR) AS review_flag
+        FROM "{table}"
+        WHERE {_storm_glass_header_filter(claim_id, "claim_id")}
+    """
+
+
 def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, Any] | None, storm_token: str, storm_label: str) -> str:
     claims_tables = _storm_glass_tables(storm_token, "claims_batch", context, prompt)
     invoice_tables = _storm_glass_tables(storm_token, "contractor_invoice_detail", context, prompt)
     policy_tables = _storm_glass_tables(storm_token, "policy_master_coverage_changes", context, prompt)
     weather_tables = _storm_glass_tables(storm_token, "weather_claim_match", context, prompt)
     call_tables = _storm_glass_tables(storm_token, "call_center_logs", context, prompt)
+    note_tables = (
+        _storm_glass_tables(storm_token, "adjuster_notes", context, prompt)
+        or _storm_glass_tables(storm_token, "notes", context, prompt)
+        or _storm_glass_tables(storm_token, "claim_notes", context, prompt)
+        or _storm_glass_tables(storm_token, "claim_supplements", context, prompt)
+    )
     siu_tables = _storm_glass_tables(storm_token, "fraud_scoring_export", context, prompt)
     benchmark_tables = _storm_glass_tables(storm_token, "regional_cost_benchmarks", context, prompt)
 
@@ -4801,17 +4903,8 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
         """,
         "CAST(policy_id AS VARCHAR) <> 'policy_id'",
     ) if policy_tables else "SELECT CAST(NULL AS VARCHAR) AS policy_id, CAST(NULL AS VARCHAR) AS insured_id, CAST(NULL AS VARCHAR) AS coverage, CAST(NULL AS DOUBLE) AS coverage_limit, CAST(NULL AS DOUBLE) AS deductible, CAST(NULL AS VARCHAR) AS effective_date, CAST(NULL AS VARCHAR) AS recent_upgrade"
-    call_union = _union_from_tables(
-        call_tables,
-        """
-            CAST(col1 AS VARCHAR) AS claim_id,
-            CAST(col2 AS VARCHAR) AS call_date,
-            CAST(col3 AS VARCHAR) AS caller_type,
-            CAST(col4 AS VARCHAR) AS summary,
-            CAST(col5 AS VARCHAR) AS early_contact_flag
-        """,
-        "col0 <> 'call_id'",
-    ) if call_tables else "SELECT CAST(NULL AS VARCHAR) AS claim_id, CAST(NULL AS VARCHAR) AS call_date, CAST(NULL AS VARCHAR) AS caller_type, CAST(NULL AS VARCHAR) AS summary, CAST(NULL AS VARCHAR) AS early_contact_flag"
+    call_union = "\nUNION ALL\n".join(_storm_glass_02_call_select(table) for table in call_tables) if call_tables else "SELECT CAST(NULL AS VARCHAR) AS claim_id, CAST(NULL AS VARCHAR) AS call_date, CAST(NULL AS VARCHAR) AS caller_type, CAST(NULL AS VARCHAR) AS summary, CAST(NULL AS VARCHAR) AS early_contact_flag"
+    note_union = "\nUNION ALL\n".join(_storm_glass_02_note_select(table) for table in note_tables) if note_tables else "SELECT CAST(NULL AS VARCHAR) AS claim_id, CAST(NULL AS VARCHAR) AS note_date, CAST(NULL AS VARCHAR) AS note_author, CAST(NULL AS VARCHAR) AS note_type, CAST(NULL AS VARCHAR) AS note_text, CAST(NULL AS VARCHAR) AS review_flag"
     siu_union = _union_from_tables(
         siu_tables,
         """
@@ -4841,6 +4934,7 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
         weather AS ({weather_union}),
         policies AS ({policy_union}),
         calls AS ({call_union}),
+        notes AS ({note_union}),
         siu AS ({siu_union}),
         benchmarks AS ({benchmark_union}),
         invoice_rollup AS (
@@ -4876,6 +4970,25 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
             WHERE claim_id IS NOT NULL
             GROUP BY claim_id
         ),
+        note_rollup AS (
+            SELECT
+                claim_id,
+                COUNT(*) AS note_count,
+                SUM(
+                    CASE
+                        WHEN LOWER(COALESCE(review_flag, '')) IN ('y', 'yes', 'true')
+                          OR LOWER(COALESCE(note_text, '')) LIKE '%review%'
+                          OR LOWER(COALESCE(note_text, '')) LIKE '%siu%'
+                          OR LOWER(COALESCE(note_text, '')) LIKE '%question%'
+                          OR LOWER(COALESCE(note_text, '')) LIKE '%inconsistent%'
+                        THEN 1 ELSE 0
+                    END
+                ) AS review_notes,
+                ARRAY_JOIN(SLICE(ARRAY_AGG(note_text), 1, 2), ' | ') AS note_signals
+            FROM notes
+            WHERE claim_id IS NOT NULL
+            GROUP BY claim_id
+        ),
         scored AS (
             SELECT
                 c.claim_id,
@@ -4902,6 +5015,9 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
                 COALESCE(cr.call_count, 0) AS call_count,
                 COALESCE(cr.early_contact_calls, 0) AS early_contact_calls,
                 COALESCE(cr.call_signals, '') AS call_signals,
+                COALESCE(nr.note_count, 0) AS note_count,
+                COALESCE(nr.review_notes, 0) AS review_notes,
+                COALESCE(nr.note_signals, '') AS note_signals,
                 MAX(s.fraud_score) AS siu_risk_score,
                 MAX(s.drivers) AS siu_drivers,
                 c.fraud_cluster,
@@ -4911,6 +5027,7 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
             LEFT JOIN policies p ON p.policy_id = c.policy_id
             LEFT JOIN weather_rollup w ON w.claim_id = c.claim_id
             LEFT JOIN call_rollup cr ON cr.claim_id = c.claim_id
+            LEFT JOIN note_rollup nr ON nr.claim_id = c.claim_id
             LEFT JOIN siu s ON s.claim_id = c.claim_id
             LEFT JOIN benchmarks b ON CAST(b.zip AS VARCHAR) = CAST(c.zip AS VARCHAR)
             GROUP BY
@@ -4920,6 +5037,7 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
                 w.max_hail_inches, w.max_wind_mph, w.nearest_storm_miles,
                 w.nearby_weather_events, w.unsupported_weather_rows,
                 cr.call_count, cr.early_contact_calls, cr.call_signals,
+                nr.note_count, nr.review_notes, nr.note_signals,
                 c.fraud_cluster, c.embedded_flags
         )
         SELECT
@@ -4939,6 +5057,7 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
             nearest_storm_miles,
             nearby_weather_events,
             early_contact_calls,
+            review_notes,
             siu_risk_score,
             (
                 CASE WHEN invoice_total > estimated_loss * 1.35 THEN 1 ELSE 0 END
@@ -4946,6 +5065,7 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
                 + CASE WHEN LOWER(COALESCE(recent_upgrade, '')) IN ('y', 'yes', 'true') THEN 1 ELSE 0 END
                 + CASE WHEN unsupported_weather_rows > 0 OR nearest_storm_miles > 20 THEN 1 ELSE 0 END
                 + CASE WHEN early_contact_calls > 0 THEN 1 ELSE 0 END
+                + CASE WHEN review_notes > 0 THEN 1 ELSE 0 END
                 + CASE WHEN siu_risk_score >= 70 THEN 1 ELSE 0 END
                 + CASE WHEN LOWER(COALESCE(fraud_cluster, '')) NOT IN ('', 'none', 'low') THEN 1 ELSE 0 END
             ) AS review_signal_count,
@@ -4957,6 +5077,7 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
                         CASE WHEN LOWER(COALESCE(recent_upgrade, '')) IN ('y', 'yes', 'true') THEN 'recent policy coverage change' END,
                         CASE WHEN unsupported_weather_rows > 0 OR nearest_storm_miles > 20 THEN 'weather support is weak or distant' END,
                         CASE WHEN early_contact_calls > 0 THEN 'early call-center contact signal' END,
+                        CASE WHEN review_notes > 0 THEN 'claim note review signal' END,
                         CASE WHEN siu_risk_score >= 70 THEN 'SIU/fraud score >= 70' END,
                         CASE WHEN LOWER(COALESCE(fraud_cluster, '')) NOT IN ('', 'none', 'low') THEN 'fraud cluster flag present' END
                     ],
@@ -4966,6 +5087,7 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
             ) AS review_explanation,
             invoice_signals,
             call_signals,
+            note_signals,
             siu_drivers
         FROM scored
         WHERE
@@ -4975,6 +5097,7 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
             OR unsupported_weather_rows > 0
             OR nearest_storm_miles > 20
             OR early_contact_calls > 0
+            OR review_notes > 0
             OR siu_risk_score >= 70
             OR LOWER(COALESCE(fraud_cluster, '')) NOT IN ('', 'none', 'low')
         ORDER BY review_signal_count DESC, invoice_total DESC, claim_id
