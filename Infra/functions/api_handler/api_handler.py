@@ -807,6 +807,30 @@ def _csv_header_signature(bucket: str, key: str) -> tuple[str, ...]:
     return ()
 
 
+def _csv_header_and_sample_rows(bucket: str, key: str, max_rows: int = 25) -> tuple[list[str], list[list[str]]]:
+    try:
+        obj = s3.get_object(Bucket=bucket, Key=key, Range="bytes=0-262143")
+        sample = obj.get("Body").read().decode("utf-8-sig", errors="replace")
+    except ClientError:
+        logger.exception("csv sample read failed: %s", key)
+        return [], []
+
+    reader = csv.reader(io.StringIO(sample))
+    header: list[str] = []
+    rows: list[list[str]] = []
+    for row in reader:
+        cleaned = [str(cell or "").strip() for cell in row]
+        if not header:
+            if any(cleaned):
+                header = cleaned
+            continue
+        if any(cleaned):
+            rows.append(cleaned)
+        if len(rows) >= max_rows:
+            break
+    return header, rows
+
+
 def _csv_structured_table_hints(project_id: str, group_name: str, files: list[dict[str, Any]]) -> dict[str, str]:
     csv_files = [
         file for file in files
@@ -846,6 +870,209 @@ def _normalize_profile_column(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", str(value or "").strip().lower()).strip("_")
 
 
+def _sample_values_for_column(rows: list[list[str]], index: int, limit: int = 3) -> list[str]:
+    values: list[str] = []
+    seen: set[str] = set()
+    for row in rows:
+        if index >= len(row):
+            continue
+        value = str(row[index] or "").strip()
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        values.append(value[:80])
+        if len(values) >= limit:
+            break
+    return values
+
+
+def _semantic_type_for_column(raw_column: str, sample_values: list[str]) -> str:
+    column = _normalize_profile_column(raw_column)
+    value_text = " ".join(sample_values).strip()
+    lower_values = [value.lower() for value in sample_values]
+    if column in {"vendor_id", "vendorid", "vendor_no", "vendor_number", "vendor_code", "supplier_id", "supplier_code"}:
+        return "vendor_id"
+    if re.search(r"\bV\d{3,6}\b", value_text, re.IGNORECASE) and ("vendor" in column or column.endswith("_id") or column == "id"):
+        return "vendor_id"
+    if column in {"vendor_name", "supplier_name"} or ("vendor" in column and "name" in column):
+        return "vendor_name"
+    if column in {"business_unit", "department", "division", "cost_center", "manager", "owner"}:
+        return "business_unit"
+    if column in {"invoice_id", "invoice_number", "invoice_no"}:
+        return "invoice_id"
+    if column in {"claim_id", "claim_number", "claim_no"}:
+        return "claim_id"
+    if column in {"ticket_id", "incident_id", "case_id", "request_id"}:
+        return "case_id"
+    if column in {"asset_id", "ci_id", "config_item_id", "configuration_item", "device_id", "server_id"}:
+        return "asset_id"
+    if column in {"log_id", "event_id", "trace_id"}:
+        return "event_id"
+    if (
+        column.endswith("_date")
+        or column in {"date", "invoice_date", "payment_date", "paid_date", "review_date", "service_date", "created_at", "updated_at"}
+        or any(re.match(r"^\d{4}-\d{2}-\d{2}", value) or re.match(r"^\d{1,2}/\d{1,2}/\d{2,4}$", value) for value in lower_values)
+    ):
+        return "date"
+    if column in {"timestamp", "time", "event_time", "log_time"} or column.endswith("_time") or column.endswith("_timestamp"):
+        return "timestamp"
+    if (
+        "amount" in column
+        or "total" in column
+        or "paid" in column
+        or "payment" in column
+        or "cost" in column
+        or "price" in column
+        or "revenue" in column
+        or column.endswith("_amt")
+    ):
+        return "amount"
+    if column in {"document_type", "doc_type", "record_type", "type", "category", "status"}:
+        return "category"
+    if column.endswith("_id") or column == "id":
+        return "identifier"
+    return "text"
+
+
+def _entities_for_schema_columns(columns: list[dict[str, Any]], filename: str) -> list[str]:
+    semantic_types = {column.get("semanticType") for column in columns}
+    lookup = _normalize_profile_column(filename)
+    entities: set[str] = set()
+    if "vendor_id" in semantic_types or "vendor_name" in semantic_types or "vendor" in lookup:
+        entities.add("vendor")
+    if "invoice_id" in semantic_types or "invoice" in lookup:
+        entities.add("invoice")
+    if "claim_id" in semantic_types or "claim" in lookup:
+        entities.add("claim")
+    if "case_id" in semantic_types:
+        entities.add("case")
+    if "asset_id" in semantic_types or any(term in lookup for term in ("asset", "config_item", "cmdb", "server", "device")):
+        entities.add("asset")
+    if "event_id" in semantic_types or any(term in lookup for term in ("log", "event", "trace")):
+        entities.add("event")
+    if "amount" in semantic_types:
+        entities.add("financial")
+    return sorted(entities)
+
+
+def _csv_schema_profile(file_info: dict[str, Any]) -> dict[str, Any] | None:
+    filename = str(file_info.get("name") or "")
+    if not filename.lower().endswith(".csv"):
+        return None
+    key = str(file_info.get("projectKey") or file_info.get("structuredKey") or file_info.get("sourceKey") or "")
+    if not key:
+        return None
+    header, sample_rows = _csv_header_and_sample_rows(PROCESSED_BUCKET, key)
+    if not header:
+        return None
+    columns: list[dict[str, Any]] = []
+    for index, raw_column in enumerate(header[:80]):
+        normalized = _normalize_profile_column(raw_column) or f"col{index}"
+        sample_values = _sample_values_for_column(sample_rows, index)
+        semantic_type = _semantic_type_for_column(raw_column, sample_values)
+        columns.append({
+            "raw": str(raw_column or ""),
+            "normalized": normalized,
+            "semanticType": semantic_type,
+            "sampleValues": sample_values,
+        })
+    join_keys = [
+        column["normalized"]
+        for column in columns
+        if column.get("semanticType") in {"vendor_id", "invoice_id", "claim_id", "case_id", "asset_id", "event_id", "identifier"}
+    ][:12]
+    amount_columns = [column["normalized"] for column in columns if column.get("semanticType") == "amount"][:12]
+    date_columns = [column["normalized"] for column in columns if column.get("semanticType") in {"date", "timestamp"}][:12]
+    return {
+        "name": _dataset_name_from_file(filename),
+        "filename": filename,
+        "table": file_info.get("glueTableHint") or "",
+        "columnCount": len(header),
+        "sampleRowCount": len(sample_rows),
+        "columns": columns,
+        "entities": _entities_for_schema_columns(columns, filename),
+        "joinKeys": join_keys,
+        "amountColumns": amount_columns,
+        "dateColumns": date_columns,
+    }
+
+
+def _build_group_schema(group_name: str, materialized_files: list[dict[str, Any]]) -> dict[str, Any]:
+    tables: list[dict[str, Any]] = []
+    semantic_index: dict[str, list[dict[str, str]]] = {}
+    for file_info in materialized_files[:500]:
+        profile = _csv_schema_profile(file_info)
+        if not profile:
+            continue
+        tables.append(profile)
+        for column in profile.get("columns") or []:
+            semantic_type = column.get("semanticType") or ""
+            if semantic_type in {"text", "category"}:
+                continue
+            semantic_index.setdefault(semantic_type, []).append({
+                "table": profile.get("table") or profile.get("name") or "",
+                "column": column.get("normalized") or "",
+            })
+
+    relationships = []
+    for semantic_type, refs in semantic_index.items():
+        unique_refs = [ref for index, ref in enumerate(refs) if ref not in refs[:index]]
+        if semantic_type.endswith("_id") and len(unique_refs) >= 2:
+            relationships.append({
+                "semanticType": semantic_type,
+                "relationship": "shared key candidate",
+                "references": unique_refs[:25],
+                "confidence": "high" if semantic_type in {"vendor_id", "invoice_id", "claim_id"} else "medium",
+            })
+
+    return {
+        "version": "0.1",
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "groupName": group_name,
+        "counts": {
+            "csvFiles": len(tables),
+            "columns": sum(int(table.get("columnCount") or 0) for table in tables),
+            "joinKeyColumns": sum(len(table.get("joinKeys") or []) for table in tables),
+            "amountColumns": sum(len(table.get("amountColumns") or []) for table in tables),
+            "dateColumns": sum(len(table.get("dateColumns") or []) for table in tables),
+            "relationships": len(relationships),
+        },
+        "tables": tables[:500],
+        "relationships": relationships[:100],
+    }
+
+
+def _group_schema_summary(group_schema: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(group_schema, dict):
+        return {}
+    return {
+        "version": group_schema.get("version") or "0.1",
+        "counts": group_schema.get("counts") or {},
+        "sampleTables": [
+            {
+                "name": table.get("name"),
+                "table": table.get("table"),
+                "entities": table.get("entities") or [],
+                "joinKeys": table.get("joinKeys") or [],
+                "amountColumns": table.get("amountColumns") or [],
+                "dateColumns": table.get("dateColumns") or [],
+                "columns": [
+                    {
+                        "raw": column.get("raw"),
+                        "normalized": column.get("normalized"),
+                        "semanticType": column.get("semanticType"),
+                    }
+                    for column in (table.get("columns") or [])[:12]
+                    if isinstance(column, dict)
+                ],
+            }
+            for table in (group_schema.get("tables") or [])[:12]
+            if isinstance(table, dict)
+        ],
+        "relationships": (group_schema.get("relationships") or [])[:12],
+    }
+
+
 def _glue_column_name(value: str, index: int) -> str:
     name = _normalize_profile_column(value)
     return name or f"col{index}"
@@ -864,6 +1091,40 @@ def _csv_glue_columns(bucket: str, key: str) -> list[dict[str, str]]:
         name = base if count == 0 else f"{base}_{count + 1}"
         columns.append({"Name": name[:255], "Type": "string"})
     return columns
+
+
+def _verify_glue_csv_table(table_name: str, location: str, columns: list[dict[str, str]]) -> dict[str, Any]:
+    """Read back a managed CSV table so materialization cannot look successful prematurely."""
+    expected_location = (location or "").rstrip("/") + "/"
+    expected_columns = [str(column.get("Name") or "").lower() for column in columns if column.get("Name")]
+    last_message = ""
+    for attempt in range(4):
+        try:
+            table = glue.get_table(DatabaseName=GLUE_DATABASE, Name=table_name).get("Table") or {}
+            storage = table.get("StorageDescriptor") or {}
+            actual_location = str(storage.get("Location") or "").rstrip("/") + "/"
+            actual_columns = [
+                str(column.get("Name") or "").lower()
+                for column in (storage.get("Columns") or [])
+                if column.get("Name")
+            ]
+            missing_columns = [column for column in expected_columns if column not in set(actual_columns)]
+            if actual_location != expected_location:
+                last_message = f"Glue table location mismatch: expected {expected_location}, found {actual_location}"
+            elif missing_columns:
+                last_message = f"Glue table missing {len(missing_columns)} expected column(s): {', '.join(missing_columns[:5])}"
+            else:
+                return {
+                    "verified": True,
+                    "location": actual_location,
+                    "columnCount": len(actual_columns),
+                    "attempt": attempt + 1,
+                }
+        except ClientError as e:
+            last_message = f"{type(e).__name__}: {e}"
+        if attempt < 3:
+            time.sleep(0.5)
+    return {"verified": False, "message": last_message or "Glue table verification failed"}
 
 
 def _ensure_glue_csv_table(table_name: str, structured_key: str) -> dict[str, Any]:
@@ -900,11 +1161,31 @@ def _ensure_glue_csv_table(table_name: str, structured_key: str) -> dict[str, An
     try:
         glue.get_table(DatabaseName=GLUE_DATABASE, Name=table_name)
         glue.update_table(DatabaseName=GLUE_DATABASE, TableInput=table_input)
-        return {"table": table_name, "status": "updated", "location": location, "columnCount": len(columns)}
+        verify = _verify_glue_csv_table(table_name, location, columns)
+        if not verify.get("verified"):
+            return {
+                "table": table_name,
+                "status": "failed",
+                "action": "updated",
+                "location": location,
+                "columnCount": len(columns),
+                "message": verify.get("message") or "Glue table update did not verify",
+            }
+        return {"table": table_name, "status": "updated", "verified": True, "location": location, "columnCount": len(columns)}
     except glue.exceptions.EntityNotFoundException:
         try:
             glue.create_table(DatabaseName=GLUE_DATABASE, TableInput=table_input)
-            return {"table": table_name, "status": "created", "location": location, "columnCount": len(columns)}
+            verify = _verify_glue_csv_table(table_name, location, columns)
+            if not verify.get("verified"):
+                return {
+                    "table": table_name,
+                    "status": "failed",
+                    "action": "created",
+                    "location": location,
+                    "columnCount": len(columns),
+                    "message": verify.get("message") or "Glue table create did not verify",
+                }
+            return {"table": table_name, "status": "created", "verified": True, "location": location, "columnCount": len(columns)}
         except ClientError as e:
             logger.exception("Glue table create failed: %s", table_name)
             return {"table": table_name, "status": "failed", "message": f"{type(e).__name__}: {e}"}
@@ -937,6 +1218,15 @@ def _operational_asset_group_starter_prompts(group_name: str) -> list[str]:
         "For this group, create an operational asset performance summary by floor zone. Include asset count, activity volume, revenue, utilization, service calls, uptime, and revenue per asset.",
         "For this group, compare equipment categories by revenue, activity volume, utilization, and maintenance activity. Rank categories by total revenue.",
         "For this group, summarize maintenance impact by floor zone. Include service calls, uptime, maintenance cost, asset count, and related performance totals.",
+    ]
+
+
+def _vendor_intelligence_group_starter_prompts(group_name: str) -> list[str]:
+    return [
+        "For this group, create a vendor spend summary ranked from highest to lowest total amount. Include vendor ID, vendor name if available, total invoice amount, invoice count, document count, and business unit if available.",
+        "For this group, list records for vendor V0066. Include filename or table, document type, date if available, amount if available, and a short neutral summary.",
+        "For this group, compare contract, invoice, rate sheet, and payment reconciliation records by vendor. Include vendor ID, vendor name if available, record counts, total amounts if available, and useful next review steps.",
+        "For this group, summarize vendor relationships across documents and tables. Include vendor ID, vendor category if available, related departments, document types, and timing patterns.",
     ]
 
 
@@ -994,6 +1284,7 @@ def _infer_data_group_profile(group_name: str, files: list[dict[str, Any]], tabl
     }
     normalized_name = _normalize_profile_column(group_name).replace("_", " ")
     table_text = " ".join(table_hints).lower()
+    filename_text = " ".join(str(file.get("name") or file.get("key") or "") for file in files).lower()
     if (
         len(columns & sales_columns) >= 8
         or len(columns & alternate_sales_columns) >= 8
@@ -1020,6 +1311,38 @@ def _infer_data_group_profile(group_name: str, files: list[dict[str, Any]], tabl
             "confidence": "high" if len(columns & operational_asset_columns) >= 8 else "medium",
             "columns": sorted(columns),
             "starterPrompts": _operational_asset_group_starter_prompts(group_name),
+        }
+    if (
+        "enterprise vendor" in normalized_name
+        or "vendor intelligence" in normalized_name
+        or "vendor_master" in filename_text
+        or "vendor_master" in table_text
+        or ("invoice" in filename_text and "contract" in filename_text and "vendor" in filename_text)
+        or ("payment_reconciliation" in filename_text and "rate_sheet" in filename_text)
+    ):
+        return {
+            "kind": "enterprise_vendor_intelligence",
+            "fileMix": file_mix,
+            "fileMixLabel": file_mix_label,
+            "confidence": "medium",
+            "columns": sorted(columns),
+            "starterPrompts": _vendor_intelligence_group_starter_prompts(group_name),
+            "primaryQuestions": [
+                "Which vendors account for the largest invoice or payment totals?",
+                "Which vendors have contract, rate sheet, invoice, payment reconciliation, legal review, audit, or security review records that should be read together?",
+                "Which vendor relationships, timing patterns, or document clusters are most useful for business review?",
+            ],
+            "relationships": [
+                "Join or group records by vendor_id values such as V0066 when available.",
+                "Use vendor names embedded in filenames as fallback relationship clues when a table column is not available.",
+                "Compare contract, rate sheet, invoice, payment reconciliation, audit, credentialing, legal review, and security review documents by vendor and date.",
+            ],
+            "columnDefinitions": {
+                "vendor_id": "Stable vendor identifier such as V0066 when present.",
+                "vendor_name": "Vendor display name when available in tables or filenames.",
+                "amount": "Invoice, payment, rate, or reconciliation amount depending on source document type.",
+                "document_type": "Business document category inferred from filename, table, or content.",
+            },
         }
     return {
         "kind": "generic",
@@ -1239,6 +1562,94 @@ def _structured_fact_summary(structured_facts: dict[str, Any] | None) -> dict[st
     }
 
 
+def _default_governance_policy(project_name: str, project_id: str, group_name: str | None = None, group_profile: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Common-sense AI governance baseline attached to newly published groups."""
+    now = datetime.now(timezone.utc).isoformat()
+    policy_id = "arbiter_common_sense_ai_governance_v1"
+    domain = (group_profile or {}).get("kind") or "general data analysis"
+    return {
+        "schema_version": "1.0",
+        "policy_id": policy_id,
+        "name": "Common Sense AI Governance Baseline",
+        "status": "active",
+        "scope": {
+            "project_id": project_id,
+            "project_name": project_name or project_id,
+            "group_name": group_name or "",
+            "domain": domain,
+        },
+        "allowed_intents": [
+            "summarize_evidence",
+            "inventory_files_and_tables",
+            "profile_schema",
+            "compare_records",
+            "rank_records",
+            "detect_unusual_patterns",
+            "diagnose_operational_issue",
+            "draft_ticket_with_user_confirmation",
+        ],
+        "restricted_intents": [
+            "make_unsupported_accusation",
+            "claim_causation_without_evidence",
+            "use_data_outside_selected_scope",
+            "expose_sensitive_fields_unnecessarily",
+            "take_external_action_without_confirmation",
+        ],
+        "evidence_requirements": {
+            "structured_analysis": [
+                "selected_project_and_group",
+                "tables_or_files_used",
+                "columns_used",
+                "filters_or_grouping_logic",
+                "row_or_document_counts_when_available",
+            ],
+            "diagnostic_analysis": [
+                "rule_used",
+                "comparison_baseline",
+                "limitations_or_missing_data",
+                "neutral_language",
+            ],
+            "action_recommendation": [
+                "human_confirmation_required",
+                "supporting_evidence_summary",
+            ],
+        },
+        "response_rules": {
+            "use_safe_language": True,
+            "stay_within_selected_group": True,
+            "include_evidence_summary": True,
+            "offer_safe_rewrite_when_blocked": True,
+        },
+        "safe_language": {
+            "prefer": [
+                "appears consistent with",
+                "candidate",
+                "needs follow-up",
+                "unusual pattern",
+                "operational signal",
+            ],
+            "avoid": [
+                "proved",
+                "fraud",
+                "definitively caused by",
+                "guilty",
+                "confirmed attack without evidence",
+            ],
+        },
+        "approval_rules": {
+            "create_ticket": "user_confirm",
+            "change_configuration": "human_approval_required",
+            "send_external_notification": "blocked_by_default",
+        },
+        "generation_notes": {
+            "generated_by": "arbiter_data_grouping_materialize",
+            "created_at": now,
+            "updated_at": now,
+            "system_inferred": True,
+        },
+    }
+
+
 def _default_group_key(project_name: str, project_id: str, group_name: str, files: list[dict[str, Any]], group_profile: dict[str, Any]) -> dict[str, Any]:
     now = datetime.now(timezone.utc).isoformat()
     file_type_counts: dict[str, int] = {}
@@ -1250,6 +1661,8 @@ def _default_group_key(project_name: str, project_id: str, group_name: str, file
         "schema_version": "1.0",
         "group_name": group_name,
         "project": project_name or project_id,
+        "governance_policy_id": "arbiter_common_sense_ai_governance_v1",
+        "governance_policy": _default_governance_policy(project_name, project_id, group_name, group_profile),
         "summary": f"Data group for {group_name}.",
         "purpose": "Review and query this grouped dataset using its published files, tables, and supporting context.",
         "domain": group_profile.get("kind") or "general data analysis",
@@ -1291,6 +1704,22 @@ def _group_key_file_id(file: dict[str, Any]) -> str:
     )
 
 
+GROUP_KEY_FILE_SAMPLE_LIMIT = 40
+GROUP_KEY_CHANGE_SAMPLE_LIMIT = 12
+
+
+def _group_key_file_count(files: list[dict[str, Any]]) -> int:
+    count = 0
+    for file in files:
+        if not isinstance(file, dict):
+            continue
+        name = str(file.get("name") or file.get("filename") or file.get("key") or "")
+        if name.lower() == "group_key.json":
+            continue
+        count += 1
+    return count
+
+
 def _group_key_file_inventory(files: list[dict[str, Any]]) -> list[dict[str, Any]]:
     inventory: list[dict[str, Any]] = []
     for file in files:
@@ -1302,28 +1731,36 @@ def _group_key_file_inventory(files: list[dict[str, Any]]) -> list[dict[str, Any
         inventory.append({
             "name": name,
             "type": file.get("type") or (name.rsplit(".", 1)[-1].lower() if "." in name else "file"),
-            "source_key": file.get("sourceKey") or file.get("key") or "",
-            "project_key": file.get("projectKey") or "",
-            "structured_key": file.get("structuredKey") or "",
             "glue_table_hint": file.get("glueTableHint") or "",
             "added_at": file.get("addedAt") or "",
         })
+        if len(inventory) >= GROUP_KEY_FILE_SAMPLE_LIMIT:
+            break
     return inventory
 
 
-def _group_key_recent_changes(existing_group_key: dict[str, Any] | None, inventory: list[dict[str, Any]], now: str) -> dict[str, Any]:
+def _group_key_recent_changes(existing_group_key: dict[str, Any] | None, files: list[dict[str, Any]], inventory: list[dict[str, Any]], now: str) -> dict[str, Any]:
     previous = existing_group_key.get("file_inventory") if isinstance(existing_group_key, dict) else []
     if not isinstance(previous, list):
         previous = []
+    existing_structure = existing_group_key.get("file_structure") if isinstance(existing_group_key, dict) and isinstance(existing_group_key.get("file_structure"), dict) else {}
+    previous_count = int(existing_structure.get("file_count") or len(previous))
+    current_count = _group_key_file_count(files)
     previous_by_id = {
         _group_key_file_id(file): file
         for file in previous
         if isinstance(file, dict) and _group_key_file_id(file)
     }
     current_by_id = {
-        _group_key_file_id(file): file
-        for file in inventory
-        if isinstance(file, dict) and _group_key_file_id(file)
+        _group_key_file_id({
+            "name": file.get("name") or file.get("filename") or file.get("key")
+        }): {
+            "name": file.get("name") or file.get("filename") or file.get("key") or "unnamed file"
+        }
+        for file in files
+        if isinstance(file, dict)
+        and str(file.get("name") or file.get("filename") or file.get("key") or "").lower() != "group_key.json"
+        and _group_key_file_id({"name": file.get("name") or file.get("filename") or file.get("key")})
     }
     added_files = [
         str(file.get("name") or file_id)
@@ -1337,10 +1774,12 @@ def _group_key_recent_changes(existing_group_key: dict[str, Any] | None, invento
     ]
     return {
         "updated_at": now,
-        "added_files": added_files,
-        "removed_files": removed_files,
-        "file_count_before": len(previous),
-        "file_count_after": len(inventory),
+        "added_file_samples": added_files[:GROUP_KEY_CHANGE_SAMPLE_LIMIT],
+        "removed_file_samples": removed_files[:GROUP_KEY_CHANGE_SAMPLE_LIMIT],
+        "added_sample_truncated": len(added_files) > GROUP_KEY_CHANGE_SAMPLE_LIMIT,
+        "removed_sample_truncated": len(removed_files) > GROUP_KEY_CHANGE_SAMPLE_LIMIT,
+        "file_count_before": previous_count,
+        "file_count_after": current_count,
         "change_summary": (
             f"{len(added_files)} file(s) added; {len(removed_files)} file(s) removed."
             if added_files or removed_files
@@ -1352,9 +1791,15 @@ def _group_key_recent_changes(existing_group_key: dict[str, Any] | None, invento
 def _refresh_group_key_file_metadata(group_key: dict[str, Any], files: list[dict[str, Any]]) -> dict[str, Any]:
     now = datetime.now(timezone.utc).isoformat()
     inventory = _group_key_file_inventory(files)
+    file_count = _group_key_file_count(files)
     file_type_counts: dict[str, int] = {}
-    for file in inventory:
-        suffix = str(file.get("type") or "file").lower()
+    for file in files:
+        if not isinstance(file, dict):
+            continue
+        name = str(file.get("name") or file.get("filename") or file.get("key") or "")
+        if name.lower() == "group_key.json":
+            continue
+        suffix = str(file.get("type") or (name.rsplit(".", 1)[-1].lower() if "." in name else "file")).lower()
         file_type_counts[suffix] = file_type_counts.get(suffix, 0) + 1
     file_structure = group_key.get("file_structure") if isinstance(group_key.get("file_structure"), dict) else {}
     generation_notes = group_key.get("generation_notes") if isinstance(group_key.get("generation_notes"), dict) else {}
@@ -1363,10 +1808,12 @@ def _refresh_group_key_file_metadata(group_key: dict[str, Any], files: list[dict
         "file_structure": {
             **file_structure,
             "file_type_counts": file_type_counts,
-            "file_count": len(inventory),
+            "file_count": file_count,
+            "file_inventory_sample_count": len(inventory),
         },
         "file_inventory": inventory,
-        "recent_changes": _group_key_recent_changes(group_key, inventory, now),
+        "inventory_note": f"Sample only. Complete membership is stored in project metadata; total files: {file_count}.",
+        "recent_changes": _group_key_recent_changes(group_key, files, inventory, now),
         "generation_notes": {
             **generation_notes,
             "updated_at": now,
@@ -1653,6 +2100,7 @@ def _handle_data_grouping_projects(event):
                         "pendingTableHints": sorted(table_hints - resolved_table_hints)[:40],
                         "crawler": crawler_status,
                         "groupProfile": group_profile,
+                        "groupSchema": _group_schema_summary(group.get("groupSchema")),
                         "structuredFacts": _structured_fact_summary(group.get("structuredFacts")),
                         "files": [
                             {
@@ -1811,6 +2259,7 @@ def _handle_data_grouping_materialize(event):
                 return _err(502, f"delete {prefix}: {type(e).__name__}: {e}")
         materialized_files: list[dict[str, Any]] = []
         registered_table_hints: set[str] = set()
+        group_glue_table_registrations: list[dict[str, Any]] = []
         for file in files:
             source_key = str(file.get("key") or "")
             if not source_key.startswith(caller_prefix) and not source_key.startswith("structured/"):
@@ -1855,7 +2304,9 @@ def _handle_data_grouping_materialize(event):
                     "glueTableHint": structured_table_hint,
                 })
                 if structured_table_hint not in registered_table_hints:
-                    glue_table_registrations.append(_ensure_glue_csv_table(structured_table_hint, structured_key))
+                    registration = _ensure_glue_csv_table(structured_table_hint, structured_key)
+                    glue_table_registrations.append(registration)
+                    group_glue_table_registrations.append(registration)
                     registered_table_hints.add(structured_table_hint)
                 file_entry["structuredKey"] = structured_key
                 file_entry["glueTableHint"] = structured_table_hint
@@ -1864,15 +2315,43 @@ def _handle_data_grouping_materialize(event):
             if move_sources and source_key.startswith(caller_prefix):
                 moved_sources.add(source_key)
 
-        group_profile = group.get("groupProfile") or _infer_data_group_profile(group_name, files, structured_table_hints)
+        inferred_group_profile = _infer_data_group_profile(group_name, files, structured_table_hints)
+        supplied_group_profile = group.get("groupProfile") if isinstance(group.get("groupProfile"), dict) else {}
+        if supplied_group_profile.get("kind") and supplied_group_profile.get("kind") not in {"generic", "csv_text", "csv_only", "text_only", "mixed"}:
+            group_profile = supplied_group_profile
+        else:
+            group_profile = inferred_group_profile
         group_key = group.get("groupKey") if isinstance(group.get("groupKey"), dict) else None
         if not group_key:
             group_key = _default_group_key(project_name, project_id, group_name, files, group_profile)
+        if group_profile.get("kind") == "enterprise_vendor_intelligence":
+            group_key = {
+                **group_key,
+                "domain": "enterprise vendor intelligence",
+                "group_profile": {
+                    "kind": "enterprise_vendor_intelligence",
+                    "confidence": group_profile.get("confidence") or "medium",
+                    "file_mix": group_profile.get("fileMix") or "",
+                    "file_mix_label": group_profile.get("fileMixLabel") or "",
+                },
+                "relationships": group_profile.get("relationships") or group_key.get("relationships") or [],
+                "column_definitions": group_profile.get("columnDefinitions") or group_key.get("column_definitions") or {},
+                "primary_questions": group_profile.get("primaryQuestions") or group_key.get("primary_questions") or [],
+                "starter_prompts": group_profile.get("starterPrompts") or group_key.get("starter_prompts") or [],
+            }
         group_key = {
             **group_key,
             "group_name": group_key.get("group_name") or group_name,
             "project": group_key.get("project") or project_name or project_id,
         }
+        governance_policy = group_key.get("governance_policy") if isinstance(group_key.get("governance_policy"), dict) else None
+        if not governance_policy:
+            governance_policy = _default_governance_policy(project_name, project_id, group_name, group_profile)
+            group_key = {
+                **group_key,
+                "governance_policy_id": governance_policy.get("policy_id"),
+                "governance_policy": governance_policy,
+            }
         group_key = _refresh_group_key_file_metadata(group_key, materialized_files)
         group_key_body = json.dumps(group_key, indent=2, sort_keys=True).encode("utf-8")
         group_key_project_key = f"projects/{project_id}/{group_name}/group_key.json"
@@ -1895,6 +2374,21 @@ def _handle_data_grouping_materialize(event):
         })
 
         structured_facts = _extract_group_structured_facts(group_name, materialized_files)
+        group_schema = _build_group_schema(group_name, materialized_files)
+        schema_counts = group_schema.get("counts") or {}
+        if schema_counts.get("csvFiles"):
+            group_profile = {
+                **group_profile,
+                "schemaIndex": {
+                    "available": True,
+                    "csvFileCount": schema_counts.get("csvFiles", 0),
+                    "columnCount": schema_counts.get("columns", 0),
+                    "joinKeyColumnCount": schema_counts.get("joinKeyColumns", 0),
+                    "amountColumnCount": schema_counts.get("amountColumns", 0),
+                    "dateColumnCount": schema_counts.get("dateColumns", 0),
+                    "relationshipCount": schema_counts.get("relationships", 0),
+                },
+            }
         fact_counts = structured_facts.get("counts") or {}
         if fact_counts.get("factSources"):
             group_profile = {
@@ -1906,6 +2400,16 @@ def _handle_data_grouping_materialize(event):
                     "types": fact_counts.get("types") or {},
                 },
             }
+        group_materialization_issues = [
+            {
+                "kind": "glue_table_registration",
+                "table": registration.get("table"),
+                "status": registration.get("status"),
+                "message": registration.get("message") or "Glue table was not verified",
+            }
+            for registration in group_glue_table_registrations
+            if registration.get("status") == "failed"
+        ]
 
         materialized_groups.append({
             "id": group.get("id") or group_name,
@@ -1916,7 +2420,13 @@ def _handle_data_grouping_materialize(event):
             "structuredTableHints": structured_table_hints,
             "groupProfile": group_profile,
             "groupKey": group_key,
+            "governancePolicyId": governance_policy.get("policy_id"),
+            "governancePolicy": governance_policy,
+            "groupSchema": group_schema,
             "structuredFacts": structured_facts,
+            "materializationStatus": "needs_attention" if group_materialization_issues else "ready",
+            "materializationIssues": group_materialization_issues,
+            "glueTableRegistrations": group_glue_table_registrations,
             "files": materialized_files,
         })
 
@@ -1980,11 +2490,18 @@ def _handle_data_grouping_materialize(event):
     kb_sync = {"started": False, "message": "skipped"}
     if sync_knowledge_base and (copied or deleted):
         kb_sync = _start_kb_sync(f"Data Grouping materialized {project_id}")
+    materialization_issues = [
+        issue
+        for group in materialized_groups
+        for issue in (group.get("materializationIssues") or [])
+    ]
 
     return _ok({
         "bucket": PROCESSED_BUCKET,
         "projectPrefix": f"projects/{project_id}/",
         "metadataKey": metadata_key,
+        "materializationStatus": "needs_attention" if materialization_issues else "ready",
+        "materializationIssues": materialization_issues,
         "copied": copied,
         "structuredCopies": structured_copies,
         "glueTableRegistrations": glue_table_registrations,
