@@ -1196,9 +1196,13 @@ export async function dryRunScan(observations) {
 // Live nav badge counts. Polls every 60s; cancels on unmount.
 // findingsOpen = conflicts with status === 'OPEN'; actionsPending = CRs with
 // status === 'PENDING_APPROVAL'. Mock mode reads from MOCK_*.
+// Also exposes the OPEN findings themselves (openFindings) so the TopBar
+// notifications bell can render from the same poll — call this once per
+// shell (App.jsx) and pass results down, don't instantiate per consumer.
 export function useNavCounts() {
   const [findingsOpen, setFindingsOpen] = useState(0)
   const [actionsPending, setActionsPending] = useState(0)
+  const [openFindings, setOpenFindings] = useState([])
 
   useEffect(() => {
     let cancelled = false
@@ -1206,7 +1210,9 @@ export function useNavCounts() {
       try {
         if (USE_MOCK) {
           if (cancelled) return
-          setFindingsOpen(MOCK_CONFLICTS.filter(f => f.status === 'OPEN').length)
+          const open = MOCK_CONFLICTS.filter(f => f.status === 'OPEN')
+          setFindingsOpen(open.length)
+          setOpenFindings(open)
           setActionsPending(MOCK_CHANGE_REQUESTS.filter(c => c.status === 'PENDING_APPROVAL').length)
         } else {
           const [findings, actions] = await Promise.all([
@@ -1214,7 +1220,9 @@ export function useNavCounts() {
             apiFetch('/actions'),
           ])
           if (cancelled) return
-          setFindingsOpen((findings.findings || []).filter(f => f.status === 'OPEN').length)
+          const open = (findings.findings || []).filter(f => f.status === 'OPEN')
+          setFindingsOpen(open.length)
+          setOpenFindings(open)
           setActionsPending((actions.change_requests || []).filter(c => c.status === 'PENDING_APPROVAL').length)
         }
       } catch {
@@ -1226,7 +1234,7 @@ export function useNavCounts() {
     return () => { cancelled = true; clearInterval(id) }
   }, [])
 
-  return { findingsOpen, actionsPending }
+  return { findingsOpen, actionsPending, openFindings }
 }
 
 export function useAudit() {
