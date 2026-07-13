@@ -4,7 +4,7 @@ boto3>=1.34.0
 # ServiceNow reach is direct REST (Table + Change APIs); requests is the HTTP
 # client wrapped by ServiceNowClient in agent.py. (No live-REST specialist
 # existed before this one — zscaler's REST path is a stub — so this is a new dep.)
-requests>=2.31.0
+requests>=2.32.4               # floor raised past CVE-2024-47081 (.netrc credential leak)
 # AWS distro of OpenTelemetry — enables AgentCore Observability traces in the
 # Console. Used together with `opentelemetry-instrument` in the Dockerfile CMD.
 aws-opentelemetry-distro>=0.12.0
