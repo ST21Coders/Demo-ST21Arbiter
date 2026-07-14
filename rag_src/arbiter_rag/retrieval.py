@@ -41,6 +41,8 @@ class RetrievedContext:
     distance: float | None
     rerank_score: float | None
     metadata: dict[str, Any] = field(default_factory=dict)
+    key: str = ""                       # chunk/vector key (used to fuse vector + lexical)
+    fusion_score: float | None = None   # RRF score when hybrid retrieval is used
 
     def as_prompt_ctx(self) -> dict[str, Any]:
         return {"text": self.text, "doc_id": self.doc_id}
@@ -57,6 +59,29 @@ class RagAnswer:
     citations: list[dict[str, Any]] = field(default_factory=list)
 
 
+def _rrf_merge(
+    vector_hits: list[Any], lexical_hits: list[Any], rrf_k: int
+) -> tuple[list[str], dict[str, dict], dict[str, float | None], dict[str, float]]:
+    """Reciprocal Rank Fusion of two ranked hit lists (each item exposes `.key`).
+
+    RRF score for a key = sum over lists of 1 / (rrf_k + rank). It needs only ranks, so
+    it fuses cosine distances and BM25 scores without normalizing their different scales.
+    Returns (fused key order, metadata-by-key, vector-distance-by-key, rrf-score-by-key).
+    """
+    rrf: dict[str, float] = {}
+    meta: dict[str, dict] = {}
+    dist: dict[str, float | None] = {}
+    for rank, h in enumerate(vector_hits):
+        rrf[h.key] = rrf.get(h.key, 0.0) + 1.0 / (rrf_k + rank + 1)
+        meta.setdefault(h.key, h.metadata)
+        dist[h.key] = h.distance
+    for rank, h in enumerate(lexical_hits):
+        rrf[h.key] = rrf.get(h.key, 0.0) + 1.0 / (rrf_k + rank + 1)
+        meta.setdefault(h.key, h.metadata)
+    order = sorted(rrf, key=lambda k: rrf[k], reverse=True)
+    return order, meta, dist, rrf
+
+
 def retrieve(
     question: str,
     index_name: str,
@@ -67,11 +92,19 @@ def retrieve(
     use_rerank: bool | None = None,
     clients: Clients | None = None,
     bucket: str | None = None,
+    lexical: Any | None = None,
+    rrf_k: int = 60,
+    lexical_top_k: int | None = None,
 ) -> list[RetrievedContext]:
-    """Embed the question, search S3 Vectors, optionally rerank, return top contexts.
+    """Embed the question, search S3 Vectors, optionally fuse BM25 + rerank, return contexts.
 
     `bucket` overrides `settings.vector_bucket_name` — the deployed agents pass their
     explicit ARBITER bucket (whose name doesn't carry the notebook's env suffix).
+
+    When `lexical` is a BM25 index (arbiter_rag.lexical.BM25Index), retrieval is HYBRID:
+    the vector hits and the BM25 hits (over the same chunk texts) are merged with Reciprocal
+    Rank Fusion before the optional rerank/truncate. `lexical=None` keeps pure vector search,
+    so callers opt in without a forked code path (notebook == production).
     """
     settings = settings or get_settings()
     clients = clients or Clients.build(settings)
@@ -80,6 +113,8 @@ def retrieve(
     final_k = top_k or settings.retrieval_top_k
     do_rerank = settings.rerank_enabled if use_rerank is None else use_rerank
     candidate_k = settings.rerank_candidates_k if do_rerank else final_k
+    hybrid = lexical is not None
+    vector_k = max(candidate_k, lexical_top_k or 0) if hybrid else candidate_k
 
     q_vec = embeddings.embed_text(question, settings, clients.runtime)
     hits = vectors.query(
@@ -87,26 +122,39 @@ def retrieve(
         bucket or settings.vector_bucket_name,
         index_name,
         q_vec,
-        top_k=candidate_k,
+        top_k=vector_k,
         metadata_filter=metadata_filter,
     )
 
-    log_event(
-        logger,
-        "retrieval",
-        index=index_name,
-        candidates=len(hits),
-        top_distance=hits[0].distance if hits else None,
-        filtered=bool(metadata_filter),
-    )
-
-    contexts = [
-        RetrievedContext(
-            text=h.text, doc_id=h.metadata.get("doc_id", ""), distance=h.distance,
-            rerank_score=None, metadata=h.metadata,
+    if hybrid:
+        lex_hits = lexical.search(question, k=lexical_top_k or vector_k)
+        order, meta_by_key, dist_by_key, rrf_by_key = _rrf_merge(hits, lex_hits, rrf_k)
+        contexts = [
+            RetrievedContext(
+                text=(meta_by_key[k].get("chunk_text") or meta_by_key[k].get("fact_text") or ""),
+                doc_id=meta_by_key[k].get("doc_id", ""), distance=dist_by_key.get(k),
+                rerank_score=None, metadata=meta_by_key[k], key=k, fusion_score=rrf_by_key[k],
+            )
+            for k in order
+        ]
+        log_event(
+            logger, "retrieval_hybrid", index=index_name, vector_hits=len(hits),
+            lexical_hits=len(lex_hits), fused=len(order),
+            top_distance=hits[0].distance if hits else None, filtered=bool(metadata_filter),
         )
-        for h in hits
-    ]
+    else:
+        contexts = [
+            RetrievedContext(
+                text=h.text, doc_id=h.metadata.get("doc_id", ""), distance=h.distance,
+                rerank_score=None, metadata=h.metadata, key=h.key,
+            )
+            for h in hits
+        ]
+        log_event(
+            logger, "retrieval", index=index_name, candidates=len(hits),
+            top_distance=hits[0].distance if hits else None, filtered=bool(metadata_filter),
+        )
+
     if not contexts:
         return []
 
@@ -134,6 +182,9 @@ def answer(
     clients: Clients | None = None,
     bucket: str | None = None,
     stream: Callable[[str], None] | None = None,
+    lexical: Any | None = None,
+    rrf_k: int = 60,
+    lexical_top_k: int | None = None,
 ) -> RagAnswer:
     """Full RAG turn: guardrail(in) -> retrieve -> generate -> guardrail(out).
 
@@ -141,6 +192,9 @@ def answer(
     callback, generation uses `converse_stream` and calls it with each text delta as the
     answer forms (partial-display); either way the answer's `[n]` markers are rewritten
     inline with their source and returned in `RagAnswer.citations`.
+
+    Pass `lexical` (a BM25 index) to make retrieval HYBRID (vector + BM25 via RRF); omit it
+    for pure vector search. Same retrieval/generation path either way (notebook == production).
     """
     settings = settings or get_settings()
     clients = clients or Clients.build(settings)
@@ -154,7 +208,7 @@ def answer(
 
     contexts = retrieve(
         g_in.text, index_name, settings, metadata_filter=metadata_filter,
-        clients=clients, bucket=bucket,
+        clients=clients, bucket=bucket, lexical=lexical, rrf_k=rrf_k, lexical_top_k=lexical_top_k,
     )
     prompt = generation.build_rag_prompt(g_in.text, [c.as_prompt_ctx() for c in contexts])
     # 1-based context number -> its source, so [n] markers can be resolved inline.

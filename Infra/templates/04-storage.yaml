@@ -329,6 +329,50 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-scan-runs"
 
+  # ──────────────────────────── data-jobs (NEW) ────────────────
+  # One row per data-ingest job (DocuSearch / Structured Analytics). api_handler
+  # pre-writes QUEUED; the data-ingest worker flips it RUNNING -> SUCCEEDED/FAILED.
+  # by-project GSI powers the per-project Jobs list (Data Pipeline "jobs" subpage).
+  DataJobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${Environment}-${ProjectName}-data-jobs"
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+      AttributeDefinitions:
+        - AttributeName: job_id
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+        - AttributeName: project_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: job_id
+          KeyType: HASH
+        - AttributeName: created_at
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: by-project
+          KeySchema:
+            - AttributeName: project_id
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-data-jobs"
+
   ChangeRequestsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -700,6 +744,10 @@ Outputs:
     Value: !Ref ScanRunsTable
     Export:
       Name: !Sub "${Environment}-${ProjectName}-ScanRunsTableName"
+  DataJobsTableName:
+    Value: !Ref DataJobsTable
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-DataJobsTableName"
   TokenUsageTableName:
     Value: !Ref TokenUsageTable
     Export:

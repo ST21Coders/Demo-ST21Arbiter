@@ -1,6 +1,6 @@
 {
   "type": "hr_offline",
-  "n_cases": 23,
+  "n_cases": 27,
   "n_docs": 6,
   "n_chunks": 10,
   "top_k": 4,
@@ -9,5 +9,8 @@
   "missing_relevant_docs": [],
   "lexical_hit_rate": 1.0,
   "lexical_recall_at_k": 1.0,
-  "lexical_mrr": 0.928
+  "lexical_mrr": 0.938,
+  "bm25_hit_rate": 1.0,
+  "bm25_recall_at_k": 1.0,
+  "bm25_mrr": 0.981
 }

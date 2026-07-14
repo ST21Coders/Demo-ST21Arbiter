@@ -71,6 +71,91 @@ def iter_hr_documents(pdf_dir: str | Path) -> list[dict[str, Any]]:
     return docs
 
 
+# --------------------------------------------------------------------------- #
+# Generic unstructured loader (DocuSearch path): pdf / docx / txt / md / json.
+# --------------------------------------------------------------------------- #
+_TEXT_EXTS = {".txt", ".md"}
+SUPPORTED_DOC_EXTS = {".pdf", ".docx", ".txt", ".md", ".json"}
+
+
+def load_docx_text(path: str | Path) -> str:
+    """Extract paragraph + table text from a Word .docx (requires python-docx)."""
+    from docx import Document  # lazy
+
+    doc = Document(str(path))
+    parts = [p.text.strip() for p in doc.paragraphs if p.text and p.text.strip()]
+    for table in doc.tables:  # keep tabular content in Word docs
+        for row in table.rows:
+            cells = [c.text.strip() for c in row.cells if c.text and c.text.strip()]
+            if cells:
+                parts.append(" | ".join(cells))
+    return "\n\n".join(parts).strip()
+
+
+def load_json_text(path: str | Path) -> str:
+    """Flatten a JSON document to readable `dotted.key: value` lines for embedding."""
+    import json  # local import keeps the module symmetrical with the lazy loaders
+
+    data = json.loads(Path(path).read_text())
+    lines: list[str] = []
+
+    def _walk(prefix: str, node: Any) -> None:
+        if isinstance(node, dict):
+            for k, v in node.items():
+                _walk(f"{prefix}.{k}" if prefix else str(k), v)
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                _walk(f"{prefix}[{i}]", v)
+        else:
+            lines.append(f"{prefix}: {node}" if prefix else str(node))
+
+    _walk("", data)
+    return "\n".join(lines).strip()
+
+
+def load_document_text(path: str | Path) -> str:
+    """Extract plain text from any SUPPORTED_DOC_EXTS file (dispatch by extension)."""
+    ext = Path(path).suffix.lower()
+    if ext == ".pdf":
+        return load_pdf_text(path)
+    if ext == ".docx":
+        return load_docx_text(path)
+    if ext == ".json":
+        return load_json_text(path)
+    if ext in _TEXT_EXTS:
+        return Path(path).read_text(errors="ignore").strip()
+    raise ValueError(f"Unsupported document type {ext!r}: {path}")
+
+
+def iter_documents(folder: str | Path, *, recursive: bool = True) -> list[dict[str, Any]]:
+    """Load every supported document under `folder` into a text + metadata record.
+
+    Handles .pdf / .docx / .txt / .md / .json — the generic unstructured loader for the
+    DocuSearch ingest path. doc_id/title default to the filename; callers needing richer
+    domain metadata (e.g. HR policy_category) use iter_hr_documents instead.
+    """
+    folder = Path(folder)
+    walk = folder.rglob("*") if recursive else folder.glob("*")
+    paths = sorted(p for p in walk if p.is_file() and p.suffix.lower() in SUPPORTED_DOC_EXTS)
+    docs: list[dict[str, Any]] = []
+    for path in paths:
+        text = load_document_text(path)
+        if not text:
+            continue
+        title = next((ln.strip() for ln in text.splitlines() if ln.strip()), path.stem)[:200]
+        docs.append(
+            {
+                "doc_id": path.stem,
+                "title": title,
+                "doc_type": path.suffix.lower().lstrip("."),
+                "source_file": path.name,
+                "source_uri": f"file://{path}",
+                "text": text,
+            }
+        )
+    return docs
+
+
 def load_sales_dataframe(path: str | Path, sheet: str = "Sales"):
     """Load a sheet of the sales workbook into a pandas DataFrame (requires pandas)."""
     import pandas as pd  # lazy
@@ -114,3 +199,39 @@ def load_hawaii_sales(csv_dir: str | Path):
     for col in _NUMERIC_COLS:
         df[col] = pd.to_numeric(df[col], errors="coerce")
     return df
+
+
+# --------------------------------------------------------------------------- #
+# Generic tabular loader (Structured Analytics path): csv / excel / parquet / flat.
+# --------------------------------------------------------------------------- #
+TABULAR_EXTS = {".csv", ".xlsx", ".xls", ".parquet"}
+
+
+def load_tabular(path_or_dir: str | Path, *, sheet: int | str = 0):
+    """Load csv/excel/parquet — a single file or a directory of them — into one DataFrame.
+
+    Concatenates every supported tabular file under a directory (schema inferred). Used by
+    the Structured Analytics ingest path for arbitrary datasets; the Hawaii demo keeps
+    load_hawaii_sales for its fixed column contract. Requires pandas (+ openpyxl for xlsx,
+    pyarrow for parquet), all in the `data` extra — ingest-time only.
+    """
+    import pandas as pd  # lazy
+
+    p = Path(path_or_dir)
+    if p.is_file():
+        paths = [p]
+    else:
+        paths = sorted(x for x in p.rglob("*") if x.is_file() and x.suffix.lower() in TABULAR_EXTS)
+    if not paths:
+        raise FileNotFoundError(f"No csv/excel/parquet files found in {path_or_dir}")
+
+    frames = []
+    for fp in paths:
+        ext = fp.suffix.lower()
+        if ext == ".csv":
+            frames.append(pd.read_csv(fp))
+        elif ext in (".xlsx", ".xls"):
+            frames.append(pd.read_excel(fp, sheet_name=sheet))
+        elif ext == ".parquet":
+            frames.append(pd.read_parquet(fp))
+    return pd.concat(frames, ignore_index=True) if len(frames) > 1 else frames[0]

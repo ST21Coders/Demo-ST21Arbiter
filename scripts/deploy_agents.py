@@ -177,7 +177,8 @@ AGENTS = [
         # truth stays under rag_src/). The Dockerfile COPYs the injected arbiter_rag/ dir.
         "extra_pkgs": [("rag_src/arbiter_rag", "arbiter_rag")],
         # The agent builds an arbiter_rag Settings from these env vars (never settings.toml).
-        # Semantic-only path → the S3 Vectors hr-policies index (its own vector bucket).
+        # HYBRID path → S3 Vectors semantic + BM25 lexical fused via RRF (the BM25 index is
+        # rebuilt at cold start from the same vectors; no extra infra, query-only s3vectors IAM).
         "env_overrides": {
             "HR_VECTOR_BUCKET": f"{PREFIX}-hr-vectors",
             "HR_VECTOR_INDEX": "hr-policies",
@@ -185,6 +186,9 @@ AGENTS = [
             "EMBEDDING_DIM": "1024",
             "RETRIEVAL_TOP_K": "4",
             "RERANK_ENABLED": "false",
+            "HYBRID_ENABLED": "true",
+            "BM25_TOP_K": "10",
+            "RRF_K": "60",
         },
     },
     {

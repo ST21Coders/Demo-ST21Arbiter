@@ -29,7 +29,8 @@ CF_STACKS=(
 SAM_STACKS=(
   "05-compute"
   "06-api"
-  "11-scanner"   # autonomous scanner Lambda + EventBridge schedule
+  "11-scanner"      # autonomous scanner Lambda + EventBridge schedule
+  "13-data-ingest"  # async data-ingest worker (container-image Lambda); needs Docker + ECR
 )
 CF_STACKS_POST=(
   # "07-bedrock"       # deferred: KB requires OpenSearch index pre-creation; see scripts/setup_bedrock_kb.py
@@ -335,12 +336,15 @@ print(' '.join(shlex.quote(f\"{p['ParameterKey']}={p['ParameterValue']}\") for p
 " "${filtered_params}")
   rm -f "${filtered_params}"
 
+  # --resolve-image-repos lets SAM auto-create/manage the ECR repo for any
+  # PackageType: Image function (13-data-ingest). Harmless no-op for zip-only stacks.
   sam deploy \
     --template-file ".aws-sam/build-${1}/template.yaml" \
     --stack-name "${stack_name}" \
     --s3-bucket "${SAM_BUCKET}" \
     --s3-prefix "${stack_name}" \
     --region "${REGION}" \
+    --resolve-image-repos \
     --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
     --parameter-overrides "Environment=${ENV}" "ProjectName=${PROJECT}" ${sam_overrides} \
     --tags "Environment=${ENV}" "Project=${PROJECT}" \

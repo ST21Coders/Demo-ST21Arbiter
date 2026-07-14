@@ -26,6 +26,9 @@ Environment variables:
   HR_VECTOR_INDEX      S3 Vectors index name (default hr-policies)
   RETRIEVAL_TOP_K      passages to retrieve (default 4)
   RERANK_ENABLED       "true" to enable Bedrock rerank (needs bedrock:Rerank IAM; default off)
+  HYBRID_ENABLED       "true" (default) to fuse S3 Vectors semantic + BM25 lexical via RRF
+  BM25_TOP_K           BM25 candidates fused with the vector hits (default 10)
+  RRF_K                Reciprocal Rank Fusion constant (default 60)
   GUARDRAIL_ID / GUARDRAIL_VERSION   optional Bedrock guardrail (applied to input + output)
 """
 from __future__ import annotations
@@ -38,7 +41,7 @@ from typing import Any
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 from _shared.token_usage import record_usage
-from arbiter_rag import retrieval
+from arbiter_rag import lexical, retrieval, vectors
 from arbiter_rag.config import Settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -52,6 +55,11 @@ HR_VECTOR_BUCKET = os.environ.get("HR_VECTOR_BUCKET", "")
 HR_VECTOR_INDEX = os.environ.get("HR_VECTOR_INDEX", "hr-policies")
 RETRIEVAL_TOP_K = int(os.environ.get("RETRIEVAL_TOP_K", "4"))
 RERANK_ENABLED = os.environ.get("RERANK_ENABLED", "false").lower() == "true"
+# Hybrid (semantic + BM25 lexical) retrieval — requirement 1c/1d. On by default; the BM25
+# index is rebuilt once per container from the same S3 Vectors chunk texts (no extra infra).
+HYBRID_ENABLED = os.environ.get("HYBRID_ENABLED", "true").lower() == "true"
+BM25_TOP_K = int(os.environ.get("BM25_TOP_K", "10"))
+RRF_K = int(os.environ.get("RRF_K", "60"))
 GUARDRAIL_ID = os.environ.get("GUARDRAIL_ID")
 GUARDRAIL_VERSION = os.environ.get("GUARDRAIL_VERSION", "DRAFT")
 
@@ -110,6 +118,21 @@ def _settings() -> Settings:
     )
 
 
+@lru_cache(maxsize=1)
+def _bm25() -> Any:
+    """Build the BM25 lexical index once per container from the S3 Vectors chunk texts.
+
+    Requirement 1c/1d: keyword search that merges with semantic hits. S3 Vectors has no
+    native lexical index, so we scan the same vectors (chunk_text metadata) and build an
+    in-memory BM25 index — no extra store, and it stays consistent with what was ingested.
+    Small HR corpus → trivial; larger corpora would load a persisted sidecar (roadmap).
+    """
+    vx = vectors.make_client(REGION)
+    records = list(vectors.iter_all_records(vx, HR_VECTOR_BUCKET, HR_VECTOR_INDEX))
+    log.info("HR specialist: built BM25 index over %d vectors", len(records))
+    return lexical.build_index(records)
+
+
 def _format_sources(citations: list[dict[str, Any]]) -> str:
     """Compact source list appended under the (already inline-cited) answer text."""
     parts = []
@@ -145,10 +168,20 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     def on_delta(piece: str) -> None:
         streamed["chars"] += len(piece)
 
+    # Build the BM25 lexical index for hybrid retrieval (falls back to vector-only if the
+    # scan fails, so a lexical hiccup never takes the chat down).
+    lex = None
+    if HYBRID_ENABLED:
+        try:
+            lex = _bm25()
+        except Exception:  # noqa: BLE001
+            log.exception("BM25 build failed; falling back to vector-only retrieval")
+
     try:
         ans = retrieval.answer(
             prompt, HR_VECTOR_INDEX, S, bucket=HR_VECTOR_BUCKET,
             system=HR_SYSTEM, stream=on_delta,
+            lexical=lex, rrf_k=RRF_K, lexical_top_k=BM25_TOP_K,
         )
     except Exception as e:  # noqa: BLE001 — never crash the chat
         log.exception("HR answer failed")

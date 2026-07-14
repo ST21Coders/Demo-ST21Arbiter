@@ -229,15 +229,16 @@ Resources:
                   - s3:GetObject
                 Resource:
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-reports/*"
-              # POST /scan async-invokes the scanner Lambda. The Lambda is
-              # deployed in 11-scanner.yaml; scoping by name prefix avoids a
-              # circular dependency between 02-security and 11-scanner.
+              # POST /scan async-invokes the scanner Lambda; POST /data-pipeline/ingest
+              # async-invokes the data-ingest worker (13-data-ingest.yaml). Both are
+              # scoped by deterministic name to avoid a circular stack dependency.
               - Sid: ScannerLambdaInvoke
                 Effect: Allow
                 Action:
                   - lambda:InvokeFunction
                 Resource:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Environment}-${ProjectName}-scanner"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${Environment}-${ProjectName}-data-ingest"
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-api-handler-role"

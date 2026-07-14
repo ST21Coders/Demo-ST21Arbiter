@@ -1,0 +1,8 @@
+# data-ingest worker deps. boto3/botocore are provided by the Lambda base image.
+# arbiter_rag is COPY'd into the image (not pip-installed) — see the Dockerfile.
+# These are the arbiter_rag `[data]` (ingest) extras: file parsing + embeddings prep.
+pandas>=2.0
+pyarrow>=14.0
+openpyxl>=3.1
+pypdf>=4.0
+python-docx>=1.1
