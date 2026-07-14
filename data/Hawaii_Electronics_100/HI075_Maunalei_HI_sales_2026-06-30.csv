@@ -1,0 +1,62 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI075-TX-0001,HI075,Maunalei,Lanai,HI,2026-06-30 14:36:25,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.73,13.36,106.88,29.84,77.04,Lani,Marine,Mobile Pay,704
+HI075-TX-0002,HI075,Maunalei,Lanai,HI,2026-06-30 17:35:32,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,9.39,26.12,156.72,56.34,100.38,Akamu,Government,Purchase Order,634
+HI075-TX-0003,HI075,Maunalei,Lanai,HI,2026-06-30 12:21:52,PWR-12V,12V 5A Power Supply,Power,2,9.05,24.26,48.52,18.10,30.42,Hana,Maker/Hobbyist,Mobile Pay,301
+HI075-TX-0004,HI075,Maunalei,Lanai,HI,2026-06-30 08:36:49,MAR-TIN,Tinned Marine Wire,Marine Electronics,3,8.77,28.31,84.93,26.31,58.62,Pualani,Maker/Hobbyist,Credit Card,863
+HI075-TX-0005,HI075,Maunalei,Lanai,HI,2026-06-30 10:00:15,PWR-5V2,5V 2A Power Supply,Power,7,3.42,10.36,72.52,23.94,48.58,Makana,Tourism/Hospitality,Cash,493
+HI075-TX-0006,HI075,Maunalei,Lanai,HI,2026-06-30 15:01:08,SNS-PIR,PIR Motion Sensor,Sensors,6,1.58,5.91,35.46,9.48,25.98,Noah,Education,ACH,840
+HI075-TX-0007,HI075,Maunalei,Lanai,HI,2026-06-30 16:50:37,RES-220,220 Ohm Resistor,Resistors,21,0.03,0.13,2.73,0.63,2.10,Nalu,Education,Mobile Pay,392
+HI075-TX-0008,HI075,Maunalei,Lanai,HI,2026-06-30 09:47:01,REL-5V,5V Relay Module,Relays,21,0.90,5.20,109.20,18.90,90.30,Lani,Commercial,Credit Card,691
+HI075-TX-0009,HI075,Maunalei,Lanai,HI,2026-06-30 10:09:15,PWR-12V,12V 5A Power Supply,Power,4,8.90,23.67,94.68,35.60,59.08,Kaleo,Marine,Purchase Order,885
+HI075-TX-0010,HI075,Maunalei,Lanai,HI,2026-06-30 13:03:43,PWR-12V,12V 5A Power Supply,Power,3,9.33,26.39,79.17,27.99,51.18,Kaleo,Retail,Mobile Pay,668
+HI075-TX-0011,HI075,Maunalei,Lanai,HI,2026-06-30 13:32:55,TOOL-DMM,Digital Multimeter,Tools,6,8.24,25.91,155.46,49.44,106.02,Leilani,Maker/Hobbyist,Credit Card,777
+HI075-TX-0012,HI075,Maunalei,Lanai,HI,2026-06-30 13:09:05,SNS-ULT,Ultrasonic Distance Sensor,Sensors,31,1.28,5.65,175.15,39.68,135.47,Pualani,Commercial,Credit Card,588
+HI075-TX-0013,HI075,Maunalei,Lanai,HI,2026-06-30 15:36:44,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,19,0.04,0.21,3.99,0.76,3.23,Noelani,Tourism/Hospitality,Debit Card,294
+HI075-TX-0014,HI075,Maunalei,Lanai,HI,2026-06-30 09:33:06,PWR-BUCK,Buck Converter Module,Power,23,1.08,4.95,113.85,24.84,89.01,Mika,Education,Debit Card,801
+HI075-TX-0015,HI075,Maunalei,Lanai,HI,2026-06-30 09:07:40,IC-REG,7805 Voltage Regulator,Integrated Circuits,22,0.21,0.89,19.58,4.62,14.96,Lani,Government,Mobile Pay,2
+HI075-TX-0016,HI075,Maunalei,Lanai,HI,2026-06-30 11:18:39,PWR-5V2,5V 2A Power Supply,Power,3,3.42,10.39,31.17,10.26,20.91,Iolana,Tourism/Hospitality,Cash,443
+HI075-TX-0017,HI075,Maunalei,Lanai,HI,2026-06-30 15:29:45,LED-RED,5mm Red LED,LEDs,30,0.05,0.27,8.10,1.50,6.60,Malia,Maker/Hobbyist,Mobile Pay,415
+HI075-TX-0018,HI075,Maunalei,Lanai,HI,2026-06-30 17:43:57,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.80,22.18,66.54,26.40,40.14,Keanu,Government,Debit Card,415
+HI075-TX-0019,HI075,Maunalei,Lanai,HI,2026-06-30 11:36:32,BAT-LIPO,LiPo Battery Pack,Batteries,3,5.29,16.34,49.02,15.87,33.15,Koa,Education,Cash,516
+HI075-TX-0020,HI075,Maunalei,Lanai,HI,2026-06-30 13:10:35,SNS-ULT,Ultrasonic Distance Sensor,Sensors,30,1.20,5.14,154.20,36.00,118.20,Hana,Commercial,ACH,355
+HI075-TX-0021,HI075,Maunalei,Lanai,HI,2026-06-30 17:11:00,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.35,33.78,135.12,41.40,93.72,Pualani,Government,ACH,140
+HI075-TX-0022,HI075,Maunalei,Lanai,HI,2026-06-30 12:43:12,REL-5V,5V Relay Module,Relays,9,0.89,5.18,46.62,8.01,38.61,Makana,Retail,Debit Card,90
+HI075-TX-0023,HI075,Maunalei,Lanai,HI,2026-06-30 09:27:18,BAT-AAH,AA Battery Holder,Batteries,3,0.51,2.61,7.83,1.53,6.30,Iolana,Maker/Hobbyist,ACH,93
+HI075-TX-0024,HI075,Maunalei,Lanai,HI,2026-06-30 12:11:37,PWR-5V2,5V 2A Power Supply,Power,7,3.55,11.38,79.66,24.85,54.81,Alika,Retail,Credit Card,389
+HI075-TX-0025,HI075,Maunalei,Lanai,HI,2026-06-30 14:57:56,SNS-PIR,PIR Motion Sensor,Sensors,8,1.48,6.04,48.32,11.84,36.48,Nalu,Retail,Purchase Order,692
+HI075-TX-0026,HI075,Maunalei,Lanai,HI,2026-06-30 08:31:52,PWR-12V,12V 5A Power Supply,Power,3,9.50,26.06,78.18,28.50,49.68,Keahi,Tourism/Hospitality,ACH,317
+HI075-TX-0027,HI075,Maunalei,Lanai,HI,2026-06-30 16:10:48,PWR-BUCK,Buck Converter Module,Power,7,1.09,4.67,32.69,7.63,25.06,Keahi,Commercial,Debit Card,289
+HI075-TX-0028,HI075,Maunalei,Lanai,HI,2026-06-30 12:07:51,RES-001,1k Ohm Resistor,Resistors,9,0.03,0.12,1.08,0.27,0.81,Mika,Marine,ACH,130
+HI075-TX-0029,HI075,Maunalei,Lanai,HI,2026-06-30 13:20:45,SOL-CTRL,Solar Charge Controller,Solar Power,8,10.90,32.93,263.44,87.20,176.24,Akamu,Tourism/Hospitality,Credit Card,129
+HI075-TX-0030,HI075,Maunalei,Lanai,HI,2026-06-30 11:24:42,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.57,6.16,18.48,4.71,13.77,Keahi,Tourism/Hospitality,Mobile Pay,56
+HI075-TX-0031,HI075,Maunalei,Lanai,HI,2026-06-30 09:22:42,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.42,30.76,184.56,62.52,122.04,Kaleo,Tourism/Hospitality,Cash,251
+HI075-TX-0032,HI075,Maunalei,Lanai,HI,2026-06-30 15:47:49,SNS-ULT,Ultrasonic Distance Sensor,Sensors,13,1.33,5.52,71.76,17.29,54.47,Alika,Marine,Credit Card,762
+HI075-TX-0033,HI075,Maunalei,Lanai,HI,2026-06-30 10:10:53,BAT-LIPO,LiPo Battery Pack,Batteries,3,5.09,15.95,47.85,15.27,32.58,Ikaika,Marine,Cash,859
+HI075-TX-0034,HI075,Maunalei,Lanai,HI,2026-06-30 12:09:01,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.44,6.59,19.77,4.32,15.45,Hana,Education,Cash,810
+HI075-TX-0035,HI075,Maunalei,Lanai,HI,2026-06-30 16:53:27,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.77,13.34,13.34,3.77,9.57,Nalu,Retail,ACH,746
+HI075-TX-0036,HI075,Maunalei,Lanai,HI,2026-06-30 15:56:18,RES-220,220 Ohm Resistor,Resistors,11,0.03,0.12,1.32,0.33,0.99,Noah,Government,Mobile Pay,178
+HI075-TX-0037,HI075,Maunalei,Lanai,HI,2026-06-30 16:42:13,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,4.05,13.63,27.26,8.10,19.16,Hana,Government,ACH,523
+HI075-TX-0038,HI075,Maunalei,Lanai,HI,2026-06-30 09:45:26,PWR-12V,12V 5A Power Supply,Power,8,9.72,26.50,212.00,77.76,134.24,Iolana,Retail,Credit Card,227
+HI075-TX-0039,HI075,Maunalei,Lanai,HI,2026-06-30 09:27:18,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.95,14.23,56.92,15.80,41.12,Alika,Marine,Cash,512
+HI075-TX-0040,HI075,Maunalei,Lanai,HI,2026-06-30 14:08:43,RES-001,1k Ohm Resistor,Resistors,5,0.03,0.13,0.65,0.15,0.50,Leilani,Government,Mobile Pay,26
+HI075-TX-0041,HI075,Maunalei,Lanai,HI,2026-06-30 08:33:25,PICO-RP,Raspberry Pi Pico,Microcontrollers,8,3.09,8.85,70.80,24.72,46.08,Keanu,Retail,Debit Card,541
+HI075-TX-0042,HI075,Maunalei,Lanai,HI,2026-06-30 17:03:36,SNS-SOIL,Soil Moisture Sensor,Sensors,34,0.90,4.50,153.00,30.60,122.40,Nalu,Education,Debit Card,800
+HI075-TX-0043,HI075,Maunalei,Lanai,HI,2026-06-30 12:57:51,PWR-BUCK,Buck Converter Module,Power,3,1.07,5.07,15.21,3.21,12.00,Ailani,Maker/Hobbyist,Debit Card,381
+HI075-TX-0044,HI075,Maunalei,Lanai,HI,2026-06-30 13:57:19,LED-RGB,RGB LED Strip,LEDs,1,5.03,13.96,13.96,5.03,8.93,Iolana,Commercial,Mobile Pay,835
+HI075-TX-0045,HI075,Maunalei,Lanai,HI,2026-06-30 14:50:47,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,3.64,13.86,83.16,21.84,61.32,Leilani,Tourism/Hospitality,Mobile Pay,293
+HI075-TX-0046,HI075,Maunalei,Lanai,HI,2026-06-30 14:02:48,PWR-5V2,5V 2A Power Supply,Power,6,3.67,10.75,64.50,22.02,42.48,Akamu,Commercial,Cash,110
+HI075-TX-0047,HI075,Maunalei,Lanai,HI,2026-06-30 13:39:36,LED-BLU,5mm Blue LED,LEDs,7,0.07,0.33,2.31,0.49,1.82,Mika,Education,Credit Card,331
+HI075-TX-0048,HI075,Maunalei,Lanai,HI,2026-06-30 17:08:30,PWR-BUCK,Buck Converter Module,Power,27,1.00,4.90,132.30,27.00,105.30,Iolana,Tourism/Hospitality,Purchase Order,118
+HI075-TX-0049,HI075,Maunalei,Lanai,HI,2026-06-30 15:47:37,MAR-TIN,Tinned Marine Wire,Marine Electronics,3,9.62,26.20,78.60,28.86,49.74,Noah,Maker/Hobbyist,Purchase Order,810
+HI075-TX-0050,HI075,Maunalei,Lanai,HI,2026-06-30 11:26:34,LED-RGB,RGB LED Strip,LEDs,4,5.29,14.31,57.24,21.16,36.08,Iolana,Tourism/Hospitality,ACH,281
+HI075-TX-0051,HI075,Maunalei,Lanai,HI,2026-06-30 08:05:01,SOL-CTRL,Solar Charge Controller,Solar Power,1,10.17,33.88,33.88,10.17,23.71,Iolana,Retail,Mobile Pay,458
+HI075-TX-0052,HI075,Maunalei,Lanai,HI,2026-06-30 10:23:17,PWR-5V2,5V 2A Power Supply,Power,8,3.70,11.12,88.96,29.60,59.36,Keanu,Maker/Hobbyist,Purchase Order,777
+HI075-TX-0053,HI075,Maunalei,Lanai,HI,2026-06-30 10:23:05,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.35,13.05,65.25,21.75,43.50,Ailani,Commercial,Debit Card,821
+HI075-TX-0054,HI075,Maunalei,Lanai,HI,2026-06-30 08:23:20,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.78,13.42,13.42,3.78,9.64,Lani,Education,Debit Card,122
+HI075-TX-0055,HI075,Maunalei,Lanai,HI,2026-06-30 17:46:58,TOOL-SOL,Soldering Iron Tips,Tools,6,2.05,7.88,47.28,12.30,34.98,Koa,Education,Credit Card,48
+HI075-TX-0056,HI075,Maunalei,Lanai,HI,2026-06-30 12:32:21,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,7.75,22.05,66.15,23.25,42.90,Hana,Maker/Hobbyist,Cash,466
+HI075-TX-0057,HI075,Maunalei,Lanai,HI,2026-06-30 15:12:19,PWR-12V,12V 5A Power Supply,Power,1,9.50,24.18,24.18,9.50,14.68,Alika,Tourism/Hospitality,Credit Card,339
+HI075-TX-0058,HI075,Maunalei,Lanai,HI,2026-06-30 13:25:06,REL-5V,5V Relay Module,Relays,5,0.93,5.78,28.90,4.65,24.25,Kaleo,Tourism/Hospitality,ACH,821
+HI075-TX-0059,HI075,Maunalei,Lanai,HI,2026-06-30 17:52:23,PWR-5V2,5V 2A Power Supply,Power,8,3.64,10.92,87.36,29.12,58.24,Kai,Government,Credit Card,187
+HI075-TX-0060,HI075,Maunalei,Lanai,HI,2026-06-30 15:40:37,LED-BLU,5mm Blue LED,LEDs,8,0.07,0.32,2.56,0.56,2.00,Lani,Maker/Hobbyist,Credit Card,113
+HI075-TX-0061,HI075,Maunalei,Lanai,HI,2026-06-30 16:58:56,PWR-5V2,5V 2A Power Supply,Power,8,3.35,10.61,84.88,26.80,58.08,Keahi,Education,Credit Card,893

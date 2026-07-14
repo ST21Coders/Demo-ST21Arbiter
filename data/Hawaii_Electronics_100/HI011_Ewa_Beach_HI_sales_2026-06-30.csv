@@ -1,0 +1,67 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI011-TX-0001,HI011,Ewa Beach,Oahu,HI,2026-06-30 16:30:19,LED-RGB,RGB LED Strip,LEDs,6,5.18,14.10,84.60,31.08,53.52,Mika,Marine,Purchase Order,513
+HI011-TX-0002,HI011,Ewa Beach,Oahu,HI,2026-06-30 12:36:15,USB-CBO,USB-C Breakout Board,Connectors,12,1.35,5.31,63.72,16.20,47.52,Makana,Government,Cash,638
+HI011-TX-0003,HI011,Ewa Beach,Oahu,HI,2026-06-30 10:02:15,IC-358,LM358 Op Amp,Integrated Circuits,25,0.33,1.25,31.25,8.25,23.00,Mika,Education,Mobile Pay,176
+HI011-TX-0004,HI011,Ewa Beach,Oahu,HI,2026-06-30 16:24:36,IC-358,LM358 Op Amp,Integrated Circuits,36,0.32,1.22,43.92,11.52,32.40,Ikaika,Tourism/Hospitality,Cash,269
+HI011-TX-0005,HI011,Ewa Beach,Oahu,HI,2026-06-30 13:00:51,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.38,30.64,183.84,62.28,121.56,Pualani,Education,Mobile Pay,829
+HI011-TX-0006,HI011,Ewa Beach,Oahu,HI,2026-06-30 10:37:04,IC-358,LM358 Op Amp,Integrated Circuits,27,0.31,1.16,31.32,8.37,22.95,Nalu,Maker/Hobbyist,Mobile Pay,364
+HI011-TX-0007,HI011,Ewa Beach,Oahu,HI,2026-06-30 14:49:32,RES-010,10k Ohm Resistor,Resistors,6,0.04,0.13,0.78,0.24,0.54,Mika,Commercial,Credit Card,54
+HI011-TX-0008,HI011,Ewa Beach,Oahu,HI,2026-06-30 09:06:35,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.30,8.55,42.75,16.50,26.25,Ikaika,Retail,Mobile Pay,879
+HI011-TX-0009,HI011,Ewa Beach,Oahu,HI,2026-06-30 13:35:34,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.07,22.88,137.28,48.42,88.86,Kai,Commercial,Purchase Order,396
+HI011-TX-0010,HI011,Ewa Beach,Oahu,HI,2026-06-30 16:33:01,TR-3904,2N3904 NPN Transistor,Semiconductors,8,0.05,0.26,2.08,0.40,1.68,Lani,Government,ACH,832
+HI011-TX-0011,HI011,Ewa Beach,Oahu,HI,2026-06-30 17:27:17,IC-358,LM358 Op Amp,Integrated Circuits,38,0.33,1.18,44.84,12.54,32.30,Noah,Commercial,Mobile Pay,301
+HI011-TX-0012,HI011,Ewa Beach,Oahu,HI,2026-06-30 12:00:52,USB-CBO,USB-C Breakout Board,Connectors,15,1.37,5.58,83.70,20.55,63.15,Keanu,Retail,Debit Card,809
+HI011-TX-0013,HI011,Ewa Beach,Oahu,HI,2026-06-30 17:25:37,MOS-44N,IRFZ44N MOSFET,Semiconductors,12,0.63,2.42,29.04,7.56,21.48,Nalu,Education,Cash,270
+HI011-TX-0014,HI011,Ewa Beach,Oahu,HI,2026-06-30 16:47:48,SNS-ULT,Ultrasonic Distance Sensor,Sensors,30,1.27,5.23,156.90,38.10,118.80,Lani,Tourism/Hospitality,Mobile Pay,48
+HI011-TX-0015,HI011,Ewa Beach,Oahu,HI,2026-06-30 13:15:16,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.80,21.73,65.19,26.40,38.79,Noah,Education,Credit Card,379
+HI011-TX-0016,HI011,Ewa Beach,Oahu,HI,2026-06-30 12:29:28,PICO-RP,Raspberry Pi Pico,Microcontrollers,8,3.31,8.51,68.08,26.48,41.60,Noelani,Commercial,Credit Card,573
+HI011-TX-0017,HI011,Ewa Beach,Oahu,HI,2026-06-30 15:27:10,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.20,13.57,13.57,4.20,9.37,Noah,Marine,Debit Card,876
+HI011-TX-0018,HI011,Ewa Beach,Oahu,HI,2026-06-30 14:40:37,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.48,12.97,51.88,17.92,33.96,Kai,Commercial,Credit Card,10
+HI011-TX-0019,HI011,Ewa Beach,Oahu,HI,2026-06-30 09:00:36,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.47,7.32,14.64,4.94,9.70,Alika,Government,Cash,715
+HI011-TX-0020,HI011,Ewa Beach,Oahu,HI,2026-06-30 11:24:54,MOS-44N,IRFZ44N MOSFET,Semiconductors,22,0.64,2.54,55.88,14.08,41.80,Leilani,Marine,Purchase Order,430
+HI011-TX-0021,HI011,Ewa Beach,Oahu,HI,2026-06-30 12:17:26,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.49,6.52,32.60,7.45,25.15,Alika,Marine,Credit Card,119
+HI011-TX-0022,HI011,Ewa Beach,Oahu,HI,2026-06-30 08:35:45,SNS-ULT,Ultrasonic Distance Sensor,Sensors,26,1.21,5.18,134.68,31.46,103.22,Malia,Commercial,Debit Card,248
+HI011-TX-0023,HI011,Ewa Beach,Oahu,HI,2026-06-30 09:32:31,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.08,8.67,60.69,21.56,39.13,Ikaika,Maker/Hobbyist,ACH,388
+HI011-TX-0024,HI011,Ewa Beach,Oahu,HI,2026-06-30 15:51:34,IC-REG,7805 Voltage Regulator,Integrated Circuits,28,0.20,0.87,24.36,5.60,18.76,Malia,Government,Cash,735
+HI011-TX-0025,HI011,Ewa Beach,Oahu,HI,2026-06-30 11:04:23,IC-358,LM358 Op Amp,Integrated Circuits,3,0.31,1.27,3.81,0.93,2.88,Koa,Commercial,Mobile Pay,79
+HI011-TX-0026,HI011,Ewa Beach,Oahu,HI,2026-06-30 14:58:09,IC-358,LM358 Op Amp,Integrated Circuits,12,0.32,1.19,14.28,3.84,10.44,Keahi,Retail,ACH,290
+HI011-TX-0027,HI011,Ewa Beach,Oahu,HI,2026-06-30 11:33:15,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,7.95,20.61,103.05,39.75,63.30,Hana,Marine,Mobile Pay,290
+HI011-TX-0028,HI011,Ewa Beach,Oahu,HI,2026-06-30 14:34:07,SOL-CTRL,Solar Charge Controller,Solar Power,3,10.84,32.26,96.78,32.52,64.26,Akamu,Marine,Purchase Order,3
+HI011-TX-0029,HI011,Ewa Beach,Oahu,HI,2026-06-30 17:28:06,MOS-44N,IRFZ44N MOSFET,Semiconductors,37,0.60,2.38,88.06,22.20,65.86,Noelani,Tourism/Hospitality,ACH,857
+HI011-TX-0030,HI011,Ewa Beach,Oahu,HI,2026-06-30 13:10:27,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.37,8.25,57.75,23.59,34.16,Pualani,Marine,Mobile Pay,400
+HI011-TX-0031,HI011,Ewa Beach,Oahu,HI,2026-06-30 17:02:42,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.46,6.66,13.32,2.92,10.40,Keanu,Education,Credit Card,441
+HI011-TX-0032,HI011,Ewa Beach,Oahu,HI,2026-06-30 09:17:15,SOL-CTRL,Solar Charge Controller,Solar Power,5,10.15,33.26,166.30,50.75,115.55,Kaleo,Commercial,Debit Card,662
+HI011-TX-0033,HI011,Ewa Beach,Oahu,HI,2026-06-30 16:55:40,TOOL-SOL,Soldering Iron Tips,Tools,8,2.06,7.32,58.56,16.48,42.08,Keanu,Education,Cash,476
+HI011-TX-0034,HI011,Ewa Beach,Oahu,HI,2026-06-30 08:47:23,IC-555,NE555 Timer IC,Integrated Circuits,35,0.33,1.40,49.00,11.55,37.45,Iolana,Education,ACH,230
+HI011-TX-0035,HI011,Ewa Beach,Oahu,HI,2026-06-30 17:42:33,LED-RED,5mm Red LED,LEDs,22,0.05,0.29,6.38,1.10,5.28,Ailani,Commercial,Credit Card,203
+HI011-TX-0036,HI011,Ewa Beach,Oahu,HI,2026-06-30 11:41:23,MOS-44N,IRFZ44N MOSFET,Semiconductors,15,0.59,2.49,37.35,8.85,28.50,Lani,Tourism/Hospitality,Mobile Pay,60
+HI011-TX-0037,HI011,Ewa Beach,Oahu,HI,2026-06-30 08:24:48,BAT-AAH,AA Battery Holder,Batteries,28,0.49,2.66,74.48,13.72,60.76,Ikaika,Retail,Mobile Pay,592
+HI011-TX-0038,HI011,Ewa Beach,Oahu,HI,2026-06-30 14:08:29,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.50,13.72,54.88,18.00,36.88,Malia,Retail,ACH,717
+HI011-TX-0039,HI011,Ewa Beach,Oahu,HI,2026-06-30 15:38:12,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.87,14.49,86.94,29.22,57.72,Makana,Marine,Cash,689
+HI011-TX-0040,HI011,Ewa Beach,Oahu,HI,2026-06-30 10:21:12,IC-REG,7805 Voltage Regulator,Integrated Circuits,14,0.21,0.91,12.74,2.94,9.80,Koa,Marine,ACH,428
+HI011-TX-0041,HI011,Ewa Beach,Oahu,HI,2026-06-30 11:22:23,IC-555,NE555 Timer IC,Integrated Circuits,35,0.34,1.37,47.95,11.90,36.05,Leilani,Commercial,Credit Card,347
+HI011-TX-0042,HI011,Ewa Beach,Oahu,HI,2026-06-30 10:22:33,CON-JMP,Jumper Wire Set,Connectors,19,0.88,3.65,69.35,16.72,52.63,Akamu,Maker/Hobbyist,ACH,872
+HI011-TX-0043,HI011,Ewa Beach,Oahu,HI,2026-06-30 09:04:22,PWR-12V,12V 5A Power Supply,Power,2,8.93,23.51,47.02,17.86,29.16,Pualani,Retail,Purchase Order,719
+HI011-TX-0044,HI011,Ewa Beach,Oahu,HI,2026-06-30 15:29:51,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.47,8.69,26.07,10.41,15.66,Hana,Commercial,ACH,537
+HI011-TX-0045,HI011,Ewa Beach,Oahu,HI,2026-06-30 08:41:51,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.45,6.32,18.96,4.35,14.61,Ikaika,Marine,Credit Card,210
+HI011-TX-0046,HI011,Ewa Beach,Oahu,HI,2026-06-30 14:09:05,PWR-12V,12V 5A Power Supply,Power,7,8.99,25.78,180.46,62.93,117.53,Leilani,Marine,ACH,871
+HI011-TX-0047,HI011,Ewa Beach,Oahu,HI,2026-06-30 13:16:01,IC-358,LM358 Op Amp,Integrated Circuits,32,0.30,1.13,36.16,9.60,26.56,Kai,Maker/Hobbyist,Purchase Order,256
+HI011-TX-0048,HI011,Ewa Beach,Oahu,HI,2026-06-30 16:17:53,CAP-100,100uF Capacitor,Capacitors,20,0.17,0.59,11.80,3.40,8.40,Alika,Commercial,Credit Card,1
+HI011-TX-0049,HI011,Ewa Beach,Oahu,HI,2026-06-30 09:06:11,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.63,13.52,54.08,14.52,39.56,Alika,Tourism/Hospitality,Credit Card,737
+HI011-TX-0050,HI011,Ewa Beach,Oahu,HI,2026-06-30 12:21:44,REL-5V,5V Relay Module,Relays,31,0.97,5.53,171.43,30.07,141.36,Nalu,Education,Credit Card,669
+HI011-TX-0051,HI011,Ewa Beach,Oahu,HI,2026-06-30 13:13:25,RES-010,10k Ohm Resistor,Resistors,35,0.03,0.13,4.55,1.05,3.50,Kaleo,Government,Mobile Pay,239
+HI011-TX-0052,HI011,Ewa Beach,Oahu,HI,2026-06-30 11:02:06,DIO-4007,1N4007 Diode,Semiconductors,10,0.04,0.21,2.10,0.40,1.70,Ailani,Maker/Hobbyist,Debit Card,372
+HI011-TX-0053,HI011,Ewa Beach,Oahu,HI,2026-06-30 16:12:28,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.55,6.94,48.58,10.85,37.73,Akamu,Government,ACH,469
+HI011-TX-0054,HI011,Ewa Beach,Oahu,HI,2026-06-30 17:23:47,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.23,20.64,82.56,32.92,49.64,Alika,Government,Credit Card,835
+HI011-TX-0055,HI011,Ewa Beach,Oahu,HI,2026-06-30 16:04:18,RES-001,1k Ohm Resistor,Resistors,13,0.03,0.12,1.56,0.39,1.17,Malia,Maker/Hobbyist,ACH,691
+HI011-TX-0056,HI011,Ewa Beach,Oahu,HI,2026-06-30 08:26:44,RES-220,220 Ohm Resistor,Resistors,16,0.03,0.13,2.08,0.48,1.60,Ailani,Education,Cash,200
+HI011-TX-0057,HI011,Ewa Beach,Oahu,HI,2026-06-30 15:59:22,LED-RGB,RGB LED Strip,LEDs,8,4.95,14.30,114.40,39.60,74.80,Leilani,Education,ACH,572
+HI011-TX-0058,HI011,Ewa Beach,Oahu,HI,2026-06-30 17:29:23,USB-CBO,USB-C Breakout Board,Connectors,24,1.36,5.42,130.08,32.64,97.44,Keanu,Tourism/Hospitality,Purchase Order,376
+HI011-TX-0059,HI011,Ewa Beach,Oahu,HI,2026-06-30 13:08:03,RES-001,1k Ohm Resistor,Resistors,34,0.03,0.13,4.42,1.02,3.40,Nalu,Retail,ACH,668
+HI011-TX-0060,HI011,Ewa Beach,Oahu,HI,2026-06-30 13:52:20,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.39,34.08,272.64,91.12,181.52,Malia,Government,Purchase Order,11
+HI011-TX-0061,HI011,Ewa Beach,Oahu,HI,2026-06-30 10:20:23,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,8.49,22.36,178.88,67.92,110.96,Pualani,Education,Credit Card,603
+HI011-TX-0062,HI011,Ewa Beach,Oahu,HI,2026-06-30 13:47:43,LED-BLU,5mm Blue LED,LEDs,20,0.07,0.35,7.00,1.40,5.60,Pualani,Government,Cash,460
+HI011-TX-0063,HI011,Ewa Beach,Oahu,HI,2026-06-30 15:21:57,BAT-LIPO,LiPo Battery Pack,Batteries,8,4.95,15.75,126.00,39.60,86.40,Hana,Government,Credit Card,714
+HI011-TX-0064,HI011,Ewa Beach,Oahu,HI,2026-06-30 17:03:36,TOOL-SOL,Soldering Iron Tips,Tools,1,2.07,7.56,7.56,2.07,5.49,Noelani,Commercial,Debit Card,613
+HI011-TX-0065,HI011,Ewa Beach,Oahu,HI,2026-06-30 16:09:56,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.37,8.62,17.24,6.74,10.50,Pualani,Education,Cash,836
+HI011-TX-0066,HI011,Ewa Beach,Oahu,HI,2026-06-30 10:41:15,IC-555,NE555 Timer IC,Integrated Circuits,31,0.34,1.39,43.09,10.54,32.55,Keanu,Education,Debit Card,188

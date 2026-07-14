@@ -1,0 +1,13 @@
+{
+  "type": "hr_offline",
+  "n_cases": 23,
+  "n_docs": 6,
+  "n_chunks": 10,
+  "top_k": 4,
+  "chunk_strategy": "semantic",
+  "corpus_covers_relevant": true,
+  "missing_relevant_docs": [],
+  "lexical_hit_rate": 1.0,
+  "lexical_recall_at_k": 1.0,
+  "lexical_mrr": 0.928
+}

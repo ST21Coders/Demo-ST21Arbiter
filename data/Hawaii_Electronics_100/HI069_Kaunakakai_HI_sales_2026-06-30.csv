@@ -1,0 +1,93 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI069-TX-0001,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:59:21,RES-001,1k Ohm Resistor,Resistors,31,0.04,0.14,4.34,1.24,3.10,Akamu,Tourism/Hospitality,ACH,61
+HI069-TX-0002,HI069,Kaunakakai,Molokai,HI,2026-06-30 12:19:10,LED-RED,5mm Red LED,LEDs,12,0.06,0.28,3.36,0.72,2.64,Mika,Government,Debit Card,380
+HI069-TX-0003,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:44:55,TOOL-DMM,Digital Multimeter,Tools,1,9.24,28.62,28.62,9.24,19.38,Malia,Marine,Mobile Pay,323
+HI069-TX-0004,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:27:56,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,20,0.04,0.19,3.80,0.80,3.00,Mika,Commercial,Debit Card,609
+HI069-TX-0005,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:24:12,PWR-12V,12V 5A Power Supply,Power,8,9.88,25.83,206.64,79.04,127.60,Alika,Education,Purchase Order,199
+HI069-TX-0006,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:35:54,PWR-5V2,5V 2A Power Supply,Power,4,3.43,10.85,43.40,13.72,29.68,Iolana,Marine,Purchase Order,403
+HI069-TX-0007,HI069,Kaunakakai,Molokai,HI,2026-06-30 08:03:06,DIO-4007,1N4007 Diode,Semiconductors,32,0.05,0.21,6.72,1.60,5.12,Koa,Education,ACH,95
+HI069-TX-0008,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:03:00,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,9.33,26.57,132.85,46.65,86.20,Makana,Tourism/Hospitality,Cash,89
+HI069-TX-0009,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:40:36,DIO-4007,1N4007 Diode,Semiconductors,19,0.04,0.19,3.61,0.76,2.85,Koa,Retail,ACH,565
+HI069-TX-0010,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:45:47,PWR-BUCK,Buck Converter Module,Power,24,1.07,4.72,113.28,25.68,87.60,Iolana,Maker/Hobbyist,Cash,337
+HI069-TX-0011,HI069,Kaunakakai,Molokai,HI,2026-06-30 17:32:05,PWR-BUCK,Buck Converter Module,Power,18,1.01,5.10,91.80,18.18,73.62,Koa,Maker/Hobbyist,ACH,594
+HI069-TX-0012,HI069,Kaunakakai,Molokai,HI,2026-06-30 16:53:13,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.51,8.07,56.49,17.57,38.92,Malia,Retail,Purchase Order,852
+HI069-TX-0013,HI069,Kaunakakai,Molokai,HI,2026-06-30 13:11:24,USB-CBO,USB-C Breakout Board,Connectors,10,1.44,5.31,53.10,14.40,38.70,Noelani,Commercial,Purchase Order,384
+HI069-TX-0014,HI069,Kaunakakai,Molokai,HI,2026-06-30 17:39:36,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,9.53,28.66,229.28,76.24,153.04,Kai,Commercial,Mobile Pay,235
+HI069-TX-0015,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:22:09,SOL-CTRL,Solar Charge Controller,Solar Power,2,10.09,31.27,62.54,20.18,42.36,Koa,Education,Debit Card,633
+HI069-TX-0016,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:31:45,CAP-100,100uF Capacitor,Capacitors,39,0.16,0.58,22.62,6.24,16.38,Ikaika,Education,Mobile Pay,544
+HI069-TX-0017,HI069,Kaunakakai,Molokai,HI,2026-06-30 13:14:16,TOOL-DMM,Digital Multimeter,Tools,1,9.15,27.03,27.03,9.15,17.88,Iolana,Commercial,Mobile Pay,311
+HI069-TX-0018,HI069,Kaunakakai,Molokai,HI,2026-06-30 13:22:47,SOL-CTRL,Solar Charge Controller,Solar Power,5,11.28,32.89,164.45,56.40,108.05,Leilani,Tourism/Hospitality,ACH,514
+HI069-TX-0019,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:48:35,PWR-5V2,5V 2A Power Supply,Power,8,3.63,10.53,84.24,29.04,55.20,Pualani,Commercial,Purchase Order,585
+HI069-TX-0020,HI069,Kaunakakai,Molokai,HI,2026-06-30 14:38:46,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.64,7.37,51.59,18.48,33.11,Kai,Commercial,Cash,35
+HI069-TX-0021,HI069,Kaunakakai,Molokai,HI,2026-06-30 12:58:21,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,12,0.05,0.19,2.28,0.60,1.68,Pualani,Marine,Purchase Order,622
+HI069-TX-0022,HI069,Kaunakakai,Molokai,HI,2026-06-30 10:28:30,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.25,20.81,145.67,57.75,87.92,Hana,Commercial,Mobile Pay,619
+HI069-TX-0023,HI069,Kaunakakai,Molokai,HI,2026-06-30 08:40:13,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.82,14.89,119.12,30.56,88.56,Mika,Retail,Debit Card,726
+HI069-TX-0024,HI069,Kaunakakai,Molokai,HI,2026-06-30 16:22:32,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.73,14.44,101.08,26.11,74.97,Noah,Tourism/Hospitality,Cash,648
+HI069-TX-0025,HI069,Kaunakakai,Molokai,HI,2026-06-30 08:49:51,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.53,6.12,48.96,12.24,36.72,Malia,Commercial,Credit Card,508
+HI069-TX-0026,HI069,Kaunakakai,Molokai,HI,2026-06-30 17:03:12,TOOL-DMM,Digital Multimeter,Tools,4,9.16,26.15,104.60,36.64,67.96,Kaleo,Tourism/Hospitality,Purchase Order,880
+HI069-TX-0027,HI069,Kaunakakai,Molokai,HI,2026-06-30 13:04:10,PWR-BUCK,Buck Converter Module,Power,4,1.00,4.99,19.96,4.00,15.96,Iolana,Education,Debit Card,107
+HI069-TX-0028,HI069,Kaunakakai,Molokai,HI,2026-06-30 16:59:13,LED-BLU,5mm Blue LED,LEDs,40,0.06,0.32,12.80,2.40,10.40,Nalu,Tourism/Hospitality,Mobile Pay,597
+HI069-TX-0029,HI069,Kaunakakai,Molokai,HI,2026-06-30 11:07:02,RES-001,1k Ohm Resistor,Resistors,32,0.03,0.14,4.48,0.96,3.52,Noah,Maker/Hobbyist,Debit Card,98
+HI069-TX-0030,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:38:38,CAP-010,10uF Capacitor,Capacitors,12,0.08,0.39,4.68,0.96,3.72,Nalu,Education,Credit Card,384
+HI069-TX-0031,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:38:31,PWR-12V,12V 5A Power Supply,Power,3,9.10,25.31,75.93,27.30,48.63,Kai,Marine,Credit Card,274
+HI069-TX-0032,HI069,Kaunakakai,Molokai,HI,2026-06-30 13:41:19,PWR-12V,12V 5A Power Supply,Power,7,9.16,24.01,168.07,64.12,103.95,Koa,Maker/Hobbyist,ACH,398
+HI069-TX-0033,HI069,Kaunakakai,Molokai,HI,2026-06-30 17:42:07,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.14,13.45,94.15,28.98,65.17,Keahi,Education,Mobile Pay,708
+HI069-TX-0034,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:14:42,RES-010,10k Ohm Resistor,Resistors,7,0.03,0.12,0.84,0.21,0.63,Mika,Marine,ACH,49
+HI069-TX-0035,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:32:07,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,1,0.04,0.19,0.19,0.04,0.15,Nalu,Maker/Hobbyist,ACH,333
+HI069-TX-0036,HI069,Kaunakakai,Molokai,HI,2026-06-30 13:36:26,BAT-LIPO,LiPo Battery Pack,Batteries,7,5.63,16.37,114.59,39.41,75.18,Leilani,Marine,ACH,565
+HI069-TX-0037,HI069,Kaunakakai,Molokai,HI,2026-06-30 14:29:50,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.25,8.32,41.60,16.25,25.35,Kai,Education,Purchase Order,700
+HI069-TX-0038,HI069,Kaunakakai,Molokai,HI,2026-06-30 16:53:03,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.82,13.65,109.20,30.56,78.64,Kaleo,Tourism/Hospitality,Mobile Pay,238
+HI069-TX-0039,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:38:38,SOL-CTRL,Solar Charge Controller,Solar Power,8,10.41,30.60,244.80,83.28,161.52,Noah,Retail,ACH,620
+HI069-TX-0040,HI069,Kaunakakai,Molokai,HI,2026-06-30 14:51:27,LED-BLU,5mm Blue LED,LEDs,25,0.07,0.32,8.00,1.75,6.25,Leilani,Government,ACH,859
+HI069-TX-0041,HI069,Kaunakakai,Molokai,HI,2026-06-30 10:59:52,CON-JMP,Jumper Wire Set,Connectors,9,0.88,3.75,33.75,7.92,25.83,Makana,Commercial,Credit Card,649
+HI069-TX-0042,HI069,Kaunakakai,Molokai,HI,2026-06-30 08:17:23,PWR-BUCK,Buck Converter Module,Power,18,1.00,5.14,92.52,18.00,74.52,Kaleo,Retail,Credit Card,276
+HI069-TX-0043,HI069,Kaunakakai,Molokai,HI,2026-06-30 14:48:53,PWR-12V,12V 5A Power Supply,Power,7,9.97,25.08,175.56,69.79,105.77,Nalu,Retail,Debit Card,847
+HI069-TX-0044,HI069,Kaunakakai,Molokai,HI,2026-06-30 10:24:42,PWR-5V2,5V 2A Power Supply,Power,3,3.62,10.88,32.64,10.86,21.78,Keanu,Education,Mobile Pay,237
+HI069-TX-0045,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:52:48,SNS-ULT,Ultrasonic Distance Sensor,Sensors,37,1.31,5.34,197.58,48.47,149.11,Mika,Commercial,Cash,72
+HI069-TX-0046,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:02:33,IC-555,NE555 Timer IC,Integrated Circuits,30,0.37,1.31,39.30,11.10,28.20,Noelani,Retail,Cash,97
+HI069-TX-0047,HI069,Kaunakakai,Molokai,HI,2026-06-30 12:48:09,BAT-LIPO,LiPo Battery Pack,Batteries,1,5.24,17.19,17.19,5.24,11.95,Noah,Government,Credit Card,491
+HI069-TX-0048,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:45:03,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.64,14.82,103.74,25.48,78.26,Iolana,Maker/Hobbyist,Credit Card,329
+HI069-TX-0049,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:25:56,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,4.01,13.46,107.68,32.08,75.60,Leilani,Marine,ACH,702
+HI069-TX-0050,HI069,Kaunakakai,Molokai,HI,2026-06-30 17:56:10,IC-555,NE555 Timer IC,Integrated Circuits,11,0.34,1.42,15.62,3.74,11.88,Keanu,Education,ACH,390
+HI069-TX-0051,HI069,Kaunakakai,Molokai,HI,2026-06-30 16:18:02,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.16,16.16,32.32,10.32,22.00,Keanu,Retail,Purchase Order,579
+HI069-TX-0052,HI069,Kaunakakai,Molokai,HI,2026-06-30 12:26:26,DIO-4007,1N4007 Diode,Semiconductors,23,0.04,0.20,4.60,0.92,3.68,Malia,Government,Debit Card,844
+HI069-TX-0053,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:14:23,RES-220,220 Ohm Resistor,Resistors,9,0.03,0.13,1.17,0.27,0.90,Nalu,Education,Debit Card,328
+HI069-TX-0054,HI069,Kaunakakai,Molokai,HI,2026-06-30 16:25:39,SNS-PIR,PIR Motion Sensor,Sensors,5,1.45,6.14,30.70,7.25,23.45,Iolana,Retail,Credit Card,321
+HI069-TX-0055,HI069,Kaunakakai,Molokai,HI,2026-06-30 16:52:53,TOOL-DMM,Digital Multimeter,Tools,1,8.41,28.28,28.28,8.41,19.87,Nalu,Tourism/Hospitality,Debit Card,831
+HI069-TX-0056,HI069,Kaunakakai,Molokai,HI,2026-06-30 17:18:09,PWR-BUCK,Buck Converter Module,Power,17,1.09,5.19,88.23,18.53,69.70,Ikaika,Government,Mobile Pay,365
+HI069-TX-0057,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:35:16,CON-JMP,Jumper Wire Set,Connectors,1,0.92,3.95,3.95,0.92,3.03,Hana,Commercial,Debit Card,712
+HI069-TX-0058,HI069,Kaunakakai,Molokai,HI,2026-06-30 13:03:25,RES-010,10k Ohm Resistor,Resistors,19,0.03,0.14,2.66,0.57,2.09,Mika,Retail,Credit Card,768
+HI069-TX-0059,HI069,Kaunakakai,Molokai,HI,2026-06-30 12:17:14,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,7.89,21.67,151.69,55.23,96.46,Hana,Marine,Cash,385
+HI069-TX-0060,HI069,Kaunakakai,Molokai,HI,2026-06-30 11:18:57,PWR-BUCK,Buck Converter Module,Power,12,0.99,5.14,61.68,11.88,49.80,Nalu,Marine,Debit Card,864
+HI069-TX-0061,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:15:15,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.94,31.22,187.32,65.64,121.68,Alika,Tourism/Hospitality,ACH,391
+HI069-TX-0062,HI069,Kaunakakai,Molokai,HI,2026-06-30 14:24:45,PWR-BUCK,Buck Converter Module,Power,2,0.98,4.75,9.50,1.96,7.54,Iolana,Retail,Credit Card,171
+HI069-TX-0063,HI069,Kaunakakai,Molokai,HI,2026-06-30 12:47:13,SOL-CTRL,Solar Charge Controller,Solar Power,3,11.34,31.79,95.37,34.02,61.35,Leilani,Education,Credit Card,73
+HI069-TX-0064,HI069,Kaunakakai,Molokai,HI,2026-06-30 17:02:59,SNS-SOIL,Soil Moisture Sensor,Sensors,12,0.96,4.42,53.04,11.52,41.52,Kai,Government,Credit Card,396
+HI069-TX-0065,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:35:01,SNS-PIR,PIR Motion Sensor,Sensors,4,1.56,6.36,25.44,6.24,19.20,Mika,Tourism/Hospitality,Purchase Order,480
+HI069-TX-0066,HI069,Kaunakakai,Molokai,HI,2026-06-30 13:59:33,PWR-12V,12V 5A Power Supply,Power,2,10.00,23.72,47.44,20.00,27.44,Makana,Tourism/Hospitality,Credit Card,473
+HI069-TX-0067,HI069,Kaunakakai,Molokai,HI,2026-06-30 08:21:54,BAT-LIPO,LiPo Battery Pack,Batteries,3,5.65,15.79,47.37,16.95,30.42,Koa,Retail,ACH,248
+HI069-TX-0068,HI069,Kaunakakai,Molokai,HI,2026-06-30 13:30:58,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.11,12.35,74.10,24.66,49.44,Ailani,Government,Mobile Pay,110
+HI069-TX-0069,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:19:50,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.97,14.05,56.20,15.88,40.32,Keanu,Education,Mobile Pay,94
+HI069-TX-0070,HI069,Kaunakakai,Molokai,HI,2026-06-30 08:17:50,SNS-SOIL,Soil Moisture Sensor,Sensors,14,0.92,4.22,59.08,12.88,46.20,Alika,Tourism/Hospitality,ACH,57
+HI069-TX-0071,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:07:19,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,9.52,27.53,110.12,38.08,72.04,Iolana,Education,Cash,227
+HI069-TX-0072,HI069,Kaunakakai,Molokai,HI,2026-06-30 16:31:48,TR-3904,2N3904 NPN Transistor,Semiconductors,13,0.06,0.24,3.12,0.78,2.34,Akamu,Education,ACH,462
+HI069-TX-0073,HI069,Kaunakakai,Molokai,HI,2026-06-30 14:13:27,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.14,32.25,258.00,89.12,168.88,Noah,Commercial,Mobile Pay,157
+HI069-TX-0074,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:05:11,SNS-PIR,PIR Motion Sensor,Sensors,5,1.49,5.68,28.40,7.45,20.95,Hana,Retail,ACH,577
+HI069-TX-0075,HI069,Kaunakakai,Molokai,HI,2026-06-30 15:31:54,PWR-12V,12V 5A Power Supply,Power,4,9.72,23.57,94.28,38.88,55.40,Lani,Maker/Hobbyist,Debit Card,604
+HI069-TX-0076,HI069,Kaunakakai,Molokai,HI,2026-06-30 11:54:31,TR-3904,2N3904 NPN Transistor,Semiconductors,18,0.06,0.25,4.50,1.08,3.42,Iolana,Maker/Hobbyist,Debit Card,34
+HI069-TX-0077,HI069,Kaunakakai,Molokai,HI,2026-06-30 12:35:14,SOL-CTRL,Solar Charge Controller,Solar Power,3,10.29,31.16,93.48,30.87,62.61,Lani,Tourism/Hospitality,Credit Card,647
+HI069-TX-0078,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:48:25,PWR-12V,12V 5A Power Supply,Power,1,9.66,24.71,24.71,9.66,15.05,Ailani,Retail,Mobile Pay,121
+HI069-TX-0079,HI069,Kaunakakai,Molokai,HI,2026-06-30 13:39:33,LED-RED,5mm Red LED,LEDs,24,0.06,0.27,6.48,1.44,5.04,Malia,Commercial,ACH,507
+HI069-TX-0080,HI069,Kaunakakai,Molokai,HI,2026-06-30 17:16:43,LED-RGB,RGB LED Strip,LEDs,3,5.01,14.11,42.33,15.03,27.30,Ailani,Retail,Debit Card,634
+HI069-TX-0081,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:57:04,PWR-5V2,5V 2A Power Supply,Power,2,3.43,10.58,21.16,6.86,14.30,Leilani,Education,Purchase Order,36
+HI069-TX-0082,HI069,Kaunakakai,Molokai,HI,2026-06-30 17:48:42,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,2,0.04,0.19,0.38,0.08,0.30,Akamu,Maker/Hobbyist,Debit Card,837
+HI069-TX-0083,HI069,Kaunakakai,Molokai,HI,2026-06-30 16:08:36,PWR-5V2,5V 2A Power Supply,Power,1,3.73,11.50,11.50,3.73,7.77,Kai,Education,Mobile Pay,677
+HI069-TX-0084,HI069,Kaunakakai,Molokai,HI,2026-06-30 12:58:08,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.68,30.89,123.56,42.72,80.84,Lani,Education,Credit Card,28
+HI069-TX-0085,HI069,Kaunakakai,Molokai,HI,2026-06-30 14:34:42,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.83,30.90,185.40,64.98,120.42,Makana,Commercial,Purchase Order,781
+HI069-TX-0086,HI069,Kaunakakai,Molokai,HI,2026-06-30 17:11:17,RES-010,10k Ohm Resistor,Resistors,26,0.03,0.13,3.38,0.78,2.60,Leilani,Education,ACH,545
+HI069-TX-0087,HI069,Kaunakakai,Molokai,HI,2026-06-30 08:57:19,RES-220,220 Ohm Resistor,Resistors,2,0.03,0.13,0.26,0.06,0.20,Leilani,Tourism/Hospitality,Cash,449
+HI069-TX-0088,HI069,Kaunakakai,Molokai,HI,2026-06-30 08:07:18,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.47,14.75,59.00,17.88,41.12,Keahi,Retail,Debit Card,809
+HI069-TX-0089,HI069,Kaunakakai,Molokai,HI,2026-06-30 14:57:32,SNS-ULT,Ultrasonic Distance Sensor,Sensors,9,1.30,5.55,49.95,11.70,38.25,Lani,Government,Debit Card,461
+HI069-TX-0090,HI069,Kaunakakai,Molokai,HI,2026-06-30 16:23:04,PWR-5V2,5V 2A Power Supply,Power,7,3.55,11.25,78.75,24.85,53.90,Malia,Government,Credit Card,444
+HI069-TX-0091,HI069,Kaunakakai,Molokai,HI,2026-06-30 12:15:13,CAP-100,100uF Capacitor,Capacitors,18,0.16,0.59,10.62,2.88,7.74,Keahi,Retail,Credit Card,702
+HI069-TX-0092,HI069,Kaunakakai,Molokai,HI,2026-06-30 09:59:08,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,4.02,14.03,112.24,32.16,80.08,Kai,Government,Cash,392

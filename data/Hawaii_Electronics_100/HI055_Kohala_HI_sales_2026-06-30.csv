@@ -1,0 +1,69 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI055-TX-0001,HI055,Kohala,Hawaii Island,HI,2026-06-30 10:30:51,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.37,8.30,58.10,23.59,34.51,Kaleo,Retail,ACH,770
+HI055-TX-0002,HI055,Kohala,Hawaii Island,HI,2026-06-30 16:15:07,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.75,32.89,131.56,43.00,88.56,Leilani,Education,Debit Card,119
+HI055-TX-0003,HI055,Kohala,Hawaii Island,HI,2026-06-30 09:48:45,MOS-44N,IRFZ44N MOSFET,Semiconductors,4,0.64,2.53,10.12,2.56,7.56,Hana,Marine,Credit Card,427
+HI055-TX-0004,HI055,Kohala,Hawaii Island,HI,2026-06-30 15:52:10,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.44,13.82,69.10,22.20,46.90,Akamu,Tourism/Hospitality,Debit Card,852
+HI055-TX-0005,HI055,Kohala,Hawaii Island,HI,2026-06-30 08:41:53,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.14,9.04,45.20,15.70,29.50,Koa,Maker/Hobbyist,Debit Card,686
+HI055-TX-0006,HI055,Kohala,Hawaii Island,HI,2026-06-30 15:25:49,DIO-4007,1N4007 Diode,Semiconductors,33,0.04,0.20,6.60,1.32,5.28,Kai,Marine,Purchase Order,160
+HI055-TX-0007,HI055,Kohala,Hawaii Island,HI,2026-06-30 14:40:40,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.47,13.26,13.26,4.47,8.79,Kai,Tourism/Hospitality,ACH,161
+HI055-TX-0008,HI055,Kohala,Hawaii Island,HI,2026-06-30 10:57:47,RES-220,220 Ohm Resistor,Resistors,32,0.03,0.14,4.48,0.96,3.52,Ikaika,Marine,ACH,297
+HI055-TX-0009,HI055,Kohala,Hawaii Island,HI,2026-06-30 15:40:09,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.42,8.50,59.50,23.94,35.56,Keanu,Maker/Hobbyist,ACH,529
+HI055-TX-0010,HI055,Kohala,Hawaii Island,HI,2026-06-30 15:02:07,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.10,8.82,44.10,15.50,28.60,Noelani,Marine,Debit Card,253
+HI055-TX-0011,HI055,Kohala,Hawaii Island,HI,2026-06-30 11:16:09,RES-001,1k Ohm Resistor,Resistors,38,0.03,0.13,4.94,1.14,3.80,Alika,Government,Mobile Pay,110
+HI055-TX-0012,HI055,Kohala,Hawaii Island,HI,2026-06-30 17:09:58,SNS-PIR,PIR Motion Sensor,Sensors,3,1.52,5.77,17.31,4.56,12.75,Keahi,Government,Debit Card,876
+HI055-TX-0013,HI055,Kohala,Hawaii Island,HI,2026-06-30 16:36:51,PWR-12V,12V 5A Power Supply,Power,3,9.62,24.50,73.50,28.86,44.64,Hana,Tourism/Hospitality,Credit Card,198
+HI055-TX-0014,HI055,Kohala,Hawaii Island,HI,2026-06-30 10:40:16,PWR-BUCK,Buck Converter Module,Power,25,1.04,4.66,116.50,26.00,90.50,Koa,Maker/Hobbyist,Purchase Order,219
+HI055-TX-0015,HI055,Kohala,Hawaii Island,HI,2026-06-30 14:48:05,PWR-BUCK,Buck Converter Module,Power,36,1.10,5.07,182.52,39.60,142.92,Pualani,Maker/Hobbyist,ACH,725
+HI055-TX-0016,HI055,Kohala,Hawaii Island,HI,2026-06-30 13:16:46,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.45,13.75,55.00,17.80,37.20,Kai,Marine,Cash,340
+HI055-TX-0017,HI055,Kohala,Hawaii Island,HI,2026-06-30 17:56:27,CAP-010,10uF Capacitor,Capacitors,9,0.09,0.41,3.69,0.81,2.88,Mika,Retail,Cash,883
+HI055-TX-0018,HI055,Kohala,Hawaii Island,HI,2026-06-30 17:02:24,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,7.97,21.28,85.12,31.88,53.24,Hana,Marine,Cash,768
+HI055-TX-0019,HI055,Kohala,Hawaii Island,HI,2026-06-30 16:38:41,SNS-PIR,PIR Motion Sensor,Sensors,2,1.52,6.13,12.26,3.04,9.22,Koa,Tourism/Hospitality,Cash,450
+HI055-TX-0020,HI055,Kohala,Hawaii Island,HI,2026-06-30 15:13:21,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.41,34.30,274.40,91.28,183.12,Noah,Marine,Credit Card,123
+HI055-TX-0021,HI055,Kohala,Hawaii Island,HI,2026-06-30 13:43:06,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.30,13.37,13.37,4.30,9.07,Ikaika,Commercial,ACH,129
+HI055-TX-0022,HI055,Kohala,Hawaii Island,HI,2026-06-30 11:00:21,SNS-PIR,PIR Motion Sensor,Sensors,3,1.59,5.90,17.70,4.77,12.93,Mika,Tourism/Hospitality,Credit Card,562
+HI055-TX-0023,HI055,Kohala,Hawaii Island,HI,2026-06-30 10:40:46,SNS-PIR,PIR Motion Sensor,Sensors,2,1.54,6.06,12.12,3.08,9.04,Ailani,Commercial,Credit Card,25
+HI055-TX-0024,HI055,Kohala,Hawaii Island,HI,2026-06-30 11:22:21,CAP-010,10uF Capacitor,Capacitors,12,0.09,0.38,4.56,1.08,3.48,Akamu,Marine,Cash,279
+HI055-TX-0025,HI055,Kohala,Hawaii Island,HI,2026-06-30 13:27:44,RES-010,10k Ohm Resistor,Resistors,34,0.03,0.12,4.08,1.02,3.06,Leilani,Tourism/Hospitality,Purchase Order,807
+HI055-TX-0026,HI055,Kohala,Hawaii Island,HI,2026-06-30 17:09:01,IC-REG,7805 Voltage Regulator,Integrated Circuits,15,0.19,0.97,14.55,2.85,11.70,Makana,Education,Purchase Order,890
+HI055-TX-0027,HI055,Kohala,Hawaii Island,HI,2026-06-30 15:11:25,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.71,14.54,14.54,4.71,9.83,Alika,Government,Credit Card,535
+HI055-TX-0028,HI055,Kohala,Hawaii Island,HI,2026-06-30 14:13:17,LED-RED,5mm Red LED,LEDs,7,0.06,0.29,2.03,0.42,1.61,Makana,Maker/Hobbyist,Purchase Order,670
+HI055-TX-0029,HI055,Kohala,Hawaii Island,HI,2026-06-30 08:17:42,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,4.08,14.77,59.08,16.32,42.76,Keahi,Retail,Cash,816
+HI055-TX-0030,HI055,Kohala,Hawaii Island,HI,2026-06-30 14:17:48,PWR-12V,12V 5A Power Supply,Power,7,9.35,26.28,183.96,65.45,118.51,Kai,Education,Purchase Order,859
+HI055-TX-0031,HI055,Kohala,Hawaii Island,HI,2026-06-30 15:12:30,PWR-BUCK,Buck Converter Module,Power,5,1.03,4.85,24.25,5.15,19.10,Keanu,Education,Purchase Order,683
+HI055-TX-0032,HI055,Kohala,Hawaii Island,HI,2026-06-30 10:12:23,RES-001,1k Ohm Resistor,Resistors,17,0.03,0.13,2.21,0.51,1.70,Leilani,Marine,ACH,108
+HI055-TX-0033,HI055,Kohala,Hawaii Island,HI,2026-06-30 11:37:33,CAP-010,10uF Capacitor,Capacitors,38,0.09,0.40,15.20,3.42,11.78,Malia,Commercial,Mobile Pay,565
+HI055-TX-0034,HI055,Kohala,Hawaii Island,HI,2026-06-30 13:16:39,RES-001,1k Ohm Resistor,Resistors,14,0.03,0.14,1.96,0.42,1.54,Akamu,Retail,Purchase Order,835
+HI055-TX-0035,HI055,Kohala,Hawaii Island,HI,2026-06-30 16:42:58,SNS-SOIL,Soil Moisture Sensor,Sensors,28,0.94,4.25,119.00,26.32,92.68,Iolana,Retail,Cash,360
+HI055-TX-0036,HI055,Kohala,Hawaii Island,HI,2026-06-30 09:36:32,SNS-DHT,DHT22 Temperature Sensor,Sensors,3,2.47,7.62,22.86,7.41,15.45,Makana,Education,Cash,413
+HI055-TX-0037,HI055,Kohala,Hawaii Island,HI,2026-06-30 09:20:40,RES-001,1k Ohm Resistor,Resistors,29,0.03,0.12,3.48,0.87,2.61,Pualani,Government,Debit Card,61
+HI055-TX-0038,HI055,Kohala,Hawaii Island,HI,2026-06-30 09:30:34,SNS-ULT,Ultrasonic Distance Sensor,Sensors,15,1.33,5.20,78.00,19.95,58.05,Malia,Commercial,Credit Card,297
+HI055-TX-0039,HI055,Kohala,Hawaii Island,HI,2026-06-30 11:51:41,REL-5V,5V Relay Module,Relays,25,0.96,5.63,140.75,24.00,116.75,Makana,Retail,Cash,489
+HI055-TX-0040,HI055,Kohala,Hawaii Island,HI,2026-06-30 15:05:03,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.52,20.93,125.58,51.12,74.46,Lani,Education,Mobile Pay,47
+HI055-TX-0041,HI055,Kohala,Hawaii Island,HI,2026-06-30 17:30:10,PWR-5V2,5V 2A Power Supply,Power,2,3.35,10.90,21.80,6.70,15.10,Lani,Maker/Hobbyist,ACH,154
+HI055-TX-0042,HI055,Kohala,Hawaii Island,HI,2026-06-30 09:48:55,CAP-100,100uF Capacitor,Capacitors,32,0.16,0.59,18.88,5.12,13.76,Hana,Tourism/Hospitality,Cash,242
+HI055-TX-0043,HI055,Kohala,Hawaii Island,HI,2026-06-30 14:40:35,SNS-SOIL,Soil Moisture Sensor,Sensors,29,0.93,4.09,118.61,26.97,91.64,Lani,Commercial,Mobile Pay,140
+HI055-TX-0044,HI055,Kohala,Hawaii Island,HI,2026-06-30 10:31:57,LED-RGB,RGB LED Strip,LEDs,7,5.09,14.93,104.51,35.63,68.88,Pualani,Education,Cash,561
+HI055-TX-0045,HI055,Kohala,Hawaii Island,HI,2026-06-30 14:24:14,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.39,14.50,72.50,21.95,50.55,Keahi,Maker/Hobbyist,Cash,567
+HI055-TX-0046,HI055,Kohala,Hawaii Island,HI,2026-06-30 14:01:30,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.40,7.39,59.12,19.20,39.92,Akamu,Government,Credit Card,613
+HI055-TX-0047,HI055,Kohala,Hawaii Island,HI,2026-06-30 15:50:05,RES-001,1k Ohm Resistor,Resistors,11,0.03,0.13,1.43,0.33,1.10,Nalu,Government,Credit Card,485
+HI055-TX-0048,HI055,Kohala,Hawaii Island,HI,2026-06-30 14:42:35,PWR-BUCK,Buck Converter Module,Power,12,0.98,4.93,59.16,11.76,47.40,Keahi,Retail,Mobile Pay,739
+HI055-TX-0049,HI055,Kohala,Hawaii Island,HI,2026-06-30 12:48:27,MAR-TIN,Tinned Marine Wire,Marine Electronics,1,8.73,26.45,26.45,8.73,17.72,Hana,Commercial,Debit Card,331
+HI055-TX-0050,HI055,Kohala,Hawaii Island,HI,2026-06-30 12:29:29,SNS-ULT,Ultrasonic Distance Sensor,Sensors,19,1.30,5.37,102.03,24.70,77.33,Ikaika,Retail,Debit Card,256
+HI055-TX-0051,HI055,Kohala,Hawaii Island,HI,2026-06-30 16:45:03,IC-555,NE555 Timer IC,Integrated Circuits,3,0.34,1.45,4.35,1.02,3.33,Mika,Tourism/Hospitality,Purchase Order,789
+HI055-TX-0052,HI055,Kohala,Hawaii Island,HI,2026-06-30 08:39:42,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.45,13.23,92.61,31.15,61.46,Keanu,Education,Debit Card,338
+HI055-TX-0053,HI055,Kohala,Hawaii Island,HI,2026-06-30 14:30:19,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.50,22.50,112.50,42.50,70.00,Iolana,Commercial,Credit Card,218
+HI055-TX-0054,HI055,Kohala,Hawaii Island,HI,2026-06-30 09:57:53,RES-001,1k Ohm Resistor,Resistors,12,0.03,0.13,1.56,0.36,1.20,Keahi,Marine,Debit Card,695
+HI055-TX-0055,HI055,Kohala,Hawaii Island,HI,2026-06-30 15:56:31,SNS-PIR,PIR Motion Sensor,Sensors,1,1.50,5.85,5.85,1.50,4.35,Kaleo,Retail,Cash,639
+HI055-TX-0056,HI055,Kohala,Hawaii Island,HI,2026-06-30 08:34:38,PWR-12V,12V 5A Power Supply,Power,6,9.30,26.13,156.78,55.80,100.98,Iolana,Government,Mobile Pay,603
+HI055-TX-0057,HI055,Kohala,Hawaii Island,HI,2026-06-30 11:41:19,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.79,14.94,89.64,28.74,60.90,Alika,Maker/Hobbyist,Purchase Order,281
+HI055-TX-0058,HI055,Kohala,Hawaii Island,HI,2026-06-30 16:17:39,SNS-PIR,PIR Motion Sensor,Sensors,8,1.58,5.85,46.80,12.64,34.16,Nalu,Government,ACH,670
+HI055-TX-0059,HI055,Kohala,Hawaii Island,HI,2026-06-30 11:42:54,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.28,13.52,108.16,34.24,73.92,Koa,Government,Debit Card,102
+HI055-TX-0060,HI055,Kohala,Hawaii Island,HI,2026-06-30 16:18:06,TR-3904,2N3904 NPN Transistor,Semiconductors,8,0.05,0.24,1.92,0.40,1.52,Ikaika,Education,Mobile Pay,688
+HI055-TX-0061,HI055,Kohala,Hawaii Island,HI,2026-06-30 12:55:40,TR-3904,2N3904 NPN Transistor,Semiconductors,23,0.06,0.25,5.75,1.38,4.37,Akamu,Tourism/Hospitality,Purchase Order,491
+HI055-TX-0062,HI055,Kohala,Hawaii Island,HI,2026-06-30 08:45:13,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.12,13.16,105.28,32.96,72.32,Makana,Commercial,Credit Card,168
+HI055-TX-0063,HI055,Kohala,Hawaii Island,HI,2026-06-30 13:57:48,RES-010,10k Ohm Resistor,Resistors,1,0.03,0.13,0.13,0.03,0.10,Koa,Marine,Mobile Pay,840
+HI055-TX-0064,HI055,Kohala,Hawaii Island,HI,2026-06-30 12:02:53,SNS-DHT,DHT22 Temperature Sensor,Sensors,3,2.33,7.99,23.97,6.99,16.98,Nalu,Tourism/Hospitality,Credit Card,264
+HI055-TX-0065,HI055,Kohala,Hawaii Island,HI,2026-06-30 17:59:46,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.36,20.60,123.60,50.16,73.44,Kaleo,Marine,Purchase Order,578
+HI055-TX-0066,HI055,Kohala,Hawaii Island,HI,2026-06-30 16:29:43,SNS-PIR,PIR Motion Sensor,Sensors,1,1.60,6.23,6.23,1.60,4.63,Alika,Government,Mobile Pay,92
+HI055-TX-0067,HI055,Kohala,Hawaii Island,HI,2026-06-30 10:26:03,TOOL-WIRE,Wire Stripper,Tools,4,4.79,15.13,60.52,19.16,41.36,Mika,Tourism/Hospitality,Credit Card,305
+HI055-TX-0068,HI055,Kohala,Hawaii Island,HI,2026-06-30 16:43:49,PICO-RP,Raspberry Pi Pico,Microcontrollers,8,3.36,9.08,72.64,26.88,45.76,Malia,Tourism/Hospitality,ACH,69

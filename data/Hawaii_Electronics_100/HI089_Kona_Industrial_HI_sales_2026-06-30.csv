@@ -1,0 +1,85 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI089-TX-0001,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 16:55:43,PWR-12V,12V 5A Power Supply,Power,6,9.00,24.15,144.90,54.00,90.90,Kaleo,Retail,Debit Card,641
+HI089-TX-0002,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 11:01:19,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.42,14.73,73.65,22.10,51.55,Noah,Education,Debit Card,506
+HI089-TX-0003,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 16:13:57,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,9,0.04,0.20,1.80,0.36,1.44,Makana,Retail,Cash,593
+HI089-TX-0004,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 10:11:17,PWR-BUCK,Buck Converter Module,Power,5,1.06,4.81,24.05,5.30,18.75,Iolana,Commercial,Cash,347
+HI089-TX-0005,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 14:35:11,TOOL-DMM,Digital Multimeter,Tools,2,9.19,26.38,52.76,18.38,34.38,Iolana,Marine,Cash,425
+HI089-TX-0006,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 09:49:34,PWR-BUCK,Buck Converter Module,Power,3,1.05,4.95,14.85,3.15,11.70,Lani,Government,Cash,515
+HI089-TX-0007,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 10:18:18,SNS-ULT,Ultrasonic Distance Sensor,Sensors,27,1.22,5.11,137.97,32.94,105.03,Nalu,Retail,Cash,559
+HI089-TX-0008,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 14:22:58,PWR-BUCK,Buck Converter Module,Power,4,1.11,4.72,18.88,4.44,14.44,Iolana,Education,ACH,580
+HI089-TX-0009,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 09:11:14,IC-358,LM358 Op Amp,Integrated Circuits,24,0.32,1.24,29.76,7.68,22.08,Pualani,Marine,Purchase Order,32
+HI089-TX-0010,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 13:07:34,SNS-SOIL,Soil Moisture Sensor,Sensors,17,0.91,4.16,70.72,15.47,55.25,Keanu,Government,ACH,858
+HI089-TX-0011,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 16:35:48,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.46,21.59,64.77,25.38,39.39,Ikaika,Maker/Hobbyist,Credit Card,367
+HI089-TX-0012,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 11:55:34,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.30,15.87,95.22,31.80,63.42,Akamu,Commercial,Credit Card,255
+HI089-TX-0013,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 15:15:49,TOOL-DMM,Digital Multimeter,Tools,1,8.46,28.89,28.89,8.46,20.43,Noah,Commercial,ACH,355
+HI089-TX-0014,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 15:18:34,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,7.85,22.29,178.32,62.80,115.52,Noah,Education,Purchase Order,598
+HI089-TX-0015,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 16:52:01,SOL-CTRL,Solar Charge Controller,Solar Power,5,10.78,32.96,164.80,53.90,110.90,Pualani,Maker/Hobbyist,ACH,50
+HI089-TX-0016,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 13:55:46,IC-REG,7805 Voltage Regulator,Integrated Circuits,21,0.20,0.90,18.90,4.20,14.70,Pualani,Government,Purchase Order,562
+HI089-TX-0017,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 16:24:08,CAP-010,10uF Capacitor,Capacitors,31,0.09,0.38,11.78,2.79,8.99,Keahi,Retail,Credit Card,35
+HI089-TX-0018,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 15:04:57,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.09,9.14,45.70,15.45,30.25,Ailani,Government,ACH,102
+HI089-TX-0019,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 09:13:44,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.28,33.15,198.90,61.68,137.22,Akamu,Commercial,Mobile Pay,674
+HI089-TX-0020,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 11:17:23,CON-JMP,Jumper Wire Set,Connectors,38,0.88,3.62,137.56,33.44,104.12,Noah,Tourism/Hospitality,Mobile Pay,97
+HI089-TX-0021,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 15:50:19,TOOL-DMM,Digital Multimeter,Tools,5,9.19,26.05,130.25,45.95,84.30,Akamu,Maker/Hobbyist,Mobile Pay,189
+HI089-TX-0022,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 13:13:00,LED-RGB,RGB LED Strip,LEDs,3,4.72,14.16,42.48,14.16,28.32,Keanu,Tourism/Hospitality,Debit Card,732
+HI089-TX-0023,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 08:35:55,PWR-BUCK,Buck Converter Module,Power,27,1.03,4.88,131.76,27.81,103.95,Noelani,Marine,Debit Card,179
+HI089-TX-0024,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 13:54:54,SNS-DHT,DHT22 Temperature Sensor,Sensors,5,2.38,7.93,39.65,11.90,27.75,Iolana,Education,Purchase Order,424
+HI089-TX-0025,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 08:41:37,SNS-PIR,PIR Motion Sensor,Sensors,2,1.49,6.36,12.72,2.98,9.74,Noelani,Commercial,Purchase Order,784
+HI089-TX-0026,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 17:57:21,LED-RGB,RGB LED Strip,LEDs,3,5.04,14.84,44.52,15.12,29.40,Alika,Government,Purchase Order,141
+HI089-TX-0027,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 17:52:17,MOS-44N,IRFZ44N MOSFET,Semiconductors,12,0.63,2.52,30.24,7.56,22.68,Leilani,Government,Mobile Pay,647
+HI089-TX-0028,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 08:51:38,SNS-SOIL,Soil Moisture Sensor,Sensors,34,0.98,4.09,139.06,33.32,105.74,Makana,Marine,Purchase Order,830
+HI089-TX-0029,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 13:53:42,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.54,13.65,109.20,36.32,72.88,Keahi,Maker/Hobbyist,Purchase Order,28
+HI089-TX-0030,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 08:25:21,CAP-010,10uF Capacitor,Capacitors,24,0.09,0.37,8.88,2.16,6.72,Iolana,Tourism/Hospitality,ACH,238
+HI089-TX-0031,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 11:17:07,CAP-010,10uF Capacitor,Capacitors,33,0.09,0.36,11.88,2.97,8.91,Akamu,Government,ACH,423
+HI089-TX-0032,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 16:49:47,SNS-SOIL,Soil Moisture Sensor,Sensors,10,0.96,4.46,44.60,9.60,35.00,Noah,Government,Purchase Order,317
+HI089-TX-0033,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 10:39:58,USB-CBO,USB-C Breakout Board,Connectors,8,1.29,5.77,46.16,10.32,35.84,Kai,Tourism/Hospitality,Mobile Pay,217
+HI089-TX-0034,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 10:09:31,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,28,0.05,0.20,5.60,1.40,4.20,Malia,Tourism/Hospitality,Purchase Order,790
+HI089-TX-0035,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 09:13:11,SNS-PIR,PIR Motion Sensor,Sensors,2,1.59,5.63,11.26,3.18,8.08,Makana,Retail,Purchase Order,742
+HI089-TX-0036,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 14:43:22,LED-RED,5mm Red LED,LEDs,6,0.05,0.27,1.62,0.30,1.32,Koa,Maker/Hobbyist,Purchase Order,784
+HI089-TX-0037,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 17:35:28,SNS-SOIL,Soil Moisture Sensor,Sensors,18,1.00,4.34,78.12,18.00,60.12,Noah,Education,Debit Card,679
+HI089-TX-0038,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 15:46:41,CON-JMP,Jumper Wire Set,Connectors,26,0.90,4.04,105.04,23.40,81.64,Keanu,Marine,Debit Card,239
+HI089-TX-0039,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 13:20:56,SNS-SOIL,Soil Moisture Sensor,Sensors,33,0.94,4.53,149.49,31.02,118.47,Noelani,Marine,ACH,405
+HI089-TX-0040,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 16:59:08,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.29,9.19,9.19,3.29,5.90,Ikaika,Government,Credit Card,370
+HI089-TX-0041,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 09:33:43,CON-JMP,Jumper Wire Set,Connectors,17,0.99,3.80,64.60,16.83,47.77,Alika,Marine,Mobile Pay,729
+HI089-TX-0042,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 08:20:59,SNS-ULT,Ultrasonic Distance Sensor,Sensors,10,1.22,5.31,53.10,12.20,40.90,Nalu,Government,Mobile Pay,240
+HI089-TX-0043,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 08:34:19,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.21,8.93,53.58,19.26,34.32,Noelani,Maker/Hobbyist,Debit Card,813
+HI089-TX-0044,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 16:39:40,LED-RGB,RGB LED Strip,LEDs,1,5.14,14.30,14.30,5.14,9.16,Pualani,Tourism/Hospitality,Mobile Pay,63
+HI089-TX-0045,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 12:21:18,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.88,14.33,71.65,24.40,47.25,Iolana,Government,Mobile Pay,875
+HI089-TX-0046,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 17:36:13,CAP-010,10uF Capacitor,Capacitors,12,0.09,0.39,4.68,1.08,3.60,Pualani,Marine,ACH,652
+HI089-TX-0047,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 15:34:27,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.50,14.85,89.10,27.00,62.10,Lani,Maker/Hobbyist,Mobile Pay,639
+HI089-TX-0048,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 11:00:36,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.06,13.85,41.55,12.18,29.37,Akamu,Tourism/Hospitality,Mobile Pay,610
+HI089-TX-0049,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 13:35:04,SNS-SOIL,Soil Moisture Sensor,Sensors,21,0.88,4.40,92.40,18.48,73.92,Koa,Government,Purchase Order,879
+HI089-TX-0050,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 12:04:14,CON-JMP,Jumper Wire Set,Connectors,21,0.90,3.61,75.81,18.90,56.91,Akamu,Government,Debit Card,351
+HI089-TX-0051,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 10:47:42,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.49,12.68,25.36,8.98,16.38,Hana,Marine,Debit Card,33
+HI089-TX-0052,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 15:45:45,BAT-AAH,AA Battery Holder,Batteries,39,0.49,2.88,112.32,19.11,93.21,Ikaika,Tourism/Hospitality,Debit Card,130
+HI089-TX-0053,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 13:26:33,PWR-5V2,5V 2A Power Supply,Power,7,3.83,10.32,72.24,26.81,45.43,Malia,Government,Cash,290
+HI089-TX-0054,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 13:27:52,PWR-12V,12V 5A Power Supply,Power,1,9.41,24.84,24.84,9.41,15.43,Mika,Maker/Hobbyist,Cash,316
+HI089-TX-0055,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 08:43:52,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.49,7.91,63.28,19.92,43.36,Lani,Marine,Debit Card,149
+HI089-TX-0056,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 11:56:43,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.42,8.91,35.64,13.68,21.96,Leilani,Education,ACH,326
+HI089-TX-0057,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 09:58:50,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.75,14.33,114.64,38.00,76.64,Leilani,Tourism/Hospitality,Purchase Order,5
+HI089-TX-0058,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 08:26:31,PWR-5V2,5V 2A Power Supply,Power,4,3.78,11.42,45.68,15.12,30.56,Kaleo,Maker/Hobbyist,Mobile Pay,806
+HI089-TX-0059,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 16:30:35,SNS-SOIL,Soil Moisture Sensor,Sensors,13,1.00,4.31,56.03,13.00,43.03,Keahi,Marine,Credit Card,562
+HI089-TX-0060,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 16:38:18,LED-BLU,5mm Blue LED,LEDs,21,0.07,0.32,6.72,1.47,5.25,Keahi,Retail,ACH,535
+HI089-TX-0061,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 10:11:21,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.46,8.32,58.24,24.22,34.02,Akamu,Tourism/Hospitality,Mobile Pay,146
+HI089-TX-0062,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 11:14:15,SNS-PIR,PIR Motion Sensor,Sensors,3,1.55,5.96,17.88,4.65,13.23,Akamu,Education,ACH,762
+HI089-TX-0063,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 15:12:15,IC-555,NE555 Timer IC,Integrated Circuits,11,0.33,1.40,15.40,3.63,11.77,Keahi,Education,Credit Card,790
+HI089-TX-0064,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 12:08:02,IC-358,LM358 Op Amp,Integrated Circuits,3,0.30,1.15,3.45,0.90,2.55,Keanu,Education,Debit Card,520
+HI089-TX-0065,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 11:50:53,CON-JMP,Jumper Wire Set,Connectors,8,0.94,3.70,29.60,7.52,22.08,Makana,Education,Cash,888
+HI089-TX-0066,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 10:42:51,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.87,13.47,40.41,11.61,28.80,Lani,Government,ACH,676
+HI089-TX-0067,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 16:15:04,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,9.43,25.83,154.98,56.58,98.40,Alika,Retail,Credit Card,340
+HI089-TX-0068,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 15:21:47,ESP-32,ESP32 Dev Board,Microcontrollers,2,3.97,13.42,26.84,7.94,18.90,Iolana,Retail,Mobile Pay,166
+HI089-TX-0069,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 13:26:25,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.52,13.93,97.51,31.64,65.87,Iolana,Maker/Hobbyist,Mobile Pay,550
+HI089-TX-0070,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 10:35:01,RES-010,10k Ohm Resistor,Resistors,2,0.04,0.14,0.28,0.08,0.20,Koa,Education,Purchase Order,49
+HI089-TX-0071,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 12:24:58,BAT-LIPO,LiPo Battery Pack,Batteries,1,5.43,17.16,17.16,5.43,11.73,Koa,Retail,Debit Card,499
+HI089-TX-0072,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 15:45:27,MAR-TIN,Tinned Marine Wire,Marine Electronics,1,9.24,26.28,26.28,9.24,17.04,Hana,Marine,ACH,811
+HI089-TX-0073,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 09:16:40,PWR-12V,12V 5A Power Supply,Power,7,8.94,26.50,185.50,62.58,122.92,Noelani,Retail,Credit Card,354
+HI089-TX-0074,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 13:56:15,TOOL-WIRE,Wire Stripper,Tools,3,4.71,14.34,43.02,14.13,28.89,Noah,Education,Debit Card,701
+HI089-TX-0075,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 17:48:24,LED-RED,5mm Red LED,LEDs,23,0.06,0.28,6.44,1.38,5.06,Leilani,Marine,Mobile Pay,878
+HI089-TX-0076,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 11:51:43,TOOL-DMM,Digital Multimeter,Tools,5,9.19,27.44,137.20,45.95,91.25,Hana,Government,Purchase Order,2
+HI089-TX-0077,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 14:58:18,BRD-830,Breadboard 830 Tie Points,Connectors,6,1.57,6.76,40.56,9.42,31.14,Ikaika,Education,Mobile Pay,630
+HI089-TX-0078,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 09:32:57,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.43,14.72,88.32,26.58,61.74,Mika,Commercial,Mobile Pay,266
+HI089-TX-0079,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 15:59:40,TOOL-DMM,Digital Multimeter,Tools,1,9.08,25.72,25.72,9.08,16.64,Noelani,Retail,Purchase Order,19
+HI089-TX-0080,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 15:19:33,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,7.93,21.72,130.32,47.58,82.74,Lani,Tourism/Hospitality,Cash,665
+HI089-TX-0081,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 12:40:03,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.34,8.74,61.18,23.38,37.80,Mika,Tourism/Hospitality,Credit Card,448
+HI089-TX-0082,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 08:13:35,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.49,13.95,69.75,22.45,47.30,Akamu,Education,Purchase Order,523
+HI089-TX-0083,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 12:59:14,LED-BLU,5mm Blue LED,LEDs,24,0.06,0.31,7.44,1.44,6.00,Nalu,Marine,Credit Card,282
+HI089-TX-0084,HI089,Kona Industrial,Hawaii Island,HI,2026-06-30 17:04:52,RES-010,10k Ohm Resistor,Resistors,26,0.03,0.13,3.38,0.78,2.60,Kai,Marine,Cash,6

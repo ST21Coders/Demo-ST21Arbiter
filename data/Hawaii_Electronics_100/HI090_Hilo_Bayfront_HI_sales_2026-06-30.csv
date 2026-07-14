@@ -1,0 +1,62 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI090-TX-0001,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 08:41:01,USB-CBO,USB-C Breakout Board,Connectors,20,1.29,5.66,113.20,25.80,87.40,Kai,Retail,ACH,227
+HI090-TX-0002,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 13:07:45,PWR-5V2,5V 2A Power Supply,Power,7,3.47,11.43,80.01,24.29,55.72,Mika,Maker/Hobbyist,Debit Card,332
+HI090-TX-0003,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 13:43:15,SNS-DHT,DHT22 Temperature Sensor,Sensors,5,2.39,7.47,37.35,11.95,25.40,Keahi,Commercial,Mobile Pay,412
+HI090-TX-0004,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 08:54:04,SNS-SOIL,Soil Moisture Sensor,Sensors,6,0.98,4.38,26.28,5.88,20.40,Alika,Tourism/Hospitality,Purchase Order,329
+HI090-TX-0005,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 10:20:27,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.90,13.87,69.35,24.50,44.85,Hana,Commercial,Debit Card,810
+HI090-TX-0006,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 08:05:10,LED-RGB,RGB LED Strip,LEDs,6,5.11,14.79,88.74,30.66,58.08,Kai,Tourism/Hospitality,Debit Card,723
+HI090-TX-0007,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 14:58:49,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.14,34.56,207.36,60.84,146.52,Makana,Maker/Hobbyist,Debit Card,381
+HI090-TX-0008,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 14:05:55,SNS-DHT,DHT22 Temperature Sensor,Sensors,5,2.39,7.27,36.35,11.95,24.40,Nalu,Tourism/Hospitality,Cash,281
+HI090-TX-0009,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 16:35:31,SNS-SOIL,Soil Moisture Sensor,Sensors,9,0.89,4.50,40.50,8.01,32.49,Nalu,Education,Mobile Pay,845
+HI090-TX-0010,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 09:51:36,SNS-SOIL,Soil Moisture Sensor,Sensors,10,0.92,4.22,42.20,9.20,33.00,Noah,Tourism/Hospitality,Credit Card,540
+HI090-TX-0011,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 12:02:16,TR-3904,2N3904 NPN Transistor,Semiconductors,7,0.06,0.25,1.75,0.42,1.33,Makana,Marine,Debit Card,824
+HI090-TX-0012,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 09:03:09,LED-BLU,5mm Blue LED,LEDs,18,0.06,0.32,5.76,1.08,4.68,Lani,Government,ACH,119
+HI090-TX-0013,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 11:20:30,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.62,8.10,16.20,5.24,10.96,Pualani,Marine,Cash,339
+HI090-TX-0014,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 11:49:28,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.47,12.52,100.16,35.76,64.40,Mika,Maker/Hobbyist,ACH,279
+HI090-TX-0015,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 15:38:01,SNS-PIR,PIR Motion Sensor,Sensors,3,1.55,6.19,18.57,4.65,13.92,Leilani,Education,Cash,630
+HI090-TX-0016,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 12:42:16,DIO-4007,1N4007 Diode,Semiconductors,2,0.05,0.19,0.38,0.10,0.28,Alika,Retail,Mobile Pay,369
+HI090-TX-0017,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 10:06:11,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,8.62,21.09,21.09,8.62,12.47,Makana,Retail,ACH,293
+HI090-TX-0018,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 17:15:00,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.65,14.85,29.70,9.30,20.40,Lani,Retail,Credit Card,698
+HI090-TX-0019,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 08:45:33,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.14,8.22,41.10,15.70,25.40,Iolana,Retail,Mobile Pay,350
+HI090-TX-0020,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 17:24:51,LED-RGB,RGB LED Strip,LEDs,6,5.18,14.95,89.70,31.08,58.62,Noelani,Education,Mobile Pay,398
+HI090-TX-0021,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 09:39:45,TOOL-SOL,Soldering Iron Tips,Tools,4,2.05,7.94,31.76,8.20,23.56,Keahi,Education,Mobile Pay,678
+HI090-TX-0022,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 17:39:29,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,19,0.04,0.19,3.61,0.76,2.85,Keanu,Retail,ACH,112
+HI090-TX-0023,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 09:11:36,SNS-ULT,Ultrasonic Distance Sensor,Sensors,33,1.22,5.35,176.55,40.26,136.29,Ikaika,Tourism/Hospitality,Debit Card,595
+HI090-TX-0024,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 17:50:57,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.19,33.63,269.04,89.52,179.52,Koa,Tourism/Hospitality,ACH,444
+HI090-TX-0025,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 15:09:26,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.58,13.58,81.48,27.48,54.00,Keahi,Tourism/Hospitality,Purchase Order,515
+HI090-TX-0026,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 16:05:39,MAR-ANT,Marine Antenna Connector,Marine Electronics,5,3.72,14.36,71.80,18.60,53.20,Kai,Marine,Debit Card,355
+HI090-TX-0027,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 09:24:21,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.57,7.70,61.60,20.56,41.04,Koa,Maker/Hobbyist,Credit Card,60
+HI090-TX-0028,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 09:33:03,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.59,16.88,101.28,33.54,67.74,Ikaika,Commercial,ACH,250
+HI090-TX-0029,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 11:25:31,BAT-AAH,AA Battery Holder,Batteries,10,0.48,2.68,26.80,4.80,22.00,Ailani,Maker/Hobbyist,Mobile Pay,360
+HI090-TX-0030,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 09:28:28,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.46,6.23,6.23,1.46,4.77,Malia,Education,Debit Card,4
+HI090-TX-0031,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 12:40:50,LED-BLU,5mm Blue LED,LEDs,21,0.07,0.31,6.51,1.47,5.04,Leilani,Tourism/Hospitality,Cash,788
+HI090-TX-0032,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 15:48:42,MAR-ANT,Marine Antenna Connector,Marine Electronics,5,3.98,14.27,71.35,19.90,51.45,Iolana,Maker/Hobbyist,Debit Card,580
+HI090-TX-0033,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 10:11:29,PWR-12V,12V 5A Power Supply,Power,5,8.77,24.25,121.25,43.85,77.40,Kai,Education,ACH,200
+HI090-TX-0034,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 15:18:37,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.42,20.42,81.68,33.68,48.00,Noelani,Retail,Cash,467
+HI090-TX-0035,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 13:25:17,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,7.98,21.58,172.64,63.84,108.80,Keahi,Marine,Cash,333
+HI090-TX-0036,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 13:14:28,SNS-SOIL,Soil Moisture Sensor,Sensors,21,0.99,4.54,95.34,20.79,74.55,Ailani,Commercial,Debit Card,618
+HI090-TX-0037,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 14:48:56,SNS-SOIL,Soil Moisture Sensor,Sensors,11,0.90,4.37,48.07,9.90,38.17,Hana,Tourism/Hospitality,Cash,164
+HI090-TX-0038,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 08:37:55,BAT-AAH,AA Battery Holder,Batteries,34,0.51,2.59,88.06,17.34,70.72,Keahi,Maker/Hobbyist,Purchase Order,238
+HI090-TX-0039,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 09:17:03,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.25,31.85,127.40,41.00,86.40,Noelani,Commercial,Purchase Order,337
+HI090-TX-0040,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 09:14:36,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.24,13.26,66.30,21.20,45.10,Ikaika,Tourism/Hospitality,ACH,103
+HI090-TX-0041,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 10:02:56,REL-5V,5V Relay Module,Relays,13,0.98,5.23,67.99,12.74,55.25,Hana,Commercial,Debit Card,817
+HI090-TX-0042,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 14:17:30,SNS-DHT,DHT22 Temperature Sensor,Sensors,5,2.49,7.50,37.50,12.45,25.05,Leilani,Retail,Debit Card,560
+HI090-TX-0043,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 16:46:08,PWR-BUCK,Buck Converter Module,Power,19,1.11,5.05,95.95,21.09,74.86,Ailani,Commercial,Credit Card,209
+HI090-TX-0044,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 09:45:25,SNS-SOIL,Soil Moisture Sensor,Sensors,35,0.98,4.45,155.75,34.30,121.45,Ailani,Marine,Cash,223
+HI090-TX-0045,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 10:58:50,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.50,34.26,274.08,92.00,182.08,Pualani,Marine,Debit Card,43
+HI090-TX-0046,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 16:24:51,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,5.00,14.74,88.44,30.00,58.44,Leilani,Marine,Credit Card,104
+HI090-TX-0047,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 09:45:05,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.45,13.79,13.79,4.45,9.34,Nalu,Maker/Hobbyist,Cash,615
+HI090-TX-0048,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 15:41:27,REL-5V,5V Relay Module,Relays,9,0.89,5.71,51.39,8.01,43.38,Leilani,Education,ACH,193
+HI090-TX-0049,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 16:27:51,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.55,14.47,28.94,9.10,19.84,Noelani,Maker/Hobbyist,Purchase Order,846
+HI090-TX-0050,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 10:47:54,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.07,9.03,36.12,12.28,23.84,Kaleo,Education,Cash,109
+HI090-TX-0051,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 11:42:04,SNS-PIR,PIR Motion Sensor,Sensors,6,1.46,5.83,34.98,8.76,26.22,Malia,Commercial,Cash,717
+HI090-TX-0052,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 10:31:02,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.86,14.26,28.52,9.72,18.80,Kai,Retail,Debit Card,790
+HI090-TX-0053,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 16:12:02,PWR-BUCK,Buck Converter Module,Power,32,1.10,5.10,163.20,35.20,128.00,Alika,Government,Mobile Pay,150
+HI090-TX-0054,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 17:17:28,SNS-ULT,Ultrasonic Distance Sensor,Sensors,19,1.30,5.42,102.98,24.70,78.28,Keahi,Maker/Hobbyist,Purchase Order,269
+HI090-TX-0055,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 13:56:28,LED-RED,5mm Red LED,LEDs,26,0.05,0.26,6.76,1.30,5.46,Keanu,Maker/Hobbyist,ACH,98
+HI090-TX-0056,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 15:06:39,SOL-CTRL,Solar Charge Controller,Solar Power,5,10.56,31.18,155.90,52.80,103.10,Makana,Marine,Mobile Pay,900
+HI090-TX-0057,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 11:37:18,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.41,21.53,86.12,33.64,52.48,Ikaika,Education,Mobile Pay,214
+HI090-TX-0058,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 08:35:25,LED-RED,5mm Red LED,LEDs,40,0.06,0.29,11.60,2.40,9.20,Kai,Marine,Cash,281
+HI090-TX-0059,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 17:42:55,PWR-12V,12V 5A Power Supply,Power,3,8.83,26.19,78.57,26.49,52.08,Koa,Marine,Mobile Pay,77
+HI090-TX-0060,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 14:31:59,SNS-DHT,DHT22 Temperature Sensor,Sensors,4,2.62,7.20,28.80,10.48,18.32,Mika,Maker/Hobbyist,Credit Card,564
+HI090-TX-0061,HI090,Hilo Bayfront,Hawaii Island,HI,2026-06-30 17:27:02,TR-3904,2N3904 NPN Transistor,Semiconductors,21,0.05,0.23,4.83,1.05,3.78,Ikaika,Marine,Cash,161

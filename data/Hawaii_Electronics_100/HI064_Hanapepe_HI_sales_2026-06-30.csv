@@ -1,0 +1,98 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI064-TX-0001,HI064,Hanapepe,Kauai,HI,2026-06-30 09:14:24,IC-358,LM358 Op Amp,Integrated Circuits,33,0.30,1.19,39.27,9.90,29.37,Pualani,Maker/Hobbyist,ACH,817
+HI064-TX-0002,HI064,Hanapepe,Kauai,HI,2026-06-30 09:40:07,SNS-ULT,Ultrasonic Distance Sensor,Sensors,30,1.21,5.48,164.40,36.30,128.10,Akamu,Retail,ACH,235
+HI064-TX-0003,HI064,Hanapepe,Kauai,HI,2026-06-30 11:13:46,SOL-CTRL,Solar Charge Controller,Solar Power,5,10.20,30.87,154.35,51.00,103.35,Alika,Government,Cash,282
+HI064-TX-0004,HI064,Hanapepe,Kauai,HI,2026-06-30 16:24:41,TR-3904,2N3904 NPN Transistor,Semiconductors,27,0.05,0.25,6.75,1.35,5.40,Malia,Marine,Debit Card,271
+HI064-TX-0005,HI064,Hanapepe,Kauai,HI,2026-06-30 10:38:15,IC-358,LM358 Op Amp,Integrated Circuits,17,0.29,1.19,20.23,4.93,15.30,Noah,Marine,Cash,207
+HI064-TX-0006,HI064,Hanapepe,Kauai,HI,2026-06-30 11:48:21,PWR-BUCK,Buck Converter Module,Power,39,1.03,4.81,187.59,40.17,147.42,Iolana,Tourism/Hospitality,Debit Card,391
+HI064-TX-0007,HI064,Hanapepe,Kauai,HI,2026-06-30 14:10:45,TOOL-WIRE,Wire Stripper,Tools,4,4.77,16.00,64.00,19.08,44.92,Nalu,Tourism/Hospitality,Purchase Order,497
+HI064-TX-0008,HI064,Hanapepe,Kauai,HI,2026-06-30 14:38:06,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,7.95,21.51,43.02,15.90,27.12,Koa,Marine,Debit Card,811
+HI064-TX-0009,HI064,Hanapepe,Kauai,HI,2026-06-30 13:30:37,CAP-100,100uF Capacitor,Capacitors,29,0.17,0.63,18.27,4.93,13.34,Kaleo,Commercial,Cash,807
+HI064-TX-0010,HI064,Hanapepe,Kauai,HI,2026-06-30 10:30:01,IC-REG,7805 Voltage Regulator,Integrated Circuits,23,0.19,0.98,22.54,4.37,18.17,Hana,Maker/Hobbyist,Cash,267
+HI064-TX-0011,HI064,Hanapepe,Kauai,HI,2026-06-30 12:51:42,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.46,6.50,52.00,11.68,40.32,Malia,Retail,ACH,615
+HI064-TX-0012,HI064,Hanapepe,Kauai,HI,2026-06-30 12:05:37,RES-001,1k Ohm Resistor,Resistors,8,0.03,0.13,1.04,0.24,0.80,Lani,Retail,Cash,415
+HI064-TX-0013,HI064,Hanapepe,Kauai,HI,2026-06-30 15:22:18,ESP-32,ESP32 Dev Board,Microcontrollers,7,3.99,12.77,89.39,27.93,61.46,Kai,Government,Credit Card,29
+HI064-TX-0014,HI064,Hanapepe,Kauai,HI,2026-06-30 13:38:48,SNS-SOIL,Soil Moisture Sensor,Sensors,10,1.00,4.20,42.00,10.00,32.00,Nalu,Maker/Hobbyist,Mobile Pay,550
+HI064-TX-0015,HI064,Hanapepe,Kauai,HI,2026-06-30 13:07:03,DIO-4007,1N4007 Diode,Semiconductors,25,0.05,0.19,4.75,1.25,3.50,Lani,Retail,Cash,150
+HI064-TX-0016,HI064,Hanapepe,Kauai,HI,2026-06-30 14:53:01,MOS-44N,IRFZ44N MOSFET,Semiconductors,14,0.60,2.42,33.88,8.40,25.48,Akamu,Commercial,ACH,857
+HI064-TX-0017,HI064,Hanapepe,Kauai,HI,2026-06-30 12:32:23,TR-3904,2N3904 NPN Transistor,Semiconductors,19,0.06,0.22,4.18,1.14,3.04,Lani,Retail,ACH,240
+HI064-TX-0018,HI064,Hanapepe,Kauai,HI,2026-06-30 12:06:56,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.76,14.40,14.40,3.76,10.64,Keanu,Retail,Credit Card,380
+HI064-TX-0019,HI064,Hanapepe,Kauai,HI,2026-06-30 16:15:50,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,7.91,21.36,42.72,15.82,26.90,Ailani,Education,Mobile Pay,50
+HI064-TX-0020,HI064,Hanapepe,Kauai,HI,2026-06-30 13:19:21,SOL-CTRL,Solar Charge Controller,Solar Power,2,10.89,32.64,65.28,21.78,43.50,Kaleo,Commercial,Debit Card,586
+HI064-TX-0021,HI064,Hanapepe,Kauai,HI,2026-06-30 11:02:01,PWR-12V,12V 5A Power Supply,Power,5,9.61,23.89,119.45,48.05,71.40,Pualani,Marine,Credit Card,116
+HI064-TX-0022,HI064,Hanapepe,Kauai,HI,2026-06-30 11:54:14,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.11,34.01,238.07,70.77,167.30,Makana,Education,Credit Card,585
+HI064-TX-0023,HI064,Hanapepe,Kauai,HI,2026-06-30 15:09:05,LED-BLU,5mm Blue LED,LEDs,21,0.07,0.32,6.72,1.47,5.25,Hana,Commercial,ACH,823
+HI064-TX-0024,HI064,Hanapepe,Kauai,HI,2026-06-30 13:51:26,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.69,15.05,45.15,11.07,34.08,Kai,Commercial,ACH,478
+HI064-TX-0025,HI064,Hanapepe,Kauai,HI,2026-06-30 10:13:39,TOOL-SOL,Soldering Iron Tips,Tools,3,1.92,7.38,22.14,5.76,16.38,Ailani,Government,Debit Card,874
+HI064-TX-0026,HI064,Hanapepe,Kauai,HI,2026-06-30 12:15:50,IC-REG,7805 Voltage Regulator,Integrated Circuits,16,0.21,0.97,15.52,3.36,12.16,Keanu,Commercial,Purchase Order,729
+HI064-TX-0027,HI064,Hanapepe,Kauai,HI,2026-06-30 10:24:07,MOS-44N,IRFZ44N MOSFET,Semiconductors,25,0.64,2.45,61.25,16.00,45.25,Hana,Commercial,Credit Card,475
+HI064-TX-0028,HI064,Hanapepe,Kauai,HI,2026-06-30 15:28:07,BAT-LIPO,LiPo Battery Pack,Batteries,7,5.05,15.54,108.78,35.35,73.43,Nalu,Government,Credit Card,734
+HI064-TX-0029,HI064,Hanapepe,Kauai,HI,2026-06-30 13:50:56,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,8.90,28.56,228.48,71.20,157.28,Alika,Commercial,Purchase Order,157
+HI064-TX-0030,HI064,Hanapepe,Kauai,HI,2026-06-30 10:42:37,RES-001,1k Ohm Resistor,Resistors,1,0.03,0.13,0.13,0.03,0.10,Ailani,Maker/Hobbyist,Cash,99
+HI064-TX-0031,HI064,Hanapepe,Kauai,HI,2026-06-30 16:16:32,PWR-BUCK,Buck Converter Module,Power,17,1.00,4.60,78.20,17.00,61.20,Pualani,Retail,Cash,744
+HI064-TX-0032,HI064,Hanapepe,Kauai,HI,2026-06-30 17:20:47,REL-5V,5V Relay Module,Relays,25,0.91,5.25,131.25,22.75,108.50,Keahi,Education,ACH,834
+HI064-TX-0033,HI064,Hanapepe,Kauai,HI,2026-06-30 12:15:18,RES-001,1k Ohm Resistor,Resistors,32,0.03,0.13,4.16,0.96,3.20,Akamu,Tourism/Hospitality,Debit Card,633
+HI064-TX-0034,HI064,Hanapepe,Kauai,HI,2026-06-30 10:07:15,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,9.04,27.50,165.00,54.24,110.76,Nalu,Commercial,Purchase Order,77
+HI064-TX-0035,HI064,Hanapepe,Kauai,HI,2026-06-30 12:20:59,PWR-12V,12V 5A Power Supply,Power,3,9.28,26.58,79.74,27.84,51.90,Mika,Commercial,Cash,186
+HI064-TX-0036,HI064,Hanapepe,Kauai,HI,2026-06-30 12:45:00,PWR-12V,12V 5A Power Supply,Power,1,9.53,26.54,26.54,9.53,17.01,Alika,Maker/Hobbyist,ACH,454
+HI064-TX-0037,HI064,Hanapepe,Kauai,HI,2026-06-30 14:59:42,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,8.76,28.09,196.63,61.32,135.31,Leilani,Retail,Cash,495
+HI064-TX-0038,HI064,Hanapepe,Kauai,HI,2026-06-30 16:32:58,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.57,6.15,18.45,4.71,13.74,Makana,Commercial,Purchase Order,622
+HI064-TX-0039,HI064,Hanapepe,Kauai,HI,2026-06-30 17:46:41,CON-JMP,Jumper Wire Set,Connectors,5,0.91,3.86,19.30,4.55,14.75,Hana,Marine,Debit Card,485
+HI064-TX-0040,HI064,Hanapepe,Kauai,HI,2026-06-30 15:40:39,CAP-010,10uF Capacitor,Capacitors,36,0.09,0.36,12.96,3.24,9.72,Hana,Education,Credit Card,787
+HI064-TX-0041,HI064,Hanapepe,Kauai,HI,2026-06-30 16:03:45,PWR-5V2,5V 2A Power Supply,Power,4,3.45,10.78,43.12,13.80,29.32,Hana,Education,Cash,887
+HI064-TX-0042,HI064,Hanapepe,Kauai,HI,2026-06-30 08:02:40,PWR-12V,12V 5A Power Supply,Power,3,9.81,24.80,74.40,29.43,44.97,Kai,Government,Purchase Order,119
+HI064-TX-0043,HI064,Hanapepe,Kauai,HI,2026-06-30 10:19:44,CON-JMP,Jumper Wire Set,Connectors,8,0.96,3.81,30.48,7.68,22.80,Keanu,Marine,Cash,568
+HI064-TX-0044,HI064,Hanapepe,Kauai,HI,2026-06-30 08:01:20,CAP-100,100uF Capacitor,Capacitors,32,0.17,0.61,19.52,5.44,14.08,Hana,Government,ACH,785
+HI064-TX-0045,HI064,Hanapepe,Kauai,HI,2026-06-30 12:42:13,IC-555,NE555 Timer IC,Integrated Circuits,38,0.38,1.34,50.92,14.44,36.48,Keahi,Maker/Hobbyist,Credit Card,658
+HI064-TX-0046,HI064,Hanapepe,Kauai,HI,2026-06-30 13:07:08,PWR-5V2,5V 2A Power Supply,Power,5,3.45,10.37,51.85,17.25,34.60,Nalu,Tourism/Hospitality,Mobile Pay,371
+HI064-TX-0047,HI064,Hanapepe,Kauai,HI,2026-06-30 10:15:15,PWR-12V,12V 5A Power Supply,Power,4,9.17,23.66,94.64,36.68,57.96,Nalu,Marine,Debit Card,139
+HI064-TX-0048,HI064,Hanapepe,Kauai,HI,2026-06-30 10:18:11,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,11,0.04,0.19,2.09,0.44,1.65,Ikaika,Marine,Purchase Order,290
+HI064-TX-0049,HI064,Hanapepe,Kauai,HI,2026-06-30 08:54:46,BRD-830,Breadboard 830 Tie Points,Connectors,6,1.48,6.79,40.74,8.88,31.86,Noah,Education,Debit Card,808
+HI064-TX-0050,HI064,Hanapepe,Kauai,HI,2026-06-30 11:23:08,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.47,7.55,60.40,19.76,40.64,Koa,Education,Debit Card,2
+HI064-TX-0051,HI064,Hanapepe,Kauai,HI,2026-06-30 17:12:31,RES-010,10k Ohm Resistor,Resistors,32,0.03,0.13,4.16,0.96,3.20,Ailani,Marine,Debit Card,844
+HI064-TX-0052,HI064,Hanapepe,Kauai,HI,2026-06-30 14:17:37,SNS-SOIL,Soil Moisture Sensor,Sensors,17,0.89,4.35,73.95,15.13,58.82,Iolana,Commercial,Debit Card,466
+HI064-TX-0053,HI064,Hanapepe,Kauai,HI,2026-06-30 12:24:29,PWR-12V,12V 5A Power Supply,Power,1,9.41,26.43,26.43,9.41,17.02,Ailani,Marine,Cash,150
+HI064-TX-0054,HI064,Hanapepe,Kauai,HI,2026-06-30 17:50:30,USB-CBO,USB-C Breakout Board,Connectors,6,1.33,5.45,32.70,7.98,24.72,Keahi,Government,Credit Card,737
+HI064-TX-0055,HI064,Hanapepe,Kauai,HI,2026-06-30 16:55:04,CAP-010,10uF Capacitor,Capacitors,10,0.09,0.40,4.00,0.90,3.10,Akamu,Marine,Cash,457
+HI064-TX-0056,HI064,Hanapepe,Kauai,HI,2026-06-30 14:53:00,SOL-CTRL,Solar Charge Controller,Solar Power,3,10.41,31.68,95.04,31.23,63.81,Ailani,Tourism/Hospitality,Purchase Order,414
+HI064-TX-0057,HI064,Hanapepe,Kauai,HI,2026-06-30 13:37:46,MAR-ANT,Marine Antenna Connector,Marine Electronics,5,3.66,13.67,68.35,18.30,50.05,Malia,Commercial,Mobile Pay,480
+HI064-TX-0058,HI064,Hanapepe,Kauai,HI,2026-06-30 09:32:47,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.93,13.65,54.60,15.72,38.88,Keanu,Commercial,Purchase Order,500
+HI064-TX-0059,HI064,Hanapepe,Kauai,HI,2026-06-30 11:50:43,LED-BLU,5mm Blue LED,LEDs,37,0.07,0.32,11.84,2.59,9.25,Ailani,Tourism/Hospitality,ACH,212
+HI064-TX-0060,HI064,Hanapepe,Kauai,HI,2026-06-30 13:27:04,PWR-12V,12V 5A Power Supply,Power,7,8.95,25.34,177.38,62.65,114.73,Kai,Tourism/Hospitality,ACH,872
+HI064-TX-0061,HI064,Hanapepe,Kauai,HI,2026-06-30 17:56:34,PWR-BUCK,Buck Converter Module,Power,25,1.01,5.01,125.25,25.25,100.00,Iolana,Commercial,Mobile Pay,104
+HI064-TX-0062,HI064,Hanapepe,Kauai,HI,2026-06-30 11:01:35,PWR-BUCK,Buck Converter Module,Power,15,1.10,5.19,77.85,16.50,61.35,Malia,Government,Debit Card,498
+HI064-TX-0063,HI064,Hanapepe,Kauai,HI,2026-06-30 10:08:58,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,8.86,27.94,223.52,70.88,152.64,Mika,Tourism/Hospitality,Mobile Pay,24
+HI064-TX-0064,HI064,Hanapepe,Kauai,HI,2026-06-30 10:50:45,PWR-12V,12V 5A Power Supply,Power,2,9.77,26.21,52.42,19.54,32.88,Ailani,Tourism/Hospitality,Debit Card,421
+HI064-TX-0065,HI064,Hanapepe,Kauai,HI,2026-06-30 13:27:37,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.32,30.74,184.44,61.92,122.52,Alika,Maker/Hobbyist,Purchase Order,430
+HI064-TX-0066,HI064,Hanapepe,Kauai,HI,2026-06-30 14:31:16,PWR-BUCK,Buck Converter Module,Power,27,0.98,4.89,132.03,26.46,105.57,Kaleo,Commercial,Purchase Order,620
+HI064-TX-0067,HI064,Hanapepe,Kauai,HI,2026-06-30 13:39:04,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,20,0.04,0.19,3.80,0.80,3.00,Keanu,Tourism/Hospitality,Cash,51
+HI064-TX-0068,HI064,Hanapepe,Kauai,HI,2026-06-30 12:28:37,TOOL-SOL,Soldering Iron Tips,Tools,8,2.04,7.99,63.92,16.32,47.60,Alika,Marine,Credit Card,74
+HI064-TX-0069,HI064,Hanapepe,Kauai,HI,2026-06-30 13:03:03,PWR-12V,12V 5A Power Supply,Power,3,10.02,24.31,72.93,30.06,42.87,Kai,Marine,Mobile Pay,199
+HI064-TX-0070,HI064,Hanapepe,Kauai,HI,2026-06-30 09:03:58,PWR-BUCK,Buck Converter Module,Power,1,1.04,4.93,4.93,1.04,3.89,Pualani,Retail,Credit Card,328
+HI064-TX-0071,HI064,Hanapepe,Kauai,HI,2026-06-30 10:08:15,SNS-ULT,Ultrasonic Distance Sensor,Sensors,8,1.27,5.76,46.08,10.16,35.92,Alika,Commercial,Credit Card,478
+HI064-TX-0072,HI064,Hanapepe,Kauai,HI,2026-06-30 09:35:04,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,9.01,27.95,223.60,72.08,151.52,Alika,Tourism/Hospitality,Debit Card,137
+HI064-TX-0073,HI064,Hanapepe,Kauai,HI,2026-06-30 13:54:17,USB-CBO,USB-C Breakout Board,Connectors,37,1.29,5.57,206.09,47.73,158.36,Kai,Education,Purchase Order,278
+HI064-TX-0074,HI064,Hanapepe,Kauai,HI,2026-06-30 08:22:57,LED-BLU,5mm Blue LED,LEDs,20,0.07,0.35,7.00,1.40,5.60,Lani,Commercial,Cash,818
+HI064-TX-0075,HI064,Hanapepe,Kauai,HI,2026-06-30 15:40:04,PWR-12V,12V 5A Power Supply,Power,6,9.42,25.85,155.10,56.52,98.58,Leilani,Retail,Purchase Order,292
+HI064-TX-0076,HI064,Hanapepe,Kauai,HI,2026-06-30 13:14:41,USB-CBO,USB-C Breakout Board,Connectors,7,1.47,5.43,38.01,10.29,27.72,Ikaika,Government,Mobile Pay,97
+HI064-TX-0077,HI064,Hanapepe,Kauai,HI,2026-06-30 10:50:09,SOL-CTRL,Solar Charge Controller,Solar Power,4,11.37,32.83,131.32,45.48,85.84,Makana,Education,Debit Card,250
+HI064-TX-0078,HI064,Hanapepe,Kauai,HI,2026-06-30 10:20:25,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,9.30,27.86,195.02,65.10,129.92,Akamu,Government,Mobile Pay,830
+HI064-TX-0079,HI064,Hanapepe,Kauai,HI,2026-06-30 12:22:22,SNS-DHT,DHT22 Temperature Sensor,Sensors,4,2.50,7.90,31.60,10.00,21.60,Keahi,Maker/Hobbyist,ACH,773
+HI064-TX-0080,HI064,Hanapepe,Kauai,HI,2026-06-30 12:01:39,SOL-CTRL,Solar Charge Controller,Solar Power,1,11.20,34.03,34.03,11.20,22.83,Lani,Marine,ACH,557
+HI064-TX-0081,HI064,Hanapepe,Kauai,HI,2026-06-30 11:32:01,TOOL-DMM,Digital Multimeter,Tools,5,9.13,28.49,142.45,45.65,96.80,Leilani,Tourism/Hospitality,Credit Card,560
+HI064-TX-0082,HI064,Hanapepe,Kauai,HI,2026-06-30 15:58:35,RES-220,220 Ohm Resistor,Resistors,14,0.03,0.13,1.82,0.42,1.40,Leilani,Government,Mobile Pay,865
+HI064-TX-0083,HI064,Hanapepe,Kauai,HI,2026-06-30 08:44:17,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,8.88,26.36,184.52,62.16,122.36,Ikaika,Commercial,Purchase Order,721
+HI064-TX-0084,HI064,Hanapepe,Kauai,HI,2026-06-30 13:23:25,MOS-44N,IRFZ44N MOSFET,Semiconductors,26,0.61,2.41,62.66,15.86,46.80,Keanu,Tourism/Hospitality,Mobile Pay,540
+HI064-TX-0085,HI064,Hanapepe,Kauai,HI,2026-06-30 11:45:52,TOOL-WIRE,Wire Stripper,Tools,4,5.11,15.10,60.40,20.44,39.96,Iolana,Education,Debit Card,737
+HI064-TX-0086,HI064,Hanapepe,Kauai,HI,2026-06-30 14:12:16,PWR-5V2,5V 2A Power Supply,Power,5,3.83,11.07,55.35,19.15,36.20,Ailani,Maker/Hobbyist,Purchase Order,214
+HI064-TX-0087,HI064,Hanapepe,Kauai,HI,2026-06-30 10:02:40,DIO-4007,1N4007 Diode,Semiconductors,30,0.04,0.19,5.70,1.20,4.50,Noah,Education,Credit Card,484
+HI064-TX-0088,HI064,Hanapepe,Kauai,HI,2026-06-30 12:13:21,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,9.08,28.73,172.38,54.48,117.90,Pualani,Government,Mobile Pay,42
+HI064-TX-0089,HI064,Hanapepe,Kauai,HI,2026-06-30 15:21:01,RES-010,10k Ohm Resistor,Resistors,34,0.03,0.12,4.08,1.02,3.06,Noelani,Tourism/Hospitality,Purchase Order,512
+HI064-TX-0090,HI064,Hanapepe,Kauai,HI,2026-06-30 17:06:57,PWR-12V,12V 5A Power Supply,Power,3,8.80,23.56,70.68,26.40,44.28,Pualani,Commercial,Cash,541
+HI064-TX-0091,HI064,Hanapepe,Kauai,HI,2026-06-30 12:24:12,DIO-4007,1N4007 Diode,Semiconductors,22,0.04,0.20,4.40,0.88,3.52,Malia,Government,ACH,706
+HI064-TX-0092,HI064,Hanapepe,Kauai,HI,2026-06-30 10:06:19,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.99,13.78,96.46,27.93,68.53,Noelani,Marine,ACH,216
+HI064-TX-0093,HI064,Hanapepe,Kauai,HI,2026-06-30 08:37:45,MAR-TIN,Tinned Marine Wire,Marine Electronics,3,9.42,27.17,81.51,28.26,53.25,Koa,Tourism/Hospitality,Credit Card,52
+HI064-TX-0094,HI064,Hanapepe,Kauai,HI,2026-06-30 08:28:29,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,9.44,26.99,215.92,75.52,140.40,Iolana,Maker/Hobbyist,Mobile Pay,338
+HI064-TX-0095,HI064,Hanapepe,Kauai,HI,2026-06-30 12:23:58,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.31,13.20,13.20,4.31,8.89,Makana,Maker/Hobbyist,Cash,682
+HI064-TX-0096,HI064,Hanapepe,Kauai,HI,2026-06-30 15:24:34,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,7.95,21.31,149.17,55.65,93.52,Mika,Tourism/Hospitality,Credit Card,146
+HI064-TX-0097,HI064,Hanapepe,Kauai,HI,2026-06-30 13:58:31,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.65,15.00,75.00,23.25,51.75,Kai,Education,Cash,65

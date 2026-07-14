@@ -1,0 +1,61 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI038-TX-0001,HI038,Haiku,Maui,HI,2026-06-30 17:59:11,PWR-5V2,5V 2A Power Supply,Power,6,3.81,11.53,69.18,22.86,46.32,Leilani,Tourism/Hospitality,Credit Card,78
+HI038-TX-0002,HI038,Haiku,Maui,HI,2026-06-30 13:17:42,SOL-CTRL,Solar Charge Controller,Solar Power,2,11.13,31.62,63.24,22.26,40.98,Ailani,Education,Purchase Order,781
+HI038-TX-0003,HI038,Haiku,Maui,HI,2026-06-30 14:52:14,BAT-LIPO,LiPo Battery Pack,Batteries,4,5.24,15.96,63.84,20.96,42.88,Keahi,Retail,Debit Card,211
+HI038-TX-0004,HI038,Haiku,Maui,HI,2026-06-30 15:12:14,PWR-12V,12V 5A Power Supply,Power,2,8.77,26.64,53.28,17.54,35.74,Koa,Marine,Credit Card,64
+HI038-TX-0005,HI038,Haiku,Maui,HI,2026-06-30 14:35:48,LED-BLU,5mm Blue LED,LEDs,39,0.07,0.31,12.09,2.73,9.36,Koa,Education,Debit Card,596
+HI038-TX-0006,HI038,Haiku,Maui,HI,2026-06-30 13:58:45,PWR-12V,12V 5A Power Supply,Power,1,9.48,24.37,24.37,9.48,14.89,Keahi,Commercial,Credit Card,673
+HI038-TX-0007,HI038,Haiku,Maui,HI,2026-06-30 11:14:03,LED-RGB,RGB LED Strip,LEDs,3,5.25,13.76,41.28,15.75,25.53,Noah,Tourism/Hospitality,Credit Card,144
+HI038-TX-0008,HI038,Haiku,Maui,HI,2026-06-30 14:20:19,BAT-LIPO,LiPo Battery Pack,Batteries,6,4.95,15.82,94.92,29.70,65.22,Noelani,Education,Cash,884
+HI038-TX-0009,HI038,Haiku,Maui,HI,2026-06-30 09:24:10,TOOL-SOL,Soldering Iron Tips,Tools,1,2.04,7.93,7.93,2.04,5.89,Noah,Commercial,ACH,442
+HI038-TX-0010,HI038,Haiku,Maui,HI,2026-06-30 14:05:42,LED-BLU,5mm Blue LED,LEDs,33,0.07,0.34,11.22,2.31,8.91,Malia,Tourism/Hospitality,Credit Card,555
+HI038-TX-0011,HI038,Haiku,Maui,HI,2026-06-30 12:51:31,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.26,16.62,33.24,10.52,22.72,Nalu,Retail,Credit Card,409
+HI038-TX-0012,HI038,Haiku,Maui,HI,2026-06-30 09:04:31,IC-REG,7805 Voltage Regulator,Integrated Circuits,19,0.20,0.88,16.72,3.80,12.92,Keanu,Marine,Debit Card,840
+HI038-TX-0013,HI038,Haiku,Maui,HI,2026-06-30 15:56:15,LED-RGB,RGB LED Strip,LEDs,3,5.21,13.93,41.79,15.63,26.16,Nalu,Maker/Hobbyist,Cash,658
+HI038-TX-0014,HI038,Haiku,Maui,HI,2026-06-30 09:29:27,RES-001,1k Ohm Resistor,Resistors,38,0.03,0.12,4.56,1.14,3.42,Noelani,Commercial,Cash,244
+HI038-TX-0015,HI038,Haiku,Maui,HI,2026-06-30 17:33:51,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.37,12.49,37.47,13.11,24.36,Iolana,Education,Credit Card,642
+HI038-TX-0016,HI038,Haiku,Maui,HI,2026-06-30 09:29:57,SOL-CTRL,Solar Charge Controller,Solar Power,5,11.07,32.78,163.90,55.35,108.55,Lani,Commercial,Cash,612
+HI038-TX-0017,HI038,Haiku,Maui,HI,2026-06-30 10:10:07,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.48,8.54,17.08,6.96,10.12,Lani,Commercial,ACH,171
+HI038-TX-0018,HI038,Haiku,Maui,HI,2026-06-30 10:07:02,SNS-DHT,DHT22 Temperature Sensor,Sensors,1,2.64,7.66,7.66,2.64,5.02,Kai,Education,Debit Card,358
+HI038-TX-0019,HI038,Haiku,Maui,HI,2026-06-30 14:44:56,RES-220,220 Ohm Resistor,Resistors,34,0.03,0.13,4.42,1.02,3.40,Koa,Education,Mobile Pay,222
+HI038-TX-0020,HI038,Haiku,Maui,HI,2026-06-30 12:44:09,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.56,13.31,53.24,18.24,35.00,Akamu,Commercial,Purchase Order,13
+HI038-TX-0021,HI038,Haiku,Maui,HI,2026-06-30 08:39:18,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.37,16.31,32.62,10.74,21.88,Koa,Government,Credit Card,491
+HI038-TX-0022,HI038,Haiku,Maui,HI,2026-06-30 11:37:20,DIO-4007,1N4007 Diode,Semiconductors,37,0.05,0.19,7.03,1.85,5.18,Lani,Retail,Purchase Order,360
+HI038-TX-0023,HI038,Haiku,Maui,HI,2026-06-30 16:45:18,IC-555,NE555 Timer IC,Integrated Circuits,21,0.35,1.44,30.24,7.35,22.89,Koa,Education,Mobile Pay,604
+HI038-TX-0024,HI038,Haiku,Maui,HI,2026-06-30 13:20:12,LED-BLU,5mm Blue LED,LEDs,25,0.06,0.32,8.00,1.50,6.50,Leilani,Government,ACH,438
+HI038-TX-0025,HI038,Haiku,Maui,HI,2026-06-30 11:07:01,SNS-ULT,Ultrasonic Distance Sensor,Sensors,1,1.26,5.45,5.45,1.26,4.19,Ailani,Education,Purchase Order,680
+HI038-TX-0026,HI038,Haiku,Maui,HI,2026-06-30 13:26:23,BAT-AAH,AA Battery Holder,Batteries,12,0.52,2.64,31.68,6.24,25.44,Kaleo,Retail,Debit Card,858
+HI038-TX-0027,HI038,Haiku,Maui,HI,2026-06-30 09:28:54,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.49,6.93,55.44,11.92,43.52,Nalu,Commercial,ACH,66
+HI038-TX-0028,HI038,Haiku,Maui,HI,2026-06-30 11:05:36,BAT-LIPO,LiPo Battery Pack,Batteries,6,4.97,15.38,92.28,29.82,62.46,Malia,Retail,ACH,455
+HI038-TX-0029,HI038,Haiku,Maui,HI,2026-06-30 16:41:46,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.28,15.38,30.76,10.56,20.20,Ailani,Education,Purchase Order,470
+HI038-TX-0030,HI038,Haiku,Maui,HI,2026-06-30 09:08:05,BAT-LIPO,LiPo Battery Pack,Batteries,3,5.02,16.25,48.75,15.06,33.69,Akamu,Retail,Purchase Order,44
+HI038-TX-0031,HI038,Haiku,Maui,HI,2026-06-30 13:19:39,MOS-44N,IRFZ44N MOSFET,Semiconductors,18,0.64,2.43,43.74,11.52,32.22,Hana,Government,Debit Card,544
+HI038-TX-0032,HI038,Haiku,Maui,HI,2026-06-30 17:19:18,USB-CBO,USB-C Breakout Board,Connectors,2,1.36,5.65,11.30,2.72,8.58,Leilani,Retail,Cash,45
+HI038-TX-0033,HI038,Haiku,Maui,HI,2026-06-30 14:59:57,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.17,20.84,62.52,24.51,38.01,Makana,Maker/Hobbyist,Credit Card,838
+HI038-TX-0034,HI038,Haiku,Maui,HI,2026-06-30 17:13:05,RES-001,1k Ohm Resistor,Resistors,28,0.03,0.12,3.36,0.84,2.52,Alika,Commercial,ACH,428
+HI038-TX-0035,HI038,Haiku,Maui,HI,2026-06-30 09:31:25,BAT-AAH,AA Battery Holder,Batteries,11,0.50,2.74,30.14,5.50,24.64,Ailani,Maker/Hobbyist,Purchase Order,752
+HI038-TX-0036,HI038,Haiku,Maui,HI,2026-06-30 16:12:15,TOOL-WIRE,Wire Stripper,Tools,2,4.79,14.47,28.94,9.58,19.36,Noah,Government,Mobile Pay,169
+HI038-TX-0037,HI038,Haiku,Maui,HI,2026-06-30 08:07:11,TOOL-DMM,Digital Multimeter,Tools,2,9.36,28.77,57.54,18.72,38.82,Koa,Marine,Purchase Order,713
+HI038-TX-0038,HI038,Haiku,Maui,HI,2026-06-30 16:01:55,BAT-LIPO,LiPo Battery Pack,Batteries,3,5.49,17.04,51.12,16.47,34.65,Iolana,Marine,ACH,401
+HI038-TX-0039,HI038,Haiku,Maui,HI,2026-06-30 12:45:32,REL-5V,5V Relay Module,Relays,16,0.92,5.42,86.72,14.72,72.00,Makana,Tourism/Hospitality,Cash,220
+HI038-TX-0040,HI038,Haiku,Maui,HI,2026-06-30 15:51:31,LED-RED,5mm Red LED,LEDs,35,0.06,0.28,9.80,2.10,7.70,Ikaika,Marine,Debit Card,184
+HI038-TX-0041,HI038,Haiku,Maui,HI,2026-06-30 09:12:59,TOOL-WIRE,Wire Stripper,Tools,6,4.68,14.36,86.16,28.08,58.08,Lani,Retail,Mobile Pay,253
+HI038-TX-0042,HI038,Haiku,Maui,HI,2026-06-30 12:03:02,SNS-PIR,PIR Motion Sensor,Sensors,1,1.60,6.08,6.08,1.60,4.48,Makana,Education,Purchase Order,17
+HI038-TX-0043,HI038,Haiku,Maui,HI,2026-06-30 12:12:26,SOL-CTRL,Solar Charge Controller,Solar Power,1,11.39,31.86,31.86,11.39,20.47,Akamu,Maker/Hobbyist,Credit Card,529
+HI038-TX-0044,HI038,Haiku,Maui,HI,2026-06-30 14:22:29,BAT-AAH,AA Battery Holder,Batteries,32,0.50,2.66,85.12,16.00,69.12,Makana,Government,Credit Card,499
+HI038-TX-0045,HI038,Haiku,Maui,HI,2026-06-30 10:58:24,MAR-TIN,Tinned Marine Wire,Marine Electronics,3,8.65,27.09,81.27,25.95,55.32,Ikaika,Tourism/Hospitality,Debit Card,745
+HI038-TX-0046,HI038,Haiku,Maui,HI,2026-06-30 12:40:10,REL-5V,5V Relay Module,Relays,9,0.95,5.71,51.39,8.55,42.84,Keanu,Marine,Credit Card,647
+HI038-TX-0047,HI038,Haiku,Maui,HI,2026-06-30 17:44:27,PWR-BUCK,Buck Converter Module,Power,7,1.00,5.09,35.63,7.00,28.63,Alika,Retail,Debit Card,146
+HI038-TX-0048,HI038,Haiku,Maui,HI,2026-06-30 14:48:30,TOOL-DMM,Digital Multimeter,Tools,5,9.42,26.79,133.95,47.10,86.85,Noelani,Marine,Purchase Order,559
+HI038-TX-0049,HI038,Haiku,Maui,HI,2026-06-30 09:18:07,SOL-CTRL,Solar Charge Controller,Solar Power,2,11.12,32.64,65.28,22.24,43.04,Nalu,Education,ACH,337
+HI038-TX-0050,HI038,Haiku,Maui,HI,2026-06-30 16:35:50,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.62,14.08,56.32,18.48,37.84,Iolana,Maker/Hobbyist,Credit Card,109
+HI038-TX-0051,HI038,Haiku,Maui,HI,2026-06-30 13:57:27,CON-JMP,Jumper Wire Set,Connectors,36,0.93,3.83,137.88,33.48,104.40,Hana,Maker/Hobbyist,Credit Card,150
+HI038-TX-0052,HI038,Haiku,Maui,HI,2026-06-30 11:17:14,LED-RGB,RGB LED Strip,LEDs,1,4.72,14.89,14.89,4.72,10.17,Ikaika,Commercial,Credit Card,730
+HI038-TX-0053,HI038,Haiku,Maui,HI,2026-06-30 16:40:47,CAP-100,100uF Capacitor,Capacitors,13,0.16,0.56,7.28,2.08,5.20,Makana,Marine,Purchase Order,31
+HI038-TX-0054,HI038,Haiku,Maui,HI,2026-06-30 15:46:58,PWR-BUCK,Buck Converter Module,Power,31,1.00,4.96,153.76,31.00,122.76,Ikaika,Retail,Cash,456
+HI038-TX-0055,HI038,Haiku,Maui,HI,2026-06-30 11:24:55,IC-REG,7805 Voltage Regulator,Integrated Circuits,8,0.20,0.90,7.20,1.60,5.60,Keahi,Commercial,Debit Card,182
+HI038-TX-0056,HI038,Haiku,Maui,HI,2026-06-30 09:19:43,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.67,14.45,28.90,9.34,19.56,Makana,Marine,Debit Card,347
+HI038-TX-0057,HI038,Haiku,Maui,HI,2026-06-30 15:09:03,PWR-12V,12V 5A Power Supply,Power,3,8.80,26.56,79.68,26.40,53.28,Mika,Tourism/Hospitality,Credit Card,280
+HI038-TX-0058,HI038,Haiku,Maui,HI,2026-06-30 11:20:07,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.49,6.65,33.25,7.45,25.80,Akamu,Retail,Credit Card,309
+HI038-TX-0059,HI038,Haiku,Maui,HI,2026-06-30 15:06:14,PWR-5V2,5V 2A Power Supply,Power,1,3.38,11.31,11.31,3.38,7.93,Lani,Retail,Purchase Order,891
+HI038-TX-0060,HI038,Haiku,Maui,HI,2026-06-30 14:43:35,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,40,0.05,0.20,8.00,2.00,6.00,Keahi,Marine,ACH,580

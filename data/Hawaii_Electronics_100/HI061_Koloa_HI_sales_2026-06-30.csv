@@ -1,0 +1,83 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI061-TX-0001,HI061,Koloa,Kauai,HI,2026-06-30 11:56:38,PWR-12V,12V 5A Power Supply,Power,3,9.98,24.51,73.53,29.94,43.59,Ailani,Retail,Purchase Order,812
+HI061-TX-0002,HI061,Koloa,Kauai,HI,2026-06-30 15:34:40,RES-001,1k Ohm Resistor,Resistors,34,0.03,0.13,4.42,1.02,3.40,Mika,Commercial,Purchase Order,102
+HI061-TX-0003,HI061,Koloa,Kauai,HI,2026-06-30 17:27:38,TOOL-DMM,Digital Multimeter,Tools,1,8.89,26.35,26.35,8.89,17.46,Pualani,Education,ACH,120
+HI061-TX-0004,HI061,Koloa,Kauai,HI,2026-06-30 10:28:14,PWR-12V,12V 5A Power Supply,Power,7,9.30,24.52,171.64,65.10,106.54,Iolana,Retail,ACH,253
+HI061-TX-0005,HI061,Koloa,Kauai,HI,2026-06-30 16:00:59,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,3.96,13.31,26.62,7.92,18.70,Ikaika,Government,Credit Card,882
+HI061-TX-0006,HI061,Koloa,Kauai,HI,2026-06-30 10:38:52,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,9.09,25.71,51.42,18.18,33.24,Leilani,Tourism/Hospitality,Cash,126
+HI061-TX-0007,HI061,Koloa,Kauai,HI,2026-06-30 15:15:07,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,7.79,20.91,41.82,15.58,26.24,Malia,Maker/Hobbyist,Credit Card,238
+HI061-TX-0008,HI061,Koloa,Kauai,HI,2026-06-30 10:10:17,PWR-5V2,5V 2A Power Supply,Power,4,3.78,11.14,44.56,15.12,29.44,Ailani,Commercial,Purchase Order,783
+HI061-TX-0009,HI061,Koloa,Kauai,HI,2026-06-30 09:44:53,CAP-010,10uF Capacitor,Capacitors,15,0.09,0.38,5.70,1.35,4.35,Akamu,Education,Mobile Pay,192
+HI061-TX-0010,HI061,Koloa,Kauai,HI,2026-06-30 16:10:46,SNS-SOIL,Soil Moisture Sensor,Sensors,15,1.00,4.24,63.60,15.00,48.60,Iolana,Maker/Hobbyist,Purchase Order,267
+HI061-TX-0011,HI061,Koloa,Kauai,HI,2026-06-30 14:42:23,TOOL-WIRE,Wire Stripper,Tools,4,5.17,15.16,60.64,20.68,39.96,Keanu,Government,ACH,108
+HI061-TX-0012,HI061,Koloa,Kauai,HI,2026-06-30 13:12:04,PWR-BUCK,Buck Converter Module,Power,13,1.06,4.59,59.67,13.78,45.89,Pualani,Retail,Credit Card,483
+HI061-TX-0013,HI061,Koloa,Kauai,HI,2026-06-30 09:41:32,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.79,13.43,94.01,26.53,67.48,Koa,Maker/Hobbyist,ACH,152
+HI061-TX-0014,HI061,Koloa,Kauai,HI,2026-06-30 09:02:34,SNS-DHT,DHT22 Temperature Sensor,Sensors,3,2.42,7.52,22.56,7.26,15.30,Noah,Maker/Hobbyist,Mobile Pay,822
+HI061-TX-0015,HI061,Koloa,Kauai,HI,2026-06-30 13:58:51,CON-JMP,Jumper Wire Set,Connectors,33,0.95,3.93,129.69,31.35,98.34,Ailani,Government,Cash,441
+HI061-TX-0016,HI061,Koloa,Kauai,HI,2026-06-30 17:18:15,MOS-44N,IRFZ44N MOSFET,Semiconductors,35,0.60,2.36,82.60,21.00,61.60,Iolana,Commercial,Cash,4
+HI061-TX-0017,HI061,Koloa,Kauai,HI,2026-06-30 09:26:14,PWR-12V,12V 5A Power Supply,Power,6,9.60,25.08,150.48,57.60,92.88,Makana,Commercial,Credit Card,51
+HI061-TX-0018,HI061,Koloa,Kauai,HI,2026-06-30 13:39:00,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.38,7.32,14.64,4.76,9.88,Kaleo,Maker/Hobbyist,Purchase Order,278
+HI061-TX-0019,HI061,Koloa,Kauai,HI,2026-06-30 14:31:59,PWR-5V2,5V 2A Power Supply,Power,7,3.60,10.99,76.93,25.20,51.73,Iolana,Marine,Debit Card,743
+HI061-TX-0020,HI061,Koloa,Kauai,HI,2026-06-30 14:27:41,MOS-44N,IRFZ44N MOSFET,Semiconductors,6,0.57,2.43,14.58,3.42,11.16,Keahi,Commercial,ACH,655
+HI061-TX-0021,HI061,Koloa,Kauai,HI,2026-06-30 15:00:29,PWR-5V2,5V 2A Power Supply,Power,7,3.56,10.41,72.87,24.92,47.95,Keanu,Education,ACH,859
+HI061-TX-0022,HI061,Koloa,Kauai,HI,2026-06-30 16:18:19,SNS-SOIL,Soil Moisture Sensor,Sensors,33,0.97,4.36,143.88,32.01,111.87,Iolana,Marine,Credit Card,189
+HI061-TX-0023,HI061,Koloa,Kauai,HI,2026-06-30 16:04:18,CAP-100,100uF Capacitor,Capacitors,39,0.18,0.64,24.96,7.02,17.94,Koa,Education,Mobile Pay,898
+HI061-TX-0024,HI061,Koloa,Kauai,HI,2026-06-30 16:23:44,DIO-4007,1N4007 Diode,Semiconductors,23,0.04,0.19,4.37,0.92,3.45,Ikaika,Government,Debit Card,597
+HI061-TX-0025,HI061,Koloa,Kauai,HI,2026-06-30 12:36:39,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.23,9.18,27.54,9.69,17.85,Koa,Retail,Mobile Pay,222
+HI061-TX-0026,HI061,Koloa,Kauai,HI,2026-06-30 16:05:43,TOOL-DMM,Digital Multimeter,Tools,1,8.67,28.08,28.08,8.67,19.41,Kaleo,Education,Mobile Pay,183
+HI061-TX-0027,HI061,Koloa,Kauai,HI,2026-06-30 16:21:06,RES-001,1k Ohm Resistor,Resistors,31,0.03,0.12,3.72,0.93,2.79,Ailani,Commercial,Credit Card,365
+HI061-TX-0028,HI061,Koloa,Kauai,HI,2026-06-30 16:00:50,CAP-010,10uF Capacitor,Capacitors,36,0.09,0.37,13.32,3.24,10.08,Mika,Government,ACH,768
+HI061-TX-0029,HI061,Koloa,Kauai,HI,2026-06-30 10:11:13,CON-JMP,Jumper Wire Set,Connectors,33,0.91,3.76,124.08,30.03,94.05,Leilani,Education,Credit Card,320
+HI061-TX-0030,HI061,Koloa,Kauai,HI,2026-06-30 12:37:37,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.77,14.27,99.89,26.39,73.50,Leilani,Education,ACH,30
+HI061-TX-0031,HI061,Koloa,Kauai,HI,2026-06-30 13:03:45,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.30,8.40,33.60,13.20,20.40,Akamu,Government,ACH,467
+HI061-TX-0032,HI061,Koloa,Kauai,HI,2026-06-30 12:33:28,REL-5V,5V Relay Module,Relays,39,0.93,5.32,207.48,36.27,171.21,Keanu,Marine,Credit Card,147
+HI061-TX-0033,HI061,Koloa,Kauai,HI,2026-06-30 08:20:49,PWR-12V,12V 5A Power Supply,Power,2,8.85,26.51,53.02,17.70,35.32,Kai,Government,Purchase Order,296
+HI061-TX-0034,HI061,Koloa,Kauai,HI,2026-06-30 11:10:29,PWR-5V2,5V 2A Power Supply,Power,2,3.52,11.39,22.78,7.04,15.74,Nalu,Maker/Hobbyist,Debit Card,513
+HI061-TX-0035,HI061,Koloa,Kauai,HI,2026-06-30 17:25:58,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,9.50,27.43,137.15,47.50,89.65,Kaleo,Tourism/Hospitality,Debit Card,165
+HI061-TX-0036,HI061,Koloa,Kauai,HI,2026-06-30 12:47:10,PWR-12V,12V 5A Power Supply,Power,8,9.15,24.95,199.60,73.20,126.40,Lani,Tourism/Hospitality,ACH,441
+HI061-TX-0037,HI061,Koloa,Kauai,HI,2026-06-30 08:14:16,PWR-BUCK,Buck Converter Module,Power,11,0.99,4.80,52.80,10.89,41.91,Kai,Commercial,Debit Card,418
+HI061-TX-0038,HI061,Koloa,Kauai,HI,2026-06-30 10:02:54,REL-5V,5V Relay Module,Relays,3,1.00,5.35,16.05,3.00,13.05,Kaleo,Maker/Hobbyist,ACH,461
+HI061-TX-0039,HI061,Koloa,Kauai,HI,2026-06-30 10:29:53,PWR-BUCK,Buck Converter Module,Power,13,1.08,4.67,60.71,14.04,46.67,Kaleo,Commercial,Mobile Pay,545
+HI061-TX-0040,HI061,Koloa,Kauai,HI,2026-06-30 12:32:04,PWR-12V,12V 5A Power Supply,Power,4,9.60,25.93,103.72,38.40,65.32,Keanu,Maker/Hobbyist,Credit Card,101
+HI061-TX-0041,HI061,Koloa,Kauai,HI,2026-06-30 16:38:52,MAR-TIN,Tinned Marine Wire,Marine Electronics,1,8.90,28.62,28.62,8.90,19.72,Nalu,Retail,Credit Card,808
+HI061-TX-0042,HI061,Koloa,Kauai,HI,2026-06-30 12:51:46,BAT-LIPO,LiPo Battery Pack,Batteries,7,5.28,15.37,107.59,36.96,70.63,Mika,Maker/Hobbyist,Purchase Order,343
+HI061-TX-0043,HI061,Koloa,Kauai,HI,2026-06-30 11:46:38,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.15,12.80,38.40,12.45,25.95,Noelani,Maker/Hobbyist,Mobile Pay,157
+HI061-TX-0044,HI061,Koloa,Kauai,HI,2026-06-30 10:16:15,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,4.03,13.88,111.04,32.24,78.80,Mika,Marine,Purchase Order,602
+HI061-TX-0045,HI061,Koloa,Kauai,HI,2026-06-30 08:40:55,RES-010,10k Ohm Resistor,Resistors,6,0.03,0.13,0.78,0.18,0.60,Keanu,Retail,Debit Card,485
+HI061-TX-0046,HI061,Koloa,Kauai,HI,2026-06-30 10:04:24,PWR-5V2,5V 2A Power Supply,Power,2,3.52,10.98,21.96,7.04,14.92,Nalu,Tourism/Hospitality,ACH,230
+HI061-TX-0047,HI061,Koloa,Kauai,HI,2026-06-30 15:23:59,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.49,31.40,251.20,91.92,159.28,Mika,Marine,Credit Card,692
+HI061-TX-0048,HI061,Koloa,Kauai,HI,2026-06-30 08:48:57,DIO-4007,1N4007 Diode,Semiconductors,24,0.05,0.20,4.80,1.20,3.60,Kaleo,Government,Mobile Pay,363
+HI061-TX-0049,HI061,Koloa,Kauai,HI,2026-06-30 14:08:28,PWR-12V,12V 5A Power Supply,Power,6,8.98,25.67,154.02,53.88,100.14,Noelani,Maker/Hobbyist,Debit Card,796
+HI061-TX-0050,HI061,Koloa,Kauai,HI,2026-06-30 16:14:25,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.74,13.58,95.06,26.18,68.88,Malia,Commercial,Debit Card,235
+HI061-TX-0051,HI061,Koloa,Kauai,HI,2026-06-30 17:37:48,BAT-LIPO,LiPo Battery Pack,Batteries,8,5.10,16.58,132.64,40.80,91.84,Keahi,Education,Credit Card,204
+HI061-TX-0052,HI061,Koloa,Kauai,HI,2026-06-30 13:47:07,SOL-CTRL,Solar Charge Controller,Solar Power,8,10.23,34.12,272.96,81.84,191.12,Iolana,Commercial,Debit Card,317
+HI061-TX-0053,HI061,Koloa,Kauai,HI,2026-06-30 17:53:34,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.38,8.01,16.02,4.76,11.26,Iolana,Tourism/Hospitality,Credit Card,412
+HI061-TX-0054,HI061,Koloa,Kauai,HI,2026-06-30 15:23:23,USB-CBO,USB-C Breakout Board,Connectors,26,1.40,5.45,141.70,36.40,105.30,Iolana,Education,Cash,782
+HI061-TX-0055,HI061,Koloa,Kauai,HI,2026-06-30 16:52:55,IC-555,NE555 Timer IC,Integrated Circuits,9,0.37,1.34,12.06,3.33,8.73,Keahi,Commercial,Debit Card,779
+HI061-TX-0056,HI061,Koloa,Kauai,HI,2026-06-30 08:51:52,PWR-BUCK,Buck Converter Module,Power,25,1.09,4.67,116.75,27.25,89.50,Kaleo,Marine,Debit Card,306
+HI061-TX-0057,HI061,Koloa,Kauai,HI,2026-06-30 12:54:36,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.46,7.19,14.38,4.92,9.46,Pualani,Maker/Hobbyist,Purchase Order,182
+HI061-TX-0058,HI061,Koloa,Kauai,HI,2026-06-30 10:19:52,SOL-CTRL,Solar Charge Controller,Solar Power,3,11.44,33.23,99.69,34.32,65.37,Mika,Education,Purchase Order,146
+HI061-TX-0059,HI061,Koloa,Kauai,HI,2026-06-30 13:01:25,PWR-12V,12V 5A Power Supply,Power,4,9.39,23.51,94.04,37.56,56.48,Akamu,Retail,Credit Card,390
+HI061-TX-0060,HI061,Koloa,Kauai,HI,2026-06-30 15:50:06,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,8.96,26.05,182.35,62.72,119.63,Keanu,Government,Purchase Order,819
+HI061-TX-0061,HI061,Koloa,Kauai,HI,2026-06-30 13:46:46,SNS-PIR,PIR Motion Sensor,Sensors,7,1.64,5.72,40.04,11.48,28.56,Kaleo,Retail,Purchase Order,686
+HI061-TX-0062,HI061,Koloa,Kauai,HI,2026-06-30 13:38:17,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.22,31.97,127.88,40.88,87.00,Kai,Maker/Hobbyist,Purchase Order,817
+HI061-TX-0063,HI061,Koloa,Kauai,HI,2026-06-30 09:19:55,PWR-5V2,5V 2A Power Supply,Power,3,3.65,10.95,32.85,10.95,21.90,Pualani,Commercial,Cash,362
+HI061-TX-0064,HI061,Koloa,Kauai,HI,2026-06-30 15:10:18,RES-010,10k Ohm Resistor,Resistors,24,0.03,0.13,3.12,0.72,2.40,Pualani,Maker/Hobbyist,Credit Card,304
+HI061-TX-0065,HI061,Koloa,Kauai,HI,2026-06-30 09:11:39,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,3.67,13.86,27.72,7.34,20.38,Pualani,Retail,Purchase Order,555
+HI061-TX-0066,HI061,Koloa,Kauai,HI,2026-06-30 10:24:43,DIO-4007,1N4007 Diode,Semiconductors,35,0.05,0.19,6.65,1.75,4.90,Lani,Commercial,Credit Card,769
+HI061-TX-0067,HI061,Koloa,Kauai,HI,2026-06-30 08:25:17,PWR-12V,12V 5A Power Supply,Power,2,9.56,24.77,49.54,19.12,30.42,Kai,Education,Credit Card,577
+HI061-TX-0068,HI061,Koloa,Kauai,HI,2026-06-30 09:11:17,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.64,14.44,43.32,10.92,32.40,Lani,Education,Purchase Order,895
+HI061-TX-0069,HI061,Koloa,Kauai,HI,2026-06-30 10:53:10,CAP-010,10uF Capacitor,Capacitors,2,0.09,0.39,0.78,0.18,0.60,Lani,Education,Purchase Order,796
+HI061-TX-0070,HI061,Koloa,Kauai,HI,2026-06-30 10:29:53,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,3.80,13.68,27.36,7.60,19.76,Nalu,Education,ACH,13
+HI061-TX-0071,HI061,Koloa,Kauai,HI,2026-06-30 16:53:28,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.29,33.83,270.64,90.32,180.32,Noah,Retail,Credit Card,244
+HI061-TX-0072,HI061,Koloa,Kauai,HI,2026-06-30 09:40:49,TOOL-DMM,Digital Multimeter,Tools,1,8.61,27.10,27.10,8.61,18.49,Lani,Education,Mobile Pay,127
+HI061-TX-0073,HI061,Koloa,Kauai,HI,2026-06-30 12:38:48,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,4.10,13.32,39.96,12.30,27.66,Malia,Marine,ACH,515
+HI061-TX-0074,HI061,Koloa,Kauai,HI,2026-06-30 09:44:57,SOL-CTRL,Solar Charge Controller,Solar Power,1,10.08,31.54,31.54,10.08,21.46,Koa,Maker/Hobbyist,Credit Card,837
+HI061-TX-0075,HI061,Koloa,Kauai,HI,2026-06-30 12:21:21,IC-555,NE555 Timer IC,Integrated Circuits,27,0.36,1.37,36.99,9.72,27.27,Noah,Retail,Debit Card,402
+HI061-TX-0076,HI061,Koloa,Kauai,HI,2026-06-30 15:07:59,REL-5V,5V Relay Module,Relays,33,0.96,5.74,189.42,31.68,157.74,Pualani,Tourism/Hospitality,Debit Card,555
+HI061-TX-0077,HI061,Koloa,Kauai,HI,2026-06-30 13:48:16,SOL-CTRL,Solar Charge Controller,Solar Power,5,11.00,34.76,173.80,55.00,118.80,Alika,Education,Purchase Order,880
+HI061-TX-0078,HI061,Koloa,Kauai,HI,2026-06-30 15:05:47,PWR-BUCK,Buck Converter Module,Power,18,1.08,4.79,86.22,19.44,66.78,Noelani,Tourism/Hospitality,Cash,248
+HI061-TX-0079,HI061,Koloa,Kauai,HI,2026-06-30 10:54:57,CON-JMP,Jumper Wire Set,Connectors,1,0.88,3.71,3.71,0.88,2.83,Pualani,Education,Purchase Order,570
+HI061-TX-0080,HI061,Koloa,Kauai,HI,2026-06-30 13:00:22,PWR-BUCK,Buck Converter Module,Power,31,1.01,4.73,146.63,31.31,115.32,Kaleo,Tourism/Hospitality,Credit Card,138
+HI061-TX-0081,HI061,Koloa,Kauai,HI,2026-06-30 09:27:36,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,8.62,27.13,54.26,17.24,37.02,Makana,Commercial,Debit Card,520
+HI061-TX-0082,HI061,Koloa,Kauai,HI,2026-06-30 17:02:44,CAP-100,100uF Capacitor,Capacitors,17,0.18,0.62,10.54,3.06,7.48,Nalu,Retail,Purchase Order,841

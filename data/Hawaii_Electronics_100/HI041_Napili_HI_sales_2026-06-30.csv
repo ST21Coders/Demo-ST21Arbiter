@@ -1,0 +1,51 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI041-TX-0001,HI041,Napili,Maui,HI,2026-06-30 13:47:38,BAT-LIPO,LiPo Battery Pack,Batteries,3,5.15,15.80,47.40,15.45,31.95,Noelani,Government,Cash,391
+HI041-TX-0002,HI041,Napili,Maui,HI,2026-06-30 10:57:12,TR-3904,2N3904 NPN Transistor,Semiconductors,28,0.05,0.24,6.72,1.40,5.32,Pualani,Maker/Hobbyist,Debit Card,456
+HI041-TX-0003,HI041,Napili,Maui,HI,2026-06-30 15:35:47,BAT-AAH,AA Battery Holder,Batteries,3,0.53,2.58,7.74,1.59,6.15,Ikaika,Government,Credit Card,155
+HI041-TX-0004,HI041,Napili,Maui,HI,2026-06-30 15:44:42,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.74,14.51,87.06,28.44,58.62,Iolana,Tourism/Hospitality,Debit Card,347
+HI041-TX-0005,HI041,Napili,Maui,HI,2026-06-30 12:47:01,MOS-44N,IRFZ44N MOSFET,Semiconductors,40,0.57,2.42,96.80,22.80,74.00,Iolana,Marine,Cash,837
+HI041-TX-0006,HI041,Napili,Maui,HI,2026-06-30 09:15:38,PWR-12V,12V 5A Power Supply,Power,7,8.92,23.81,166.67,62.44,104.23,Mika,Tourism/Hospitality,Cash,232
+HI041-TX-0007,HI041,Napili,Maui,HI,2026-06-30 16:42:55,LED-BLU,5mm Blue LED,LEDs,20,0.06,0.33,6.60,1.20,5.40,Mika,Maker/Hobbyist,ACH,205
+HI041-TX-0008,HI041,Napili,Maui,HI,2026-06-30 15:58:00,LED-BLU,5mm Blue LED,LEDs,29,0.06,0.34,9.86,1.74,8.12,Nalu,Education,Mobile Pay,893
+HI041-TX-0009,HI041,Napili,Maui,HI,2026-06-30 12:50:36,CAP-010,10uF Capacitor,Capacitors,33,0.08,0.37,12.21,2.64,9.57,Kai,Maker/Hobbyist,Cash,58
+HI041-TX-0010,HI041,Napili,Maui,HI,2026-06-30 11:23:42,TOOL-WIRE,Wire Stripper,Tools,2,5.13,15.41,30.82,10.26,20.56,Akamu,Maker/Hobbyist,Purchase Order,66
+HI041-TX-0011,HI041,Napili,Maui,HI,2026-06-30 14:19:27,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.37,17.10,85.50,26.85,58.65,Alika,Maker/Hobbyist,Mobile Pay,124
+HI041-TX-0012,HI041,Napili,Maui,HI,2026-06-30 10:46:22,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,4.11,14.18,28.36,8.22,20.14,Ikaika,Government,Debit Card,340
+HI041-TX-0013,HI041,Napili,Maui,HI,2026-06-30 14:27:18,LED-RED,5mm Red LED,LEDs,40,0.06,0.28,11.20,2.40,8.80,Keanu,Government,Purchase Order,715
+HI041-TX-0014,HI041,Napili,Maui,HI,2026-06-30 13:28:10,BAT-AAH,AA Battery Holder,Batteries,21,0.51,2.70,56.70,10.71,45.99,Kai,Tourism/Hospitality,Debit Card,779
+HI041-TX-0015,HI041,Napili,Maui,HI,2026-06-30 09:06:49,LED-RED,5mm Red LED,LEDs,11,0.06,0.28,3.08,0.66,2.42,Ikaika,Maker/Hobbyist,Purchase Order,630
+HI041-TX-0016,HI041,Napili,Maui,HI,2026-06-30 14:02:48,LED-RGB,RGB LED Strip,LEDs,4,5.21,14.39,57.56,20.84,36.72,Mika,Education,Purchase Order,14
+HI041-TX-0017,HI041,Napili,Maui,HI,2026-06-30 12:32:44,LED-BLU,5mm Blue LED,LEDs,15,0.06,0.31,4.65,0.90,3.75,Hana,Tourism/Hospitality,Mobile Pay,199
+HI041-TX-0018,HI041,Napili,Maui,HI,2026-06-30 11:13:54,MOS-44N,IRFZ44N MOSFET,Semiconductors,6,0.63,2.35,14.10,3.78,10.32,Keanu,Tourism/Hospitality,Purchase Order,305
+HI041-TX-0019,HI041,Napili,Maui,HI,2026-06-30 08:45:11,BAT-LIPO,LiPo Battery Pack,Batteries,7,5.47,16.41,114.87,38.29,76.58,Keanu,Education,Mobile Pay,7
+HI041-TX-0020,HI041,Napili,Maui,HI,2026-06-30 13:06:07,TR-3904,2N3904 NPN Transistor,Semiconductors,7,0.06,0.25,1.75,0.42,1.33,Hana,Retail,Mobile Pay,345
+HI041-TX-0021,HI041,Napili,Maui,HI,2026-06-30 10:17:30,BAT-AAH,AA Battery Holder,Batteries,18,0.49,2.79,50.22,8.82,41.40,Leilani,Government,Debit Card,406
+HI041-TX-0022,HI041,Napili,Maui,HI,2026-06-30 09:09:26,BAT-AAH,AA Battery Holder,Batteries,20,0.47,2.70,54.00,9.40,44.60,Makana,Marine,Credit Card,342
+HI041-TX-0023,HI041,Napili,Maui,HI,2026-06-30 14:16:11,BAT-AAH,AA Battery Holder,Batteries,10,0.47,2.84,28.40,4.70,23.70,Alika,Marine,Mobile Pay,307
+HI041-TX-0024,HI041,Napili,Maui,HI,2026-06-30 16:35:22,CAP-100,100uF Capacitor,Capacitors,4,0.17,0.63,2.52,0.68,1.84,Keanu,Maker/Hobbyist,Purchase Order,65
+HI041-TX-0025,HI041,Napili,Maui,HI,2026-06-30 13:27:31,USB-CBO,USB-C Breakout Board,Connectors,38,1.38,5.15,195.70,52.44,143.26,Ailani,Education,Cash,13
+HI041-TX-0026,HI041,Napili,Maui,HI,2026-06-30 08:13:44,PWR-5V2,5V 2A Power Supply,Power,7,3.80,10.89,76.23,26.60,49.63,Keahi,Maker/Hobbyist,Purchase Order,283
+HI041-TX-0027,HI041,Napili,Maui,HI,2026-06-30 13:22:13,RES-220,220 Ohm Resistor,Resistors,23,0.03,0.13,2.99,0.69,2.30,Mika,Education,Mobile Pay,761
+HI041-TX-0028,HI041,Napili,Maui,HI,2026-06-30 09:52:27,TR-3904,2N3904 NPN Transistor,Semiconductors,20,0.06,0.23,4.60,1.20,3.40,Ikaika,Retail,Purchase Order,878
+HI041-TX-0029,HI041,Napili,Maui,HI,2026-06-30 14:56:14,TOOL-DMM,Digital Multimeter,Tools,1,9.30,26.07,26.07,9.30,16.77,Koa,Maker/Hobbyist,Credit Card,608
+HI041-TX-0030,HI041,Napili,Maui,HI,2026-06-30 15:49:13,MOS-44N,IRFZ44N MOSFET,Semiconductors,4,0.59,2.43,9.72,2.36,7.36,Lani,Government,ACH,406
+HI041-TX-0031,HI041,Napili,Maui,HI,2026-06-30 13:11:14,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,18,0.04,0.21,3.78,0.72,3.06,Noelani,Commercial,Cash,201
+HI041-TX-0032,HI041,Napili,Maui,HI,2026-06-30 16:47:21,MOS-44N,IRFZ44N MOSFET,Semiconductors,12,0.59,2.53,30.36,7.08,23.28,Iolana,Government,ACH,751
+HI041-TX-0033,HI041,Napili,Maui,HI,2026-06-30 11:24:38,SNS-DHT,DHT22 Temperature Sensor,Sensors,6,2.41,7.25,43.50,14.46,29.04,Leilani,Retail,Debit Card,471
+HI041-TX-0034,HI041,Napili,Maui,HI,2026-06-30 09:03:43,TOOL-SOL,Soldering Iron Tips,Tools,2,2.06,7.78,15.56,4.12,11.44,Noah,Education,Purchase Order,252
+HI041-TX-0035,HI041,Napili,Maui,HI,2026-06-30 10:08:25,LED-RED,5mm Red LED,LEDs,11,0.06,0.28,3.08,0.66,2.42,Keahi,Commercial,ACH,514
+HI041-TX-0036,HI041,Napili,Maui,HI,2026-06-30 12:47:00,TOOL-DMM,Digital Multimeter,Tools,3,8.88,28.33,84.99,26.64,58.35,Keahi,Retail,Purchase Order,746
+HI041-TX-0037,HI041,Napili,Maui,HI,2026-06-30 13:18:55,USB-CBO,USB-C Breakout Board,Connectors,32,1.38,5.17,165.44,44.16,121.28,Nalu,Government,Credit Card,727
+HI041-TX-0038,HI041,Napili,Maui,HI,2026-06-30 11:12:57,SNS-SOIL,Soil Moisture Sensor,Sensors,8,0.95,4.42,35.36,7.60,27.76,Iolana,Marine,Cash,132
+HI041-TX-0039,HI041,Napili,Maui,HI,2026-06-30 11:06:11,PWR-5V2,5V 2A Power Supply,Power,5,3.51,11.43,57.15,17.55,39.60,Lani,Retail,Credit Card,417
+HI041-TX-0040,HI041,Napili,Maui,HI,2026-06-30 12:46:09,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.65,14.54,116.32,29.20,87.12,Hana,Maker/Hobbyist,Cash,771
+HI041-TX-0041,HI041,Napili,Maui,HI,2026-06-30 13:14:55,PWR-BUCK,Buck Converter Module,Power,4,1.06,5.17,20.68,4.24,16.44,Hana,Maker/Hobbyist,ACH,23
+HI041-TX-0042,HI041,Napili,Maui,HI,2026-06-30 08:22:56,SNS-PIR,PIR Motion Sensor,Sensors,4,1.58,5.66,22.64,6.32,16.32,Akamu,Retail,Purchase Order,362
+HI041-TX-0043,HI041,Napili,Maui,HI,2026-06-30 17:52:53,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.66,14.07,56.28,14.64,41.64,Noelani,Education,Debit Card,612
+HI041-TX-0044,HI041,Napili,Maui,HI,2026-06-30 16:17:27,USB-CBO,USB-C Breakout Board,Connectors,30,1.46,5.43,162.90,43.80,119.10,Kai,Commercial,Debit Card,325
+HI041-TX-0045,HI041,Napili,Maui,HI,2026-06-30 15:00:23,SNS-ULT,Ultrasonic Distance Sensor,Sensors,18,1.35,5.56,100.08,24.30,75.78,Kai,Education,Cash,7
+HI041-TX-0046,HI041,Napili,Maui,HI,2026-06-30 14:39:42,PWR-BUCK,Buck Converter Module,Power,10,1.01,4.61,46.10,10.10,36.00,Ikaika,Tourism/Hospitality,Mobile Pay,414
+HI041-TX-0047,HI041,Napili,Maui,HI,2026-06-30 10:56:02,CAP-010,10uF Capacitor,Capacitors,39,0.09,0.40,15.60,3.51,12.09,Ikaika,Tourism/Hospitality,Credit Card,125
+HI041-TX-0048,HI041,Napili,Maui,HI,2026-06-30 14:11:48,LED-RED,5mm Red LED,LEDs,13,0.06,0.29,3.77,0.78,2.99,Mika,Tourism/Hospitality,Cash,840
+HI041-TX-0049,HI041,Napili,Maui,HI,2026-06-30 11:52:49,IC-358,LM358 Op Amp,Integrated Circuits,9,0.31,1.21,10.89,2.79,8.10,Iolana,Government,ACH,403
+HI041-TX-0050,HI041,Napili,Maui,HI,2026-06-30 12:38:52,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.05,17.16,34.32,10.10,24.22,Ikaika,Tourism/Hospitality,Purchase Order,28

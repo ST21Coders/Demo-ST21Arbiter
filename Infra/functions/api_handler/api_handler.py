@@ -90,6 +90,8 @@ SPECIALIST_RUNTIME_ARNS = {
     "zscaler":    os.environ.get("ZSCALER_RUNTIME_ARN", "").strip(),
     "paloalto":   os.environ.get("PALOALTO_RUNTIME_ARN", "").strip(),
     "structured": os.environ.get("STRUCTURED_RUNTIME_ARN", "").strip(),
+    "sales":      os.environ.get("SALES_RUNTIME_ARN", "").strip(),
+    "hr":         os.environ.get("HR_RUNTIME_ARN", "").strip(),
     "jira":       os.environ.get("JIRA_RUNTIME_ARN", "").strip(),
     "servicenow": os.environ.get("SERVICENOW_RUNTIME_ARN", "").strip(),
 }
@@ -4555,6 +4557,8 @@ _AGENT_DISPLAY_NAMES = {
     "awsconfig":  "AWS Config Specialist",
     "zscaler":    "Zscaler ZIA Specialist",
     "structured": "Structured Data Specialist",
+    "sales":      "Sales Specialist",
+    "hr":         "HR Specialist",
     "paloalto":   "Palo Alto NGFW Specialist",
     "jira":       "JIRA Specialist",
     "servicenow": "ServiceNow Specialist",

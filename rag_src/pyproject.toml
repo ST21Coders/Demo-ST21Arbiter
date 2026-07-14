@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arbiter-rag"
+version = "0.1.0"
+description = "Arbiter Sales RAG — reusable DIY Retrieval-Augmented Generation library (Titan embeddings + S3 Vectors + Athena text-to-SQL + Bedrock Converse) powering the notebooks and the deployed Sales_Specialist agent."
+readme = "CLAUDE_RAG.md"
+requires-python = ">=3.10"
+dependencies = [
+    "boto3>=1.40.0",
+    "botocore>=1.40.0",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+# Ingest-time only (loaders/serialization/HR-corpus generation). The query path is
+# boto3-only. pypdf reads the HR policy PDFs; reportlab generates them (data_generators/).
+data = ["pandas>=2.0", "pyarrow>=14.0", "openpyxl>=3.1", "pypdf>=4.0", "reportlab>=4.0"]
+notebook = ["jupyter>=1.0", "ipykernel>=6.0", "matplotlib>=3.7", "pandas>=2.0", "nbconvert>=7.0"]
+dev = ["ruff>=0.6", "pytest>=8.0"]
+
+# Flat layout: the importable package `arbiter_rag/` sits next to this file under rag_src/.
+[tool.setuptools]
+packages = ["arbiter_rag"]

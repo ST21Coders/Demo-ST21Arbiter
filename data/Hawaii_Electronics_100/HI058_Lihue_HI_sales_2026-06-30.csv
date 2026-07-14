@@ -1,0 +1,62 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI058-TX-0001,HI058,Lihue,Kauai,HI,2026-06-30 15:35:53,PWR-5V2,5V 2A Power Supply,Power,4,3.78,10.86,43.44,15.12,28.32,Nalu,Marine,Mobile Pay,369
+HI058-TX-0002,HI058,Lihue,Kauai,HI,2026-06-30 14:24:51,DIO-4007,1N4007 Diode,Semiconductors,6,0.04,0.21,1.26,0.24,1.02,Lani,Maker/Hobbyist,Purchase Order,682
+HI058-TX-0003,HI058,Lihue,Kauai,HI,2026-06-30 18:00:54,TOOL-SOL,Soldering Iron Tips,Tools,2,1.98,7.61,15.22,3.96,11.26,Noah,Retail,Credit Card,881
+HI058-TX-0004,HI058,Lihue,Kauai,HI,2026-06-30 10:24:06,RES-001,1k Ohm Resistor,Resistors,3,0.03,0.14,0.42,0.09,0.33,Kaleo,Retail,Cash,501
+HI058-TX-0005,HI058,Lihue,Kauai,HI,2026-06-30 09:19:49,LED-RGB,RGB LED Strip,LEDs,3,5.11,14.16,42.48,15.33,27.15,Pualani,Marine,Purchase Order,59
+HI058-TX-0006,HI058,Lihue,Kauai,HI,2026-06-30 08:57:31,PWR-BUCK,Buck Converter Module,Power,18,1.05,5.13,92.34,18.90,73.44,Noelani,Government,Credit Card,102
+HI058-TX-0007,HI058,Lihue,Kauai,HI,2026-06-30 15:36:18,PWR-12V,12V 5A Power Supply,Power,4,9.08,24.41,97.64,36.32,61.32,Ikaika,Maker/Hobbyist,Cash,798
+HI058-TX-0008,HI058,Lihue,Kauai,HI,2026-06-30 09:14:57,PWR-5V2,5V 2A Power Supply,Power,2,3.44,10.43,20.86,6.88,13.98,Hana,Retail,ACH,867
+HI058-TX-0009,HI058,Lihue,Kauai,HI,2026-06-30 09:29:56,BRD-830,Breadboard 830 Tie Points,Connectors,6,1.58,6.62,39.72,9.48,30.24,Nalu,Commercial,Debit Card,609
+HI058-TX-0010,HI058,Lihue,Kauai,HI,2026-06-30 11:21:10,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,9.18,26.15,52.30,18.36,33.94,Ailani,Commercial,Cash,76
+HI058-TX-0011,HI058,Lihue,Kauai,HI,2026-06-30 13:32:56,SOL-CTRL,Solar Charge Controller,Solar Power,1,10.77,31.59,31.59,10.77,20.82,Koa,Commercial,Purchase Order,205
+HI058-TX-0012,HI058,Lihue,Kauai,HI,2026-06-30 14:51:37,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,4.06,13.27,106.16,32.48,73.68,Ikaika,Marine,Credit Card,12
+HI058-TX-0013,HI058,Lihue,Kauai,HI,2026-06-30 17:54:49,PWR-12V,12V 5A Power Supply,Power,1,9.54,25.67,25.67,9.54,16.13,Mika,Marine,Mobile Pay,25
+HI058-TX-0014,HI058,Lihue,Kauai,HI,2026-06-30 14:21:40,PWR-5V2,5V 2A Power Supply,Power,6,3.58,10.75,64.50,21.48,43.02,Lani,Commercial,Mobile Pay,538
+HI058-TX-0015,HI058,Lihue,Kauai,HI,2026-06-30 08:24:21,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.77,13.43,107.44,30.16,77.28,Ikaika,Government,Purchase Order,157
+HI058-TX-0016,HI058,Lihue,Kauai,HI,2026-06-30 10:36:51,PWR-BUCK,Buck Converter Module,Power,35,1.02,4.72,165.20,35.70,129.50,Akamu,Maker/Hobbyist,Cash,847
+HI058-TX-0017,HI058,Lihue,Kauai,HI,2026-06-30 15:20:49,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.49,7.52,52.64,17.43,35.21,Ikaika,Government,Purchase Order,162
+HI058-TX-0018,HI058,Lihue,Kauai,HI,2026-06-30 08:15:22,SOL-CTRL,Solar Charge Controller,Solar Power,6,11.25,31.82,190.92,67.50,123.42,Makana,Tourism/Hospitality,Credit Card,443
+HI058-TX-0019,HI058,Lihue,Kauai,HI,2026-06-30 10:55:41,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,9.44,27.49,192.43,66.08,126.35,Noelani,Tourism/Hospitality,Debit Card,118
+HI058-TX-0020,HI058,Lihue,Kauai,HI,2026-06-30 14:32:22,PWR-5V2,5V 2A Power Supply,Power,5,3.74,10.95,54.75,18.70,36.05,Mika,Maker/Hobbyist,Debit Card,339
+HI058-TX-0021,HI058,Lihue,Kauai,HI,2026-06-30 17:54:01,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.37,8.41,16.82,6.74,10.08,Makana,Government,Cash,409
+HI058-TX-0022,HI058,Lihue,Kauai,HI,2026-06-30 09:56:16,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.41,13.36,26.72,8.82,17.90,Leilani,Education,Credit Card,141
+HI058-TX-0023,HI058,Lihue,Kauai,HI,2026-06-30 15:58:59,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.63,13.69,41.07,10.89,30.18,Makana,Retail,Mobile Pay,130
+HI058-TX-0024,HI058,Lihue,Kauai,HI,2026-06-30 11:19:26,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.96,34.68,208.08,65.76,142.32,Noah,Commercial,Debit Card,758
+HI058-TX-0025,HI058,Lihue,Kauai,HI,2026-06-30 16:21:01,PWR-12V,12V 5A Power Supply,Power,2,9.07,23.91,47.82,18.14,29.68,Pualani,Education,Purchase Order,138
+HI058-TX-0026,HI058,Lihue,Kauai,HI,2026-06-30 17:03:40,SNS-PIR,PIR Motion Sensor,Sensors,6,1.57,5.91,35.46,9.42,26.04,Noah,Government,Credit Card,900
+HI058-TX-0027,HI058,Lihue,Kauai,HI,2026-06-30 12:55:24,MOS-44N,IRFZ44N MOSFET,Semiconductors,15,0.63,2.51,37.65,9.45,28.20,Noah,Education,Mobile Pay,850
+HI058-TX-0028,HI058,Lihue,Kauai,HI,2026-06-30 15:14:27,CON-JMP,Jumper Wire Set,Connectors,12,0.96,3.84,46.08,11.52,34.56,Keanu,Education,Mobile Pay,436
+HI058-TX-0029,HI058,Lihue,Kauai,HI,2026-06-30 09:17:23,DIO-4007,1N4007 Diode,Semiconductors,12,0.04,0.20,2.40,0.48,1.92,Hana,Marine,Purchase Order,536
+HI058-TX-0030,HI058,Lihue,Kauai,HI,2026-06-30 09:03:28,PWR-BUCK,Buck Converter Module,Power,18,1.05,4.99,89.82,18.90,70.92,Malia,Government,Purchase Order,252
+HI058-TX-0031,HI058,Lihue,Kauai,HI,2026-06-30 11:15:07,RES-010,10k Ohm Resistor,Resistors,24,0.03,0.13,3.12,0.72,2.40,Malia,Commercial,Mobile Pay,113
+HI058-TX-0032,HI058,Lihue,Kauai,HI,2026-06-30 14:51:56,RES-001,1k Ohm Resistor,Resistors,32,0.03,0.14,4.48,0.96,3.52,Kai,Maker/Hobbyist,Credit Card,233
+HI058-TX-0033,HI058,Lihue,Kauai,HI,2026-06-30 09:18:50,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,9.57,28.37,198.59,66.99,131.60,Leilani,Marine,Mobile Pay,418
+HI058-TX-0034,HI058,Lihue,Kauai,HI,2026-06-30 08:35:14,LED-BLU,5mm Blue LED,LEDs,3,0.06,0.33,0.99,0.18,0.81,Ailani,Commercial,Debit Card,210
+HI058-TX-0035,HI058,Lihue,Kauai,HI,2026-06-30 09:25:29,SNS-SOIL,Soil Moisture Sensor,Sensors,31,0.94,4.17,129.27,29.14,100.13,Lani,Tourism/Hospitality,Cash,555
+HI058-TX-0036,HI058,Lihue,Kauai,HI,2026-06-30 10:24:23,PWR-12V,12V 5A Power Supply,Power,1,9.76,26.50,26.50,9.76,16.74,Akamu,Maker/Hobbyist,Cash,276
+HI058-TX-0037,HI058,Lihue,Kauai,HI,2026-06-30 17:01:15,PWR-BUCK,Buck Converter Module,Power,31,1.10,4.59,142.29,34.10,108.19,Ailani,Maker/Hobbyist,Purchase Order,822
+HI058-TX-0038,HI058,Lihue,Kauai,HI,2026-06-30 10:07:03,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.78,31.23,218.61,75.46,143.15,Akamu,Retail,ACH,53
+HI058-TX-0039,HI058,Lihue,Kauai,HI,2026-06-30 08:58:42,LED-BLU,5mm Blue LED,LEDs,7,0.06,0.32,2.24,0.42,1.82,Keanu,Tourism/Hospitality,Debit Card,678
+HI058-TX-0040,HI058,Lihue,Kauai,HI,2026-06-30 13:02:04,RES-220,220 Ohm Resistor,Resistors,35,0.03,0.14,4.90,1.05,3.85,Makana,Marine,Purchase Order,163
+HI058-TX-0041,HI058,Lihue,Kauai,HI,2026-06-30 12:33:02,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.49,13.65,68.25,22.45,45.80,Makana,Government,Cash,74
+HI058-TX-0042,HI058,Lihue,Kauai,HI,2026-06-30 11:41:01,LED-BLU,5mm Blue LED,LEDs,10,0.06,0.31,3.10,0.60,2.50,Lani,Education,Mobile Pay,640
+HI058-TX-0043,HI058,Lihue,Kauai,HI,2026-06-30 09:30:21,TOOL-DMM,Digital Multimeter,Tools,4,9.31,26.17,104.68,37.24,67.44,Lani,Education,Purchase Order,725
+HI058-TX-0044,HI058,Lihue,Kauai,HI,2026-06-30 08:16:14,PWR-BUCK,Buck Converter Module,Power,8,1.01,5.14,41.12,8.08,33.04,Keahi,Retail,Credit Card,91
+HI058-TX-0045,HI058,Lihue,Kauai,HI,2026-06-30 08:36:06,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.90,32.99,197.94,65.40,132.54,Keahi,Government,Cash,52
+HI058-TX-0046,HI058,Lihue,Kauai,HI,2026-06-30 10:02:50,PWR-5V2,5V 2A Power Supply,Power,4,3.39,10.45,41.80,13.56,28.24,Malia,Commercial,Cash,739
+HI058-TX-0047,HI058,Lihue,Kauai,HI,2026-06-30 17:18:08,PWR-5V2,5V 2A Power Supply,Power,7,3.36,11.43,80.01,23.52,56.49,Mika,Government,Purchase Order,530
+HI058-TX-0048,HI058,Lihue,Kauai,HI,2026-06-30 17:31:31,PWR-12V,12V 5A Power Supply,Power,8,8.98,25.12,200.96,71.84,129.12,Kaleo,Education,Credit Card,334
+HI058-TX-0049,HI058,Lihue,Kauai,HI,2026-06-30 09:53:07,PWR-BUCK,Buck Converter Module,Power,18,0.99,5.04,90.72,17.82,72.90,Noah,Education,ACH,510
+HI058-TX-0050,HI058,Lihue,Kauai,HI,2026-06-30 12:34:05,PWR-5V2,5V 2A Power Supply,Power,7,3.45,10.32,72.24,24.15,48.09,Keahi,Commercial,Credit Card,219
+HI058-TX-0051,HI058,Lihue,Kauai,HI,2026-06-30 08:09:34,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,3.67,14.61,29.22,7.34,21.88,Malia,Marine,Purchase Order,538
+HI058-TX-0052,HI058,Lihue,Kauai,HI,2026-06-30 14:00:01,TR-3904,2N3904 NPN Transistor,Semiconductors,14,0.05,0.23,3.22,0.70,2.52,Akamu,Maker/Hobbyist,Credit Card,834
+HI058-TX-0053,HI058,Lihue,Kauai,HI,2026-06-30 16:13:11,PWR-12V,12V 5A Power Supply,Power,6,9.71,26.12,156.72,58.26,98.46,Kai,Maker/Hobbyist,Cash,395
+HI058-TX-0054,HI058,Lihue,Kauai,HI,2026-06-30 08:41:59,IC-358,LM358 Op Amp,Integrated Circuits,1,0.32,1.24,1.24,0.32,0.92,Alika,Maker/Hobbyist,Purchase Order,299
+HI058-TX-0055,HI058,Lihue,Kauai,HI,2026-06-30 08:34:20,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,9.47,26.43,52.86,18.94,33.92,Mika,Marine,Mobile Pay,354
+HI058-TX-0056,HI058,Lihue,Kauai,HI,2026-06-30 16:30:08,RES-220,220 Ohm Resistor,Resistors,25,0.03,0.14,3.50,0.75,2.75,Mika,Maker/Hobbyist,ACH,380
+HI058-TX-0057,HI058,Lihue,Kauai,HI,2026-06-30 08:58:57,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.93,13.99,55.96,15.72,40.24,Kaleo,Government,Cash,290
+HI058-TX-0058,HI058,Lihue,Kauai,HI,2026-06-30 16:47:09,REL-5V,5V Relay Module,Relays,25,0.94,5.26,131.50,23.50,108.00,Hana,Tourism/Hospitality,Credit Card,512
+HI058-TX-0059,HI058,Lihue,Kauai,HI,2026-06-30 08:24:54,MOS-44N,IRFZ44N MOSFET,Semiconductors,9,0.61,2.57,23.13,5.49,17.64,Ailani,Government,Cash,742
+HI058-TX-0060,HI058,Lihue,Kauai,HI,2026-06-30 12:21:18,RES-220,220 Ohm Resistor,Resistors,36,0.03,0.12,4.32,1.08,3.24,Hana,Government,Credit Card,555
+HI058-TX-0061,HI058,Lihue,Kauai,HI,2026-06-30 13:20:11,CAP-010,10uF Capacitor,Capacitors,15,0.08,0.38,5.70,1.20,4.50,Hana,Retail,Credit Card,869

@@ -1,0 +1,90 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI040-TX-0001,HI040,Wailea,Maui,HI,2026-06-30 09:29:03,PWR-5V2,5V 2A Power Supply,Power,2,3.61,11.53,23.06,7.22,15.84,Pualani,Commercial,ACH,100
+HI040-TX-0002,HI040,Wailea,Maui,HI,2026-06-30 11:46:27,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.44,13.05,26.10,8.88,17.22,Makana,Commercial,Purchase Order,364
+HI040-TX-0003,HI040,Wailea,Maui,HI,2026-06-30 13:43:19,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.57,14.47,43.41,13.71,29.70,Hana,Tourism/Hospitality,ACH,227
+HI040-TX-0004,HI040,Wailea,Maui,HI,2026-06-30 10:07:42,BAT-LIPO,LiPo Battery Pack,Batteries,4,5.33,16.27,65.08,21.32,43.76,Kaleo,Retail,Credit Card,350
+HI040-TX-0005,HI040,Wailea,Maui,HI,2026-06-30 14:10:17,TR-3904,2N3904 NPN Transistor,Semiconductors,36,0.06,0.25,9.00,2.16,6.84,Lani,Education,Mobile Pay,427
+HI040-TX-0006,HI040,Wailea,Maui,HI,2026-06-30 12:27:28,LED-RGB,RGB LED Strip,LEDs,8,5.23,13.58,108.64,41.84,66.80,Keahi,Government,ACH,536
+HI040-TX-0007,HI040,Wailea,Maui,HI,2026-06-30 15:26:42,PWR-5V2,5V 2A Power Supply,Power,3,3.41,10.27,30.81,10.23,20.58,Akamu,Marine,Mobile Pay,338
+HI040-TX-0008,HI040,Wailea,Maui,HI,2026-06-30 16:48:05,TOOL-WIRE,Wire Stripper,Tools,7,5.00,15.45,108.15,35.00,73.15,Keahi,Education,Mobile Pay,785
+HI040-TX-0009,HI040,Wailea,Maui,HI,2026-06-30 08:54:23,LED-RGB,RGB LED Strip,LEDs,2,4.75,14.36,28.72,9.50,19.22,Noelani,Government,Cash,827
+HI040-TX-0010,HI040,Wailea,Maui,HI,2026-06-30 09:15:15,RES-001,1k Ohm Resistor,Resistors,21,0.03,0.12,2.52,0.63,1.89,Kai,Tourism/Hospitality,Credit Card,787
+HI040-TX-0011,HI040,Wailea,Maui,HI,2026-06-30 09:02:45,LED-RED,5mm Red LED,LEDs,11,0.06,0.26,2.86,0.66,2.20,Noah,Education,ACH,160
+HI040-TX-0012,HI040,Wailea,Maui,HI,2026-06-30 11:38:41,CON-JMP,Jumper Wire Set,Connectors,20,1.00,3.87,77.40,20.00,57.40,Noah,Commercial,Mobile Pay,87
+HI040-TX-0013,HI040,Wailea,Maui,HI,2026-06-30 16:57:50,CON-JMP,Jumper Wire Set,Connectors,25,0.96,3.84,96.00,24.00,72.00,Lani,Commercial,Mobile Pay,107
+HI040-TX-0014,HI040,Wailea,Maui,HI,2026-06-30 15:39:17,TOOL-SOL,Soldering Iron Tips,Tools,4,2.06,7.56,30.24,8.24,22.00,Keanu,Maker/Hobbyist,ACH,648
+HI040-TX-0015,HI040,Wailea,Maui,HI,2026-06-30 16:46:58,PWR-BUCK,Buck Converter Module,Power,16,1.04,4.58,73.28,16.64,56.64,Pualani,Marine,ACH,193
+HI040-TX-0016,HI040,Wailea,Maui,HI,2026-06-30 11:05:54,CON-JMP,Jumper Wire Set,Connectors,16,0.98,3.73,59.68,15.68,44.00,Noah,Tourism/Hospitality,Debit Card,513
+HI040-TX-0017,HI040,Wailea,Maui,HI,2026-06-30 08:09:21,IC-358,LM358 Op Amp,Integrated Circuits,39,0.33,1.22,47.58,12.87,34.71,Akamu,Commercial,Debit Card,873
+HI040-TX-0018,HI040,Wailea,Maui,HI,2026-06-30 12:57:03,BAT-AAH,AA Battery Holder,Batteries,23,0.53,2.79,64.17,12.19,51.98,Keanu,Tourism/Hospitality,Debit Card,549
+HI040-TX-0019,HI040,Wailea,Maui,HI,2026-06-30 10:31:08,LED-BLU,5mm Blue LED,LEDs,35,0.07,0.34,11.90,2.45,9.45,Nalu,Marine,Debit Card,162
+HI040-TX-0020,HI040,Wailea,Maui,HI,2026-06-30 11:58:29,SOL-CTRL,Solar Charge Controller,Solar Power,6,11.25,31.91,191.46,67.50,123.96,Noelani,Marine,Mobile Pay,80
+HI040-TX-0021,HI040,Wailea,Maui,HI,2026-06-30 11:29:12,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.45,7.79,15.58,4.90,10.68,Iolana,Retail,Mobile Pay,635
+HI040-TX-0022,HI040,Wailea,Maui,HI,2026-06-30 09:06:20,SOL-CTRL,Solar Charge Controller,Solar Power,4,11.30,31.76,127.04,45.20,81.84,Iolana,Commercial,ACH,506
+HI040-TX-0023,HI040,Wailea,Maui,HI,2026-06-30 08:53:20,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,23,0.04,0.19,4.37,0.92,3.45,Iolana,Maker/Hobbyist,Cash,100
+HI040-TX-0024,HI040,Wailea,Maui,HI,2026-06-30 13:46:10,CON-JMP,Jumper Wire Set,Connectors,8,0.89,3.86,30.88,7.12,23.76,Ikaika,Government,Cash,55
+HI040-TX-0025,HI040,Wailea,Maui,HI,2026-06-30 14:48:24,CAP-010,10uF Capacitor,Capacitors,7,0.09,0.36,2.52,0.63,1.89,Akamu,Government,Debit Card,489
+HI040-TX-0026,HI040,Wailea,Maui,HI,2026-06-30 13:58:06,LED-BLU,5mm Blue LED,LEDs,14,0.07,0.33,4.62,0.98,3.64,Ikaika,Marine,Purchase Order,129
+HI040-TX-0027,HI040,Wailea,Maui,HI,2026-06-30 12:51:24,LED-BLU,5mm Blue LED,LEDs,9,0.07,0.33,2.97,0.63,2.34,Kaleo,Commercial,Debit Card,899
+HI040-TX-0028,HI040,Wailea,Maui,HI,2026-06-30 14:48:16,CON-JMP,Jumper Wire Set,Connectors,4,0.96,3.96,15.84,3.84,12.00,Noah,Marine,Cash,100
+HI040-TX-0029,HI040,Wailea,Maui,HI,2026-06-30 16:46:10,LED-RED,5mm Red LED,LEDs,19,0.05,0.28,5.32,0.95,4.37,Malia,Retail,Cash,59
+HI040-TX-0030,HI040,Wailea,Maui,HI,2026-06-30 12:57:50,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.79,14.03,56.12,15.16,40.96,Ailani,Commercial,ACH,98
+HI040-TX-0031,HI040,Wailea,Maui,HI,2026-06-30 16:19:07,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.14,12.25,24.50,8.28,16.22,Mika,Marine,ACH,721
+HI040-TX-0032,HI040,Wailea,Maui,HI,2026-06-30 09:34:01,CAP-100,100uF Capacitor,Capacitors,11,0.16,0.61,6.71,1.76,4.95,Noelani,Commercial,Purchase Order,67
+HI040-TX-0033,HI040,Wailea,Maui,HI,2026-06-30 08:36:11,CAP-100,100uF Capacitor,Capacitors,3,0.17,0.57,1.71,0.51,1.20,Mika,Commercial,Cash,730
+HI040-TX-0034,HI040,Wailea,Maui,HI,2026-06-30 11:03:19,RES-220,220 Ohm Resistor,Resistors,27,0.03,0.14,3.78,0.81,2.97,Mika,Maker/Hobbyist,Debit Card,527
+HI040-TX-0035,HI040,Wailea,Maui,HI,2026-06-30 15:34:32,PWR-BUCK,Buck Converter Module,Power,21,0.98,4.73,99.33,20.58,78.75,Kaleo,Education,Debit Card,153
+HI040-TX-0036,HI040,Wailea,Maui,HI,2026-06-30 16:30:52,DIO-4007,1N4007 Diode,Semiconductors,9,0.05,0.20,1.80,0.45,1.35,Malia,Commercial,Mobile Pay,415
+HI040-TX-0037,HI040,Wailea,Maui,HI,2026-06-30 10:37:02,BAT-LIPO,LiPo Battery Pack,Batteries,4,4.97,16.56,66.24,19.88,46.36,Alika,Marine,Mobile Pay,776
+HI040-TX-0038,HI040,Wailea,Maui,HI,2026-06-30 11:37:31,PWR-5V2,5V 2A Power Supply,Power,3,3.70,11.09,33.27,11.10,22.17,Nalu,Marine,Cash,617
+HI040-TX-0039,HI040,Wailea,Maui,HI,2026-06-30 08:44:53,RES-001,1k Ohm Resistor,Resistors,2,0.03,0.13,0.26,0.06,0.20,Leilani,Retail,Purchase Order,590
+HI040-TX-0040,HI040,Wailea,Maui,HI,2026-06-30 17:38:11,MOS-44N,IRFZ44N MOSFET,Semiconductors,26,0.63,2.42,62.92,16.38,46.54,Leilani,Marine,Debit Card,884
+HI040-TX-0041,HI040,Wailea,Maui,HI,2026-06-30 08:39:23,PWR-5V2,5V 2A Power Supply,Power,1,3.39,11.46,11.46,3.39,8.07,Leilani,Government,Mobile Pay,646
+HI040-TX-0042,HI040,Wailea,Maui,HI,2026-06-30 10:13:48,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.50,6.43,6.43,1.50,4.93,Noah,Maker/Hobbyist,Mobile Pay,360
+HI040-TX-0043,HI040,Wailea,Maui,HI,2026-06-30 09:18:35,LED-BLU,5mm Blue LED,LEDs,28,0.07,0.35,9.80,1.96,7.84,Kai,Education,Cash,396
+HI040-TX-0044,HI040,Wailea,Maui,HI,2026-06-30 08:27:23,CAP-100,100uF Capacitor,Capacitors,39,0.17,0.63,24.57,6.63,17.94,Leilani,Government,Credit Card,806
+HI040-TX-0045,HI040,Wailea,Maui,HI,2026-06-30 09:34:41,LED-RGB,RGB LED Strip,LEDs,1,4.96,14.94,14.94,4.96,9.98,Ailani,Education,Purchase Order,318
+HI040-TX-0046,HI040,Wailea,Maui,HI,2026-06-30 15:01:34,BAT-AAH,AA Battery Holder,Batteries,16,0.53,2.71,43.36,8.48,34.88,Makana,Government,Credit Card,330
+HI040-TX-0047,HI040,Wailea,Maui,HI,2026-06-30 08:19:56,PWR-12V,12V 5A Power Supply,Power,5,9.18,24.97,124.85,45.90,78.95,Keanu,Commercial,Debit Card,341
+HI040-TX-0048,HI040,Wailea,Maui,HI,2026-06-30 17:28:44,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.36,7.26,14.52,4.72,9.80,Makana,Marine,Purchase Order,891
+HI040-TX-0049,HI040,Wailea,Maui,HI,2026-06-30 09:15:12,PWR-BUCK,Buck Converter Module,Power,21,1.06,5.05,106.05,22.26,83.79,Lani,Government,Purchase Order,362
+HI040-TX-0050,HI040,Wailea,Maui,HI,2026-06-30 17:33:55,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.58,14.47,72.35,22.90,49.45,Lani,Education,Cash,640
+HI040-TX-0051,HI040,Wailea,Maui,HI,2026-06-30 08:40:35,CON-JMP,Jumper Wire Set,Connectors,40,0.88,3.63,145.20,35.20,110.00,Makana,Education,Debit Card,836
+HI040-TX-0052,HI040,Wailea,Maui,HI,2026-06-30 17:04:49,LED-BLU,5mm Blue LED,LEDs,35,0.06,0.32,11.20,2.10,9.10,Noah,Retail,Debit Card,296
+HI040-TX-0053,HI040,Wailea,Maui,HI,2026-06-30 08:18:33,LED-RGB,RGB LED Strip,LEDs,7,5.01,14.15,99.05,35.07,63.98,Makana,Commercial,Mobile Pay,153
+HI040-TX-0054,HI040,Wailea,Maui,HI,2026-06-30 14:22:30,SNS-SOIL,Soil Moisture Sensor,Sensors,17,0.94,4.16,70.72,15.98,54.74,Nalu,Education,Credit Card,272
+HI040-TX-0055,HI040,Wailea,Maui,HI,2026-06-30 17:04:24,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.48,7.60,15.20,4.96,10.24,Noelani,Maker/Hobbyist,Purchase Order,399
+HI040-TX-0056,HI040,Wailea,Maui,HI,2026-06-30 14:57:00,BAT-AAH,AA Battery Holder,Batteries,26,0.50,2.65,68.90,13.00,55.90,Makana,Retail,Mobile Pay,649
+HI040-TX-0057,HI040,Wailea,Maui,HI,2026-06-30 15:38:00,LED-BLU,5mm Blue LED,LEDs,20,0.07,0.31,6.20,1.40,4.80,Pualani,Tourism/Hospitality,Credit Card,299
+HI040-TX-0058,HI040,Wailea,Maui,HI,2026-06-30 15:34:37,PWR-5V2,5V 2A Power Supply,Power,3,3.55,10.49,31.47,10.65,20.82,Nalu,Retail,Credit Card,64
+HI040-TX-0059,HI040,Wailea,Maui,HI,2026-06-30 12:30:16,USB-CBO,USB-C Breakout Board,Connectors,15,1.30,5.55,83.25,19.50,63.75,Alika,Retail,ACH,398
+HI040-TX-0060,HI040,Wailea,Maui,HI,2026-06-30 14:05:59,RES-220,220 Ohm Resistor,Resistors,5,0.03,0.12,0.60,0.15,0.45,Kai,Maker/Hobbyist,Debit Card,26
+HI040-TX-0061,HI040,Wailea,Maui,HI,2026-06-30 10:41:52,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.50,15.00,120.00,36.00,84.00,Ikaika,Education,Cash,606
+HI040-TX-0062,HI040,Wailea,Maui,HI,2026-06-30 12:43:42,LED-RGB,RGB LED Strip,LEDs,2,4.70,13.86,27.72,9.40,18.32,Hana,Tourism/Hospitality,Debit Card,838
+HI040-TX-0063,HI040,Wailea,Maui,HI,2026-06-30 12:44:39,LED-RED,5mm Red LED,LEDs,25,0.06,0.28,7.00,1.50,5.50,Mika,Maker/Hobbyist,Mobile Pay,374
+HI040-TX-0064,HI040,Wailea,Maui,HI,2026-06-30 14:57:13,BAT-AAH,AA Battery Holder,Batteries,4,0.53,2.56,10.24,2.12,8.12,Pualani,Retail,Debit Card,727
+HI040-TX-0065,HI040,Wailea,Maui,HI,2026-06-30 11:58:45,BAT-AAH,AA Battery Holder,Batteries,19,0.51,2.56,48.64,9.69,38.95,Hana,Maker/Hobbyist,Credit Card,815
+HI040-TX-0066,HI040,Wailea,Maui,HI,2026-06-30 15:50:04,PWR-12V,12V 5A Power Supply,Power,8,8.86,23.60,188.80,70.88,117.92,Kai,Commercial,Credit Card,457
+HI040-TX-0067,HI040,Wailea,Maui,HI,2026-06-30 10:56:20,LED-RED,5mm Red LED,LEDs,29,0.06,0.29,8.41,1.74,6.67,Koa,Tourism/Hospitality,Credit Card,103
+HI040-TX-0068,HI040,Wailea,Maui,HI,2026-06-30 15:50:06,LED-RED,5mm Red LED,LEDs,39,0.05,0.27,10.53,1.95,8.58,Leilani,Marine,Debit Card,20
+HI040-TX-0069,HI040,Wailea,Maui,HI,2026-06-30 14:35:30,SNS-PIR,PIR Motion Sensor,Sensors,7,1.45,5.76,40.32,10.15,30.17,Malia,Marine,ACH,541
+HI040-TX-0070,HI040,Wailea,Maui,HI,2026-06-30 11:20:13,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,29,0.05,0.20,5.80,1.45,4.35,Pualani,Tourism/Hospitality,ACH,374
+HI040-TX-0071,HI040,Wailea,Maui,HI,2026-06-30 11:53:32,LED-BLU,5mm Blue LED,LEDs,26,0.07,0.33,8.58,1.82,6.76,Pualani,Retail,Debit Card,501
+HI040-TX-0072,HI040,Wailea,Maui,HI,2026-06-30 13:19:59,SNS-DHT,DHT22 Temperature Sensor,Sensors,4,2.51,7.16,28.64,10.04,18.60,Keanu,Commercial,ACH,863
+HI040-TX-0073,HI040,Wailea,Maui,HI,2026-06-30 16:44:49,BAT-AAH,AA Battery Holder,Batteries,6,0.49,2.58,15.48,2.94,12.54,Kaleo,Maker/Hobbyist,Mobile Pay,633
+HI040-TX-0074,HI040,Wailea,Maui,HI,2026-06-30 14:06:43,PWR-12V,12V 5A Power Supply,Power,7,9.40,25.96,181.72,65.80,115.92,Kaleo,Government,Purchase Order,377
+HI040-TX-0075,HI040,Wailea,Maui,HI,2026-06-30 16:41:30,PWR-BUCK,Buck Converter Module,Power,25,1.03,4.63,115.75,25.75,90.00,Koa,Commercial,ACH,453
+HI040-TX-0076,HI040,Wailea,Maui,HI,2026-06-30 16:38:41,IC-555,NE555 Timer IC,Integrated Circuits,26,0.34,1.31,34.06,8.84,25.22,Ikaika,Retail,Debit Card,781
+HI040-TX-0077,HI040,Wailea,Maui,HI,2026-06-30 09:50:06,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.96,14.89,74.45,24.80,49.65,Leilani,Marine,Credit Card,347
+HI040-TX-0078,HI040,Wailea,Maui,HI,2026-06-30 16:59:53,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.93,14.34,43.02,14.79,28.23,Kai,Marine,Mobile Pay,740
+HI040-TX-0079,HI040,Wailea,Maui,HI,2026-06-30 09:45:54,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.47,8.90,62.30,24.29,38.01,Alika,Retail,Mobile Pay,14
+HI040-TX-0080,HI040,Wailea,Maui,HI,2026-06-30 14:18:12,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,11,0.05,0.20,2.20,0.55,1.65,Kai,Government,Purchase Order,419
+HI040-TX-0081,HI040,Wailea,Maui,HI,2026-06-30 13:46:27,PWR-12V,12V 5A Power Supply,Power,6,9.60,24.08,144.48,57.60,86.88,Keanu,Retail,Purchase Order,1
+HI040-TX-0082,HI040,Wailea,Maui,HI,2026-06-30 08:48:38,RES-001,1k Ohm Resistor,Resistors,21,0.03,0.13,2.73,0.63,2.10,Makana,Tourism/Hospitality,Mobile Pay,71
+HI040-TX-0083,HI040,Wailea,Maui,HI,2026-06-30 13:40:07,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,7.85,21.13,169.04,62.80,106.24,Noelani,Tourism/Hospitality,ACH,821
+HI040-TX-0084,HI040,Wailea,Maui,HI,2026-06-30 10:05:58,LED-RED,5mm Red LED,LEDs,16,0.06,0.26,4.16,0.96,3.20,Iolana,Commercial,Purchase Order,637
+HI040-TX-0085,HI040,Wailea,Maui,HI,2026-06-30 16:50:34,RES-001,1k Ohm Resistor,Resistors,23,0.03,0.14,3.22,0.69,2.53,Keahi,Education,Cash,57
+HI040-TX-0086,HI040,Wailea,Maui,HI,2026-06-30 09:27:57,PWR-BUCK,Buck Converter Module,Power,26,1.03,4.88,126.88,26.78,100.10,Noelani,Maker/Hobbyist,Debit Card,517
+HI040-TX-0087,HI040,Wailea,Maui,HI,2026-06-30 14:53:12,LED-BLU,5mm Blue LED,LEDs,6,0.06,0.35,2.10,0.36,1.74,Ikaika,Government,Purchase Order,606
+HI040-TX-0088,HI040,Wailea,Maui,HI,2026-06-30 10:12:38,PWR-5V2,5V 2A Power Supply,Power,1,3.77,11.34,11.34,3.77,7.57,Alika,Government,Debit Card,127
+HI040-TX-0089,HI040,Wailea,Maui,HI,2026-06-30 09:47:15,TOOL-SOL,Soldering Iron Tips,Tools,1,1.90,7.63,7.63,1.90,5.73,Leilani,Government,Purchase Order,829

@@ -1,0 +1,72 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI076-TX-0001,HI076,Honolulu Airport,Oahu,HI,2026-06-30 13:13:39,CON-JMP,Jumper Wire Set,Connectors,23,0.98,3.92,90.16,22.54,67.62,Keahi,Government,Mobile Pay,844
+HI076-TX-0002,HI076,Honolulu Airport,Oahu,HI,2026-06-30 15:53:29,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.22,13.81,41.43,12.66,28.77,Noelani,Maker/Hobbyist,Cash,202
+HI076-TX-0003,HI076,Honolulu Airport,Oahu,HI,2026-06-30 15:12:23,IC-REG,7805 Voltage Regulator,Integrated Circuits,3,0.20,0.96,2.88,0.60,2.28,Malia,Commercial,Cash,660
+HI076-TX-0004,HI076,Honolulu Airport,Oahu,HI,2026-06-30 08:53:56,TR-3904,2N3904 NPN Transistor,Semiconductors,20,0.05,0.23,4.60,1.00,3.60,Mika,Government,Mobile Pay,94
+HI076-TX-0005,HI076,Honolulu Airport,Oahu,HI,2026-06-30 13:22:21,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.40,13.90,13.90,4.40,9.50,Ailani,Commercial,Purchase Order,22
+HI076-TX-0006,HI076,Honolulu Airport,Oahu,HI,2026-06-30 16:22:51,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.10,16.67,83.35,25.50,57.85,Kai,Education,ACH,813
+HI076-TX-0007,HI076,Honolulu Airport,Oahu,HI,2026-06-30 17:55:57,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,6,0.04,0.19,1.14,0.24,0.90,Keanu,Government,ACH,375
+HI076-TX-0008,HI076,Honolulu Airport,Oahu,HI,2026-06-30 11:26:41,PWR-BUCK,Buck Converter Module,Power,23,1.00,5.10,117.30,23.00,94.30,Nalu,Maker/Hobbyist,ACH,349
+HI076-TX-0009,HI076,Honolulu Airport,Oahu,HI,2026-06-30 17:09:22,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.53,22.23,155.61,59.71,95.90,Nalu,Retail,Purchase Order,189
+HI076-TX-0010,HI076,Honolulu Airport,Oahu,HI,2026-06-30 10:35:59,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.33,13.82,13.82,4.33,9.49,Kaleo,Education,ACH,321
+HI076-TX-0011,HI076,Honolulu Airport,Oahu,HI,2026-06-30 14:16:26,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.67,14.75,59.00,18.68,40.32,Pualani,Retail,Mobile Pay,488
+HI076-TX-0012,HI076,Honolulu Airport,Oahu,HI,2026-06-30 13:58:49,MOS-44N,IRFZ44N MOSFET,Semiconductors,28,0.63,2.46,68.88,17.64,51.24,Iolana,Government,Debit Card,209
+HI076-TX-0013,HI076,Honolulu Airport,Oahu,HI,2026-06-30 08:14:42,CAP-100,100uF Capacitor,Capacitors,31,0.17,0.58,17.98,5.27,12.71,Kai,Maker/Hobbyist,Purchase Order,145
+HI076-TX-0014,HI076,Honolulu Airport,Oahu,HI,2026-06-30 10:35:27,IC-358,LM358 Op Amp,Integrated Circuits,23,0.31,1.21,27.83,7.13,20.70,Mika,Commercial,Mobile Pay,169
+HI076-TX-0015,HI076,Honolulu Airport,Oahu,HI,2026-06-30 12:32:18,BAT-AAH,AA Battery Holder,Batteries,25,0.49,2.54,63.50,12.25,51.25,Noelani,Retail,ACH,64
+HI076-TX-0016,HI076,Honolulu Airport,Oahu,HI,2026-06-30 09:35:31,CAP-100,100uF Capacitor,Capacitors,12,0.17,0.64,7.68,2.04,5.64,Keanu,Tourism/Hospitality,Purchase Order,555
+HI076-TX-0017,HI076,Honolulu Airport,Oahu,HI,2026-06-30 17:57:30,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,33,0.04,0.21,6.93,1.32,5.61,Mika,Government,Mobile Pay,292
+HI076-TX-0018,HI076,Honolulu Airport,Oahu,HI,2026-06-30 10:15:42,IC-555,NE555 Timer IC,Integrated Circuits,2,0.35,1.37,2.74,0.70,2.04,Noah,Commercial,Purchase Order,638
+HI076-TX-0019,HI076,Honolulu Airport,Oahu,HI,2026-06-30 12:21:19,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.44,6.50,45.50,10.08,35.42,Kai,Education,Purchase Order,490
+HI076-TX-0020,HI076,Honolulu Airport,Oahu,HI,2026-06-30 16:07:16,DIO-4007,1N4007 Diode,Semiconductors,17,0.04,0.19,3.23,0.68,2.55,Leilani,Education,Debit Card,294
+HI076-TX-0021,HI076,Honolulu Airport,Oahu,HI,2026-06-30 11:40:01,ESP-32,ESP32 Dev Board,Microcontrollers,1,3.97,12.88,12.88,3.97,8.91,Noelani,Commercial,Mobile Pay,898
+HI076-TX-0022,HI076,Honolulu Airport,Oahu,HI,2026-06-30 15:08:41,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.65,20.77,83.08,34.60,48.48,Kai,Government,Purchase Order,250
+HI076-TX-0023,HI076,Honolulu Airport,Oahu,HI,2026-06-30 15:43:39,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.58,6.15,49.20,12.64,36.56,Hana,Tourism/Hospitality,Debit Card,177
+HI076-TX-0024,HI076,Honolulu Airport,Oahu,HI,2026-06-30 10:18:27,USB-CBO,USB-C Breakout Board,Connectors,11,1.31,5.62,61.82,14.41,47.41,Noelani,Retail,Cash,386
+HI076-TX-0025,HI076,Honolulu Airport,Oahu,HI,2026-06-30 09:27:21,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,7.96,22.52,67.56,23.88,43.68,Ikaika,Maker/Hobbyist,Mobile Pay,891
+HI076-TX-0026,HI076,Honolulu Airport,Oahu,HI,2026-06-30 16:51:02,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.17,20.77,124.62,49.02,75.60,Mika,Commercial,Purchase Order,489
+HI076-TX-0027,HI076,Honolulu Airport,Oahu,HI,2026-06-30 16:11:41,USB-CBO,USB-C Breakout Board,Connectors,10,1.38,5.36,53.60,13.80,39.80,Iolana,Marine,Cash,765
+HI076-TX-0028,HI076,Honolulu Airport,Oahu,HI,2026-06-30 14:21:47,SNS-PIR,PIR Motion Sensor,Sensors,3,1.45,6.29,18.87,4.35,14.52,Kaleo,Retail,Credit Card,384
+HI076-TX-0029,HI076,Honolulu Airport,Oahu,HI,2026-06-30 12:16:22,LED-BLU,5mm Blue LED,LEDs,15,0.06,0.33,4.95,0.90,4.05,Malia,Retail,Credit Card,279
+HI076-TX-0030,HI076,Honolulu Airport,Oahu,HI,2026-06-30 17:34:22,LED-RED,5mm Red LED,LEDs,40,0.06,0.28,11.20,2.40,8.80,Ikaika,Maker/Hobbyist,Debit Card,564
+HI076-TX-0031,HI076,Honolulu Airport,Oahu,HI,2026-06-30 12:01:57,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.46,6.51,26.04,5.84,20.20,Leilani,Commercial,Cash,438
+HI076-TX-0032,HI076,Honolulu Airport,Oahu,HI,2026-06-30 14:16:03,IC-REG,7805 Voltage Regulator,Integrated Circuits,18,0.21,0.87,15.66,3.78,11.88,Kai,Maker/Hobbyist,Cash,564
+HI076-TX-0033,HI076,Honolulu Airport,Oahu,HI,2026-06-30 17:04:55,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.45,22.92,68.76,25.35,43.41,Keanu,Government,Purchase Order,225
+HI076-TX-0034,HI076,Honolulu Airport,Oahu,HI,2026-06-30 13:54:19,IC-358,LM358 Op Amp,Integrated Circuits,16,0.32,1.14,18.24,5.12,13.12,Keanu,Education,Purchase Order,237
+HI076-TX-0035,HI076,Honolulu Airport,Oahu,HI,2026-06-30 13:14:43,PWR-5V2,5V 2A Power Supply,Power,1,3.62,10.79,10.79,3.62,7.17,Ikaika,Maker/Hobbyist,Cash,884
+HI076-TX-0036,HI076,Honolulu Airport,Oahu,HI,2026-06-30 17:41:42,USB-CBO,USB-C Breakout Board,Connectors,17,1.47,5.47,92.99,24.99,68.00,Makana,Commercial,Credit Card,618
+HI076-TX-0037,HI076,Honolulu Airport,Oahu,HI,2026-06-30 12:43:59,IC-358,LM358 Op Amp,Integrated Circuits,21,0.31,1.20,25.20,6.51,18.69,Iolana,Marine,Purchase Order,816
+HI076-TX-0038,HI076,Honolulu Airport,Oahu,HI,2026-06-30 11:24:15,IC-555,NE555 Timer IC,Integrated Circuits,25,0.35,1.35,33.75,8.75,25.00,Akamu,Commercial,ACH,394
+HI076-TX-0039,HI076,Honolulu Airport,Oahu,HI,2026-06-30 12:52:52,CON-JMP,Jumper Wire Set,Connectors,8,0.99,3.85,30.80,7.92,22.88,Akamu,Retail,Mobile Pay,568
+HI076-TX-0040,HI076,Honolulu Airport,Oahu,HI,2026-06-30 08:40:47,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.61,6.42,32.10,8.05,24.05,Hana,Tourism/Hospitality,Credit Card,541
+HI076-TX-0041,HI076,Honolulu Airport,Oahu,HI,2026-06-30 12:39:21,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.09,8.17,49.02,18.54,30.48,Mika,Marine,Credit Card,881
+HI076-TX-0042,HI076,Honolulu Airport,Oahu,HI,2026-06-30 14:24:09,IC-358,LM358 Op Amp,Integrated Circuits,2,0.31,1.13,2.26,0.62,1.64,Noelani,Education,Purchase Order,758
+HI076-TX-0043,HI076,Honolulu Airport,Oahu,HI,2026-06-30 14:19:35,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.62,6.82,54.56,12.96,41.60,Mika,Tourism/Hospitality,Mobile Pay,59
+HI076-TX-0044,HI076,Honolulu Airport,Oahu,HI,2026-06-30 09:49:56,CON-JMP,Jumper Wire Set,Connectors,28,0.99,3.81,106.68,27.72,78.96,Mika,Retail,Mobile Pay,733
+HI076-TX-0045,HI076,Honolulu Airport,Oahu,HI,2026-06-30 08:34:37,RES-010,10k Ohm Resistor,Resistors,17,0.03,0.13,2.21,0.51,1.70,Keahi,Education,Mobile Pay,274
+HI076-TX-0046,HI076,Honolulu Airport,Oahu,HI,2026-06-30 08:51:57,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.62,6.14,18.42,4.86,13.56,Keanu,Maker/Hobbyist,Mobile Pay,696
+HI076-TX-0047,HI076,Honolulu Airport,Oahu,HI,2026-06-30 08:33:22,LED-BLU,5mm Blue LED,LEDs,35,0.07,0.32,11.20,2.45,8.75,Kaleo,Marine,Mobile Pay,538
+HI076-TX-0048,HI076,Honolulu Airport,Oahu,HI,2026-06-30 14:27:40,DIO-4007,1N4007 Diode,Semiconductors,13,0.05,0.19,2.47,0.65,1.82,Nalu,Maker/Hobbyist,Debit Card,51
+HI076-TX-0049,HI076,Honolulu Airport,Oahu,HI,2026-06-30 14:00:58,IC-358,LM358 Op Amp,Integrated Circuits,6,0.30,1.15,6.90,1.80,5.10,Keanu,Government,Credit Card,889
+HI076-TX-0050,HI076,Honolulu Airport,Oahu,HI,2026-06-30 09:20:50,SNS-SOIL,Soil Moisture Sensor,Sensors,32,0.93,4.09,130.88,29.76,101.12,Nalu,Tourism/Hospitality,Credit Card,321
+HI076-TX-0051,HI076,Honolulu Airport,Oahu,HI,2026-06-30 17:20:17,USB-CBO,USB-C Breakout Board,Connectors,2,1.45,5.18,10.36,2.90,7.46,Hana,Education,Purchase Order,749
+HI076-TX-0052,HI076,Honolulu Airport,Oahu,HI,2026-06-30 08:41:06,IC-555,NE555 Timer IC,Integrated Circuits,28,0.38,1.35,37.80,10.64,27.16,Leilani,Tourism/Hospitality,Mobile Pay,55
+HI076-TX-0053,HI076,Honolulu Airport,Oahu,HI,2026-06-30 16:19:35,TOOL-WIRE,Wire Stripper,Tools,7,5.25,15.50,108.50,36.75,71.75,Noelani,Marine,Cash,654
+HI076-TX-0054,HI076,Honolulu Airport,Oahu,HI,2026-06-30 08:19:32,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.83,14.18,42.54,14.49,28.05,Leilani,Government,Debit Card,89
+HI076-TX-0055,HI076,Honolulu Airport,Oahu,HI,2026-06-30 10:26:19,SNS-SOIL,Soil Moisture Sensor,Sensors,37,0.96,4.45,164.65,35.52,129.13,Alika,Education,ACH,842
+HI076-TX-0056,HI076,Honolulu Airport,Oahu,HI,2026-06-30 16:56:06,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.40,7.78,15.56,4.80,10.76,Hana,Education,Purchase Order,89
+HI076-TX-0057,HI076,Honolulu Airport,Oahu,HI,2026-06-30 12:17:32,DIO-4007,1N4007 Diode,Semiconductors,10,0.04,0.19,1.90,0.40,1.50,Akamu,Marine,ACH,522
+HI076-TX-0058,HI076,Honolulu Airport,Oahu,HI,2026-06-30 09:12:10,PWR-BUCK,Buck Converter Module,Power,5,1.02,5.14,25.70,5.10,20.60,Kaleo,Commercial,ACH,88
+HI076-TX-0059,HI076,Honolulu Airport,Oahu,HI,2026-06-30 10:21:16,PWR-12V,12V 5A Power Supply,Power,6,9.03,24.99,149.94,54.18,95.76,Kaleo,Commercial,Mobile Pay,733
+HI076-TX-0060,HI076,Honolulu Airport,Oahu,HI,2026-06-30 16:41:39,REL-5V,5V Relay Module,Relays,8,0.98,5.48,43.84,7.84,36.00,Mika,Marine,Mobile Pay,477
+HI076-TX-0061,HI076,Honolulu Airport,Oahu,HI,2026-06-30 10:56:21,SNS-SOIL,Soil Moisture Sensor,Sensors,14,0.99,4.43,62.02,13.86,48.16,Noah,Maker/Hobbyist,Cash,566
+HI076-TX-0062,HI076,Honolulu Airport,Oahu,HI,2026-06-30 08:32:40,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.41,8.74,26.22,10.23,15.99,Ikaika,Retail,ACH,598
+HI076-TX-0063,HI076,Honolulu Airport,Oahu,HI,2026-06-30 10:39:54,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.70,22.18,88.72,34.80,53.92,Pualani,Marine,Cash,797
+HI076-TX-0064,HI076,Honolulu Airport,Oahu,HI,2026-06-30 17:06:56,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.96,14.67,102.69,27.72,74.97,Leilani,Tourism/Hospitality,ACH,397
+HI076-TX-0065,HI076,Honolulu Airport,Oahu,HI,2026-06-30 10:42:07,IC-358,LM358 Op Amp,Integrated Circuits,6,0.29,1.22,7.32,1.74,5.58,Leilani,Commercial,Mobile Pay,888
+HI076-TX-0066,HI076,Honolulu Airport,Oahu,HI,2026-06-30 12:42:22,IC-555,NE555 Timer IC,Integrated Circuits,22,0.35,1.29,28.38,7.70,20.68,Hana,Maker/Hobbyist,Debit Card,739
+HI076-TX-0067,HI076,Honolulu Airport,Oahu,HI,2026-06-30 08:32:17,IC-REG,7805 Voltage Regulator,Integrated Circuits,15,0.21,0.98,14.70,3.15,11.55,Keanu,Tourism/Hospitality,Cash,260
+HI076-TX-0068,HI076,Honolulu Airport,Oahu,HI,2026-06-30 08:23:21,USB-CBO,USB-C Breakout Board,Connectors,13,1.35,5.73,74.49,17.55,56.94,Lani,Commercial,Mobile Pay,870
+HI076-TX-0069,HI076,Honolulu Airport,Oahu,HI,2026-06-30 11:45:31,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.41,13.83,55.32,17.64,37.68,Iolana,Marine,Debit Card,45
+HI076-TX-0070,HI076,Honolulu Airport,Oahu,HI,2026-06-30 10:40:53,RES-220,220 Ohm Resistor,Resistors,9,0.03,0.13,1.17,0.27,0.90,Pualani,Maker/Hobbyist,Purchase Order,209
+HI076-TX-0071,HI076,Honolulu Airport,Oahu,HI,2026-06-30 15:36:32,USB-CBO,USB-C Breakout Board,Connectors,30,1.42,5.25,157.50,42.60,114.90,Lani,Education,Cash,363

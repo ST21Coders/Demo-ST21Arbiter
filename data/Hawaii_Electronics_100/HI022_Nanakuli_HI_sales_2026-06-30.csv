@@ -1,0 +1,80 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI022-TX-0001,HI022,Nanakuli,Oahu,HI,2026-06-30 14:03:51,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,7.74,21.82,43.64,15.48,28.16,Lani,Marine,Cash,285
+HI022-TX-0002,HI022,Nanakuli,Oahu,HI,2026-06-30 08:32:52,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.26,8.89,35.56,13.04,22.52,Koa,Retail,Debit Card,654
+HI022-TX-0003,HI022,Nanakuli,Oahu,HI,2026-06-30 13:22:08,USB-CBO,USB-C Breakout Board,Connectors,10,1.38,5.78,57.80,13.80,44.00,Akamu,Tourism/Hospitality,Purchase Order,419
+HI022-TX-0004,HI022,Nanakuli,Oahu,HI,2026-06-30 14:18:30,TOOL-WIRE,Wire Stripper,Tools,1,4.97,15.51,15.51,4.97,10.54,Lani,Government,Cash,237
+HI022-TX-0005,HI022,Nanakuli,Oahu,HI,2026-06-30 10:26:14,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.07,12.29,73.74,24.42,49.32,Alika,Retail,Credit Card,789
+HI022-TX-0006,HI022,Nanakuli,Oahu,HI,2026-06-30 12:27:29,TOOL-DMM,Digital Multimeter,Tools,6,9.32,28.30,169.80,55.92,113.88,Hana,Retail,Mobile Pay,229
+HI022-TX-0007,HI022,Nanakuli,Oahu,HI,2026-06-30 08:08:42,IC-555,NE555 Timer IC,Integrated Circuits,26,0.36,1.37,35.62,9.36,26.26,Lani,Maker/Hobbyist,Debit Card,170
+HI022-TX-0008,HI022,Nanakuli,Oahu,HI,2026-06-30 16:32:34,LED-RGB,RGB LED Strip,LEDs,6,5.27,13.70,82.20,31.62,50.58,Iolana,Tourism/Hospitality,Credit Card,681
+HI022-TX-0009,HI022,Nanakuli,Oahu,HI,2026-06-30 08:10:22,USB-CBO,USB-C Breakout Board,Connectors,23,1.47,5.68,130.64,33.81,96.83,Malia,Retail,Debit Card,326
+HI022-TX-0010,HI022,Nanakuli,Oahu,HI,2026-06-30 09:20:14,BAT-AAH,AA Battery Holder,Batteries,37,0.48,2.76,102.12,17.76,84.36,Koa,Tourism/Hospitality,ACH,224
+HI022-TX-0011,HI022,Nanakuli,Oahu,HI,2026-06-30 08:03:15,MOS-44N,IRFZ44N MOSFET,Semiconductors,15,0.61,2.56,38.40,9.15,29.25,Lani,Education,Purchase Order,400
+HI022-TX-0012,HI022,Nanakuli,Oahu,HI,2026-06-30 12:46:48,RES-220,220 Ohm Resistor,Resistors,18,0.03,0.13,2.34,0.54,1.80,Koa,Education,Purchase Order,794
+HI022-TX-0013,HI022,Nanakuli,Oahu,HI,2026-06-30 15:33:41,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.54,6.87,20.61,4.62,15.99,Keahi,Maker/Hobbyist,Mobile Pay,140
+HI022-TX-0014,HI022,Nanakuli,Oahu,HI,2026-06-30 11:20:26,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.43,13.25,106.00,35.44,70.56,Kaleo,Education,Mobile Pay,884
+HI022-TX-0015,HI022,Nanakuli,Oahu,HI,2026-06-30 16:00:48,REL-5V,5V Relay Module,Relays,17,0.94,5.46,92.82,15.98,76.84,Ikaika,Education,Purchase Order,258
+HI022-TX-0016,HI022,Nanakuli,Oahu,HI,2026-06-30 11:10:06,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.23,21.73,65.19,24.69,40.50,Akamu,Commercial,ACH,267
+HI022-TX-0017,HI022,Nanakuli,Oahu,HI,2026-06-30 14:51:12,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.22,8.97,62.79,22.54,40.25,Kai,Education,Debit Card,799
+HI022-TX-0018,HI022,Nanakuli,Oahu,HI,2026-06-30 11:56:34,IC-555,NE555 Timer IC,Integrated Circuits,3,0.34,1.39,4.17,1.02,3.15,Pualani,Education,Debit Card,865
+HI022-TX-0019,HI022,Nanakuli,Oahu,HI,2026-06-30 15:55:51,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.51,6.71,26.84,6.04,20.80,Makana,Marine,Mobile Pay,881
+HI022-TX-0020,HI022,Nanakuli,Oahu,HI,2026-06-30 11:08:36,TOOL-SOL,Soldering Iron Tips,Tools,2,1.97,7.82,15.64,3.94,11.70,Kai,Tourism/Hospitality,Mobile Pay,535
+HI022-TX-0021,HI022,Nanakuli,Oahu,HI,2026-06-30 15:08:07,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.09,22.18,155.26,56.63,98.63,Noah,Tourism/Hospitality,Credit Card,741
+HI022-TX-0022,HI022,Nanakuli,Oahu,HI,2026-06-30 17:21:59,IC-555,NE555 Timer IC,Integrated Circuits,22,0.33,1.31,28.82,7.26,21.56,Noelani,Education,Credit Card,422
+HI022-TX-0023,HI022,Nanakuli,Oahu,HI,2026-06-30 17:32:22,CON-JMP,Jumper Wire Set,Connectors,30,0.90,3.78,113.40,27.00,86.40,Kai,Education,Mobile Pay,259
+HI022-TX-0024,HI022,Nanakuli,Oahu,HI,2026-06-30 10:46:48,USB-CBO,USB-C Breakout Board,Connectors,2,1.40,5.38,10.76,2.80,7.96,Makana,Education,Cash,344
+HI022-TX-0025,HI022,Nanakuli,Oahu,HI,2026-06-30 09:04:08,SNS-DHT,DHT22 Temperature Sensor,Sensors,3,2.40,7.28,21.84,7.20,14.64,Keahi,Retail,Cash,641
+HI022-TX-0026,HI022,Nanakuli,Oahu,HI,2026-06-30 10:51:29,USB-CBO,USB-C Breakout Board,Connectors,32,1.39,5.66,181.12,44.48,136.64,Ailani,Retail,ACH,306
+HI022-TX-0027,HI022,Nanakuli,Oahu,HI,2026-06-30 09:41:16,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.31,13.16,26.32,8.62,17.70,Alika,Tourism/Hospitality,Cash,139
+HI022-TX-0028,HI022,Nanakuli,Oahu,HI,2026-06-30 10:06:47,CON-JMP,Jumper Wire Set,Connectors,28,0.99,3.91,109.48,27.72,81.76,Iolana,Commercial,Debit Card,453
+HI022-TX-0029,HI022,Nanakuli,Oahu,HI,2026-06-30 10:50:05,RES-010,10k Ohm Resistor,Resistors,21,0.03,0.14,2.94,0.63,2.31,Nalu,Commercial,Debit Card,159
+HI022-TX-0030,HI022,Nanakuli,Oahu,HI,2026-06-30 16:09:20,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.25,21.29,42.58,16.50,26.08,Noah,Marine,Mobile Pay,631
+HI022-TX-0031,HI022,Nanakuli,Oahu,HI,2026-06-30 17:28:51,TOOL-DMM,Digital Multimeter,Tools,1,8.45,28.60,28.60,8.45,20.15,Kai,Education,ACH,877
+HI022-TX-0032,HI022,Nanakuli,Oahu,HI,2026-06-30 08:48:11,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.46,13.61,108.88,35.68,73.20,Makana,Commercial,Mobile Pay,200
+HI022-TX-0033,HI022,Nanakuli,Oahu,HI,2026-06-30 15:23:43,BAT-AAH,AA Battery Holder,Batteries,20,0.50,2.61,52.20,10.00,42.20,Ikaika,Retail,Mobile Pay,689
+HI022-TX-0034,HI022,Nanakuli,Oahu,HI,2026-06-30 13:38:54,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.59,14.09,98.63,32.13,66.50,Alika,Retail,ACH,744
+HI022-TX-0035,HI022,Nanakuli,Oahu,HI,2026-06-30 13:05:02,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.59,6.33,12.66,3.18,9.48,Leilani,Retail,Cash,197
+HI022-TX-0036,HI022,Nanakuli,Oahu,HI,2026-06-30 08:49:37,IC-358,LM358 Op Amp,Integrated Circuits,1,0.33,1.22,1.22,0.33,0.89,Malia,Maker/Hobbyist,Debit Card,263
+HI022-TX-0037,HI022,Nanakuli,Oahu,HI,2026-06-30 16:42:25,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,4.13,13.76,55.04,16.52,38.52,Lani,Tourism/Hospitality,Debit Card,471
+HI022-TX-0038,HI022,Nanakuli,Oahu,HI,2026-06-30 09:35:36,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.79,21.00,105.00,43.95,61.05,Akamu,Commercial,Purchase Order,828
+HI022-TX-0039,HI022,Nanakuli,Oahu,HI,2026-06-30 08:21:17,TOOL-SOL,Soldering Iron Tips,Tools,6,1.99,7.41,44.46,11.94,32.52,Noah,Education,ACH,139
+HI022-TX-0040,HI022,Nanakuli,Oahu,HI,2026-06-30 15:48:44,CAP-010,10uF Capacitor,Capacitors,29,0.08,0.36,10.44,2.32,8.12,Kai,Education,Mobile Pay,572
+HI022-TX-0041,HI022,Nanakuli,Oahu,HI,2026-06-30 13:26:39,BAT-AAH,AA Battery Holder,Batteries,13,0.50,2.73,35.49,6.50,28.99,Hana,Education,Mobile Pay,27
+HI022-TX-0042,HI022,Nanakuli,Oahu,HI,2026-06-30 16:09:01,MOS-44N,IRFZ44N MOSFET,Semiconductors,19,0.63,2.41,45.79,11.97,33.82,Ikaika,Tourism/Hospitality,Purchase Order,345
+HI022-TX-0043,HI022,Nanakuli,Oahu,HI,2026-06-30 08:59:59,SNS-SOIL,Soil Moisture Sensor,Sensors,20,0.99,4.45,89.00,19.80,69.20,Kaleo,Tourism/Hospitality,Credit Card,870
+HI022-TX-0044,HI022,Nanakuli,Oahu,HI,2026-06-30 10:21:07,RES-001,1k Ohm Resistor,Resistors,16,0.03,0.13,2.08,0.48,1.60,Noelani,Government,Purchase Order,878
+HI022-TX-0045,HI022,Nanakuli,Oahu,HI,2026-06-30 09:12:19,IC-358,LM358 Op Amp,Integrated Circuits,5,0.31,1.26,6.30,1.55,4.75,Keanu,Retail,ACH,11
+HI022-TX-0046,HI022,Nanakuli,Oahu,HI,2026-06-30 08:34:05,IC-555,NE555 Timer IC,Integrated Circuits,39,0.34,1.33,51.87,13.26,38.61,Mika,Maker/Hobbyist,Mobile Pay,196
+HI022-TX-0047,HI022,Nanakuli,Oahu,HI,2026-06-30 15:50:00,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.67,13.70,41.10,14.01,27.09,Mika,Tourism/Hospitality,Cash,610
+HI022-TX-0048,HI022,Nanakuli,Oahu,HI,2026-06-30 17:20:17,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,4.02,15.05,90.30,24.12,66.18,Malia,Retail,Cash,830
+HI022-TX-0049,HI022,Nanakuli,Oahu,HI,2026-06-30 12:10:34,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.59,6.15,18.45,4.77,13.68,Mika,Commercial,Cash,281
+HI022-TX-0050,HI022,Nanakuli,Oahu,HI,2026-06-30 16:14:23,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,8.77,26.93,161.58,52.62,108.96,Alika,Maker/Hobbyist,Purchase Order,836
+HI022-TX-0051,HI022,Nanakuli,Oahu,HI,2026-06-30 10:06:27,SNS-ULT,Ultrasonic Distance Sensor,Sensors,6,1.21,5.70,34.20,7.26,26.94,Kai,Maker/Hobbyist,Mobile Pay,825
+HI022-TX-0052,HI022,Nanakuli,Oahu,HI,2026-06-30 08:52:28,CAP-010,10uF Capacitor,Capacitors,32,0.09,0.36,11.52,2.88,8.64,Akamu,Tourism/Hospitality,Mobile Pay,701
+HI022-TX-0053,HI022,Nanakuli,Oahu,HI,2026-06-30 15:27:10,RES-220,220 Ohm Resistor,Resistors,8,0.03,0.13,1.04,0.24,0.80,Ikaika,Education,Mobile Pay,640
+HI022-TX-0054,HI022,Nanakuli,Oahu,HI,2026-06-30 16:56:21,USB-CBO,USB-C Breakout Board,Connectors,4,1.36,5.29,21.16,5.44,15.72,Ikaika,Commercial,Mobile Pay,509
+HI022-TX-0055,HI022,Nanakuli,Oahu,HI,2026-06-30 08:44:35,USB-CBO,USB-C Breakout Board,Connectors,37,1.44,5.66,209.42,53.28,156.14,Alika,Government,ACH,871
+HI022-TX-0056,HI022,Nanakuli,Oahu,HI,2026-06-30 15:55:19,RES-220,220 Ohm Resistor,Resistors,15,0.03,0.13,1.95,0.45,1.50,Noelani,Marine,Mobile Pay,542
+HI022-TX-0057,HI022,Nanakuli,Oahu,HI,2026-06-30 10:22:00,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.14,8.68,17.36,6.28,11.08,Keanu,Tourism/Hospitality,ACH,361
+HI022-TX-0058,HI022,Nanakuli,Oahu,HI,2026-06-30 08:18:33,CAP-100,100uF Capacitor,Capacitors,1,0.16,0.62,0.62,0.16,0.46,Ailani,Retail,ACH,404
+HI022-TX-0059,HI022,Nanakuli,Oahu,HI,2026-06-30 11:17:32,CAP-010,10uF Capacitor,Capacitors,17,0.09,0.37,6.29,1.53,4.76,Lani,Tourism/Hospitality,Credit Card,102
+HI022-TX-0060,HI022,Nanakuli,Oahu,HI,2026-06-30 12:04:17,BAT-LIPO,LiPo Battery Pack,Batteries,7,5.11,15.32,107.24,35.77,71.47,Kai,Maker/Hobbyist,Cash,364
+HI022-TX-0061,HI022,Nanakuli,Oahu,HI,2026-06-30 16:50:51,SNS-SOIL,Soil Moisture Sensor,Sensors,4,0.95,4.55,18.20,3.80,14.40,Hana,Education,ACH,269
+HI022-TX-0062,HI022,Nanakuli,Oahu,HI,2026-06-30 11:57:11,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.74,13.77,27.54,9.48,18.06,Akamu,Commercial,Purchase Order,292
+HI022-TX-0063,HI022,Nanakuli,Oahu,HI,2026-06-30 16:19:01,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.62,6.71,26.84,6.48,20.36,Ailani,Marine,Purchase Order,163
+HI022-TX-0064,HI022,Nanakuli,Oahu,HI,2026-06-30 14:28:05,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.61,6.26,12.52,3.22,9.30,Kaleo,Retail,Cash,31
+HI022-TX-0065,HI022,Nanakuli,Oahu,HI,2026-06-30 13:45:00,TOOL-WIRE,Wire Stripper,Tools,2,4.89,15.64,31.28,9.78,21.50,Malia,Maker/Hobbyist,Purchase Order,632
+HI022-TX-0066,HI022,Nanakuli,Oahu,HI,2026-06-30 12:40:13,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.30,8.69,43.45,16.50,26.95,Lani,Retail,Credit Card,129
+HI022-TX-0067,HI022,Nanakuli,Oahu,HI,2026-06-30 10:47:51,IC-358,LM358 Op Amp,Integrated Circuits,20,0.29,1.17,23.40,5.80,17.60,Keanu,Tourism/Hospitality,Cash,65
+HI022-TX-0068,HI022,Nanakuli,Oahu,HI,2026-06-30 16:51:12,SNS-PIR,PIR Motion Sensor,Sensors,8,1.52,5.90,47.20,12.16,35.04,Iolana,Commercial,Cash,851
+HI022-TX-0069,HI022,Nanakuli,Oahu,HI,2026-06-30 12:45:10,IC-555,NE555 Timer IC,Integrated Circuits,15,0.36,1.38,20.70,5.40,15.30,Kaleo,Retail,ACH,322
+HI022-TX-0070,HI022,Nanakuli,Oahu,HI,2026-06-30 13:32:03,USB-CBO,USB-C Breakout Board,Connectors,17,1.36,5.22,88.74,23.12,65.62,Kai,Government,ACH,297
+HI022-TX-0071,HI022,Nanakuli,Oahu,HI,2026-06-30 09:59:16,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.24,20.61,144.27,57.68,86.59,Nalu,Marine,Purchase Order,674
+HI022-TX-0072,HI022,Nanakuli,Oahu,HI,2026-06-30 08:53:02,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.11,8.42,50.52,18.66,31.86,Nalu,Maker/Hobbyist,Mobile Pay,561
+HI022-TX-0073,HI022,Nanakuli,Oahu,HI,2026-06-30 13:20:15,RES-001,1k Ohm Resistor,Resistors,34,0.03,0.13,4.42,1.02,3.40,Pualani,Marine,Credit Card,716
+HI022-TX-0074,HI022,Nanakuli,Oahu,HI,2026-06-30 13:02:10,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.36,13.50,67.50,21.80,45.70,Mika,Tourism/Hospitality,ACH,659
+HI022-TX-0075,HI022,Nanakuli,Oahu,HI,2026-06-30 13:02:42,PWR-5V2,5V 2A Power Supply,Power,5,3.37,10.93,54.65,16.85,37.80,Kaleo,Retail,Mobile Pay,67
+HI022-TX-0076,HI022,Nanakuli,Oahu,HI,2026-06-30 09:20:18,IC-358,LM358 Op Amp,Integrated Circuits,20,0.32,1.22,24.40,6.40,18.00,Alika,Maker/Hobbyist,ACH,322
+HI022-TX-0077,HI022,Nanakuli,Oahu,HI,2026-06-30 08:42:44,IC-REG,7805 Voltage Regulator,Integrated Circuits,8,0.21,0.88,7.04,1.68,5.36,Ikaika,Tourism/Hospitality,Debit Card,403
+HI022-TX-0078,HI022,Nanakuli,Oahu,HI,2026-06-30 17:52:21,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.27,34.30,137.20,41.08,96.12,Nalu,Retail,ACH,382
+HI022-TX-0079,HI022,Nanakuli,Oahu,HI,2026-06-30 10:53:06,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.67,13.57,13.57,4.67,8.90,Keahi,Marine,Cash,694

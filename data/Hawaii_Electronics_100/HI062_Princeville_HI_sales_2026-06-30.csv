@@ -1,0 +1,57 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI062-TX-0001,HI062,Princeville,Kauai,HI,2026-06-30 16:47:39,MOS-44N,IRFZ44N MOSFET,Semiconductors,37,0.58,2.38,88.06,21.46,66.60,Noelani,Marine,Mobile Pay,566
+HI062-TX-0002,HI062,Princeville,Kauai,HI,2026-06-30 14:56:28,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,4.02,14.34,86.04,24.12,61.92,Keanu,Marine,ACH,456
+HI062-TX-0003,HI062,Princeville,Kauai,HI,2026-06-30 12:36:10,RES-010,10k Ohm Resistor,Resistors,16,0.03,0.12,1.92,0.48,1.44,Makana,Commercial,Purchase Order,272
+HI062-TX-0004,HI062,Princeville,Kauai,HI,2026-06-30 12:33:28,IC-358,LM358 Op Amp,Integrated Circuits,28,0.32,1.14,31.92,8.96,22.96,Kaleo,Government,Debit Card,679
+HI062-TX-0005,HI062,Princeville,Kauai,HI,2026-06-30 16:06:16,USB-CBO,USB-C Breakout Board,Connectors,7,1.34,5.43,38.01,9.38,28.63,Koa,Government,ACH,722
+HI062-TX-0006,HI062,Princeville,Kauai,HI,2026-06-30 12:48:24,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,3.70,14.48,86.88,22.20,64.68,Kai,Marine,Credit Card,597
+HI062-TX-0007,HI062,Princeville,Kauai,HI,2026-06-30 16:15:40,PWR-BUCK,Buck Converter Module,Power,34,1.09,5.00,170.00,37.06,132.94,Pualani,Maker/Hobbyist,Purchase Order,348
+HI062-TX-0008,HI062,Princeville,Kauai,HI,2026-06-30 11:08:13,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.31,13.05,91.35,30.17,61.18,Lani,Tourism/Hospitality,Cash,392
+HI062-TX-0009,HI062,Princeville,Kauai,HI,2026-06-30 14:06:59,IC-REG,7805 Voltage Regulator,Integrated Circuits,35,0.19,0.96,33.60,6.65,26.95,Kaleo,Retail,Cash,69
+HI062-TX-0010,HI062,Princeville,Kauai,HI,2026-06-30 14:06:19,TOOL-DMM,Digital Multimeter,Tools,3,9.41,28.75,86.25,28.23,58.02,Nalu,Retail,Cash,892
+HI062-TX-0011,HI062,Princeville,Kauai,HI,2026-06-30 18:00:50,REL-5V,5V Relay Module,Relays,26,0.92,5.64,146.64,23.92,122.72,Nalu,Tourism/Hospitality,Credit Card,524
+HI062-TX-0012,HI062,Princeville,Kauai,HI,2026-06-30 13:26:04,PWR-BUCK,Buck Converter Module,Power,39,1.01,5.20,202.80,39.39,163.41,Alika,Marine,Mobile Pay,756
+HI062-TX-0013,HI062,Princeville,Kauai,HI,2026-06-30 15:30:19,SOL-CTRL,Solar Charge Controller,Solar Power,5,11.05,33.64,168.20,55.25,112.95,Keahi,Government,Debit Card,35
+HI062-TX-0014,HI062,Princeville,Kauai,HI,2026-06-30 09:54:45,TOOL-DMM,Digital Multimeter,Tools,5,8.48,25.79,128.95,42.40,86.55,Hana,Retail,Debit Card,175
+HI062-TX-0015,HI062,Princeville,Kauai,HI,2026-06-30 17:09:12,PWR-BUCK,Buck Converter Module,Power,17,1.00,4.88,82.96,17.00,65.96,Hana,Retail,Purchase Order,533
+HI062-TX-0016,HI062,Princeville,Kauai,HI,2026-06-30 16:31:35,LED-BLU,5mm Blue LED,LEDs,7,0.07,0.31,2.17,0.49,1.68,Ikaika,Government,Debit Card,186
+HI062-TX-0017,HI062,Princeville,Kauai,HI,2026-06-30 10:22:52,PWR-5V2,5V 2A Power Supply,Power,5,3.64,11.47,57.35,18.20,39.15,Makana,Maker/Hobbyist,Purchase Order,322
+HI062-TX-0018,HI062,Princeville,Kauai,HI,2026-06-30 16:10:07,TOOL-DMM,Digital Multimeter,Tools,2,9.27,26.57,53.14,18.54,34.60,Iolana,Tourism/Hospitality,Mobile Pay,882
+HI062-TX-0019,HI062,Princeville,Kauai,HI,2026-06-30 10:32:45,PWR-12V,12V 5A Power Supply,Power,3,9.36,25.38,76.14,28.08,48.06,Lani,Tourism/Hospitality,Purchase Order,97
+HI062-TX-0020,HI062,Princeville,Kauai,HI,2026-06-30 08:34:35,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,4,0.04,0.19,0.76,0.16,0.60,Kai,Maker/Hobbyist,Purchase Order,216
+HI062-TX-0021,HI062,Princeville,Kauai,HI,2026-06-30 17:13:42,IC-555,NE555 Timer IC,Integrated Circuits,25,0.35,1.31,32.75,8.75,24.00,Akamu,Government,Mobile Pay,172
+HI062-TX-0022,HI062,Princeville,Kauai,HI,2026-06-30 13:53:44,TR-3904,2N3904 NPN Transistor,Semiconductors,34,0.06,0.23,7.82,2.04,5.78,Ailani,Retail,ACH,451
+HI062-TX-0023,HI062,Princeville,Kauai,HI,2026-06-30 13:21:44,PWR-12V,12V 5A Power Supply,Power,5,9.34,24.48,122.40,46.70,75.70,Ailani,Maker/Hobbyist,Debit Card,458
+HI062-TX-0024,HI062,Princeville,Kauai,HI,2026-06-30 17:54:13,SOL-CTRL,Solar Charge Controller,Solar Power,1,11.01,31.50,31.50,11.01,20.49,Noah,Marine,Cash,249
+HI062-TX-0025,HI062,Princeville,Kauai,HI,2026-06-30 12:38:29,REL-5V,5V Relay Module,Relays,32,1.00,5.29,169.28,32.00,137.28,Keahi,Education,Credit Card,647
+HI062-TX-0026,HI062,Princeville,Kauai,HI,2026-06-30 17:06:51,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.36,34.71,277.68,90.88,186.80,Ikaika,Commercial,Purchase Order,144
+HI062-TX-0027,HI062,Princeville,Kauai,HI,2026-06-30 09:42:07,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.88,14.31,42.93,11.64,31.29,Mika,Tourism/Hospitality,Credit Card,180
+HI062-TX-0028,HI062,Princeville,Kauai,HI,2026-06-30 17:00:11,PWR-12V,12V 5A Power Supply,Power,6,9.01,24.96,149.76,54.06,95.70,Alika,Tourism/Hospitality,ACH,544
+HI062-TX-0029,HI062,Princeville,Kauai,HI,2026-06-30 14:47:02,SOL-CTRL,Solar Charge Controller,Solar Power,5,10.62,32.48,162.40,53.10,109.30,Ailani,Marine,Purchase Order,282
+HI062-TX-0030,HI062,Princeville,Kauai,HI,2026-06-30 13:32:50,LED-BLU,5mm Blue LED,LEDs,22,0.06,0.31,6.82,1.32,5.50,Kaleo,Maker/Hobbyist,Cash,803
+HI062-TX-0031,HI062,Princeville,Kauai,HI,2026-06-30 11:08:04,SOL-CTRL,Solar Charge Controller,Solar Power,7,11.30,31.42,219.94,79.10,140.84,Ikaika,Government,Cash,492
+HI062-TX-0032,HI062,Princeville,Kauai,HI,2026-06-30 14:11:13,CAP-100,100uF Capacitor,Capacitors,33,0.16,0.58,19.14,5.28,13.86,Nalu,Retail,Purchase Order,581
+HI062-TX-0033,HI062,Princeville,Kauai,HI,2026-06-30 16:35:16,RES-001,1k Ohm Resistor,Resistors,12,0.03,0.13,1.56,0.36,1.20,Ailani,Commercial,ACH,700
+HI062-TX-0034,HI062,Princeville,Kauai,HI,2026-06-30 12:50:36,RES-220,220 Ohm Resistor,Resistors,8,0.03,0.12,0.96,0.24,0.72,Makana,Retail,Mobile Pay,90
+HI062-TX-0035,HI062,Princeville,Kauai,HI,2026-06-30 17:59:48,TOOL-DMM,Digital Multimeter,Tools,8,8.98,26.39,211.12,71.84,139.28,Iolana,Maker/Hobbyist,Purchase Order,341
+HI062-TX-0036,HI062,Princeville,Kauai,HI,2026-06-30 13:01:18,TOOL-SOL,Soldering Iron Tips,Tools,1,2.03,8.09,8.09,2.03,6.06,Koa,Government,Credit Card,666
+HI062-TX-0037,HI062,Princeville,Kauai,HI,2026-06-30 17:30:54,PWR-12V,12V 5A Power Supply,Power,7,9.12,24.48,171.36,63.84,107.52,Noah,Maker/Hobbyist,Debit Card,841
+HI062-TX-0038,HI062,Princeville,Kauai,HI,2026-06-30 10:29:07,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,8.55,27.52,192.64,59.85,132.79,Alika,Education,Purchase Order,399
+HI062-TX-0039,HI062,Princeville,Kauai,HI,2026-06-30 09:05:57,PWR-12V,12V 5A Power Supply,Power,6,8.79,25.81,154.86,52.74,102.12,Pualani,Commercial,Mobile Pay,542
+HI062-TX-0040,HI062,Princeville,Kauai,HI,2026-06-30 09:57:23,SNS-SOIL,Soil Moisture Sensor,Sensors,37,0.94,4.48,165.76,34.78,130.98,Koa,Maker/Hobbyist,Debit Card,445
+HI062-TX-0041,HI062,Princeville,Kauai,HI,2026-06-30 13:58:29,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.87,14.22,113.76,30.96,82.80,Lani,Retail,Purchase Order,892
+HI062-TX-0042,HI062,Princeville,Kauai,HI,2026-06-30 11:54:45,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.73,14.51,14.51,3.73,10.78,Keahi,Maker/Hobbyist,Debit Card,20
+HI062-TX-0043,HI062,Princeville,Kauai,HI,2026-06-30 16:42:36,SOL-CTRL,Solar Charge Controller,Solar Power,1,11.47,31.65,31.65,11.47,20.18,Mika,Maker/Hobbyist,Credit Card,623
+HI062-TX-0044,HI062,Princeville,Kauai,HI,2026-06-30 14:46:25,PWR-12V,12V 5A Power Supply,Power,8,9.92,26.41,211.28,79.36,131.92,Malia,Education,Purchase Order,462
+HI062-TX-0045,HI062,Princeville,Kauai,HI,2026-06-30 10:41:21,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.98,14.01,56.04,15.92,40.12,Ailani,Education,Debit Card,602
+HI062-TX-0046,HI062,Princeville,Kauai,HI,2026-06-30 12:23:57,PWR-5V2,5V 2A Power Supply,Power,4,3.63,10.69,42.76,14.52,28.24,Malia,Marine,Cash,109
+HI062-TX-0047,HI062,Princeville,Kauai,HI,2026-06-30 14:34:25,PWR-5V2,5V 2A Power Supply,Power,3,3.56,10.37,31.11,10.68,20.43,Kai,Tourism/Hospitality,Purchase Order,205
+HI062-TX-0048,HI062,Princeville,Kauai,HI,2026-06-30 12:36:39,PWR-5V2,5V 2A Power Supply,Power,6,3.46,10.30,61.80,20.76,41.04,Noah,Commercial,Cash,673
+HI062-TX-0049,HI062,Princeville,Kauai,HI,2026-06-30 09:44:41,TOOL-DMM,Digital Multimeter,Tools,8,8.62,26.75,214.00,68.96,145.04,Alika,Government,Mobile Pay,9
+HI062-TX-0050,HI062,Princeville,Kauai,HI,2026-06-30 09:55:14,PWR-5V2,5V 2A Power Supply,Power,8,3.52,11.55,92.40,28.16,64.24,Keanu,Marine,Mobile Pay,574
+HI062-TX-0051,HI062,Princeville,Kauai,HI,2026-06-30 14:18:18,SNS-ULT,Ultrasonic Distance Sensor,Sensors,15,1.35,5.34,80.10,20.25,59.85,Kai,Government,Mobile Pay,440
+HI062-TX-0052,HI062,Princeville,Kauai,HI,2026-06-30 14:38:00,CON-JMP,Jumper Wire Set,Connectors,20,0.91,3.71,74.20,18.20,56.00,Malia,Marine,Purchase Order,692
+HI062-TX-0053,HI062,Princeville,Kauai,HI,2026-06-30 16:38:28,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.36,12.33,86.31,30.52,55.79,Lani,Education,Credit Card,161
+HI062-TX-0054,HI062,Princeville,Kauai,HI,2026-06-30 09:23:25,LED-RGB,RGB LED Strip,LEDs,3,5.29,13.76,41.28,15.87,25.41,Alika,Retail,Cash,738
+HI062-TX-0055,HI062,Princeville,Kauai,HI,2026-06-30 08:59:46,IC-358,LM358 Op Amp,Integrated Circuits,6,0.29,1.15,6.90,1.74,5.16,Iolana,Retail,Cash,847
+HI062-TX-0056,HI062,Princeville,Kauai,HI,2026-06-30 08:23:25,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,1,0.04,0.20,0.20,0.04,0.16,Kai,Commercial,Debit Card,102

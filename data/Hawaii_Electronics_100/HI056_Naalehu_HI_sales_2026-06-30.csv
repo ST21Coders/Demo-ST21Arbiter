@@ -1,0 +1,59 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI056-TX-0001,HI056,Naalehu,Hawaii Island,HI,2026-06-30 15:15:06,IC-REG,7805 Voltage Regulator,Integrated Circuits,22,0.19,0.92,20.24,4.18,16.06,Koa,Retail,Credit Card,804
+HI056-TX-0002,HI056,Naalehu,Hawaii Island,HI,2026-06-30 10:33:31,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.55,13.56,108.48,36.40,72.08,Lani,Tourism/Hospitality,Credit Card,703
+HI056-TX-0003,HI056,Naalehu,Hawaii Island,HI,2026-06-30 11:03:57,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,4.08,13.65,95.55,28.56,66.99,Kai,Education,Debit Card,869
+HI056-TX-0004,HI056,Naalehu,Hawaii Island,HI,2026-06-30 17:13:39,PWR-BUCK,Buck Converter Module,Power,6,1.09,5.20,31.20,6.54,24.66,Hana,Commercial,Cash,588
+HI056-TX-0005,HI056,Naalehu,Hawaii Island,HI,2026-06-30 17:00:28,TOOL-WIRE,Wire Stripper,Tools,5,5.16,15.52,77.60,25.80,51.80,Kaleo,Government,Mobile Pay,180
+HI056-TX-0006,HI056,Naalehu,Hawaii Island,HI,2026-06-30 09:33:24,SOL-CTRL,Solar Charge Controller,Solar Power,6,11.04,32.78,196.68,66.24,130.44,Ailani,Tourism/Hospitality,ACH,279
+HI056-TX-0007,HI056,Naalehu,Hawaii Island,HI,2026-06-30 12:12:23,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.48,15.81,79.05,27.40,51.65,Kaleo,Retail,Purchase Order,665
+HI056-TX-0008,HI056,Naalehu,Hawaii Island,HI,2026-06-30 12:16:52,TOOL-WIRE,Wire Stripper,Tools,6,4.79,15.94,95.64,28.74,66.90,Keahi,Government,Mobile Pay,124
+HI056-TX-0009,HI056,Naalehu,Hawaii Island,HI,2026-06-30 11:58:26,CON-JMP,Jumper Wire Set,Connectors,37,0.92,3.97,146.89,34.04,112.85,Kai,Education,Cash,680
+HI056-TX-0010,HI056,Naalehu,Hawaii Island,HI,2026-06-30 09:40:14,TR-3904,2N3904 NPN Transistor,Semiconductors,36,0.06,0.24,8.64,2.16,6.48,Iolana,Marine,Credit Card,716
+HI056-TX-0011,HI056,Naalehu,Hawaii Island,HI,2026-06-30 12:36:54,SNS-DHT,DHT22 Temperature Sensor,Sensors,1,2.65,7.19,7.19,2.65,4.54,Nalu,Tourism/Hospitality,ACH,791
+HI056-TX-0012,HI056,Naalehu,Hawaii Island,HI,2026-06-30 15:58:40,PWR-12V,12V 5A Power Supply,Power,8,10.01,25.30,202.40,80.08,122.32,Ikaika,Education,Credit Card,697
+HI056-TX-0013,HI056,Naalehu,Hawaii Island,HI,2026-06-30 12:18:28,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.49,22.91,45.82,16.98,28.84,Lani,Government,Mobile Pay,34
+HI056-TX-0014,HI056,Naalehu,Hawaii Island,HI,2026-06-30 13:29:14,SNS-SOIL,Soil Moisture Sensor,Sensors,32,0.96,4.26,136.32,30.72,105.60,Mika,Government,Debit Card,839
+HI056-TX-0015,HI056,Naalehu,Hawaii Island,HI,2026-06-30 11:10:33,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.81,14.06,14.06,4.81,9.25,Iolana,Education,Cash,868
+HI056-TX-0016,HI056,Naalehu,Hawaii Island,HI,2026-06-30 13:08:53,PWR-5V2,5V 2A Power Supply,Power,3,3.37,10.78,32.34,10.11,22.23,Leilani,Government,Purchase Order,431
+HI056-TX-0017,HI056,Naalehu,Hawaii Island,HI,2026-06-30 11:51:55,BAT-AAH,AA Battery Holder,Batteries,1,0.50,2.68,2.68,0.50,2.18,Mika,Maker/Hobbyist,Credit Card,815
+HI056-TX-0018,HI056,Naalehu,Hawaii Island,HI,2026-06-30 16:33:41,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,8.66,20.68,20.68,8.66,12.02,Pualani,Maker/Hobbyist,Cash,198
+HI056-TX-0019,HI056,Naalehu,Hawaii Island,HI,2026-06-30 14:36:12,LED-RED,5mm Red LED,LEDs,14,0.06,0.27,3.78,0.84,2.94,Hana,Commercial,Purchase Order,209
+HI056-TX-0020,HI056,Naalehu,Hawaii Island,HI,2026-06-30 12:56:04,PWR-BUCK,Buck Converter Module,Power,22,1.09,5.13,112.86,23.98,88.88,Akamu,Maker/Hobbyist,Cash,285
+HI056-TX-0021,HI056,Naalehu,Hawaii Island,HI,2026-06-30 12:56:55,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.66,15.00,45.00,13.98,31.02,Iolana,Commercial,Credit Card,811
+HI056-TX-0022,HI056,Naalehu,Hawaii Island,HI,2026-06-30 15:00:17,LED-RGB,RGB LED Strip,LEDs,5,5.03,14.93,74.65,25.15,49.50,Malia,Tourism/Hospitality,Credit Card,775
+HI056-TX-0023,HI056,Naalehu,Hawaii Island,HI,2026-06-30 14:13:03,SNS-SOIL,Soil Moisture Sensor,Sensors,21,0.99,4.33,90.93,20.79,70.14,Iolana,Commercial,Mobile Pay,181
+HI056-TX-0024,HI056,Naalehu,Hawaii Island,HI,2026-06-30 15:16:25,SNS-PIR,PIR Motion Sensor,Sensors,7,1.54,6.32,44.24,10.78,33.46,Iolana,Marine,ACH,245
+HI056-TX-0025,HI056,Naalehu,Hawaii Island,HI,2026-06-30 08:56:36,TOOL-DMM,Digital Multimeter,Tools,5,8.30,27.82,139.10,41.50,97.60,Akamu,Commercial,Debit Card,255
+HI056-TX-0026,HI056,Naalehu,Hawaii Island,HI,2026-06-30 16:31:43,SNS-SOIL,Soil Moisture Sensor,Sensors,4,0.99,4.51,18.04,3.96,14.08,Noah,Government,Debit Card,447
+HI056-TX-0027,HI056,Naalehu,Hawaii Island,HI,2026-06-30 08:45:15,SNS-ULT,Ultrasonic Distance Sensor,Sensors,9,1.32,5.46,49.14,11.88,37.26,Nalu,Retail,Purchase Order,216
+HI056-TX-0028,HI056,Naalehu,Hawaii Island,HI,2026-06-30 12:45:56,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.69,14.92,14.92,4.69,10.23,Kaleo,Maker/Hobbyist,Mobile Pay,650
+HI056-TX-0029,HI056,Naalehu,Hawaii Island,HI,2026-06-30 11:32:04,SNS-ULT,Ultrasonic Distance Sensor,Sensors,20,1.33,5.36,107.20,26.60,80.60,Hana,Education,Cash,271
+HI056-TX-0030,HI056,Naalehu,Hawaii Island,HI,2026-06-30 13:53:34,PWR-5V2,5V 2A Power Supply,Power,6,3.40,11.51,69.06,20.40,48.66,Hana,Retail,Purchase Order,243
+HI056-TX-0031,HI056,Naalehu,Hawaii Island,HI,2026-06-30 13:44:02,RES-001,1k Ohm Resistor,Resistors,40,0.03,0.13,5.20,1.20,4.00,Lani,Tourism/Hospitality,Mobile Pay,570
+HI056-TX-0032,HI056,Naalehu,Hawaii Island,HI,2026-06-30 08:43:56,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.60,6.90,34.50,8.00,26.50,Keanu,Education,Credit Card,308
+HI056-TX-0033,HI056,Naalehu,Hawaii Island,HI,2026-06-30 09:17:08,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,8.83,22.39,179.12,70.64,108.48,Mika,Tourism/Hospitality,Debit Card,784
+HI056-TX-0034,HI056,Naalehu,Hawaii Island,HI,2026-06-30 17:43:45,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.59,6.12,42.84,11.13,31.71,Nalu,Tourism/Hospitality,Cash,594
+HI056-TX-0035,HI056,Naalehu,Hawaii Island,HI,2026-06-30 15:08:42,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,39,0.04,0.20,7.80,1.56,6.24,Kai,Marine,Debit Card,441
+HI056-TX-0036,HI056,Naalehu,Hawaii Island,HI,2026-06-30 08:12:39,RES-001,1k Ohm Resistor,Resistors,9,0.03,0.13,1.17,0.27,0.90,Koa,Tourism/Hospitality,ACH,7
+HI056-TX-0037,HI056,Naalehu,Hawaii Island,HI,2026-06-30 09:51:01,CON-JMP,Jumper Wire Set,Connectors,34,0.88,3.99,135.66,29.92,105.74,Ailani,Education,Purchase Order,751
+HI056-TX-0038,HI056,Naalehu,Hawaii Island,HI,2026-06-30 15:26:27,TOOL-DMM,Digital Multimeter,Tools,5,9.34,26.36,131.80,46.70,85.10,Kaleo,Maker/Hobbyist,Debit Card,245
+HI056-TX-0039,HI056,Naalehu,Hawaii Island,HI,2026-06-30 08:38:52,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.30,13.74,96.18,30.10,66.08,Nalu,Education,Purchase Order,532
+HI056-TX-0040,HI056,Naalehu,Hawaii Island,HI,2026-06-30 10:05:33,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,3.97,14.24,85.44,23.82,61.62,Ailani,Maker/Hobbyist,Mobile Pay,886
+HI056-TX-0041,HI056,Naalehu,Hawaii Island,HI,2026-06-30 13:33:22,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.76,22.28,155.96,61.32,94.64,Alika,Marine,Debit Card,23
+HI056-TX-0042,HI056,Naalehu,Hawaii Island,HI,2026-06-30 11:22:10,TR-3904,2N3904 NPN Transistor,Semiconductors,30,0.06,0.24,7.20,1.80,5.40,Kai,Maker/Hobbyist,Purchase Order,505
+HI056-TX-0043,HI056,Naalehu,Hawaii Island,HI,2026-06-30 11:03:55,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.81,22.28,89.12,35.24,53.88,Akamu,Education,Credit Card,851
+HI056-TX-0044,HI056,Naalehu,Hawaii Island,HI,2026-06-30 11:44:07,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,3.73,14.96,89.76,22.38,67.38,Noah,Marine,Debit Card,237
+HI056-TX-0045,HI056,Naalehu,Hawaii Island,HI,2026-06-30 15:24:05,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.48,13.90,83.40,26.88,56.52,Kaleo,Government,Debit Card,728
+HI056-TX-0046,HI056,Naalehu,Hawaii Island,HI,2026-06-30 15:17:31,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.53,20.88,125.28,51.18,74.10,Malia,Commercial,ACH,406
+HI056-TX-0047,HI056,Naalehu,Hawaii Island,HI,2026-06-30 17:54:49,PWR-12V,12V 5A Power Supply,Power,1,8.96,23.62,23.62,8.96,14.66,Pualani,Government,Cash,42
+HI056-TX-0048,HI056,Naalehu,Hawaii Island,HI,2026-06-30 15:41:22,SNS-PIR,PIR Motion Sensor,Sensors,2,1.45,5.71,11.42,2.90,8.52,Makana,Tourism/Hospitality,Mobile Pay,362
+HI056-TX-0049,HI056,Naalehu,Hawaii Island,HI,2026-06-30 17:13:18,MOS-44N,IRFZ44N MOSFET,Semiconductors,1,0.59,2.59,2.59,0.59,2.00,Iolana,Education,Cash,773
+HI056-TX-0050,HI056,Naalehu,Hawaii Island,HI,2026-06-30 11:58:31,PWR-BUCK,Buck Converter Module,Power,24,1.11,4.90,117.60,26.64,90.96,Keanu,Marine,Cash,614
+HI056-TX-0051,HI056,Naalehu,Hawaii Island,HI,2026-06-30 17:18:20,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,7.93,22.25,133.50,47.58,85.92,Akamu,Tourism/Hospitality,ACH,579
+HI056-TX-0052,HI056,Naalehu,Hawaii Island,HI,2026-06-30 11:23:19,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.59,14.59,102.13,32.13,70.00,Noah,Commercial,Cash,865
+HI056-TX-0053,HI056,Naalehu,Hawaii Island,HI,2026-06-30 13:31:03,SNS-SOIL,Soil Moisture Sensor,Sensors,1,0.93,4.18,4.18,0.93,3.25,Noah,Retail,ACH,616
+HI056-TX-0054,HI056,Naalehu,Hawaii Island,HI,2026-06-30 17:46:06,USB-CBO,USB-C Breakout Board,Connectors,15,1.29,5.32,79.80,19.35,60.45,Noelani,Commercial,ACH,150
+HI056-TX-0055,HI056,Naalehu,Hawaii Island,HI,2026-06-30 10:21:48,REL-5V,5V Relay Module,Relays,16,0.94,5.20,83.20,15.04,68.16,Malia,Commercial,Cash,766
+HI056-TX-0056,HI056,Naalehu,Hawaii Island,HI,2026-06-30 16:04:24,RES-220,220 Ohm Resistor,Resistors,17,0.04,0.12,2.04,0.68,1.36,Pualani,Tourism/Hospitality,Mobile Pay,837
+HI056-TX-0057,HI056,Naalehu,Hawaii Island,HI,2026-06-30 10:12:30,SNS-ULT,Ultrasonic Distance Sensor,Sensors,9,1.32,5.56,50.04,11.88,38.16,Ailani,Tourism/Hospitality,Credit Card,736
+HI056-TX-0058,HI056,Naalehu,Hawaii Island,HI,2026-06-30 13:26:04,SNS-ULT,Ultrasonic Distance Sensor,Sensors,31,1.33,5.68,176.08,41.23,134.85,Koa,Government,Mobile Pay,143

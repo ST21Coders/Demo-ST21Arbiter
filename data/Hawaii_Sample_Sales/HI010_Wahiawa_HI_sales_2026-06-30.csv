@@ -1,0 +1,68 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI010-TX-0001,HI010,Wahiawa,Oahu,HI,2026-06-30 10:28:52,MOS-44N,IRFZ44N MOSFET,Semiconductors,23,0.62,2.56,58.88,14.26,44.62,Keahi,Tourism/Hospitality,Purchase Order,665
+HI010-TX-0002,HI010,Wahiawa,Oahu,HI,2026-06-30 13:18:55,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,7.75,23.12,138.72,46.50,92.22,Malia,Retail,Debit Card,183
+HI010-TX-0003,HI010,Wahiawa,Oahu,HI,2026-06-30 10:45:51,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.81,21.61,129.66,52.86,76.80,Lani,Tourism/Hospitality,Debit Card,61
+HI010-TX-0004,HI010,Wahiawa,Oahu,HI,2026-06-30 12:24:08,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.42,12.33,86.31,30.94,55.37,Kai,Education,Credit Card,409
+HI010-TX-0005,HI010,Wahiawa,Oahu,HI,2026-06-30 09:51:32,IC-555,NE555 Timer IC,Integrated Circuits,13,0.34,1.38,17.94,4.42,13.52,Noelani,Marine,Credit Card,90
+HI010-TX-0006,HI010,Wahiawa,Oahu,HI,2026-06-30 10:53:06,PWR-BUCK,Buck Converter Module,Power,6,1.05,5.02,30.12,6.30,23.82,Lani,Government,Mobile Pay,611
+HI010-TX-0007,HI010,Wahiawa,Oahu,HI,2026-06-30 12:14:17,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.23,21.98,65.94,24.69,41.25,Makana,Government,Credit Card,602
+HI010-TX-0008,HI010,Wahiawa,Oahu,HI,2026-06-30 17:26:50,IC-REG,7805 Voltage Regulator,Integrated Circuits,3,0.19,0.88,2.64,0.57,2.07,Lani,Maker/Hobbyist,Cash,807
+HI010-TX-0009,HI010,Wahiawa,Oahu,HI,2026-06-30 11:01:10,IC-555,NE555 Timer IC,Integrated Circuits,13,0.35,1.40,18.20,4.55,13.65,Nalu,Commercial,Cash,74
+HI010-TX-0010,HI010,Wahiawa,Oahu,HI,2026-06-30 15:17:46,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,8.04,23.07,184.56,64.32,120.24,Keanu,Marine,Mobile Pay,672
+HI010-TX-0011,HI010,Wahiawa,Oahu,HI,2026-06-30 10:04:11,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.61,33.86,203.16,63.66,139.50,Leilani,Maker/Hobbyist,Purchase Order,848
+HI010-TX-0012,HI010,Wahiawa,Oahu,HI,2026-06-30 08:56:27,PICO-RP,Raspberry Pi Pico,Microcontrollers,8,3.24,8.97,71.76,25.92,45.84,Noah,Retail,Credit Card,470
+HI010-TX-0013,HI010,Wahiawa,Oahu,HI,2026-06-30 12:05:55,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.56,6.33,18.99,4.68,14.31,Kai,Tourism/Hospitality,Credit Card,211
+HI010-TX-0014,HI010,Wahiawa,Oahu,HI,2026-06-30 10:50:47,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.40,9.21,9.21,3.40,5.81,Nalu,Retail,Mobile Pay,773
+HI010-TX-0015,HI010,Wahiawa,Oahu,HI,2026-06-30 10:27:49,SNS-DHT,DHT22 Temperature Sensor,Sensors,3,2.33,7.21,21.63,6.99,14.64,Hana,Marine,Credit Card,110
+HI010-TX-0016,HI010,Wahiawa,Oahu,HI,2026-06-30 11:12:22,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.61,6.17,6.17,1.61,4.56,Lani,Tourism/Hospitality,Purchase Order,257
+HI010-TX-0017,HI010,Wahiawa,Oahu,HI,2026-06-30 12:00:11,IC-358,LM358 Op Amp,Integrated Circuits,8,0.29,1.17,9.36,2.32,7.04,Iolana,Maker/Hobbyist,Debit Card,273
+HI010-TX-0018,HI010,Wahiawa,Oahu,HI,2026-06-30 17:36:56,CON-JMP,Jumper Wire Set,Connectors,39,0.90,3.86,150.54,35.10,115.44,Malia,Government,Cash,549
+HI010-TX-0019,HI010,Wahiawa,Oahu,HI,2026-06-30 11:20:05,CAP-100,100uF Capacitor,Capacitors,12,0.18,0.57,6.84,2.16,4.68,Koa,Marine,Cash,60
+HI010-TX-0020,HI010,Wahiawa,Oahu,HI,2026-06-30 14:47:39,IC-REG,7805 Voltage Regulator,Integrated Circuits,18,0.21,0.90,16.20,3.78,12.42,Alika,Marine,Cash,628
+HI010-TX-0021,HI010,Wahiawa,Oahu,HI,2026-06-30 13:38:29,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.36,16.61,99.66,32.16,67.50,Kai,Commercial,Debit Card,598
+HI010-TX-0022,HI010,Wahiawa,Oahu,HI,2026-06-30 08:58:37,IC-REG,7805 Voltage Regulator,Integrated Circuits,5,0.19,0.87,4.35,0.95,3.40,Noah,Education,Credit Card,848
+HI010-TX-0023,HI010,Wahiawa,Oahu,HI,2026-06-30 10:13:01,LED-BLU,5mm Blue LED,LEDs,19,0.07,0.31,5.89,1.33,4.56,Alika,Tourism/Hospitality,Credit Card,116
+HI010-TX-0024,HI010,Wahiawa,Oahu,HI,2026-06-30 09:43:32,USB-CBO,USB-C Breakout Board,Connectors,10,1.31,5.67,56.70,13.10,43.60,Nalu,Government,ACH,412
+HI010-TX-0025,HI010,Wahiawa,Oahu,HI,2026-06-30 09:33:26,IC-555,NE555 Timer IC,Integrated Circuits,33,0.34,1.30,42.90,11.22,31.68,Lani,Government,Credit Card,491
+HI010-TX-0026,HI010,Wahiawa,Oahu,HI,2026-06-30 09:16:54,BRD-830,Breadboard 830 Tie Points,Connectors,6,1.53,6.45,38.70,9.18,29.52,Akamu,Tourism/Hospitality,Mobile Pay,898
+HI010-TX-0027,HI010,Wahiawa,Oahu,HI,2026-06-30 12:26:54,SOL-CTRL,Solar Charge Controller,Solar Power,5,10.28,32.71,163.55,51.40,112.15,Kaleo,Education,Cash,504
+HI010-TX-0028,HI010,Wahiawa,Oahu,HI,2026-06-30 08:31:36,IC-358,LM358 Op Amp,Integrated Circuits,32,0.33,1.24,39.68,10.56,29.12,Pualani,Education,ACH,134
+HI010-TX-0029,HI010,Wahiawa,Oahu,HI,2026-06-30 12:58:33,SOL-CTRL,Solar Charge Controller,Solar Power,4,11.24,32.73,130.92,44.96,85.96,Keahi,Education,Purchase Order,864
+HI010-TX-0030,HI010,Wahiawa,Oahu,HI,2026-06-30 16:58:43,PWR-12V,12V 5A Power Supply,Power,7,9.75,25.01,175.07,68.25,106.82,Noelani,Commercial,ACH,724
+HI010-TX-0031,HI010,Wahiawa,Oahu,HI,2026-06-30 12:23:43,CON-JMP,Jumper Wire Set,Connectors,16,0.88,3.95,63.20,14.08,49.12,Noah,Retail,Mobile Pay,563
+HI010-TX-0032,HI010,Wahiawa,Oahu,HI,2026-06-30 08:17:51,SNS-PIR,PIR Motion Sensor,Sensors,8,1.56,6.12,48.96,12.48,36.48,Alika,Marine,Mobile Pay,704
+HI010-TX-0033,HI010,Wahiawa,Oahu,HI,2026-06-30 10:42:49,TOOL-SOL,Soldering Iron Tips,Tools,5,1.86,7.76,38.80,9.30,29.50,Noelani,Tourism/Hospitality,Mobile Pay,214
+HI010-TX-0034,HI010,Wahiawa,Oahu,HI,2026-06-30 12:12:09,MOS-44N,IRFZ44N MOSFET,Semiconductors,13,0.59,2.50,32.50,7.67,24.83,Ikaika,Government,Mobile Pay,761
+HI010-TX-0035,HI010,Wahiawa,Oahu,HI,2026-06-30 15:59:53,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.55,13.65,68.25,22.75,45.50,Akamu,Government,Mobile Pay,213
+HI010-TX-0036,HI010,Wahiawa,Oahu,HI,2026-06-30 17:27:03,MAR-ANT,Marine Antenna Connector,Marine Electronics,5,4.02,13.39,66.95,20.10,46.85,Hana,Government,Purchase Order,767
+HI010-TX-0037,HI010,Wahiawa,Oahu,HI,2026-06-30 11:36:25,IC-555,NE555 Timer IC,Integrated Circuits,16,0.34,1.42,22.72,5.44,17.28,Keahi,Government,Debit Card,402
+HI010-TX-0038,HI010,Wahiawa,Oahu,HI,2026-06-30 10:14:12,IC-358,LM358 Op Amp,Integrated Circuits,34,0.30,1.13,38.42,10.20,28.22,Ailani,Commercial,Credit Card,490
+HI010-TX-0039,HI010,Wahiawa,Oahu,HI,2026-06-30 09:17:48,TR-3904,2N3904 NPN Transistor,Semiconductors,23,0.06,0.25,5.75,1.38,4.37,Noah,Government,Purchase Order,489
+HI010-TX-0040,HI010,Wahiawa,Oahu,HI,2026-06-30 13:17:57,LED-RGB,RGB LED Strip,LEDs,6,4.87,14.77,88.62,29.22,59.40,Mika,Retail,Cash,686
+HI010-TX-0041,HI010,Wahiawa,Oahu,HI,2026-06-30 17:09:59,RES-010,10k Ohm Resistor,Resistors,36,0.03,0.14,5.04,1.08,3.96,Nalu,Retail,ACH,382
+HI010-TX-0042,HI010,Wahiawa,Oahu,HI,2026-06-30 08:03:36,BAT-LIPO,LiPo Battery Pack,Batteries,3,5.09,15.94,47.82,15.27,32.55,Noelani,Marine,ACH,288
+HI010-TX-0043,HI010,Wahiawa,Oahu,HI,2026-06-30 09:44:02,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,7.95,21.71,43.42,15.90,27.52,Iolana,Retail,Debit Card,298
+HI010-TX-0044,HI010,Wahiawa,Oahu,HI,2026-06-30 17:42:59,TR-3904,2N3904 NPN Transistor,Semiconductors,21,0.05,0.24,5.04,1.05,3.99,Makana,Government,Credit Card,21
+HI010-TX-0045,HI010,Wahiawa,Oahu,HI,2026-06-30 17:11:58,LED-RED,5mm Red LED,LEDs,13,0.06,0.27,3.51,0.78,2.73,Makana,Maker/Hobbyist,Debit Card,642
+HI010-TX-0046,HI010,Wahiawa,Oahu,HI,2026-06-30 17:26:21,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.18,13.66,40.98,12.54,28.44,Akamu,Retail,Mobile Pay,257
+HI010-TX-0047,HI010,Wahiawa,Oahu,HI,2026-06-30 16:10:37,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.22,8.73,17.46,6.44,11.02,Iolana,Retail,ACH,496
+HI010-TX-0048,HI010,Wahiawa,Oahu,HI,2026-06-30 17:45:25,REL-5V,5V Relay Module,Relays,39,0.93,5.53,215.67,36.27,179.40,Alika,Education,Mobile Pay,57
+HI010-TX-0049,HI010,Wahiawa,Oahu,HI,2026-06-30 17:34:10,CON-JMP,Jumper Wire Set,Connectors,22,0.94,3.82,84.04,20.68,63.36,Noah,Government,Debit Card,177
+HI010-TX-0050,HI010,Wahiawa,Oahu,HI,2026-06-30 10:52:41,TOOL-SOL,Soldering Iron Tips,Tools,3,1.93,7.77,23.31,5.79,17.52,Alika,Government,Cash,702
+HI010-TX-0051,HI010,Wahiawa,Oahu,HI,2026-06-30 08:34:31,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.40,21.25,148.75,58.80,89.95,Mika,Government,Cash,329
+HI010-TX-0052,HI010,Wahiawa,Oahu,HI,2026-06-30 10:23:16,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.52,31.27,218.89,73.64,145.25,Ikaika,Maker/Hobbyist,Purchase Order,868
+HI010-TX-0053,HI010,Wahiawa,Oahu,HI,2026-06-30 08:27:57,IC-358,LM358 Op Amp,Integrated Circuits,25,0.29,1.21,30.25,7.25,23.00,Noah,Tourism/Hospitality,Mobile Pay,888
+HI010-TX-0054,HI010,Wahiawa,Oahu,HI,2026-06-30 15:18:21,IC-358,LM358 Op Amp,Integrated Circuits,39,0.33,1.18,46.02,12.87,33.15,Akamu,Commercial,Mobile Pay,705
+HI010-TX-0055,HI010,Wahiawa,Oahu,HI,2026-06-30 16:37:02,LED-RED,5mm Red LED,LEDs,7,0.05,0.28,1.96,0.35,1.61,Alika,Government,Credit Card,491
+HI010-TX-0056,HI010,Wahiawa,Oahu,HI,2026-06-30 09:31:10,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.15,8.79,8.79,3.15,5.64,Keahi,Government,ACH,679
+HI010-TX-0057,HI010,Wahiawa,Oahu,HI,2026-06-30 13:18:56,IC-358,LM358 Op Amp,Integrated Circuits,11,0.31,1.15,12.65,3.41,9.24,Keahi,Tourism/Hospitality,Purchase Order,288
+HI010-TX-0058,HI010,Wahiawa,Oahu,HI,2026-06-30 11:55:37,MOS-44N,IRFZ44N MOSFET,Semiconductors,17,0.59,2.42,41.14,10.03,31.11,Nalu,Government,ACH,822
+HI010-TX-0059,HI010,Wahiawa,Oahu,HI,2026-06-30 14:59:06,PWR-12V,12V 5A Power Supply,Power,4,9.30,25.19,100.76,37.20,63.56,Mika,Government,Purchase Order,632
+HI010-TX-0060,HI010,Wahiawa,Oahu,HI,2026-06-30 11:07:57,CAP-100,100uF Capacitor,Capacitors,33,0.16,0.57,18.81,5.28,13.53,Keanu,Maker/Hobbyist,Debit Card,444
+HI010-TX-0061,HI010,Wahiawa,Oahu,HI,2026-06-30 16:27:20,CAP-100,100uF Capacitor,Capacitors,7,0.17,0.58,4.06,1.19,2.87,Hana,Commercial,Purchase Order,844
+HI010-TX-0062,HI010,Wahiawa,Oahu,HI,2026-06-30 14:33:22,RES-010,10k Ohm Resistor,Resistors,24,0.03,0.13,3.12,0.72,2.40,Hana,Maker/Hobbyist,ACH,592
+HI010-TX-0063,HI010,Wahiawa,Oahu,HI,2026-06-30 13:21:55,CAP-100,100uF Capacitor,Capacitors,25,0.16,0.57,14.25,4.00,10.25,Koa,Marine,Mobile Pay,517
+HI010-TX-0064,HI010,Wahiawa,Oahu,HI,2026-06-30 15:01:31,CAP-100,100uF Capacitor,Capacitors,22,0.17,0.60,13.20,3.74,9.46,Alika,Education,Purchase Order,630
+HI010-TX-0065,HI010,Wahiawa,Oahu,HI,2026-06-30 16:19:26,IC-358,LM358 Op Amp,Integrated Circuits,10,0.29,1.25,12.50,2.90,9.60,Koa,Marine,Credit Card,174
+HI010-TX-0066,HI010,Wahiawa,Oahu,HI,2026-06-30 16:43:55,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.40,13.33,66.65,22.00,44.65,Keahi,Tourism/Hospitality,Credit Card,772
+HI010-TX-0067,HI010,Wahiawa,Oahu,HI,2026-06-30 15:29:22,CAP-100,100uF Capacitor,Capacitors,39,0.16,0.58,22.62,6.24,16.38,Noah,Maker/Hobbyist,Purchase Order,60

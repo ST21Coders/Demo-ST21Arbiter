@@ -143,6 +143,51 @@ AGENTS = [
         },
     },
     {
+        "name": "sales-specialist",
+        "src": "agents/sales_specialist",
+        "repo_export": f"{PREFIX}-SalesSpecialistRepoUri",  # from 09-agentcore
+        "model_param": "SalesModelId",
+        "env_model_var": "SALES_MODEL_ID",
+        # Ships the reusable arbiter_rag RAG library into the image (single source of
+        # truth stays under rag_src/). The Dockerfile COPYs the injected arbiter_rag/ dir.
+        "extra_pkgs": [("rag_src/arbiter_rag", "arbiter_rag")],
+        # The agent builds an arbiter_rag Settings from these env vars (it never reads
+        # settings.toml). Semantic path → S3 Vectors sales-facts index. SQL path → the
+        # existing structured Glue DB + read-only workgroup (already IAM-granted); the
+        # Hawaii sales table is `hawaii_sales`.
+        "env_overrides": {
+            "SALES_VECTOR_BUCKET": f"{PREFIX}-sales-vectors",
+            "SALES_VECTOR_INDEX": "sales-facts",
+            "EMBEDDING_MODEL_ID": "amazon.titan-embed-text-v2:0",
+            "EMBEDDING_DIM": "1024",
+            "RERANK_ENABLED": "false",
+            "GLUE_DATABASE": f"{ENV}_{PROJECT}_structured".replace("-", "_"),
+            "GLUE_TABLE": "hawaii_sales",
+            "ATHENA_WORKGROUP": f"{PREFIX}-wg",
+            "ATHENA_OUTPUT": f"s3://{PREFIX}-processed/athena-results/",
+        },
+    },
+    {
+        "name": "hr-specialist",
+        "src": "agents/hr_specialist",
+        "repo_export": f"{PREFIX}-HrSpecialistRepoUri",  # from 09-agentcore
+        "model_param": "HrModelId",
+        "env_model_var": "HR_MODEL_ID",
+        # Ships the reusable arbiter_rag RAG library into the image (single source of
+        # truth stays under rag_src/). The Dockerfile COPYs the injected arbiter_rag/ dir.
+        "extra_pkgs": [("rag_src/arbiter_rag", "arbiter_rag")],
+        # The agent builds an arbiter_rag Settings from these env vars (never settings.toml).
+        # Semantic-only path → the S3 Vectors hr-policies index (its own vector bucket).
+        "env_overrides": {
+            "HR_VECTOR_BUCKET": f"{PREFIX}-hr-vectors",
+            "HR_VECTOR_INDEX": "hr-policies",
+            "EMBEDDING_MODEL_ID": "amazon.titan-embed-text-v2:0",
+            "EMBEDDING_DIM": "1024",
+            "RETRIEVAL_TOP_K": "4",
+            "RERANK_ENABLED": "false",
+        },
+    },
+    {
         "name": "jira-specialist",
         "src": "agents/jira_specialist",
         "repo_export": f"{PREFIX}-JiraSpecialistRepoUri",  # from 09-agentcore
@@ -380,6 +425,19 @@ def build_and_push(agent: dict[str, Any], repo_uri: str) -> str:
         shutil.copytree(agent_src, build_ctx)
         if shared_src.exists():
             shutil.copytree(shared_src, build_ctx / "_shared")
+        # Optional: vendor extra source packages that live OUTSIDE agents/ (e.g. the
+        # shared arbiter_rag RAG library under rag_src/) into the build context so
+        # the image can import them WITHOUT forking the canonical copy. Keyed per-agent
+        # so only agents that opt in pay the image-size cost; the agent Dockerfile must
+        # COPY the destination dir explicitly.
+        for src_rel, dest_name in agent.get("extra_pkgs", []):
+            pkg_src = PROJECT_ROOT / src_rel
+            if not pkg_src.exists():
+                raise SystemExit(f"extra_pkgs source not found for {agent['name']}: {pkg_src}")
+            shutil.copytree(
+                pkg_src, build_ctx / dest_name,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.egg-info"),
+            )
         zip_base = Path(tmpdir) / agent["name"]
         zip_path = shutil.make_archive(str(zip_base), "zip", root_dir=str(build_ctx))
         source_key = f"agent-builds/{agent['name']}-{image_tag}.zip"
@@ -523,6 +581,8 @@ def _patch_api_handler_lambda(runtime_arns: dict[str, str]) -> None:
         "zscaler-specialist":    "ZSCALER_RUNTIME_ARN",
         "paloalto-specialist":   "PALOALTO_RUNTIME_ARN",
         "structured-specialist": "STRUCTURED_RUNTIME_ARN",
+        "sales-specialist":      "SALES_RUNTIME_ARN",
+        "hr-specialist":         "HR_RUNTIME_ARN",
         "jira-specialist":       "JIRA_RUNTIME_ARN",
         "servicenow-specialist": "SERVICENOW_RUNTIME_ARN",
     }
@@ -687,6 +747,8 @@ def main() -> None:
                 ("zscaler-specialist", "ZSCALER_RUNTIME_ARN"),
                 ("paloalto-specialist", "PALOALTO_RUNTIME_ARN"),
                 ("structured-specialist", "STRUCTURED_RUNTIME_ARN"),
+                ("sales-specialist", "SALES_RUNTIME_ARN"),
+                ("hr-specialist", "HR_RUNTIME_ARN"),
                 ("jira-specialist", "JIRA_RUNTIME_ARN"),
                 ("servicenow-specialist", "SERVICENOW_RUNTIME_ARN"),
             ]:

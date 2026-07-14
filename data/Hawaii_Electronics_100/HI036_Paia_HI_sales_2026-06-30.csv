@@ -1,0 +1,58 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI036-TX-0001,HI036,Paia,Maui,HI,2026-06-30 10:24:04,IC-555,NE555 Timer IC,Integrated Circuits,14,0.35,1.28,17.92,4.90,13.02,Iolana,Maker/Hobbyist,Credit Card,331
+HI036-TX-0002,HI036,Paia,Maui,HI,2026-06-30 13:01:49,RES-010,10k Ohm Resistor,Resistors,23,0.03,0.13,2.99,0.69,2.30,Lani,Marine,Purchase Order,854
+HI036-TX-0003,HI036,Paia,Maui,HI,2026-06-30 13:15:45,IC-358,LM358 Op Amp,Integrated Circuits,31,0.33,1.23,38.13,10.23,27.90,Ailani,Maker/Hobbyist,Debit Card,250
+HI036-TX-0004,HI036,Paia,Maui,HI,2026-06-30 13:42:33,CAP-010,10uF Capacitor,Capacitors,27,0.09,0.38,10.26,2.43,7.83,Noah,Education,Purchase Order,423
+HI036-TX-0005,HI036,Paia,Maui,HI,2026-06-30 14:50:40,TR-3904,2N3904 NPN Transistor,Semiconductors,5,0.06,0.25,1.25,0.30,0.95,Akamu,Marine,Purchase Order,859
+HI036-TX-0006,HI036,Paia,Maui,HI,2026-06-30 11:17:14,CAP-010,10uF Capacitor,Capacitors,13,0.08,0.38,4.94,1.04,3.90,Nalu,Commercial,Credit Card,859
+HI036-TX-0007,HI036,Paia,Maui,HI,2026-06-30 13:53:51,CAP-010,10uF Capacitor,Capacitors,31,0.09,0.41,12.71,2.79,9.92,Hana,Marine,Debit Card,246
+HI036-TX-0008,HI036,Paia,Maui,HI,2026-06-30 11:11:21,LED-BLU,5mm Blue LED,LEDs,5,0.07,0.35,1.75,0.35,1.40,Kaleo,Marine,Mobile Pay,824
+HI036-TX-0009,HI036,Paia,Maui,HI,2026-06-30 11:23:06,LED-RGB,RGB LED Strip,LEDs,8,5.01,14.00,112.00,40.08,71.92,Nalu,Commercial,Cash,443
+HI036-TX-0010,HI036,Paia,Maui,HI,2026-06-30 16:53:58,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.17,16.68,83.40,25.85,57.55,Malia,Education,Purchase Order,306
+HI036-TX-0011,HI036,Paia,Maui,HI,2026-06-30 09:21:30,IC-555,NE555 Timer IC,Integrated Circuits,17,0.35,1.31,22.27,5.95,16.32,Ikaika,Commercial,Purchase Order,877
+HI036-TX-0012,HI036,Paia,Maui,HI,2026-06-30 09:04:04,PWR-BUCK,Buck Converter Module,Power,5,1.03,5.10,25.50,5.15,20.35,Pualani,Retail,Credit Card,79
+HI036-TX-0013,HI036,Paia,Maui,HI,2026-06-30 17:38:12,PWR-BUCK,Buck Converter Module,Power,33,1.04,4.72,155.76,34.32,121.44,Mika,Tourism/Hospitality,Mobile Pay,884
+HI036-TX-0014,HI036,Paia,Maui,HI,2026-06-30 15:59:59,PWR-12V,12V 5A Power Supply,Power,7,9.91,23.96,167.72,69.37,98.35,Koa,Tourism/Hospitality,Purchase Order,784
+HI036-TX-0015,HI036,Paia,Maui,HI,2026-06-30 10:27:11,SNS-PIR,PIR Motion Sensor,Sensors,4,1.65,6.20,24.80,6.60,18.20,Keahi,Government,Credit Card,734
+HI036-TX-0016,HI036,Paia,Maui,HI,2026-06-30 09:28:52,PWR-12V,12V 5A Power Supply,Power,3,9.48,23.83,71.49,28.44,43.05,Iolana,Retail,ACH,344
+HI036-TX-0017,HI036,Paia,Maui,HI,2026-06-30 13:31:08,PWR-5V2,5V 2A Power Supply,Power,5,3.39,11.02,55.10,16.95,38.15,Lani,Tourism/Hospitality,Debit Card,443
+HI036-TX-0018,HI036,Paia,Maui,HI,2026-06-30 17:40:10,MAR-TIN,Tinned Marine Wire,Marine Electronics,1,9.34,26.26,26.26,9.34,16.92,Kaleo,Tourism/Hospitality,Credit Card,2
+HI036-TX-0019,HI036,Paia,Maui,HI,2026-06-30 10:10:17,MOS-44N,IRFZ44N MOSFET,Semiconductors,35,0.57,2.49,87.15,19.95,67.20,Kai,Tourism/Hospitality,Purchase Order,200
+HI036-TX-0020,HI036,Paia,Maui,HI,2026-06-30 14:01:35,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.23,12.42,24.84,8.46,16.38,Makana,Maker/Hobbyist,Debit Card,12
+HI036-TX-0021,HI036,Paia,Maui,HI,2026-06-30 08:23:46,TOOL-DMM,Digital Multimeter,Tools,5,8.74,28.99,144.95,43.70,101.25,Koa,Retail,Mobile Pay,517
+HI036-TX-0022,HI036,Paia,Maui,HI,2026-06-30 17:08:23,PWR-12V,12V 5A Power Supply,Power,1,10.01,26.43,26.43,10.01,16.42,Mika,Education,Purchase Order,498
+HI036-TX-0023,HI036,Paia,Maui,HI,2026-06-30 16:44:29,TR-3904,2N3904 NPN Transistor,Semiconductors,18,0.05,0.25,4.50,0.90,3.60,Kaleo,Education,Mobile Pay,715
+HI036-TX-0024,HI036,Paia,Maui,HI,2026-06-30 17:39:39,BAT-AAH,AA Battery Holder,Batteries,1,0.49,2.88,2.88,0.49,2.39,Keahi,Education,Credit Card,77
+HI036-TX-0025,HI036,Paia,Maui,HI,2026-06-30 12:02:44,IC-358,LM358 Op Amp,Integrated Circuits,19,0.33,1.18,22.42,6.27,16.15,Noah,Tourism/Hospitality,Debit Card,671
+HI036-TX-0026,HI036,Paia,Maui,HI,2026-06-30 12:14:05,SNS-DHT,DHT22 Temperature Sensor,Sensors,1,2.65,8.06,8.06,2.65,5.41,Keahi,Commercial,Purchase Order,136
+HI036-TX-0027,HI036,Paia,Maui,HI,2026-06-30 17:57:25,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.68,13.44,13.44,4.68,8.76,Alika,Retail,Mobile Pay,616
+HI036-TX-0028,HI036,Paia,Maui,HI,2026-06-30 08:58:19,SNS-PIR,PIR Motion Sensor,Sensors,7,1.56,6.08,42.56,10.92,31.64,Makana,Retail,Cash,498
+HI036-TX-0029,HI036,Paia,Maui,HI,2026-06-30 16:58:16,IC-REG,7805 Voltage Regulator,Integrated Circuits,32,0.19,0.93,29.76,6.08,23.68,Kaleo,Education,Cash,842
+HI036-TX-0030,HI036,Paia,Maui,HI,2026-06-30 13:49:57,RES-220,220 Ohm Resistor,Resistors,23,0.03,0.12,2.76,0.69,2.07,Hana,Retail,Purchase Order,496
+HI036-TX-0031,HI036,Paia,Maui,HI,2026-06-30 09:14:19,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.00,13.83,96.81,28.00,68.81,Lani,Government,Debit Card,292
+HI036-TX-0032,HI036,Paia,Maui,HI,2026-06-30 09:17:36,TR-3904,2N3904 NPN Transistor,Semiconductors,30,0.06,0.24,7.20,1.80,5.40,Pualani,Retail,Credit Card,540
+HI036-TX-0033,HI036,Paia,Maui,HI,2026-06-30 10:17:10,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.86,31.09,124.36,43.44,80.92,Alika,Education,Debit Card,160
+HI036-TX-0034,HI036,Paia,Maui,HI,2026-06-30 17:02:01,SOL-CTRL,Solar Charge Controller,Solar Power,7,11.21,30.86,216.02,78.47,137.55,Malia,Education,Debit Card,536
+HI036-TX-0035,HI036,Paia,Maui,HI,2026-06-30 11:33:21,IC-555,NE555 Timer IC,Integrated Circuits,10,0.35,1.28,12.80,3.50,9.30,Koa,Marine,Cash,24
+HI036-TX-0036,HI036,Paia,Maui,HI,2026-06-30 10:23:22,SNS-PIR,PIR Motion Sensor,Sensors,8,1.60,5.68,45.44,12.80,32.64,Ailani,Government,Debit Card,646
+HI036-TX-0037,HI036,Paia,Maui,HI,2026-06-30 12:14:56,RES-010,10k Ohm Resistor,Resistors,34,0.03,0.14,4.76,1.02,3.74,Akamu,Retail,Mobile Pay,244
+HI036-TX-0038,HI036,Paia,Maui,HI,2026-06-30 14:30:04,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.06,12.48,12.48,4.06,8.42,Ikaika,Government,Cash,849
+HI036-TX-0039,HI036,Paia,Maui,HI,2026-06-30 15:38:22,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.61,6.55,26.20,6.44,19.76,Keanu,Government,Credit Card,465
+HI036-TX-0040,HI036,Paia,Maui,HI,2026-06-30 17:14:09,IC-358,LM358 Op Amp,Integrated Circuits,37,0.30,1.25,46.25,11.10,35.15,Noah,Commercial,Credit Card,556
+HI036-TX-0041,HI036,Paia,Maui,HI,2026-06-30 08:31:19,REL-5V,5V Relay Module,Relays,2,0.90,5.16,10.32,1.80,8.52,Iolana,Tourism/Hospitality,Cash,645
+HI036-TX-0042,HI036,Paia,Maui,HI,2026-06-30 08:24:45,TR-3904,2N3904 NPN Transistor,Semiconductors,37,0.06,0.23,8.51,2.22,6.29,Mika,Maker/Hobbyist,Credit Card,394
+HI036-TX-0043,HI036,Paia,Maui,HI,2026-06-30 09:51:46,RES-220,220 Ohm Resistor,Resistors,7,0.03,0.14,0.98,0.21,0.77,Iolana,Tourism/Hospitality,Debit Card,263
+HI036-TX-0044,HI036,Paia,Maui,HI,2026-06-30 10:52:40,LED-RED,5mm Red LED,LEDs,34,0.06,0.27,9.18,2.04,7.14,Mika,Commercial,Mobile Pay,529
+HI036-TX-0045,HI036,Paia,Maui,HI,2026-06-30 09:45:23,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,3.62,14.91,89.46,21.72,67.74,Ailani,Education,Credit Card,629
+HI036-TX-0046,HI036,Paia,Maui,HI,2026-06-30 09:16:28,LED-RED,5mm Red LED,LEDs,38,0.05,0.27,10.26,1.90,8.36,Hana,Government,Credit Card,412
+HI036-TX-0047,HI036,Paia,Maui,HI,2026-06-30 12:24:04,CAP-100,100uF Capacitor,Capacitors,31,0.17,0.58,17.98,5.27,12.71,Akamu,Retail,ACH,207
+HI036-TX-0048,HI036,Paia,Maui,HI,2026-06-30 09:18:49,IC-358,LM358 Op Amp,Integrated Circuits,26,0.32,1.13,29.38,8.32,21.06,Kaleo,Maker/Hobbyist,ACH,722
+HI036-TX-0049,HI036,Paia,Maui,HI,2026-06-30 16:42:28,RES-001,1k Ohm Resistor,Resistors,9,0.03,0.13,1.17,0.27,0.90,Mika,Education,Credit Card,647
+HI036-TX-0050,HI036,Paia,Maui,HI,2026-06-30 14:02:39,CAP-100,100uF Capacitor,Capacitors,40,0.16,0.57,22.80,6.40,16.40,Makana,Maker/Hobbyist,Mobile Pay,178
+HI036-TX-0051,HI036,Paia,Maui,HI,2026-06-30 15:33:09,LED-BLU,5mm Blue LED,LEDs,30,0.07,0.31,9.30,2.10,7.20,Makana,Maker/Hobbyist,Credit Card,164
+HI036-TX-0052,HI036,Paia,Maui,HI,2026-06-30 17:35:36,IC-REG,7805 Voltage Regulator,Integrated Circuits,21,0.19,0.91,19.11,3.99,15.12,Makana,Tourism/Hospitality,Mobile Pay,375
+HI036-TX-0053,HI036,Paia,Maui,HI,2026-06-30 15:58:21,BAT-AAH,AA Battery Holder,Batteries,36,0.49,2.64,95.04,17.64,77.40,Ikaika,Education,Debit Card,748
+HI036-TX-0054,HI036,Paia,Maui,HI,2026-06-30 10:03:23,PWR-BUCK,Buck Converter Module,Power,23,1.06,4.62,106.26,24.38,81.88,Malia,Tourism/Hospitality,Cash,184
+HI036-TX-0055,HI036,Paia,Maui,HI,2026-06-30 13:50:28,CON-JMP,Jumper Wire Set,Connectors,4,0.88,3.62,14.48,3.52,10.96,Keahi,Tourism/Hospitality,Cash,102
+HI036-TX-0056,HI036,Paia,Maui,HI,2026-06-30 15:15:04,TOOL-DMM,Digital Multimeter,Tools,2,8.49,26.81,53.62,16.98,36.64,Koa,Tourism/Hospitality,Purchase Order,612
+HI036-TX-0057,HI036,Paia,Maui,HI,2026-06-30 09:58:24,PWR-12V,12V 5A Power Supply,Power,5,9.33,25.20,126.00,46.65,79.35,Keahi,Retail,Purchase Order,692

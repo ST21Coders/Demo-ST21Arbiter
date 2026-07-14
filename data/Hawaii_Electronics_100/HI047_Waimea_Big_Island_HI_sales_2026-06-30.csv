@@ -1,0 +1,56 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI047-TX-0001,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 12:27:31,PWR-BUCK,Buck Converter Module,Power,2,1.06,5.06,10.12,2.12,8.00,Ailani,Education,Purchase Order,143
+HI047-TX-0002,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 12:59:38,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.95,14.24,71.20,24.75,46.45,Koa,Tourism/Hospitality,Mobile Pay,188
+HI047-TX-0003,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 15:13:33,SNS-PIR,PIR Motion Sensor,Sensors,6,1.64,5.78,34.68,9.84,24.84,Nalu,Commercial,Mobile Pay,750
+HI047-TX-0004,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 10:15:33,CAP-100,100uF Capacitor,Capacitors,3,0.17,0.64,1.92,0.51,1.41,Malia,Marine,Cash,665
+HI047-TX-0005,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 16:04:32,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.48,7.63,61.04,19.84,41.20,Nalu,Maker/Hobbyist,Debit Card,385
+HI047-TX-0006,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 17:50:59,CAP-010,10uF Capacitor,Capacitors,6,0.08,0.37,2.22,0.48,1.74,Hana,Commercial,Debit Card,112
+HI047-TX-0007,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 15:49:17,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.34,8.49,33.96,13.36,20.60,Leilani,Tourism/Hospitality,Debit Card,893
+HI047-TX-0008,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 12:46:31,LED-BLU,5mm Blue LED,LEDs,14,0.07,0.32,4.48,0.98,3.50,Ailani,Retail,Cash,76
+HI047-TX-0009,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 16:05:53,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.91,14.38,28.76,9.82,18.94,Iolana,Commercial,Purchase Order,697
+HI047-TX-0010,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 13:21:10,TOOL-DMM,Digital Multimeter,Tools,7,8.27,26.79,187.53,57.89,129.64,Alika,Education,Purchase Order,891
+HI047-TX-0011,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 10:14:22,PWR-12V,12V 5A Power Supply,Power,7,9.35,26.20,183.40,65.45,117.95,Alika,Education,ACH,874
+HI047-TX-0012,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 14:42:28,SOL-CTRL,Solar Charge Controller,Solar Power,6,11.09,33.99,203.94,66.54,137.40,Nalu,Retail,Cash,749
+HI047-TX-0013,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 14:06:50,SOL-CTRL,Solar Charge Controller,Solar Power,2,10.19,33.99,67.98,20.38,47.60,Nalu,Retail,Cash,126
+HI047-TX-0014,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 17:45:26,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.62,8.04,64.32,20.96,43.36,Malia,Maker/Hobbyist,ACH,78
+HI047-TX-0015,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 14:43:10,LED-BLU,5mm Blue LED,LEDs,32,0.07,0.34,10.88,2.24,8.64,Lani,Maker/Hobbyist,ACH,79
+HI047-TX-0016,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 12:02:52,LED-RGB,RGB LED Strip,LEDs,5,4.81,14.40,72.00,24.05,47.95,Lani,Education,ACH,408
+HI047-TX-0017,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 14:07:00,SNS-SOIL,Soil Moisture Sensor,Sensors,23,0.95,4.49,103.27,21.85,81.42,Lani,Tourism/Hospitality,Mobile Pay,367
+HI047-TX-0018,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 14:15:59,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.10,8.27,8.27,3.10,5.17,Akamu,Marine,Debit Card,532
+HI047-TX-0019,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 12:34:39,SNS-SOIL,Soil Moisture Sensor,Sensors,1,0.98,4.14,4.14,0.98,3.16,Kaleo,Commercial,ACH,765
+HI047-TX-0020,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 08:29:40,TOOL-WIRE,Wire Stripper,Tools,2,5.21,15.06,30.12,10.42,19.70,Keahi,Maker/Hobbyist,Purchase Order,498
+HI047-TX-0021,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 09:32:37,PWR-BUCK,Buck Converter Module,Power,38,1.09,4.61,175.18,41.42,133.76,Keanu,Commercial,Cash,703
+HI047-TX-0022,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 13:39:24,RES-010,10k Ohm Resistor,Resistors,3,0.03,0.13,0.39,0.09,0.30,Makana,Retail,Purchase Order,245
+HI047-TX-0023,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 15:10:08,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.36,15.52,93.12,32.16,60.96,Koa,Tourism/Hospitality,Purchase Order,880
+HI047-TX-0024,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 13:35:53,MOS-44N,IRFZ44N MOSFET,Semiconductors,7,0.57,2.61,18.27,3.99,14.28,Makana,Maker/Hobbyist,Credit Card,790
+HI047-TX-0025,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 17:38:52,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.93,14.42,115.36,31.44,83.92,Kai,Tourism/Hospitality,ACH,840
+HI047-TX-0026,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 14:10:31,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.64,14.79,88.74,27.84,60.90,Lani,Commercial,Cash,534
+HI047-TX-0027,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 08:27:00,LED-BLU,5mm Blue LED,LEDs,22,0.07,0.31,6.82,1.54,5.28,Makana,Retail,ACH,639
+HI047-TX-0028,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 17:37:43,TOOL-SOL,Soldering Iron Tips,Tools,5,2.01,7.70,38.50,10.05,28.45,Hana,Retail,Cash,49
+HI047-TX-0029,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 11:50:38,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.12,13.70,13.70,4.12,9.58,Nalu,Tourism/Hospitality,Mobile Pay,101
+HI047-TX-0030,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 12:03:36,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,5.00,14.51,101.57,35.00,66.57,Hana,Education,ACH,222
+HI047-TX-0031,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 08:24:04,PWR-5V2,5V 2A Power Supply,Power,3,3.42,10.70,32.10,10.26,21.84,Keahi,Education,ACH,822
+HI047-TX-0032,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 12:22:33,CAP-100,100uF Capacitor,Capacitors,9,0.17,0.63,5.67,1.53,4.14,Kai,Education,Credit Card,118
+HI047-TX-0033,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 16:41:28,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.60,16.46,82.30,28.00,54.30,Koa,Government,Credit Card,366
+HI047-TX-0034,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 11:10:41,SNS-ULT,Ultrasonic Distance Sensor,Sensors,2,1.32,5.31,10.62,2.64,7.98,Kaleo,Maker/Hobbyist,Mobile Pay,244
+HI047-TX-0035,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 16:05:43,SNS-PIR,PIR Motion Sensor,Sensors,4,1.45,6.00,24.00,5.80,18.20,Alika,Retail,Purchase Order,356
+HI047-TX-0036,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 14:17:42,SNS-SOIL,Soil Moisture Sensor,Sensors,4,0.93,4.07,16.28,3.72,12.56,Leilani,Tourism/Hospitality,ACH,265
+HI047-TX-0037,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 13:54:17,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.10,8.41,42.05,15.50,26.55,Keanu,Government,ACH,691
+HI047-TX-0038,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 12:51:56,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.44,15.50,77.50,27.20,50.30,Keahi,Maker/Hobbyist,ACH,653
+HI047-TX-0039,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 10:39:42,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,29,0.04,0.20,5.80,1.16,4.64,Keahi,Retail,Debit Card,185
+HI047-TX-0040,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 17:10:59,PWR-5V2,5V 2A Power Supply,Power,4,3.58,11.12,44.48,14.32,30.16,Keahi,Commercial,Debit Card,151
+HI047-TX-0041,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 09:36:29,RES-001,1k Ohm Resistor,Resistors,12,0.03,0.13,1.56,0.36,1.20,Makana,Maker/Hobbyist,ACH,668
+HI047-TX-0042,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 15:24:13,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.65,15.92,79.60,28.25,51.35,Ailani,Tourism/Hospitality,Purchase Order,465
+HI047-TX-0043,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 11:40:45,LED-BLU,5mm Blue LED,LEDs,11,0.07,0.33,3.63,0.77,2.86,Keahi,Education,Mobile Pay,632
+HI047-TX-0044,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 12:39:43,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.32,7.17,14.34,4.64,9.70,Akamu,Government,ACH,534
+HI047-TX-0045,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 15:36:10,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.75,13.78,82.68,28.50,54.18,Pualani,Tourism/Hospitality,ACH,815
+HI047-TX-0046,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 17:17:59,CAP-100,100uF Capacitor,Capacitors,36,0.17,0.64,23.04,6.12,16.92,Iolana,Tourism/Hospitality,Debit Card,647
+HI047-TX-0047,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 12:36:26,IC-555,NE555 Timer IC,Integrated Circuits,2,0.36,1.42,2.84,0.72,2.12,Akamu,Retail,Purchase Order,379
+HI047-TX-0048,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 10:02:29,RES-010,10k Ohm Resistor,Resistors,24,0.03,0.13,3.12,0.72,2.40,Lani,Retail,Debit Card,157
+HI047-TX-0049,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 14:48:05,SNS-ULT,Ultrasonic Distance Sensor,Sensors,40,1.23,5.66,226.40,49.20,177.20,Mika,Maker/Hobbyist,Credit Card,378
+HI047-TX-0050,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 12:43:12,DIO-4007,1N4007 Diode,Semiconductors,32,0.04,0.20,6.40,1.28,5.12,Kai,Marine,Debit Card,431
+HI047-TX-0051,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 09:04:50,SOL-CTRL,Solar Charge Controller,Solar Power,5,11.17,31.28,156.40,55.85,100.55,Noah,Commercial,Mobile Pay,638
+HI047-TX-0052,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 13:51:28,BAT-LIPO,LiPo Battery Pack,Batteries,3,4.97,16.68,50.04,14.91,35.13,Pualani,Retail,Mobile Pay,89
+HI047-TX-0053,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 17:20:51,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.61,32.62,228.34,74.27,154.07,Nalu,Government,ACH,716
+HI047-TX-0054,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 15:19:19,BAT-LIPO,LiPo Battery Pack,Batteries,3,4.97,16.50,49.50,14.91,34.59,Mika,Retail,Mobile Pay,717
+HI047-TX-0055,HI047,Waimea Big Island,Hawaii Island,HI,2026-06-30 14:49:13,REL-5V,5V Relay Module,Relays,32,0.94,5.34,170.88,30.08,140.80,Noah,Education,Debit Card,287

@@ -59,6 +59,8 @@ SERVICENOW_RUNTIME_ARN = os.environ.get("SERVICENOW_RUNTIME_ARN", "")
 # the structured_specialist (Athena over the Glue-catalogued zscaler_rules table)
 # instead of the bundled fixtures. Falls back to fixtures on any error.
 STRUCTURED_RUNTIME_ARN = os.environ.get("STRUCTURED_RUNTIME_ARN", "")
+SALES_RUNTIME_ARN = os.environ.get("SALES_RUNTIME_ARN", "")
+HR_RUNTIME_ARN = os.environ.get("HR_RUNTIME_ARN", "")
 
 _missing = [
     name for name, val in [
@@ -67,6 +69,8 @@ _missing = [
         ("ZSCALER_RUNTIME_ARN", ZSCALER_RUNTIME_ARN),
         ("PALOALTO_RUNTIME_ARN", PALOALTO_RUNTIME_ARN),
         ("STRUCTURED_RUNTIME_ARN", STRUCTURED_RUNTIME_ARN),
+        ("SALES_RUNTIME_ARN", SALES_RUNTIME_ARN),
+        ("HR_RUNTIME_ARN", HR_RUNTIME_ARN),
         ("JIRA_RUNTIME_ARN", JIRA_RUNTIME_ARN),
         ("SERVICENOW_RUNTIME_ARN", SERVICENOW_RUNTIME_ARN),
     ] if not val
@@ -86,10 +90,18 @@ firewall rules, and report results to enterprise security analysts.
 
 WORKFLOW
 1. Call the relevant specialist tools (sharepoint_lookup, awsconfig_lookup,
-   zscaler_lookup, paloalto_lookup, structured_lookup, jira_lookup,
-   servicenow_lookup) to gather
+   zscaler_lookup, paloalto_lookup, structured_lookup, sales_lookup, hr_lookup,
+   jira_lookup, servicenow_lookup) to gather
    evidence. Run them in parallel when the query spans multiple domains. Skip a
-   tool if the query clearly does not touch that source. Use paloalto_lookup for
+   tool if the query clearly does not touch that source. Use sales_lookup for
+   retail sales questions about the Hawaiian-electronics business — product,
+   branch, island, or category performance, revenue, units, margins, rankings,
+   and totals (it does semantic search for descriptive questions and exact Athena
+   SQL for aggregations). Use hr_lookup for employee HR-policy questions about the
+   same business — leave/PTO, benefits, sales compensation & commission rules,
+   code of conduct, payroll & scheduling, and perks/discounts (semantic search
+   over the official policy documents; it answers what a policy SAYS, not sales
+   figures). Use paloalto_lookup for
    perimeter firewall / App-ID / egress questions, jira_lookup for Atlassian
    Jira issues/tickets (raise a ticket for a confirmed conflict) AND Confluence
    pages (search/read, or publish a page — e.g. a summary or resource report),
@@ -271,6 +283,36 @@ def structured_lookup(query: str) -> str:
     return _invoke_runtime(STRUCTURED_RUNTIME_ARN, query)
 
 
+@tool
+def sales_lookup(query: str) -> str:
+    """Answer questions about Hawaiian-electronics retail sales. The sales specialist is a
+    hybrid RAG agent: it does semantic search over a sales-facts vector index for descriptive
+    questions ("how did marine electronics do at the Kailua branch?") AND validated read-only
+    Athena SQL for exact aggregation ("total revenue by category", "which branch sold the most
+    units"). It picks the right tool per question.
+
+    Args:
+        query: Natural-language sales question — product/branch/island/category performance,
+            revenue, units, margins, rankings, or totals.
+    """
+    return _invoke_runtime(SALES_RUNTIME_ARN, query)
+
+
+@tool
+def hr_lookup(query: str) -> str:
+    """Answer employee HR-policy questions for Kai Components (the Hawaiian-electronics retail
+    business). The HR specialist is a semantic RAG agent over the official policy documents —
+    leave/PTO, benefits, sales compensation & commission, code of conduct, payroll & scheduling,
+    and employee perks/discounts — and answers with the specific figure or rule, citing the
+    source policy. It does not compute sales aggregates (use sales_lookup for that).
+
+    Args:
+        query: Natural-language HR-policy question — e.g. "how much parental leave do I get?",
+            "how is commission calculated?", "what is the employee discount?".
+    """
+    return _invoke_runtime(HR_RUNTIME_ARN, query)
+
+
 # ──────────────────────────── Memory helpers ──────────────────────
 def _retrieve_history(actor_id: str, session_id: str, max_turns: int = 5) -> str:
     """Return prior turns for this (actor, session) formatted as plain text.
@@ -437,7 +479,7 @@ def build_agent() -> Agent:
         model=BedrockModel(**model_kwargs),
         system_prompt=SYSTEM_PROMPT,
         tools=[sharepoint_lookup, awsconfig_lookup, zscaler_lookup, paloalto_lookup,
-               structured_lookup, jira_lookup, servicenow_lookup],
+               structured_lookup, sales_lookup, hr_lookup, jira_lookup, servicenow_lookup],
     )
 
 

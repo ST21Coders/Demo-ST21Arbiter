@@ -1,0 +1,95 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI078-TX-0001,HI078,Iwilei,Oahu,HI,2026-06-30 15:45:22,IC-555,NE555 Timer IC,Integrated Circuits,21,0.35,1.36,28.56,7.35,21.21,Lani,Maker/Hobbyist,Mobile Pay,758
+HI078-TX-0002,HI078,Iwilei,Oahu,HI,2026-06-30 11:19:14,CON-JMP,Jumper Wire Set,Connectors,26,0.99,3.75,97.50,25.74,71.76,Ailani,Education,Cash,615
+HI078-TX-0003,HI078,Iwilei,Oahu,HI,2026-06-30 08:20:22,SOL-CTRL,Solar Charge Controller,Solar Power,4,11.40,31.91,127.64,45.60,82.04,Noah,Maker/Hobbyist,Credit Card,95
+HI078-TX-0004,HI078,Iwilei,Oahu,HI,2026-06-30 13:35:07,CON-JMP,Jumper Wire Set,Connectors,21,0.90,3.67,77.07,18.90,58.17,Noah,Education,Purchase Order,215
+HI078-TX-0005,HI078,Iwilei,Oahu,HI,2026-06-30 10:05:24,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,7,0.04,0.19,1.33,0.28,1.05,Iolana,Maker/Hobbyist,Credit Card,42
+HI078-TX-0006,HI078,Iwilei,Oahu,HI,2026-06-30 11:31:57,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.56,6.80,6.80,1.56,5.24,Iolana,Government,Mobile Pay,598
+HI078-TX-0007,HI078,Iwilei,Oahu,HI,2026-06-30 12:31:46,IC-358,LM358 Op Amp,Integrated Circuits,37,0.33,1.19,44.03,12.21,31.82,Makana,Maker/Hobbyist,ACH,526
+HI078-TX-0008,HI078,Iwilei,Oahu,HI,2026-06-30 13:11:27,REL-5V,5V Relay Module,Relays,23,0.92,5.55,127.65,21.16,106.49,Hana,Maker/Hobbyist,Purchase Order,505
+HI078-TX-0009,HI078,Iwilei,Oahu,HI,2026-06-30 15:58:50,USB-CBO,USB-C Breakout Board,Connectors,30,1.29,5.25,157.50,38.70,118.80,Makana,Education,Cash,623
+HI078-TX-0010,HI078,Iwilei,Oahu,HI,2026-06-30 12:03:22,IC-REG,7805 Voltage Regulator,Integrated Circuits,10,0.20,0.95,9.50,2.00,7.50,Noelani,Commercial,Purchase Order,640
+HI078-TX-0011,HI078,Iwilei,Oahu,HI,2026-06-30 10:26:25,SNS-SOIL,Soil Moisture Sensor,Sensors,27,0.92,4.31,116.37,24.84,91.53,Keanu,Maker/Hobbyist,Mobile Pay,101
+HI078-TX-0012,HI078,Iwilei,Oahu,HI,2026-06-30 15:30:54,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.47,13.13,13.13,4.47,8.66,Keahi,Commercial,ACH,698
+HI078-TX-0013,HI078,Iwilei,Oahu,HI,2026-06-30 13:37:15,IC-358,LM358 Op Amp,Integrated Circuits,6,0.33,1.25,7.50,1.98,5.52,Hana,Education,Credit Card,185
+HI078-TX-0014,HI078,Iwilei,Oahu,HI,2026-06-30 15:40:37,CON-JMP,Jumper Wire Set,Connectors,28,1.00,3.94,110.32,28.00,82.32,Makana,Commercial,Credit Card,748
+HI078-TX-0015,HI078,Iwilei,Oahu,HI,2026-06-30 13:16:21,IC-REG,7805 Voltage Regulator,Integrated Circuits,39,0.20,0.93,36.27,7.80,28.47,Akamu,Education,Cash,621
+HI078-TX-0016,HI078,Iwilei,Oahu,HI,2026-06-30 10:54:07,TOOL-WIRE,Wire Stripper,Tools,1,5.28,15.70,15.70,5.28,10.42,Kai,Tourism/Hospitality,Credit Card,159
+HI078-TX-0017,HI078,Iwilei,Oahu,HI,2026-06-30 17:40:08,BRD-830,Breadboard 830 Tie Points,Connectors,6,1.61,6.13,36.78,9.66,27.12,Iolana,Maker/Hobbyist,Credit Card,300
+HI078-TX-0018,HI078,Iwilei,Oahu,HI,2026-06-30 17:13:38,SNS-ULT,Ultrasonic Distance Sensor,Sensors,20,1.23,5.11,102.20,24.60,77.60,Lani,Tourism/Hospitality,Purchase Order,198
+HI078-TX-0019,HI078,Iwilei,Oahu,HI,2026-06-30 09:37:21,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,5.00,13.92,41.76,15.00,26.76,Iolana,Retail,Mobile Pay,89
+HI078-TX-0020,HI078,Iwilei,Oahu,HI,2026-06-30 17:19:27,CAP-010,10uF Capacitor,Capacitors,20,0.08,0.36,7.20,1.60,5.60,Makana,Marine,Credit Card,788
+HI078-TX-0021,HI078,Iwilei,Oahu,HI,2026-06-30 11:09:37,IC-358,LM358 Op Amp,Integrated Circuits,39,0.31,1.12,43.68,12.09,31.59,Makana,Government,Credit Card,691
+HI078-TX-0022,HI078,Iwilei,Oahu,HI,2026-06-30 14:13:18,TOOL-WIRE,Wire Stripper,Tools,1,5.01,15.15,15.15,5.01,10.14,Kaleo,Education,Mobile Pay,436
+HI078-TX-0023,HI078,Iwilei,Oahu,HI,2026-06-30 13:00:24,DIO-4007,1N4007 Diode,Semiconductors,36,0.05,0.19,6.84,1.80,5.04,Nalu,Government,Cash,668
+HI078-TX-0024,HI078,Iwilei,Oahu,HI,2026-06-30 11:10:01,USB-CBO,USB-C Breakout Board,Connectors,16,1.33,5.30,84.80,21.28,63.52,Keahi,Commercial,Cash,708
+HI078-TX-0025,HI078,Iwilei,Oahu,HI,2026-06-30 11:56:20,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.50,6.79,20.37,4.50,15.87,Pualani,Maker/Hobbyist,Purchase Order,73
+HI078-TX-0026,HI078,Iwilei,Oahu,HI,2026-06-30 12:14:51,LED-RGB,RGB LED Strip,LEDs,1,5.26,13.59,13.59,5.26,8.33,Leilani,Tourism/Hospitality,Credit Card,493
+HI078-TX-0027,HI078,Iwilei,Oahu,HI,2026-06-30 15:19:29,IC-REG,7805 Voltage Regulator,Integrated Circuits,15,0.20,0.89,13.35,3.00,10.35,Ailani,Education,ACH,476
+HI078-TX-0028,HI078,Iwilei,Oahu,HI,2026-06-30 17:32:35,RES-220,220 Ohm Resistor,Resistors,18,0.03,0.14,2.52,0.54,1.98,Keanu,Commercial,Purchase Order,232
+HI078-TX-0029,HI078,Iwilei,Oahu,HI,2026-06-30 09:01:59,LED-RGB,RGB LED Strip,LEDs,2,4.91,13.58,27.16,9.82,17.34,Makana,Marine,Credit Card,525
+HI078-TX-0030,HI078,Iwilei,Oahu,HI,2026-06-30 12:04:56,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,5,0.04,0.19,0.95,0.20,0.75,Ailani,Marine,Debit Card,651
+HI078-TX-0031,HI078,Iwilei,Oahu,HI,2026-06-30 11:52:01,CAP-100,100uF Capacitor,Capacitors,4,0.17,0.61,2.44,0.68,1.76,Kaleo,Retail,Cash,135
+HI078-TX-0032,HI078,Iwilei,Oahu,HI,2026-06-30 15:19:49,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.96,14.18,113.44,39.68,73.76,Iolana,Tourism/Hospitality,Purchase Order,172
+HI078-TX-0033,HI078,Iwilei,Oahu,HI,2026-06-30 13:41:59,TOOL-WIRE,Wire Stripper,Tools,4,4.85,14.63,58.52,19.40,39.12,Ailani,Education,Purchase Order,477
+HI078-TX-0034,HI078,Iwilei,Oahu,HI,2026-06-30 17:55:09,IC-555,NE555 Timer IC,Integrated Circuits,10,0.37,1.39,13.90,3.70,10.20,Koa,Government,Purchase Order,268
+HI078-TX-0035,HI078,Iwilei,Oahu,HI,2026-06-30 15:01:43,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.05,12.66,37.98,12.15,25.83,Hana,Commercial,Debit Card,726
+HI078-TX-0036,HI078,Iwilei,Oahu,HI,2026-06-30 08:10:13,MOS-44N,IRFZ44N MOSFET,Semiconductors,32,0.60,2.58,82.56,19.20,63.36,Pualani,Maker/Hobbyist,Cash,13
+HI078-TX-0037,HI078,Iwilei,Oahu,HI,2026-06-30 09:16:35,IC-358,LM358 Op Amp,Integrated Circuits,4,0.31,1.24,4.96,1.24,3.72,Koa,Retail,ACH,751
+HI078-TX-0038,HI078,Iwilei,Oahu,HI,2026-06-30 17:26:48,SOL-CTRL,Solar Charge Controller,Solar Power,4,11.16,33.69,134.76,44.64,90.12,Pualani,Government,Purchase Order,753
+HI078-TX-0039,HI078,Iwilei,Oahu,HI,2026-06-30 12:20:49,IC-555,NE555 Timer IC,Integrated Circuits,29,0.36,1.33,38.57,10.44,28.13,Noelani,Maker/Hobbyist,Credit Card,658
+HI078-TX-0040,HI078,Iwilei,Oahu,HI,2026-06-30 12:21:20,IC-555,NE555 Timer IC,Integrated Circuits,15,0.37,1.35,20.25,5.55,14.70,Leilani,Marine,Cash,170
+HI078-TX-0041,HI078,Iwilei,Oahu,HI,2026-06-30 14:13:53,PWR-BUCK,Buck Converter Module,Power,22,1.08,5.14,113.08,23.76,89.32,Noah,Marine,Credit Card,651
+HI078-TX-0042,HI078,Iwilei,Oahu,HI,2026-06-30 15:07:37,BAT-AAH,AA Battery Holder,Batteries,16,0.48,2.79,44.64,7.68,36.96,Noelani,Retail,Mobile Pay,42
+HI078-TX-0043,HI078,Iwilei,Oahu,HI,2026-06-30 14:23:27,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.32,13.35,53.40,17.28,36.12,Leilani,Tourism/Hospitality,Debit Card,241
+HI078-TX-0044,HI078,Iwilei,Oahu,HI,2026-06-30 15:48:53,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.45,12.41,49.64,17.80,31.84,Malia,Marine,Cash,671
+HI078-TX-0045,HI078,Iwilei,Oahu,HI,2026-06-30 08:13:45,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.61,7.47,52.29,18.27,34.02,Ailani,Retail,Debit Card,789
+HI078-TX-0046,HI078,Iwilei,Oahu,HI,2026-06-30 09:41:14,IC-REG,7805 Voltage Regulator,Integrated Circuits,31,0.20,0.87,26.97,6.20,20.77,Lani,Marine,Cash,101
+HI078-TX-0047,HI078,Iwilei,Oahu,HI,2026-06-30 17:35:03,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.78,15.02,60.08,19.12,40.96,Ailani,Tourism/Hospitality,Purchase Order,471
+HI078-TX-0048,HI078,Iwilei,Oahu,HI,2026-06-30 12:12:48,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,3.90,14.27,85.62,23.40,62.22,Noah,Commercial,Debit Card,85
+HI078-TX-0049,HI078,Iwilei,Oahu,HI,2026-06-30 12:27:33,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.26,12.45,74.70,25.56,49.14,Alika,Tourism/Hospitality,Credit Card,603
+HI078-TX-0050,HI078,Iwilei,Oahu,HI,2026-06-30 12:09:55,IC-358,LM358 Op Amp,Integrated Circuits,35,0.32,1.22,42.70,11.20,31.50,Keanu,Commercial,Credit Card,766
+HI078-TX-0051,HI078,Iwilei,Oahu,HI,2026-06-30 11:22:47,IC-358,LM358 Op Amp,Integrated Circuits,32,0.31,1.24,39.68,9.92,29.76,Akamu,Tourism/Hospitality,Credit Card,541
+HI078-TX-0052,HI078,Iwilei,Oahu,HI,2026-06-30 10:02:14,CAP-100,100uF Capacitor,Capacitors,25,0.18,0.60,15.00,4.50,10.50,Iolana,Marine,Cash,602
+HI078-TX-0053,HI078,Iwilei,Oahu,HI,2026-06-30 16:59:46,RES-220,220 Ohm Resistor,Resistors,36,0.03,0.13,4.68,1.08,3.60,Nalu,Tourism/Hospitality,Cash,530
+HI078-TX-0054,HI078,Iwilei,Oahu,HI,2026-06-30 10:27:18,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.42,13.64,109.12,35.36,73.76,Ailani,Tourism/Hospitality,Mobile Pay,892
+HI078-TX-0055,HI078,Iwilei,Oahu,HI,2026-06-30 11:25:40,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.54,14.45,57.80,18.16,39.64,Mika,Retail,Debit Card,597
+HI078-TX-0056,HI078,Iwilei,Oahu,HI,2026-06-30 09:04:47,IC-555,NE555 Timer IC,Integrated Circuits,11,0.37,1.35,14.85,4.07,10.78,Ailani,Education,Cash,268
+HI078-TX-0057,HI078,Iwilei,Oahu,HI,2026-06-30 14:36:27,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.47,6.13,24.52,5.88,18.64,Malia,Commercial,ACH,44
+HI078-TX-0058,HI078,Iwilei,Oahu,HI,2026-06-30 14:21:16,TOOL-DMM,Digital Multimeter,Tools,4,8.78,27.31,109.24,35.12,74.12,Lani,Commercial,Mobile Pay,140
+HI078-TX-0059,HI078,Iwilei,Oahu,HI,2026-06-30 08:05:46,LED-BLU,5mm Blue LED,LEDs,21,0.07,0.33,6.93,1.47,5.46,Ikaika,Tourism/Hospitality,Cash,139
+HI078-TX-0060,HI078,Iwilei,Oahu,HI,2026-06-30 08:46:34,CON-JMP,Jumper Wire Set,Connectors,38,0.98,3.94,149.72,37.24,112.48,Kai,Maker/Hobbyist,Purchase Order,375
+HI078-TX-0061,HI078,Iwilei,Oahu,HI,2026-06-30 08:12:28,RES-220,220 Ohm Resistor,Resistors,3,0.03,0.14,0.42,0.09,0.33,Leilani,Retail,Purchase Order,525
+HI078-TX-0062,HI078,Iwilei,Oahu,HI,2026-06-30 11:05:25,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.05,22.02,110.10,40.25,69.85,Iolana,Retail,Cash,565
+HI078-TX-0063,HI078,Iwilei,Oahu,HI,2026-06-30 15:40:06,PWR-5V2,5V 2A Power Supply,Power,7,3.52,11.40,79.80,24.64,55.16,Iolana,Retail,Cash,314
+HI078-TX-0064,HI078,Iwilei,Oahu,HI,2026-06-30 17:24:25,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,9.09,27.64,221.12,72.72,148.40,Pualani,Commercial,Mobile Pay,175
+HI078-TX-0065,HI078,Iwilei,Oahu,HI,2026-06-30 12:12:08,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,9.46,25.97,129.85,47.30,82.55,Hana,Government,Purchase Order,430
+HI078-TX-0066,HI078,Iwilei,Oahu,HI,2026-06-30 16:19:28,TOOL-SOL,Soldering Iron Tips,Tools,2,2.11,8.07,16.14,4.22,11.92,Lani,Commercial,Debit Card,779
+HI078-TX-0067,HI078,Iwilei,Oahu,HI,2026-06-30 11:56:17,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.37,12.90,64.50,21.85,42.65,Nalu,Maker/Hobbyist,Credit Card,749
+HI078-TX-0068,HI078,Iwilei,Oahu,HI,2026-06-30 10:57:07,IC-358,LM358 Op Amp,Integrated Circuits,36,0.31,1.24,44.64,11.16,33.48,Noah,Commercial,ACH,103
+HI078-TX-0069,HI078,Iwilei,Oahu,HI,2026-06-30 08:00:09,IC-555,NE555 Timer IC,Integrated Circuits,18,0.33,1.43,25.74,5.94,19.80,Leilani,Retail,Debit Card,303
+HI078-TX-0070,HI078,Iwilei,Oahu,HI,2026-06-30 11:07:03,USB-CBO,USB-C Breakout Board,Connectors,11,1.39,5.33,58.63,15.29,43.34,Mika,Education,Cash,645
+HI078-TX-0071,HI078,Iwilei,Oahu,HI,2026-06-30 16:21:03,TR-3904,2N3904 NPN Transistor,Semiconductors,11,0.06,0.24,2.64,0.66,1.98,Noelani,Marine,ACH,318
+HI078-TX-0072,HI078,Iwilei,Oahu,HI,2026-06-30 08:56:26,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,4.10,14.26,99.82,28.70,71.12,Ikaika,Education,ACH,507
+HI078-TX-0073,HI078,Iwilei,Oahu,HI,2026-06-30 15:59:49,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.23,8.88,35.52,12.92,22.60,Akamu,Commercial,Debit Card,814
+HI078-TX-0074,HI078,Iwilei,Oahu,HI,2026-06-30 14:35:58,IC-555,NE555 Timer IC,Integrated Circuits,12,0.37,1.28,15.36,4.44,10.92,Lani,Government,ACH,97
+HI078-TX-0075,HI078,Iwilei,Oahu,HI,2026-06-30 08:07:59,CON-JMP,Jumper Wire Set,Connectors,7,0.92,3.83,26.81,6.44,20.37,Mika,Government,ACH,398
+HI078-TX-0076,HI078,Iwilei,Oahu,HI,2026-06-30 15:35:02,IC-358,LM358 Op Amp,Integrated Circuits,21,0.31,1.23,25.83,6.51,19.32,Ikaika,Maker/Hobbyist,Credit Card,164
+HI078-TX-0077,HI078,Iwilei,Oahu,HI,2026-06-30 15:31:15,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.42,20.98,125.88,50.52,75.36,Leilani,Education,Debit Card,556
+HI078-TX-0078,HI078,Iwilei,Oahu,HI,2026-06-30 14:02:21,IC-358,LM358 Op Amp,Integrated Circuits,18,0.29,1.23,22.14,5.22,16.92,Ikaika,Commercial,Purchase Order,511
+HI078-TX-0079,HI078,Iwilei,Oahu,HI,2026-06-30 17:41:30,IC-555,NE555 Timer IC,Integrated Circuits,4,0.37,1.30,5.20,1.48,3.72,Noah,Education,Purchase Order,878
+HI078-TX-0080,HI078,Iwilei,Oahu,HI,2026-06-30 10:55:56,MOS-44N,IRFZ44N MOSFET,Semiconductors,24,0.61,2.60,62.40,14.64,47.76,Mika,Education,ACH,849
+HI078-TX-0081,HI078,Iwilei,Oahu,HI,2026-06-30 15:31:56,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.59,6.27,50.16,12.72,37.44,Ailani,Retail,Cash,221
+HI078-TX-0082,HI078,Iwilei,Oahu,HI,2026-06-30 16:31:55,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.24,9.18,64.26,22.68,41.58,Koa,Commercial,Mobile Pay,156
+HI078-TX-0083,HI078,Iwilei,Oahu,HI,2026-06-30 11:28:32,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.61,6.84,54.72,12.88,41.84,Ikaika,Government,Debit Card,680
+HI078-TX-0084,HI078,Iwilei,Oahu,HI,2026-06-30 16:36:59,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.25,12.37,61.85,21.25,40.60,Malia,Maker/Hobbyist,Mobile Pay,547
+HI078-TX-0085,HI078,Iwilei,Oahu,HI,2026-06-30 17:06:52,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,33,0.04,0.19,6.27,1.32,4.95,Lani,Education,Cash,219
+HI078-TX-0086,HI078,Iwilei,Oahu,HI,2026-06-30 08:41:54,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.36,12.32,12.32,4.36,7.96,Ikaika,Education,Credit Card,272
+HI078-TX-0087,HI078,Iwilei,Oahu,HI,2026-06-30 17:43:45,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,8.42,21.28,170.24,67.36,102.88,Akamu,Education,Mobile Pay,73
+HI078-TX-0088,HI078,Iwilei,Oahu,HI,2026-06-30 17:46:32,BAT-AAH,AA Battery Holder,Batteries,4,0.47,2.83,11.32,1.88,9.44,Kai,Education,Purchase Order,354
+HI078-TX-0089,HI078,Iwilei,Oahu,HI,2026-06-30 11:22:00,SNS-SOIL,Soil Moisture Sensor,Sensors,13,0.96,4.17,54.21,12.48,41.73,Noelani,Government,Debit Card,68
+HI078-TX-0090,HI078,Iwilei,Oahu,HI,2026-06-30 10:01:48,RES-220,220 Ohm Resistor,Resistors,38,0.03,0.12,4.56,1.14,3.42,Keahi,Maker/Hobbyist,Credit Card,592
+HI078-TX-0091,HI078,Iwilei,Oahu,HI,2026-06-30 14:42:23,RES-010,10k Ohm Resistor,Resistors,6,0.03,0.14,0.84,0.18,0.66,Lani,Commercial,Mobile Pay,164
+HI078-TX-0092,HI078,Iwilei,Oahu,HI,2026-06-30 11:40:11,TOOL-SOL,Soldering Iron Tips,Tools,6,1.99,7.43,44.58,11.94,32.64,Ikaika,Maker/Hobbyist,Purchase Order,614
+HI078-TX-0093,HI078,Iwilei,Oahu,HI,2026-06-30 13:43:25,LED-RED,5mm Red LED,LEDs,19,0.05,0.29,5.51,0.95,4.56,Mika,Government,ACH,698
+HI078-TX-0094,HI078,Iwilei,Oahu,HI,2026-06-30 09:15:40,SNS-SOIL,Soil Moisture Sensor,Sensors,36,0.90,4.55,163.80,32.40,131.40,Alika,Tourism/Hospitality,Debit Card,111

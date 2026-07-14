@@ -1,0 +1,51 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI050-TX-0001,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 12:50:01,LED-RGB,RGB LED Strip,LEDs,6,4.89,14.42,86.52,29.34,57.18,Makana,Government,Debit Card,824
+HI050-TX-0002,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 12:16:46,USB-CBO,USB-C Breakout Board,Connectors,28,1.45,5.10,142.80,40.60,102.20,Noah,Education,Credit Card,893
+HI050-TX-0003,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 09:22:05,SNS-ULT,Ultrasonic Distance Sensor,Sensors,22,1.25,5.24,115.28,27.50,87.78,Noah,Government,Credit Card,246
+HI050-TX-0004,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 09:43:03,IC-REG,7805 Voltage Regulator,Integrated Circuits,4,0.20,0.96,3.84,0.80,3.04,Pualani,Tourism/Hospitality,ACH,99
+HI050-TX-0005,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 10:58:51,PWR-BUCK,Buck Converter Module,Power,31,1.08,4.64,143.84,33.48,110.36,Keahi,Marine,ACH,410
+HI050-TX-0006,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 14:07:58,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.26,13.76,27.52,8.52,19.00,Malia,Government,ACH,62
+HI050-TX-0007,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 12:15:08,SNS-DHT,DHT22 Temperature Sensor,Sensors,3,2.32,7.78,23.34,6.96,16.38,Keahi,Commercial,Purchase Order,656
+HI050-TX-0008,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 12:29:49,SOL-CTRL,Solar Charge Controller,Solar Power,1,10.35,34.59,34.59,10.35,24.24,Iolana,Government,Cash,513
+HI050-TX-0009,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 09:09:01,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,4.02,14.41,86.46,24.12,62.34,Leilani,Tourism/Hospitality,Debit Card,279
+HI050-TX-0010,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 09:47:56,DIO-4007,1N4007 Diode,Semiconductors,6,0.05,0.20,1.20,0.30,0.90,Keahi,Government,Purchase Order,268
+HI050-TX-0011,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 08:23:58,TOOL-WIRE,Wire Stripper,Tools,3,5.15,14.69,44.07,15.45,28.62,Kaleo,Commercial,Credit Card,400
+HI050-TX-0012,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 10:11:59,PWR-5V2,5V 2A Power Supply,Power,3,3.44,10.94,32.82,10.32,22.50,Iolana,Commercial,Purchase Order,316
+HI050-TX-0013,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 16:50:26,SNS-SOIL,Soil Moisture Sensor,Sensors,32,0.91,4.60,147.20,29.12,118.08,Kai,Retail,Credit Card,290
+HI050-TX-0014,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 13:39:30,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.05,8.94,35.76,12.20,23.56,Lani,Commercial,ACH,49
+HI050-TX-0015,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 15:33:19,PWR-12V,12V 5A Power Supply,Power,4,9.39,24.34,97.36,37.56,59.80,Pualani,Tourism/Hospitality,Credit Card,378
+HI050-TX-0016,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 09:39:13,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.56,21.07,42.14,17.12,25.02,Noah,Government,Cash,479
+HI050-TX-0017,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 11:04:25,BAT-AAH,AA Battery Holder,Batteries,23,0.49,2.71,62.33,11.27,51.06,Mika,Retail,Cash,445
+HI050-TX-0018,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 17:16:30,SOL-CTRL,Solar Charge Controller,Solar Power,5,10.62,31.16,155.80,53.10,102.70,Kaleo,Education,Purchase Order,89
+HI050-TX-0019,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 09:10:35,PWR-BUCK,Buck Converter Module,Power,13,1.00,4.95,64.35,13.00,51.35,Mika,Commercial,Purchase Order,593
+HI050-TX-0020,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 14:05:33,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,40,0.05,0.20,8.00,2.00,6.00,Malia,Commercial,Purchase Order,537
+HI050-TX-0021,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 13:18:13,TOOL-WIRE,Wire Stripper,Tools,8,4.87,15.67,125.36,38.96,86.40,Kaleo,Tourism/Hospitality,ACH,343
+HI050-TX-0022,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 11:47:32,RES-001,1k Ohm Resistor,Resistors,12,0.03,0.13,1.56,0.36,1.20,Noah,Education,Cash,778
+HI050-TX-0023,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 13:55:01,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,33,0.05,0.19,6.27,1.65,4.62,Mika,Retail,Cash,201
+HI050-TX-0024,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 10:19:46,USB-CBO,USB-C Breakout Board,Connectors,26,1.29,5.09,132.34,33.54,98.80,Iolana,Retail,Credit Card,331
+HI050-TX-0025,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 16:02:29,MOS-44N,IRFZ44N MOSFET,Semiconductors,9,0.59,2.49,22.41,5.31,17.10,Koa,Marine,Mobile Pay,381
+HI050-TX-0026,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 08:35:46,RES-010,10k Ohm Resistor,Resistors,7,0.03,0.13,0.91,0.21,0.70,Ailani,Retail,Credit Card,156
+HI050-TX-0027,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 15:30:47,PWR-12V,12V 5A Power Supply,Power,7,9.03,25.16,176.12,63.21,112.91,Keahi,Education,Debit Card,560
+HI050-TX-0028,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 09:08:42,TOOL-DMM,Digital Multimeter,Tools,4,9.08,25.60,102.40,36.32,66.08,Mika,Tourism/Hospitality,Purchase Order,448
+HI050-TX-0029,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 16:45:43,SOL-CTRL,Solar Charge Controller,Solar Power,3,11.18,31.04,93.12,33.54,59.58,Kaleo,Education,Cash,699
+HI050-TX-0030,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 12:37:47,BAT-AAH,AA Battery Holder,Batteries,9,0.51,2.78,25.02,4.59,20.43,Noelani,Tourism/Hospitality,Purchase Order,62
+HI050-TX-0031,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 16:31:00,USB-CBO,USB-C Breakout Board,Connectors,31,1.39,5.63,174.53,43.09,131.44,Keahi,Retail,Credit Card,548
+HI050-TX-0032,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 12:49:57,SOL-CTRL,Solar Charge Controller,Solar Power,2,10.35,34.06,68.12,20.70,47.42,Keahi,Government,ACH,618
+HI050-TX-0033,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 14:05:18,IC-358,LM358 Op Amp,Integrated Circuits,12,0.30,1.19,14.28,3.60,10.68,Mika,Education,Purchase Order,89
+HI050-TX-0034,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 08:21:48,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.56,6.15,24.60,6.24,18.36,Noah,Retail,Cash,553
+HI050-TX-0035,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 16:11:33,PWR-5V2,5V 2A Power Supply,Power,8,3.59,11.47,91.76,28.72,63.04,Pualani,Maker/Hobbyist,Purchase Order,146
+HI050-TX-0036,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 17:37:20,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.77,21.76,43.52,17.54,25.98,Alika,Tourism/Hospitality,Debit Card,701
+HI050-TX-0037,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 12:21:55,LED-RED,5mm Red LED,LEDs,38,0.05,0.27,10.26,1.90,8.36,Noah,Retail,Debit Card,894
+HI050-TX-0038,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 08:37:31,LED-RGB,RGB LED Strip,LEDs,5,4.97,14.69,73.45,24.85,48.60,Lani,Retail,Purchase Order,425
+HI050-TX-0039,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 16:38:16,PWR-BUCK,Buck Converter Module,Power,31,1.11,4.62,143.22,34.41,108.81,Noelani,Retail,Debit Card,392
+HI050-TX-0040,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 17:17:01,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.89,14.03,112.24,31.12,81.12,Noah,Education,Mobile Pay,735
+HI050-TX-0041,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 09:20:43,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,8.11,20.97,167.76,64.88,102.88,Keanu,Commercial,Debit Card,474
+HI050-TX-0042,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 12:21:46,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,8.58,23.15,23.15,8.58,14.57,Pualani,Education,ACH,568
+HI050-TX-0043,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 11:26:51,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.08,13.64,54.56,16.32,38.24,Keanu,Retail,Debit Card,824
+HI050-TX-0044,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 13:24:23,SNS-DHT,DHT22 Temperature Sensor,Sensors,3,2.60,7.37,22.11,7.80,14.31,Makana,Retail,Credit Card,116
+HI050-TX-0045,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 10:41:00,REL-5V,5V Relay Module,Relays,40,0.88,5.27,210.80,35.20,175.60,Pualani,Commercial,Cash,720
+HI050-TX-0046,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 09:58:53,TOOL-WIRE,Wire Stripper,Tools,8,5.18,16.18,129.44,41.44,88.00,Kaleo,Commercial,Mobile Pay,500
+HI050-TX-0047,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 14:20:37,SNS-PIR,PIR Motion Sensor,Sensors,7,1.60,5.61,39.27,11.20,28.07,Noelani,Tourism/Hospitality,Purchase Order,383
+HI050-TX-0048,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 10:56:16,SNS-ULT,Ultrasonic Distance Sensor,Sensors,11,1.30,5.63,61.93,14.30,47.63,Kai,Marine,Credit Card,646
+HI050-TX-0049,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 14:29:14,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,8.11,21.32,21.32,8.11,13.21,Akamu,Marine,Debit Card,837
+HI050-TX-0050,HI050,Captain Cook,Hawaii Island,HI,2026-06-30 09:32:55,PWR-5V2,5V 2A Power Supply,Power,7,3.53,10.57,73.99,24.71,49.28,Ikaika,Commercial,Credit Card,784

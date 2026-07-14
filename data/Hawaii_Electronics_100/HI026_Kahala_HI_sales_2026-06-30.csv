@@ -1,0 +1,53 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI026-TX-0001,HI026,Kahala,Oahu,HI,2026-06-30 08:42:58,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,3.63,13.68,27.36,7.26,20.10,Pualani,Commercial,ACH,724
+HI026-TX-0002,HI026,Kahala,Oahu,HI,2026-06-30 13:36:55,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.68,14.41,115.28,37.44,77.84,Mika,Marine,Debit Card,522
+HI026-TX-0003,HI026,Kahala,Oahu,HI,2026-06-30 08:50:06,IC-555,NE555 Timer IC,Integrated Circuits,22,0.33,1.35,29.70,7.26,22.44,Alika,Education,Credit Card,382
+HI026-TX-0004,HI026,Kahala,Oahu,HI,2026-06-30 13:45:33,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.57,6.62,6.62,1.57,5.05,Lani,Marine,Mobile Pay,680
+HI026-TX-0005,HI026,Kahala,Oahu,HI,2026-06-30 15:07:29,SNS-SOIL,Soil Moisture Sensor,Sensors,15,0.89,4.63,69.45,13.35,56.10,Ikaika,Education,ACH,460
+HI026-TX-0006,HI026,Kahala,Oahu,HI,2026-06-30 12:09:51,PICO-RP,Raspberry Pi Pico,Microcontrollers,8,3.08,8.54,68.32,24.64,43.68,Mika,Commercial,Purchase Order,509
+HI026-TX-0007,HI026,Kahala,Oahu,HI,2026-06-30 17:25:24,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.48,13.96,27.92,8.96,18.96,Nalu,Tourism/Hospitality,Debit Card,555
+HI026-TX-0008,HI026,Kahala,Oahu,HI,2026-06-30 11:44:06,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.35,12.68,25.36,8.70,16.66,Nalu,Government,ACH,706
+HI026-TX-0009,HI026,Kahala,Oahu,HI,2026-06-30 17:56:12,CON-JMP,Jumper Wire Set,Connectors,31,0.95,3.71,115.01,29.45,85.56,Malia,Commercial,Mobile Pay,80
+HI026-TX-0010,HI026,Kahala,Oahu,HI,2026-06-30 17:00:14,RES-001,1k Ohm Resistor,Resistors,19,0.04,0.12,2.28,0.76,1.52,Alika,Education,ACH,247
+HI026-TX-0011,HI026,Kahala,Oahu,HI,2026-06-30 12:05:00,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,13,0.05,0.20,2.60,0.65,1.95,Akamu,Tourism/Hospitality,ACH,406
+HI026-TX-0012,HI026,Kahala,Oahu,HI,2026-06-30 15:20:37,IC-555,NE555 Timer IC,Integrated Circuits,30,0.34,1.30,39.00,10.20,28.80,Pualani,Maker/Hobbyist,Mobile Pay,18
+HI026-TX-0013,HI026,Kahala,Oahu,HI,2026-06-30 11:08:02,PWR-BUCK,Buck Converter Module,Power,2,0.99,5.02,10.04,1.98,8.06,Malia,Retail,Purchase Order,542
+HI026-TX-0014,HI026,Kahala,Oahu,HI,2026-06-30 17:14:04,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.37,20.65,82.60,33.48,49.12,Kaleo,Education,Mobile Pay,143
+HI026-TX-0015,HI026,Kahala,Oahu,HI,2026-06-30 17:28:16,PWR-5V2,5V 2A Power Supply,Power,1,3.55,11.39,11.39,3.55,7.84,Ikaika,Commercial,ACH,344
+HI026-TX-0016,HI026,Kahala,Oahu,HI,2026-06-30 11:30:02,BAT-LIPO,LiPo Battery Pack,Batteries,4,5.07,16.14,64.56,20.28,44.28,Pualani,Maker/Hobbyist,Mobile Pay,42
+HI026-TX-0017,HI026,Kahala,Oahu,HI,2026-06-30 16:41:23,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.53,14.21,113.68,36.24,77.44,Akamu,Commercial,Cash,279
+HI026-TX-0018,HI026,Kahala,Oahu,HI,2026-06-30 15:35:16,IC-REG,7805 Voltage Regulator,Integrated Circuits,28,0.20,0.95,26.60,5.60,21.00,Noelani,Education,Debit Card,817
+HI026-TX-0019,HI026,Kahala,Oahu,HI,2026-06-30 12:15:23,RES-001,1k Ohm Resistor,Resistors,29,0.03,0.13,3.77,0.87,2.90,Keanu,Maker/Hobbyist,Cash,125
+HI026-TX-0020,HI026,Kahala,Oahu,HI,2026-06-30 08:32:53,REL-5V,5V Relay Module,Relays,19,0.93,5.19,98.61,17.67,80.94,Iolana,Retail,ACH,294
+HI026-TX-0021,HI026,Kahala,Oahu,HI,2026-06-30 17:12:11,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.62,16.01,80.05,28.10,51.95,Ikaika,Marine,Debit Card,51
+HI026-TX-0022,HI026,Kahala,Oahu,HI,2026-06-30 16:57:21,BAT-LIPO,LiPo Battery Pack,Batteries,4,5.25,16.05,64.20,21.00,43.20,Keahi,Education,Mobile Pay,795
+HI026-TX-0023,HI026,Kahala,Oahu,HI,2026-06-30 09:44:34,CON-JMP,Jumper Wire Set,Connectors,7,0.89,3.77,26.39,6.23,20.16,Noelani,Commercial,ACH,430
+HI026-TX-0024,HI026,Kahala,Oahu,HI,2026-06-30 12:17:13,REL-5V,5V Relay Module,Relays,32,0.88,5.11,163.52,28.16,135.36,Akamu,Maker/Hobbyist,Mobile Pay,506
+HI026-TX-0025,HI026,Kahala,Oahu,HI,2026-06-30 12:01:04,IC-555,NE555 Timer IC,Integrated Circuits,32,0.35,1.39,44.48,11.20,33.28,Mika,Commercial,Credit Card,392
+HI026-TX-0026,HI026,Kahala,Oahu,HI,2026-06-30 10:28:12,IC-358,LM358 Op Amp,Integrated Circuits,18,0.31,1.22,21.96,5.58,16.38,Iolana,Commercial,ACH,632
+HI026-TX-0027,HI026,Kahala,Oahu,HI,2026-06-30 09:49:13,IC-555,NE555 Timer IC,Integrated Circuits,38,0.36,1.40,53.20,13.68,39.52,Keahi,Commercial,Debit Card,729
+HI026-TX-0028,HI026,Kahala,Oahu,HI,2026-06-30 13:42:22,USB-CBO,USB-C Breakout Board,Connectors,17,1.31,5.68,96.56,22.27,74.29,Pualani,Government,Cash,725
+HI026-TX-0029,HI026,Kahala,Oahu,HI,2026-06-30 09:58:12,TOOL-SOL,Soldering Iron Tips,Tools,5,1.96,7.57,37.85,9.80,28.05,Akamu,Education,Debit Card,647
+HI026-TX-0030,HI026,Kahala,Oahu,HI,2026-06-30 12:15:29,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.16,8.23,41.15,15.80,25.35,Malia,Government,Credit Card,9
+HI026-TX-0031,HI026,Kahala,Oahu,HI,2026-06-30 16:18:24,TOOL-SOL,Soldering Iron Tips,Tools,5,2.06,7.95,39.75,10.30,29.45,Alika,Tourism/Hospitality,ACH,95
+HI026-TX-0032,HI026,Kahala,Oahu,HI,2026-06-30 15:15:27,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.36,17.33,103.98,32.16,71.82,Pualani,Government,Debit Card,355
+HI026-TX-0033,HI026,Kahala,Oahu,HI,2026-06-30 08:15:24,RES-220,220 Ohm Resistor,Resistors,22,0.03,0.13,2.86,0.66,2.20,Akamu,Maker/Hobbyist,Debit Card,504
+HI026-TX-0034,HI026,Kahala,Oahu,HI,2026-06-30 13:40:37,SNS-DHT,DHT22 Temperature Sensor,Sensors,6,2.47,7.70,46.20,14.82,31.38,Ailani,Education,Credit Card,399
+HI026-TX-0035,HI026,Kahala,Oahu,HI,2026-06-30 12:25:38,LED-RGB,RGB LED Strip,LEDs,4,4.85,14.68,58.72,19.40,39.32,Malia,Government,Cash,677
+HI026-TX-0036,HI026,Kahala,Oahu,HI,2026-06-30 10:58:58,IC-358,LM358 Op Amp,Integrated Circuits,26,0.31,1.17,30.42,8.06,22.36,Kai,Retail,Purchase Order,666
+HI026-TX-0037,HI026,Kahala,Oahu,HI,2026-06-30 15:15:19,IC-555,NE555 Timer IC,Integrated Circuits,13,0.37,1.37,17.81,4.81,13.00,Keahi,Retail,Credit Card,158
+HI026-TX-0038,HI026,Kahala,Oahu,HI,2026-06-30 14:02:15,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,8.79,27.01,135.05,43.95,91.10,Hana,Marine,Credit Card,848
+HI026-TX-0039,HI026,Kahala,Oahu,HI,2026-06-30 11:46:45,IC-358,LM358 Op Amp,Integrated Circuits,40,0.33,1.20,48.00,13.20,34.80,Hana,Government,Purchase Order,395
+HI026-TX-0040,HI026,Kahala,Oahu,HI,2026-06-30 11:49:04,DIO-4007,1N4007 Diode,Semiconductors,8,0.04,0.19,1.52,0.32,1.20,Akamu,Tourism/Hospitality,Credit Card,3
+HI026-TX-0041,HI026,Kahala,Oahu,HI,2026-06-30 11:47:03,CON-JMP,Jumper Wire Set,Connectors,7,0.97,3.86,27.02,6.79,20.23,Mika,Tourism/Hospitality,ACH,545
+HI026-TX-0042,HI026,Kahala,Oahu,HI,2026-06-30 09:01:29,USB-CBO,USB-C Breakout Board,Connectors,5,1.46,5.26,26.30,7.30,19.00,Hana,Maker/Hobbyist,Debit Card,563
+HI026-TX-0043,HI026,Kahala,Oahu,HI,2026-06-30 13:06:51,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.97,13.51,67.55,24.85,42.70,Pualani,Education,ACH,169
+HI026-TX-0044,HI026,Kahala,Oahu,HI,2026-06-30 12:10:35,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.48,6.77,13.54,2.96,10.58,Iolana,Marine,Debit Card,326
+HI026-TX-0045,HI026,Kahala,Oahu,HI,2026-06-30 12:49:20,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.49,14.46,86.76,26.94,59.82,Iolana,Government,Debit Card,373
+HI026-TX-0046,HI026,Kahala,Oahu,HI,2026-06-30 09:16:22,IC-358,LM358 Op Amp,Integrated Circuits,8,0.32,1.22,9.76,2.56,7.20,Ailani,Education,Purchase Order,289
+HI026-TX-0047,HI026,Kahala,Oahu,HI,2026-06-30 17:17:01,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,28,0.04,0.21,5.88,1.12,4.76,Ailani,Commercial,Cash,273
+HI026-TX-0048,HI026,Kahala,Oahu,HI,2026-06-30 12:33:59,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.92,14.93,14.93,3.92,11.01,Makana,Maker/Hobbyist,Credit Card,162
+HI026-TX-0049,HI026,Kahala,Oahu,HI,2026-06-30 09:45:47,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.54,13.16,13.16,4.54,8.62,Keahi,Marine,ACH,693
+HI026-TX-0050,HI026,Kahala,Oahu,HI,2026-06-30 13:08:27,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,7.99,20.64,61.92,23.97,37.95,Hana,Maker/Hobbyist,ACH,548
+HI026-TX-0051,HI026,Kahala,Oahu,HI,2026-06-30 11:54:03,SNS-ULT,Ultrasonic Distance Sensor,Sensors,23,1.32,5.21,119.83,30.36,89.47,Lani,Maker/Hobbyist,Purchase Order,319
+HI026-TX-0052,HI026,Kahala,Oahu,HI,2026-06-30 13:37:59,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.62,6.49,19.47,4.86,14.61,Malia,Maker/Hobbyist,ACH,742

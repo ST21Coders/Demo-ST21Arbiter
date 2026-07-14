@@ -1,0 +1,89 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI086-TX-0001,HI086,North Kihei,Maui,HI,2026-06-30 10:17:07,SNS-SOIL,Soil Moisture Sensor,Sensors,17,0.89,4.30,73.10,15.13,57.97,Keanu,Education,Credit Card,102
+HI086-TX-0002,HI086,North Kihei,Maui,HI,2026-06-30 10:12:14,IC-REG,7805 Voltage Regulator,Integrated Circuits,15,0.21,0.96,14.40,3.15,11.25,Ikaika,Tourism/Hospitality,Cash,156
+HI086-TX-0003,HI086,North Kihei,Maui,HI,2026-06-30 10:37:09,LED-BLU,5mm Blue LED,LEDs,26,0.06,0.32,8.32,1.56,6.76,Pualani,Commercial,ACH,703
+HI086-TX-0004,HI086,North Kihei,Maui,HI,2026-06-30 08:30:50,PWR-5V2,5V 2A Power Supply,Power,7,3.39,11.47,80.29,23.73,56.56,Pualani,Commercial,Mobile Pay,887
+HI086-TX-0005,HI086,North Kihei,Maui,HI,2026-06-30 15:13:49,BAT-LIPO,LiPo Battery Pack,Batteries,7,5.61,16.04,112.28,39.27,73.01,Noelani,Government,ACH,765
+HI086-TX-0006,HI086,North Kihei,Maui,HI,2026-06-30 17:07:57,SNS-PIR,PIR Motion Sensor,Sensors,2,1.63,5.79,11.58,3.26,8.32,Keanu,Commercial,Credit Card,372
+HI086-TX-0007,HI086,North Kihei,Maui,HI,2026-06-30 11:19:40,PWR-12V,12V 5A Power Supply,Power,8,8.87,24.64,197.12,70.96,126.16,Ailani,Commercial,ACH,560
+HI086-TX-0008,HI086,North Kihei,Maui,HI,2026-06-30 09:18:58,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,3,0.04,0.20,0.60,0.12,0.48,Malia,Retail,ACH,736
+HI086-TX-0009,HI086,North Kihei,Maui,HI,2026-06-30 10:05:10,PWR-5V2,5V 2A Power Supply,Power,3,3.65,11.52,34.56,10.95,23.61,Iolana,Commercial,Debit Card,14
+HI086-TX-0010,HI086,North Kihei,Maui,HI,2026-06-30 16:09:46,BAT-LIPO,LiPo Battery Pack,Batteries,1,5.10,16.65,16.65,5.10,11.55,Pualani,Maker/Hobbyist,Mobile Pay,718
+HI086-TX-0011,HI086,North Kihei,Maui,HI,2026-06-30 15:04:09,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.78,33.67,235.69,75.46,160.23,Makana,Marine,Cash,505
+HI086-TX-0012,HI086,North Kihei,Maui,HI,2026-06-30 09:23:19,BAT-AAH,AA Battery Holder,Batteries,29,0.49,2.83,82.07,14.21,67.86,Akamu,Tourism/Hospitality,Debit Card,280
+HI086-TX-0013,HI086,North Kihei,Maui,HI,2026-06-30 17:04:58,BAT-AAH,AA Battery Holder,Batteries,16,0.53,2.72,43.52,8.48,35.04,Akamu,Government,ACH,761
+HI086-TX-0014,HI086,North Kihei,Maui,HI,2026-06-30 15:13:47,SNS-ULT,Ultrasonic Distance Sensor,Sensors,17,1.20,5.47,92.99,20.40,72.59,Nalu,Retail,Credit Card,664
+HI086-TX-0015,HI086,North Kihei,Maui,HI,2026-06-30 10:26:13,LED-RED,5mm Red LED,LEDs,22,0.06,0.27,5.94,1.32,4.62,Ailani,Marine,Mobile Pay,546
+HI086-TX-0016,HI086,North Kihei,Maui,HI,2026-06-30 08:48:02,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.69,13.74,96.18,25.83,70.35,Malia,Government,Mobile Pay,523
+HI086-TX-0017,HI086,North Kihei,Maui,HI,2026-06-30 08:45:31,LED-BLU,5mm Blue LED,LEDs,40,0.06,0.34,13.60,2.40,11.20,Nalu,Tourism/Hospitality,Mobile Pay,208
+HI086-TX-0018,HI086,North Kihei,Maui,HI,2026-06-30 12:04:23,LED-RGB,RGB LED Strip,LEDs,6,4.97,14.86,89.16,29.82,59.34,Kai,Maker/Hobbyist,Cash,465
+HI086-TX-0019,HI086,North Kihei,Maui,HI,2026-06-30 13:11:09,PWR-5V2,5V 2A Power Supply,Power,8,3.41,10.88,87.04,27.28,59.76,Hana,Education,Mobile Pay,64
+HI086-TX-0020,HI086,North Kihei,Maui,HI,2026-06-30 14:45:01,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.04,22.06,66.18,24.12,42.06,Nalu,Education,Debit Card,570
+HI086-TX-0021,HI086,North Kihei,Maui,HI,2026-06-30 13:34:46,RES-220,220 Ohm Resistor,Resistors,22,0.03,0.12,2.64,0.66,1.98,Makana,Retail,Cash,818
+HI086-TX-0022,HI086,North Kihei,Maui,HI,2026-06-30 15:05:31,LED-RED,5mm Red LED,LEDs,36,0.05,0.26,9.36,1.80,7.56,Makana,Marine,ACH,837
+HI086-TX-0023,HI086,North Kihei,Maui,HI,2026-06-30 15:24:00,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,30,0.05,0.19,5.70,1.50,4.20,Mika,Education,Credit Card,897
+HI086-TX-0024,HI086,North Kihei,Maui,HI,2026-06-30 09:15:27,BAT-AAH,AA Battery Holder,Batteries,23,0.51,2.80,64.40,11.73,52.67,Keanu,Government,Mobile Pay,596
+HI086-TX-0025,HI086,North Kihei,Maui,HI,2026-06-30 14:27:03,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,9.04,26.11,182.77,63.28,119.49,Leilani,Retail,Debit Card,212
+HI086-TX-0026,HI086,North Kihei,Maui,HI,2026-06-30 09:23:19,SNS-SOIL,Soil Moisture Sensor,Sensors,11,0.99,4.09,44.99,10.89,34.10,Ikaika,Education,Purchase Order,49
+HI086-TX-0027,HI086,North Kihei,Maui,HI,2026-06-30 16:35:46,PWR-12V,12V 5A Power Supply,Power,6,9.68,24.71,148.26,58.08,90.18,Kai,Retail,Debit Card,645
+HI086-TX-0028,HI086,North Kihei,Maui,HI,2026-06-30 10:29:56,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,3.64,14.58,87.48,21.84,65.64,Kai,Marine,Credit Card,112
+HI086-TX-0029,HI086,North Kihei,Maui,HI,2026-06-30 10:36:37,TR-3904,2N3904 NPN Transistor,Semiconductors,33,0.06,0.24,7.92,1.98,5.94,Koa,Government,Debit Card,322
+HI086-TX-0030,HI086,North Kihei,Maui,HI,2026-06-30 17:46:51,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,5.00,14.25,85.50,30.00,55.50,Noelani,Retail,Mobile Pay,511
+HI086-TX-0031,HI086,North Kihei,Maui,HI,2026-06-30 08:28:02,USB-CBO,USB-C Breakout Board,Connectors,11,1.39,5.26,57.86,15.29,42.57,Kaleo,Tourism/Hospitality,Mobile Pay,818
+HI086-TX-0032,HI086,North Kihei,Maui,HI,2026-06-30 08:37:52,TOOL-SOL,Soldering Iron Tips,Tools,5,1.97,7.84,39.20,9.85,29.35,Akamu,Retail,ACH,32
+HI086-TX-0033,HI086,North Kihei,Maui,HI,2026-06-30 13:36:17,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.06,17.18,103.08,30.36,72.72,Alika,Retail,Mobile Pay,538
+HI086-TX-0034,HI086,North Kihei,Maui,HI,2026-06-30 10:37:28,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.36,32.82,196.92,62.16,134.76,Kaleo,Government,Debit Card,149
+HI086-TX-0035,HI086,North Kihei,Maui,HI,2026-06-30 12:16:23,MAR-TIN,Tinned Marine Wire,Marine Electronics,3,8.78,26.65,79.95,26.34,53.61,Alika,Commercial,Cash,272
+HI086-TX-0036,HI086,North Kihei,Maui,HI,2026-06-30 17:58:24,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.34,7.55,52.85,16.38,36.47,Pualani,Maker/Hobbyist,ACH,142
+HI086-TX-0037,HI086,North Kihei,Maui,HI,2026-06-30 14:59:47,USB-CBO,USB-C Breakout Board,Connectors,19,1.39,5.59,106.21,26.41,79.80,Ikaika,Maker/Hobbyist,Purchase Order,188
+HI086-TX-0038,HI086,North Kihei,Maui,HI,2026-06-30 10:03:41,RES-001,1k Ohm Resistor,Resistors,23,0.03,0.13,2.99,0.69,2.30,Lani,Commercial,Debit Card,763
+HI086-TX-0039,HI086,North Kihei,Maui,HI,2026-06-30 15:04:02,LED-BLU,5mm Blue LED,LEDs,35,0.06,0.32,11.20,2.10,9.10,Nalu,Tourism/Hospitality,ACH,174
+HI086-TX-0040,HI086,North Kihei,Maui,HI,2026-06-30 17:49:50,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,18,0.04,0.19,3.42,0.72,2.70,Pualani,Tourism/Hospitality,Debit Card,877
+HI086-TX-0041,HI086,North Kihei,Maui,HI,2026-06-30 11:41:41,PWR-BUCK,Buck Converter Module,Power,30,1.06,4.74,142.20,31.80,110.40,Malia,Marine,Purchase Order,129
+HI086-TX-0042,HI086,North Kihei,Maui,HI,2026-06-30 08:28:51,DIO-4007,1N4007 Diode,Semiconductors,31,0.04,0.19,5.89,1.24,4.65,Leilani,Marine,Debit Card,594
+HI086-TX-0043,HI086,North Kihei,Maui,HI,2026-06-30 17:32:35,PWR-5V2,5V 2A Power Supply,Power,2,3.76,10.98,21.96,7.52,14.44,Keanu,Government,Credit Card,391
+HI086-TX-0044,HI086,North Kihei,Maui,HI,2026-06-30 16:33:01,BAT-AAH,AA Battery Holder,Batteries,34,0.49,2.62,89.08,16.66,72.42,Hana,Retail,ACH,248
+HI086-TX-0045,HI086,North Kihei,Maui,HI,2026-06-30 09:30:23,SOL-CTRL,Solar Charge Controller,Solar Power,1,11.19,32.81,32.81,11.19,21.62,Alika,Government,Debit Card,539
+HI086-TX-0046,HI086,North Kihei,Maui,HI,2026-06-30 09:52:10,PWR-12V,12V 5A Power Supply,Power,5,9.88,23.54,117.70,49.40,68.30,Keanu,Maker/Hobbyist,ACH,383
+HI086-TX-0047,HI086,North Kihei,Maui,HI,2026-06-30 16:53:26,PWR-5V2,5V 2A Power Supply,Power,2,3.36,10.95,21.90,6.72,15.18,Keanu,Retail,ACH,652
+HI086-TX-0048,HI086,North Kihei,Maui,HI,2026-06-30 13:13:33,CON-JMP,Jumper Wire Set,Connectors,36,0.90,4.01,144.36,32.40,111.96,Hana,Commercial,Cash,310
+HI086-TX-0049,HI086,North Kihei,Maui,HI,2026-06-30 10:49:58,SNS-SOIL,Soil Moisture Sensor,Sensors,37,0.89,4.22,156.14,32.93,123.21,Keanu,Retail,ACH,79
+HI086-TX-0050,HI086,North Kihei,Maui,HI,2026-06-30 16:07:17,LED-BLU,5mm Blue LED,LEDs,37,0.06,0.32,11.84,2.22,9.62,Mika,Commercial,Debit Card,122
+HI086-TX-0051,HI086,North Kihei,Maui,HI,2026-06-30 10:03:28,LED-RED,5mm Red LED,LEDs,13,0.05,0.28,3.64,0.65,2.99,Nalu,Education,Purchase Order,361
+HI086-TX-0052,HI086,North Kihei,Maui,HI,2026-06-30 14:47:35,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.41,13.84,13.84,4.41,9.43,Nalu,Tourism/Hospitality,Purchase Order,829
+HI086-TX-0053,HI086,North Kihei,Maui,HI,2026-06-30 11:05:10,BAT-AAH,AA Battery Holder,Batteries,23,0.52,2.76,63.48,11.96,51.52,Koa,Education,ACH,63
+HI086-TX-0054,HI086,North Kihei,Maui,HI,2026-06-30 10:31:06,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.20,15.33,91.98,31.20,60.78,Iolana,Maker/Hobbyist,ACH,450
+HI086-TX-0055,HI086,North Kihei,Maui,HI,2026-06-30 13:13:23,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.58,17.11,102.66,33.48,69.18,Kai,Tourism/Hospitality,Debit Card,767
+HI086-TX-0056,HI086,North Kihei,Maui,HI,2026-06-30 14:26:13,LED-BLU,5mm Blue LED,LEDs,13,0.07,0.33,4.29,0.91,3.38,Makana,Education,Debit Card,649
+HI086-TX-0057,HI086,North Kihei,Maui,HI,2026-06-30 13:33:35,LED-RGB,RGB LED Strip,LEDs,2,4.72,14.06,28.12,9.44,18.68,Kaleo,Education,Cash,25
+HI086-TX-0058,HI086,North Kihei,Maui,HI,2026-06-30 16:42:51,BAT-AAH,AA Battery Holder,Batteries,40,0.47,2.60,104.00,18.80,85.20,Iolana,Marine,Mobile Pay,443
+HI086-TX-0059,HI086,North Kihei,Maui,HI,2026-06-30 17:33:25,SNS-DHT,DHT22 Temperature Sensor,Sensors,6,2.52,7.93,47.58,15.12,32.46,Koa,Maker/Hobbyist,Purchase Order,171
+HI086-TX-0060,HI086,North Kihei,Maui,HI,2026-06-30 17:25:09,PWR-12V,12V 5A Power Supply,Power,4,9.25,25.10,100.40,37.00,63.40,Nalu,Commercial,Cash,364
+HI086-TX-0061,HI086,North Kihei,Maui,HI,2026-06-30 14:24:17,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.39,7.99,63.92,19.12,44.80,Akamu,Commercial,Debit Card,882
+HI086-TX-0062,HI086,North Kihei,Maui,HI,2026-06-30 15:01:06,PWR-BUCK,Buck Converter Module,Power,8,1.12,4.78,38.24,8.96,29.28,Keahi,Marine,ACH,876
+HI086-TX-0063,HI086,North Kihei,Maui,HI,2026-06-30 14:41:05,LED-RED,5mm Red LED,LEDs,37,0.05,0.26,9.62,1.85,7.77,Malia,Education,ACH,61
+HI086-TX-0064,HI086,North Kihei,Maui,HI,2026-06-30 12:49:41,PWR-12V,12V 5A Power Supply,Power,6,8.97,26.14,156.84,53.82,103.02,Ikaika,Marine,ACH,656
+HI086-TX-0065,HI086,North Kihei,Maui,HI,2026-06-30 12:13:14,LED-BLU,5mm Blue LED,LEDs,6,0.07,0.33,1.98,0.42,1.56,Hana,Maker/Hobbyist,Cash,141
+HI086-TX-0066,HI086,North Kihei,Maui,HI,2026-06-30 12:36:06,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,7.96,22.34,111.70,39.80,71.90,Leilani,Education,Debit Card,533
+HI086-TX-0067,HI086,North Kihei,Maui,HI,2026-06-30 11:26:16,PWR-BUCK,Buck Converter Module,Power,17,1.05,4.97,84.49,17.85,66.64,Koa,Marine,Cash,310
+HI086-TX-0068,HI086,North Kihei,Maui,HI,2026-06-30 13:08:08,LED-BLU,5mm Blue LED,LEDs,6,0.07,0.33,1.98,0.42,1.56,Pualani,Tourism/Hospitality,Credit Card,296
+HI086-TX-0069,HI086,North Kihei,Maui,HI,2026-06-30 12:42:22,TR-3904,2N3904 NPN Transistor,Semiconductors,18,0.05,0.25,4.50,0.90,3.60,Ikaika,Commercial,ACH,41
+HI086-TX-0070,HI086,North Kihei,Maui,HI,2026-06-30 10:48:41,PWR-5V2,5V 2A Power Supply,Power,1,3.76,10.78,10.78,3.76,7.02,Alika,Maker/Hobbyist,Purchase Order,185
+HI086-TX-0071,HI086,North Kihei,Maui,HI,2026-06-30 08:41:24,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.29,17.02,85.10,26.45,58.65,Keanu,Tourism/Hospitality,Mobile Pay,244
+HI086-TX-0072,HI086,North Kihei,Maui,HI,2026-06-30 16:08:35,MAR-ANT,Marine Antenna Connector,Marine Electronics,5,3.82,14.84,74.20,19.10,55.10,Noelani,Maker/Hobbyist,Cash,414
+HI086-TX-0073,HI086,North Kihei,Maui,HI,2026-06-30 09:44:01,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.40,8.55,25.65,10.20,15.45,Lani,Education,ACH,858
+HI086-TX-0074,HI086,North Kihei,Maui,HI,2026-06-30 13:44:18,LED-RGB,RGB LED Strip,LEDs,5,5.29,14.72,73.60,26.45,47.15,Iolana,Commercial,Cash,460
+HI086-TX-0075,HI086,North Kihei,Maui,HI,2026-06-30 14:48:16,CAP-100,100uF Capacitor,Capacitors,25,0.17,0.56,14.00,4.25,9.75,Noelani,Commercial,Purchase Order,738
+HI086-TX-0076,HI086,North Kihei,Maui,HI,2026-06-30 14:48:27,TOOL-SOL,Soldering Iron Tips,Tools,1,2.10,7.19,7.19,2.10,5.09,Ailani,Marine,Debit Card,334
+HI086-TX-0077,HI086,North Kihei,Maui,HI,2026-06-30 11:39:07,LED-BLU,5mm Blue LED,LEDs,31,0.06,0.33,10.23,1.86,8.37,Alika,Retail,Debit Card,349
+HI086-TX-0078,HI086,North Kihei,Maui,HI,2026-06-30 17:43:25,CON-JMP,Jumper Wire Set,Connectors,16,1.00,3.95,63.20,16.00,47.20,Keanu,Marine,Credit Card,412
+HI086-TX-0079,HI086,North Kihei,Maui,HI,2026-06-30 11:54:25,RES-220,220 Ohm Resistor,Resistors,28,0.04,0.14,3.92,1.12,2.80,Keahi,Education,Purchase Order,421
+HI086-TX-0080,HI086,North Kihei,Maui,HI,2026-06-30 09:45:52,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.42,14.10,84.60,26.52,58.08,Lani,Marine,Credit Card,188
+HI086-TX-0081,HI086,North Kihei,Maui,HI,2026-06-30 11:56:13,LED-BLU,5mm Blue LED,LEDs,4,0.07,0.32,1.28,0.28,1.00,Iolana,Retail,Debit Card,448
+HI086-TX-0082,HI086,North Kihei,Maui,HI,2026-06-30 15:07:27,LED-RGB,RGB LED Strip,LEDs,4,5.27,14.45,57.80,21.08,36.72,Ikaika,Maker/Hobbyist,Credit Card,127
+HI086-TX-0083,HI086,North Kihei,Maui,HI,2026-06-30 12:08:49,TOOL-WIRE,Wire Stripper,Tools,4,5.24,16.02,64.08,20.96,43.12,Malia,Marine,ACH,414
+HI086-TX-0084,HI086,North Kihei,Maui,HI,2026-06-30 12:19:45,PWR-BUCK,Buck Converter Module,Power,33,0.99,4.76,157.08,32.67,124.41,Noelani,Commercial,Purchase Order,416
+HI086-TX-0085,HI086,North Kihei,Maui,HI,2026-06-30 10:01:04,IC-555,NE555 Timer IC,Integrated Circuits,8,0.34,1.33,10.64,2.72,7.92,Kai,Government,Cash,475
+HI086-TX-0086,HI086,North Kihei,Maui,HI,2026-06-30 12:11:18,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.57,6.27,6.27,1.57,4.70,Ikaika,Tourism/Hospitality,Credit Card,692
+HI086-TX-0087,HI086,North Kihei,Maui,HI,2026-06-30 08:00:51,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.22,13.48,94.36,29.54,64.82,Pualani,Marine,Cash,745
+HI086-TX-0088,HI086,North Kihei,Maui,HI,2026-06-30 09:10:32,PWR-BUCK,Buck Converter Module,Power,6,1.02,4.64,27.84,6.12,21.72,Mika,Government,Cash,7

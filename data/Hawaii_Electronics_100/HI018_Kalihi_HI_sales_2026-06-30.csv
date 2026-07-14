@@ -1,0 +1,74 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI018-TX-0001,HI018,Kalihi,Oahu,HI,2026-06-30 10:22:32,CON-JMP,Jumper Wire Set,Connectors,11,0.88,3.70,40.70,9.68,31.02,Ailani,Education,Debit Card,834
+HI018-TX-0002,HI018,Kalihi,Oahu,HI,2026-06-30 08:05:29,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,8.63,22.08,176.64,69.04,107.60,Malia,Government,Cash,494
+HI018-TX-0003,HI018,Kalihi,Oahu,HI,2026-06-30 11:49:03,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.06,12.84,64.20,20.30,43.90,Noah,Marine,Debit Card,139
+HI018-TX-0004,HI018,Kalihi,Oahu,HI,2026-06-30 08:00:59,IC-358,LM358 Op Amp,Integrated Circuits,38,0.31,1.21,45.98,11.78,34.20,Ailani,Maker/Hobbyist,Mobile Pay,763
+HI018-TX-0005,HI018,Kalihi,Oahu,HI,2026-06-30 14:25:55,PWR-BUCK,Buck Converter Module,Power,39,1.12,5.11,199.29,43.68,155.61,Akamu,Commercial,Cash,262
+HI018-TX-0006,HI018,Kalihi,Oahu,HI,2026-06-30 13:29:06,USB-CBO,USB-C Breakout Board,Connectors,36,1.44,5.14,185.04,51.84,133.20,Ailani,Education,Purchase Order,527
+HI018-TX-0007,HI018,Kalihi,Oahu,HI,2026-06-30 15:35:16,IC-555,NE555 Timer IC,Integrated Circuits,18,0.35,1.32,23.76,6.30,17.46,Ailani,Maker/Hobbyist,Cash,355
+HI018-TX-0008,HI018,Kalihi,Oahu,HI,2026-06-30 09:27:39,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.59,21.17,105.85,42.95,62.90,Lani,Education,ACH,170
+HI018-TX-0009,HI018,Kalihi,Oahu,HI,2026-06-30 16:57:22,BAT-AAH,AA Battery Holder,Batteries,40,0.53,2.75,110.00,21.20,88.80,Noah,Commercial,ACH,283
+HI018-TX-0010,HI018,Kalihi,Oahu,HI,2026-06-30 09:34:06,PWR-5V2,5V 2A Power Supply,Power,7,3.69,10.85,75.95,25.83,50.12,Leilani,Tourism/Hospitality,Debit Card,25
+HI018-TX-0011,HI018,Kalihi,Oahu,HI,2026-06-30 16:54:02,TOOL-SOL,Soldering Iron Tips,Tools,3,2.07,7.25,21.75,6.21,15.54,Mika,Retail,ACH,495
+HI018-TX-0012,HI018,Kalihi,Oahu,HI,2026-06-30 14:42:27,USB-CBO,USB-C Breakout Board,Connectors,40,1.41,5.10,204.00,56.40,147.60,Malia,Retail,Debit Card,556
+HI018-TX-0013,HI018,Kalihi,Oahu,HI,2026-06-30 09:12:27,IC-555,NE555 Timer IC,Integrated Circuits,40,0.34,1.43,57.20,13.60,43.60,Iolana,Retail,Mobile Pay,392
+HI018-TX-0014,HI018,Kalihi,Oahu,HI,2026-06-30 09:27:48,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.57,6.68,46.76,10.99,35.77,Hana,Tourism/Hospitality,Debit Card,853
+HI018-TX-0015,HI018,Kalihi,Oahu,HI,2026-06-30 14:52:17,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.36,8.56,8.56,3.36,5.20,Noelani,Retail,ACH,708
+HI018-TX-0016,HI018,Kalihi,Oahu,HI,2026-06-30 11:10:22,SOL-CTRL,Solar Charge Controller,Solar Power,2,11.02,31.05,62.10,22.04,40.06,Malia,Commercial,Debit Card,36
+HI018-TX-0017,HI018,Kalihi,Oahu,HI,2026-06-30 08:00:03,TOOL-WIRE,Wire Stripper,Tools,6,5.26,16.17,97.02,31.56,65.46,Koa,Retail,Mobile Pay,22
+HI018-TX-0018,HI018,Kalihi,Oahu,HI,2026-06-30 08:19:15,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.49,6.12,24.48,5.96,18.52,Mika,Government,ACH,353
+HI018-TX-0019,HI018,Kalihi,Oahu,HI,2026-06-30 13:03:05,CON-JMP,Jumper Wire Set,Connectors,35,0.96,3.72,130.20,33.60,96.60,Nalu,Retail,Purchase Order,675
+HI018-TX-0020,HI018,Kalihi,Oahu,HI,2026-06-30 15:18:20,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,8.22,22.57,180.56,65.76,114.80,Kaleo,Commercial,Debit Card,61
+HI018-TX-0021,HI018,Kalihi,Oahu,HI,2026-06-30 08:53:34,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.85,13.70,82.20,29.10,53.10,Kaleo,Maker/Hobbyist,Credit Card,70
+HI018-TX-0022,HI018,Kalihi,Oahu,HI,2026-06-30 10:08:50,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.25,13.53,54.12,17.00,37.12,Noelani,Tourism/Hospitality,Credit Card,693
+HI018-TX-0023,HI018,Kalihi,Oahu,HI,2026-06-30 08:34:27,SNS-PIR,PIR Motion Sensor,Sensors,5,1.48,6.01,30.05,7.40,22.65,Kaleo,Marine,Debit Card,496
+HI018-TX-0024,HI018,Kalihi,Oahu,HI,2026-06-30 17:01:46,IC-555,NE555 Timer IC,Integrated Circuits,21,0.36,1.30,27.30,7.56,19.74,Pualani,Commercial,Cash,311
+HI018-TX-0025,HI018,Kalihi,Oahu,HI,2026-06-30 08:35:24,REL-5V,5V Relay Module,Relays,30,0.96,5.20,156.00,28.80,127.20,Pualani,Tourism/Hospitality,Credit Card,407
+HI018-TX-0026,HI018,Kalihi,Oahu,HI,2026-06-30 10:32:53,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,7.99,22.11,110.55,39.95,70.60,Ikaika,Retail,Purchase Order,52
+HI018-TX-0027,HI018,Kalihi,Oahu,HI,2026-06-30 10:41:48,SNS-PIR,PIR Motion Sensor,Sensors,5,1.59,5.70,28.50,7.95,20.55,Kaleo,Tourism/Hospitality,Mobile Pay,861
+HI018-TX-0028,HI018,Kalihi,Oahu,HI,2026-06-30 13:19:14,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.51,13.87,83.22,27.06,56.16,Ikaika,Government,Cash,855
+HI018-TX-0029,HI018,Kalihi,Oahu,HI,2026-06-30 14:34:16,SNS-DHT,DHT22 Temperature Sensor,Sensors,1,2.44,7.35,7.35,2.44,4.91,Keanu,Marine,Cash,340
+HI018-TX-0030,HI018,Kalihi,Oahu,HI,2026-06-30 11:52:43,RES-220,220 Ohm Resistor,Resistors,10,0.03,0.13,1.30,0.30,1.00,Mika,Retail,Debit Card,160
+HI018-TX-0031,HI018,Kalihi,Oahu,HI,2026-06-30 17:38:56,IC-REG,7805 Voltage Regulator,Integrated Circuits,27,0.19,0.89,24.03,5.13,18.90,Mika,Tourism/Hospitality,Purchase Order,315
+HI018-TX-0032,HI018,Kalihi,Oahu,HI,2026-06-30 11:29:16,RES-220,220 Ohm Resistor,Resistors,10,0.03,0.12,1.20,0.30,0.90,Noelani,Tourism/Hospitality,Credit Card,8
+HI018-TX-0033,HI018,Kalihi,Oahu,HI,2026-06-30 13:29:16,DIO-4007,1N4007 Diode,Semiconductors,23,0.04,0.19,4.37,0.92,3.45,Lani,Commercial,Credit Card,428
+HI018-TX-0034,HI018,Kalihi,Oahu,HI,2026-06-30 11:11:56,TR-3904,2N3904 NPN Transistor,Semiconductors,38,0.05,0.24,9.12,1.90,7.22,Malia,Commercial,Purchase Order,111
+HI018-TX-0035,HI018,Kalihi,Oahu,HI,2026-06-30 15:51:15,RES-220,220 Ohm Resistor,Resistors,30,0.03,0.14,4.20,0.90,3.30,Alika,Maker/Hobbyist,Mobile Pay,831
+HI018-TX-0036,HI018,Kalihi,Oahu,HI,2026-06-30 10:58:35,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.40,8.20,32.80,13.60,19.20,Pualani,Government,Purchase Order,867
+HI018-TX-0037,HI018,Kalihi,Oahu,HI,2026-06-30 13:03:09,IC-555,NE555 Timer IC,Integrated Circuits,30,0.37,1.42,42.60,11.10,31.50,Keahi,Education,Purchase Order,675
+HI018-TX-0038,HI018,Kalihi,Oahu,HI,2026-06-30 10:40:01,PWR-5V2,5V 2A Power Supply,Power,2,3.45,10.88,21.76,6.90,14.86,Leilani,Commercial,Purchase Order,837
+HI018-TX-0039,HI018,Kalihi,Oahu,HI,2026-06-30 14:28:03,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.15,21.45,107.25,40.75,66.50,Noelani,Education,Mobile Pay,210
+HI018-TX-0040,HI018,Kalihi,Oahu,HI,2026-06-30 09:58:30,IC-555,NE555 Timer IC,Integrated Circuits,3,0.36,1.28,3.84,1.08,2.76,Hana,Tourism/Hospitality,Debit Card,515
+HI018-TX-0041,HI018,Kalihi,Oahu,HI,2026-06-30 09:58:21,CAP-010,10uF Capacitor,Capacitors,14,0.08,0.40,5.60,1.12,4.48,Noelani,Retail,Mobile Pay,702
+HI018-TX-0042,HI018,Kalihi,Oahu,HI,2026-06-30 08:31:33,PWR-12V,12V 5A Power Supply,Power,6,9.56,23.95,143.70,57.36,86.34,Noah,Retail,Debit Card,541
+HI018-TX-0043,HI018,Kalihi,Oahu,HI,2026-06-30 17:54:58,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.54,33.75,236.25,73.78,162.47,Keahi,Government,Cash,536
+HI018-TX-0044,HI018,Kalihi,Oahu,HI,2026-06-30 11:00:11,IC-358,LM358 Op Amp,Integrated Circuits,30,0.33,1.17,35.10,9.90,25.20,Keanu,Commercial,ACH,858
+HI018-TX-0045,HI018,Kalihi,Oahu,HI,2026-06-30 10:25:28,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.37,13.65,54.60,17.48,37.12,Kaleo,Marine,Cash,623
+HI018-TX-0046,HI018,Kalihi,Oahu,HI,2026-06-30 11:39:23,RES-220,220 Ohm Resistor,Resistors,6,0.03,0.14,0.84,0.18,0.66,Noah,Government,Debit Card,807
+HI018-TX-0047,HI018,Kalihi,Oahu,HI,2026-06-30 10:36:27,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.04,12.74,76.44,24.24,52.20,Keanu,Commercial,Cash,666
+HI018-TX-0048,HI018,Kalihi,Oahu,HI,2026-06-30 17:23:22,USB-CBO,USB-C Breakout Board,Connectors,7,1.42,5.46,38.22,9.94,28.28,Kai,Marine,Debit Card,229
+HI018-TX-0049,HI018,Kalihi,Oahu,HI,2026-06-30 15:09:52,ESP-32,ESP32 Dev Board,Microcontrollers,2,3.97,12.97,25.94,7.94,18.00,Lani,Commercial,Purchase Order,50
+HI018-TX-0050,HI018,Kalihi,Oahu,HI,2026-06-30 13:04:50,SNS-PIR,PIR Motion Sensor,Sensors,2,1.57,6.02,12.04,3.14,8.90,Keanu,Government,Cash,398
+HI018-TX-0051,HI018,Kalihi,Oahu,HI,2026-06-30 16:00:16,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.40,8.98,26.94,10.20,16.74,Keahi,Education,ACH,745
+HI018-TX-0052,HI018,Kalihi,Oahu,HI,2026-06-30 08:07:02,USB-CBO,USB-C Breakout Board,Connectors,31,1.32,5.32,164.92,40.92,124.00,Kaleo,Marine,ACH,58
+HI018-TX-0053,HI018,Kalihi,Oahu,HI,2026-06-30 16:57:09,IC-358,LM358 Op Amp,Integrated Circuits,15,0.31,1.23,18.45,4.65,13.80,Noelani,Marine,Cash,375
+HI018-TX-0054,HI018,Kalihi,Oahu,HI,2026-06-30 14:00:40,IC-REG,7805 Voltage Regulator,Integrated Circuits,7,0.20,0.88,6.16,1.40,4.76,Makana,Tourism/Hospitality,Cash,73
+HI018-TX-0055,HI018,Kalihi,Oahu,HI,2026-06-30 16:56:33,IC-REG,7805 Voltage Regulator,Integrated Circuits,39,0.19,0.96,37.44,7.41,30.03,Ailani,Tourism/Hospitality,Cash,469
+HI018-TX-0056,HI018,Kalihi,Oahu,HI,2026-06-30 08:27:14,PWR-5V2,5V 2A Power Supply,Power,2,3.61,10.83,21.66,7.22,14.44,Noelani,Tourism/Hospitality,Purchase Order,31
+HI018-TX-0057,HI018,Kalihi,Oahu,HI,2026-06-30 14:15:31,RES-001,1k Ohm Resistor,Resistors,39,0.04,0.13,5.07,1.56,3.51,Keahi,Marine,ACH,444
+HI018-TX-0058,HI018,Kalihi,Oahu,HI,2026-06-30 14:51:59,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.47,8.58,34.32,13.88,20.44,Kaleo,Government,ACH,311
+HI018-TX-0059,HI018,Kalihi,Oahu,HI,2026-06-30 16:09:29,IC-REG,7805 Voltage Regulator,Integrated Circuits,26,0.19,0.88,22.88,4.94,17.94,Keahi,Marine,Mobile Pay,178
+HI018-TX-0060,HI018,Kalihi,Oahu,HI,2026-06-30 14:32:00,TOOL-DMM,Digital Multimeter,Tools,1,9.34,28.91,28.91,9.34,19.57,Malia,Tourism/Hospitality,Credit Card,431
+HI018-TX-0061,HI018,Kalihi,Oahu,HI,2026-06-30 13:32:53,LED-BLU,5mm Blue LED,LEDs,26,0.06,0.34,8.84,1.56,7.28,Noelani,Education,Purchase Order,325
+HI018-TX-0062,HI018,Kalihi,Oahu,HI,2026-06-30 09:51:19,PWR-12V,12V 5A Power Supply,Power,1,9.58,26.21,26.21,9.58,16.63,Kai,Education,Credit Card,836
+HI018-TX-0063,HI018,Kalihi,Oahu,HI,2026-06-30 10:47:08,REL-5V,5V Relay Module,Relays,2,0.95,5.61,11.22,1.90,9.32,Lani,Education,Cash,250
+HI018-TX-0064,HI018,Kalihi,Oahu,HI,2026-06-30 16:55:19,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.90,13.31,26.62,9.80,16.82,Lani,Government,Cash,553
+HI018-TX-0065,HI018,Kalihi,Oahu,HI,2026-06-30 14:12:35,BAT-AAH,AA Battery Holder,Batteries,4,0.48,2.68,10.72,1.92,8.80,Alika,Commercial,Mobile Pay,718
+HI018-TX-0066,HI018,Kalihi,Oahu,HI,2026-06-30 16:38:03,LED-RGB,RGB LED Strip,LEDs,4,5.00,13.73,54.92,20.00,34.92,Lani,Maker/Hobbyist,Mobile Pay,62
+HI018-TX-0067,HI018,Kalihi,Oahu,HI,2026-06-30 17:45:01,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.14,9.21,9.21,3.14,6.07,Leilani,Tourism/Hospitality,Purchase Order,813
+HI018-TX-0068,HI018,Kalihi,Oahu,HI,2026-06-30 09:24:45,SNS-ULT,Ultrasonic Distance Sensor,Sensors,3,1.28,5.21,15.63,3.84,11.79,Lani,Government,ACH,517
+HI018-TX-0069,HI018,Kalihi,Oahu,HI,2026-06-30 16:46:28,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.78,14.91,14.91,4.78,10.13,Alika,Government,Debit Card,554
+HI018-TX-0070,HI018,Kalihi,Oahu,HI,2026-06-30 08:45:35,CON-JMP,Jumper Wire Set,Connectors,24,0.96,4.02,96.48,23.04,73.44,Hana,Commercial,Debit Card,489
+HI018-TX-0071,HI018,Kalihi,Oahu,HI,2026-06-30 15:34:57,DIO-4007,1N4007 Diode,Semiconductors,12,0.04,0.19,2.28,0.48,1.80,Makana,Education,Cash,366
+HI018-TX-0072,HI018,Kalihi,Oahu,HI,2026-06-30 15:03:40,USB-CBO,USB-C Breakout Board,Connectors,34,1.36,5.17,175.78,46.24,129.54,Kaleo,Commercial,Mobile Pay,576
+HI018-TX-0073,HI018,Kalihi,Oahu,HI,2026-06-30 09:18:30,BAT-LIPO,LiPo Battery Pack,Batteries,8,5.21,15.72,125.76,41.68,84.08,Leilani,Education,Cash,41

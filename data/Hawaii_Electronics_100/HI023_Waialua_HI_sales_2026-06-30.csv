@@ -1,0 +1,52 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI023-TX-0001,HI023,Waialua,Oahu,HI,2026-06-30 15:08:21,RES-001,1k Ohm Resistor,Resistors,38,0.03,0.13,4.94,1.14,3.80,Ailani,Government,Mobile Pay,251
+HI023-TX-0002,HI023,Waialua,Oahu,HI,2026-06-30 13:34:28,CON-JMP,Jumper Wire Set,Connectors,2,0.94,3.57,7.14,1.88,5.26,Alika,Education,ACH,361
+HI023-TX-0003,HI023,Waialua,Oahu,HI,2026-06-30 16:43:41,PWR-5V2,5V 2A Power Supply,Power,3,3.63,10.55,31.65,10.89,20.76,Malia,Commercial,Purchase Order,536
+HI023-TX-0004,HI023,Waialua,Oahu,HI,2026-06-30 11:41:14,BAT-AAH,AA Battery Holder,Batteries,12,0.50,2.68,32.16,6.00,26.16,Noah,Retail,ACH,551
+HI023-TX-0005,HI023,Waialua,Oahu,HI,2026-06-30 17:18:34,IC-555,NE555 Timer IC,Integrated Circuits,4,0.35,1.32,5.28,1.40,3.88,Akamu,Retail,ACH,284
+HI023-TX-0006,HI023,Waialua,Oahu,HI,2026-06-30 16:43:16,TOOL-DMM,Digital Multimeter,Tools,4,8.34,27.09,108.36,33.36,75.00,Ailani,Education,Mobile Pay,319
+HI023-TX-0007,HI023,Waialua,Oahu,HI,2026-06-30 08:41:25,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.83,20.44,81.76,35.32,46.44,Noah,Maker/Hobbyist,Purchase Order,827
+HI023-TX-0008,HI023,Waialua,Oahu,HI,2026-06-30 10:16:11,USB-CBO,USB-C Breakout Board,Connectors,25,1.45,5.32,133.00,36.25,96.75,Pualani,Maker/Hobbyist,Debit Card,219
+HI023-TX-0009,HI023,Waialua,Oahu,HI,2026-06-30 11:15:42,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.21,12.56,37.68,12.63,25.05,Koa,Retail,Cash,635
+HI023-TX-0010,HI023,Waialua,Oahu,HI,2026-06-30 17:31:19,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.62,6.20,24.80,6.48,18.32,Hana,Commercial,Purchase Order,31
+HI023-TX-0011,HI023,Waialua,Oahu,HI,2026-06-30 11:32:44,IC-555,NE555 Timer IC,Integrated Circuits,24,0.37,1.29,30.96,8.88,22.08,Leilani,Government,Mobile Pay,787
+HI023-TX-0012,HI023,Waialua,Oahu,HI,2026-06-30 15:55:59,USB-CBO,USB-C Breakout Board,Connectors,28,1.45,5.48,153.44,40.60,112.84,Ikaika,Commercial,Cash,768
+HI023-TX-0013,HI023,Waialua,Oahu,HI,2026-06-30 12:25:32,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.50,6.94,27.76,6.00,21.76,Nalu,Retail,Cash,146
+HI023-TX-0014,HI023,Waialua,Oahu,HI,2026-06-30 16:21:44,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.46,13.51,40.53,13.38,27.15,Keahi,Commercial,Purchase Order,574
+HI023-TX-0015,HI023,Waialua,Oahu,HI,2026-06-30 10:20:34,USB-CBO,USB-C Breakout Board,Connectors,20,1.40,5.15,103.00,28.00,75.00,Ikaika,Maker/Hobbyist,Mobile Pay,318
+HI023-TX-0016,HI023,Waialua,Oahu,HI,2026-06-30 15:26:09,IC-358,LM358 Op Amp,Integrated Circuits,23,0.30,1.27,29.21,6.90,22.31,Malia,Education,ACH,453
+HI023-TX-0017,HI023,Waialua,Oahu,HI,2026-06-30 11:58:35,RES-010,10k Ohm Resistor,Resistors,24,0.03,0.13,3.12,0.72,2.40,Hana,Commercial,Cash,885
+HI023-TX-0018,HI023,Waialua,Oahu,HI,2026-06-30 17:29:20,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.53,7.54,52.78,17.71,35.07,Makana,Government,Credit Card,397
+HI023-TX-0019,HI023,Waialua,Oahu,HI,2026-06-30 13:10:50,CAP-010,10uF Capacitor,Capacitors,25,0.09,0.36,9.00,2.25,6.75,Koa,Education,ACH,395
+HI023-TX-0020,HI023,Waialua,Oahu,HI,2026-06-30 15:55:41,CAP-100,100uF Capacitor,Capacitors,24,0.17,0.58,13.92,4.08,9.84,Akamu,Tourism/Hospitality,Mobile Pay,169
+HI023-TX-0021,HI023,Waialua,Oahu,HI,2026-06-30 17:50:51,MOS-44N,IRFZ44N MOSFET,Semiconductors,13,0.57,2.48,32.24,7.41,24.83,Pualani,Maker/Hobbyist,Debit Card,787
+HI023-TX-0022,HI023,Waialua,Oahu,HI,2026-06-30 15:43:10,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.26,8.73,17.46,6.52,10.94,Ikaika,Maker/Hobbyist,Purchase Order,103
+HI023-TX-0023,HI023,Waialua,Oahu,HI,2026-06-30 10:22:58,CAP-100,100uF Capacitor,Capacitors,21,0.17,0.58,12.18,3.57,8.61,Kai,Marine,Mobile Pay,502
+HI023-TX-0024,HI023,Waialua,Oahu,HI,2026-06-30 17:24:59,CAP-010,10uF Capacitor,Capacitors,21,0.08,0.40,8.40,1.68,6.72,Leilani,Government,Mobile Pay,640
+HI023-TX-0025,HI023,Waialua,Oahu,HI,2026-06-30 14:29:20,IC-REG,7805 Voltage Regulator,Integrated Circuits,27,0.20,0.97,26.19,5.40,20.79,Pualani,Government,Cash,431
+HI023-TX-0026,HI023,Waialua,Oahu,HI,2026-06-30 13:07:45,PWR-12V,12V 5A Power Supply,Power,2,9.52,25.75,51.50,19.04,32.46,Akamu,Education,Purchase Order,763
+HI023-TX-0027,HI023,Waialua,Oahu,HI,2026-06-30 13:06:54,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.39,21.81,87.24,33.56,53.68,Lani,Marine,Cash,240
+HI023-TX-0028,HI023,Waialua,Oahu,HI,2026-06-30 10:28:26,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,9.61,25.72,102.88,38.44,64.44,Leilani,Commercial,ACH,500
+HI023-TX-0029,HI023,Waialua,Oahu,HI,2026-06-30 13:35:45,IC-358,LM358 Op Amp,Integrated Circuits,35,0.30,1.25,43.75,10.50,33.25,Alika,Retail,Credit Card,247
+HI023-TX-0030,HI023,Waialua,Oahu,HI,2026-06-30 13:18:30,IC-555,NE555 Timer IC,Integrated Circuits,31,0.33,1.41,43.71,10.23,33.48,Akamu,Commercial,Purchase Order,494
+HI023-TX-0031,HI023,Waialua,Oahu,HI,2026-06-30 14:44:58,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.34,12.72,25.44,8.68,16.76,Akamu,Education,Credit Card,387
+HI023-TX-0032,HI023,Waialua,Oahu,HI,2026-06-30 10:58:11,IC-REG,7805 Voltage Regulator,Integrated Circuits,19,0.20,0.88,16.72,3.80,12.92,Noelani,Maker/Hobbyist,Credit Card,465
+HI023-TX-0033,HI023,Waialua,Oahu,HI,2026-06-30 10:51:22,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,8.78,27.12,135.60,43.90,91.70,Ailani,Education,Mobile Pay,80
+HI023-TX-0034,HI023,Waialua,Oahu,HI,2026-06-30 10:52:53,SOL-CTRL,Solar Charge Controller,Solar Power,2,10.35,32.50,65.00,20.70,44.30,Kai,Marine,ACH,849
+HI023-TX-0035,HI023,Waialua,Oahu,HI,2026-06-30 08:07:03,BAT-AAH,AA Battery Holder,Batteries,24,0.50,2.63,63.12,12.00,51.12,Leilani,Education,Mobile Pay,778
+HI023-TX-0036,HI023,Waialua,Oahu,HI,2026-06-30 08:12:28,SNS-ULT,Ultrasonic Distance Sensor,Sensors,11,1.35,5.66,62.26,14.85,47.41,Ailani,Maker/Hobbyist,Purchase Order,716
+HI023-TX-0037,HI023,Waialua,Oahu,HI,2026-06-30 13:34:54,DIO-4007,1N4007 Diode,Semiconductors,29,0.04,0.19,5.51,1.16,4.35,Ikaika,Education,Mobile Pay,858
+HI023-TX-0038,HI023,Waialua,Oahu,HI,2026-06-30 12:53:55,SNS-PIR,PIR Motion Sensor,Sensors,1,1.53,6.32,6.32,1.53,4.79,Noelani,Tourism/Hospitality,ACH,109
+HI023-TX-0039,HI023,Waialua,Oahu,HI,2026-06-30 13:08:47,RES-220,220 Ohm Resistor,Resistors,36,0.03,0.13,4.68,1.08,3.60,Koa,Maker/Hobbyist,Credit Card,721
+HI023-TX-0040,HI023,Waialua,Oahu,HI,2026-06-30 15:35:34,PWR-12V,12V 5A Power Supply,Power,8,9.99,24.41,195.28,79.92,115.36,Leilani,Maker/Hobbyist,Credit Card,737
+HI023-TX-0041,HI023,Waialua,Oahu,HI,2026-06-30 12:18:01,IC-358,LM358 Op Amp,Integrated Circuits,38,0.32,1.13,42.94,12.16,30.78,Hana,Retail,ACH,332
+HI023-TX-0042,HI023,Waialua,Oahu,HI,2026-06-30 09:17:27,IC-358,LM358 Op Amp,Integrated Circuits,24,0.30,1.20,28.80,7.20,21.60,Koa,Government,Mobile Pay,139
+HI023-TX-0043,HI023,Waialua,Oahu,HI,2026-06-30 16:47:16,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.37,12.60,12.60,4.37,8.23,Noah,Retail,ACH,131
+HI023-TX-0044,HI023,Waialua,Oahu,HI,2026-06-30 09:01:05,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.45,6.53,45.71,10.15,35.56,Keanu,Government,Purchase Order,56
+HI023-TX-0045,HI023,Waialua,Oahu,HI,2026-06-30 14:12:03,IC-358,LM358 Op Amp,Integrated Circuits,25,0.32,1.26,31.50,8.00,23.50,Mika,Government,Cash,60
+HI023-TX-0046,HI023,Waialua,Oahu,HI,2026-06-30 14:47:08,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.49,6.17,12.34,2.98,9.36,Makana,Marine,ACH,813
+HI023-TX-0047,HI023,Waialua,Oahu,HI,2026-06-30 17:11:09,DIO-4007,1N4007 Diode,Semiconductors,4,0.04,0.19,0.76,0.16,0.60,Noelani,Government,ACH,412
+HI023-TX-0048,HI023,Waialua,Oahu,HI,2026-06-30 11:39:11,RES-001,1k Ohm Resistor,Resistors,2,0.03,0.13,0.26,0.06,0.20,Kaleo,Maker/Hobbyist,Purchase Order,883
+HI023-TX-0049,HI023,Waialua,Oahu,HI,2026-06-30 15:01:59,IC-555,NE555 Timer IC,Integrated Circuits,31,0.37,1.42,44.02,11.47,32.55,Nalu,Education,Debit Card,234
+HI023-TX-0050,HI023,Waialua,Oahu,HI,2026-06-30 17:45:28,BAT-AAH,AA Battery Holder,Batteries,16,0.50,2.66,42.56,8.00,34.56,Keanu,Commercial,Mobile Pay,720
+HI023-TX-0051,HI023,Waialua,Oahu,HI,2026-06-30 17:48:53,IC-REG,7805 Voltage Regulator,Integrated Circuits,15,0.20,0.92,13.80,3.00,10.80,Hana,Retail,Purchase Order,519

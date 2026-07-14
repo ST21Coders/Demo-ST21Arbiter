@@ -69,6 +69,25 @@ const MCP_SERVERS = [
     ],
   },
   {
+    id: 'sales',
+    name: 'Sales Specialist',
+    host: 'agentcore · sales_specialist',
+    description: 'Hybrid RAG for the Hawaiian-electronics retail business: semantic search over the sales-facts vector index for descriptive questions, plus validated read-only Athena SQL for exact aggregates (totals, top-N, rankings).',
+    tools: [
+      { name: 'search_sales_facts', desc: 'Semantic search over the S3 Vectors sales-facts index (fuzzy questions)' },
+      { name: 'query_sales_sql', desc: 'Text-to-SQL (read-only Athena) for totals, counts, top-N, trends' },
+    ],
+  },
+  {
+    id: 'hr',
+    name: 'HR Specialist',
+    host: 'agentcore · hr_specialist',
+    description: 'Semantic RAG over the Kai Components HR policy documents (a fictional Hawaiian-electronics retailer): leave/PTO, benefits, sales compensation, conduct, payroll, and perks. Answers what a policy says and cites the source.',
+    tools: [
+      { name: 'search_hr_policies', desc: 'Semantic search over the S3 Vectors hr-policies index, optionally scoped by policy category' },
+    ],
+  },
+  {
     id: 'paloalto',
     name: 'Palo Alto NGFW Specialist',
     host: 'agentcore · paloalto_specialist',
@@ -253,6 +272,18 @@ const SUGGESTED = {
       label: 'Logical first query',
       prompt: 'Recommend a logical first query for this group. Use the group purpose, detailed description, available tables, row counts if available, and important columns. Return one best query first, then a few useful alternatives.',
     },
+  ],
+  sales: [
+    'What was the total revenue for each product category? Give the top 5.',
+    'Which branch sold the most units?',
+    'How did marine electronics perform at the Kailua branch?',
+    'How many microcontrollers were sold across all branches?',
+  ],
+  hr: [
+    'How much paid parental leave do I get?',
+    'How is sales commission calculated and when is it paid?',
+    'What is the employee discount on merchandise?',
+    'How many no-call no-shows lead to termination?',
   ],
   jira: ['List my open issues', 'Show issues in the MIG project', 'What is the status of MIG-123?'],
   servicenow: [

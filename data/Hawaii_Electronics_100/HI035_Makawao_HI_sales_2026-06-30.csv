@@ -1,0 +1,62 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI035-TX-0001,HI035,Makawao,Maui,HI,2026-06-30 10:42:27,PWR-12V,12V 5A Power Supply,Power,1,8.99,24.87,24.87,8.99,15.88,Malia,Education,Mobile Pay,475
+HI035-TX-0002,HI035,Makawao,Maui,HI,2026-06-30 17:22:02,TOOL-DMM,Digital Multimeter,Tools,5,9.41,26.56,132.80,47.05,85.75,Iolana,Retail,Credit Card,136
+HI035-TX-0003,HI035,Makawao,Maui,HI,2026-06-30 16:42:58,BAT-AAH,AA Battery Holder,Batteries,16,0.48,2.82,45.12,7.68,37.44,Keanu,Tourism/Hospitality,Credit Card,812
+HI035-TX-0004,HI035,Makawao,Maui,HI,2026-06-30 14:28:24,IC-REG,7805 Voltage Regulator,Integrated Circuits,21,0.20,0.94,19.74,4.20,15.54,Alika,Education,Purchase Order,443
+HI035-TX-0005,HI035,Makawao,Maui,HI,2026-06-30 16:55:03,SNS-PIR,PIR Motion Sensor,Sensors,2,1.51,6.13,12.26,3.02,9.24,Nalu,Retail,ACH,770
+HI035-TX-0006,HI035,Makawao,Maui,HI,2026-06-30 15:47:04,LED-RGB,RGB LED Strip,LEDs,3,5.27,13.51,40.53,15.81,24.72,Nalu,Retail,ACH,591
+HI035-TX-0007,HI035,Makawao,Maui,HI,2026-06-30 14:55:16,BAT-LIPO,LiPo Battery Pack,Batteries,7,5.61,15.88,111.16,39.27,71.89,Ailani,Commercial,Credit Card,461
+HI035-TX-0008,HI035,Makawao,Maui,HI,2026-06-30 17:10:41,LED-RED,5mm Red LED,LEDs,34,0.05,0.27,9.18,1.70,7.48,Mika,Government,ACH,624
+HI035-TX-0009,HI035,Makawao,Maui,HI,2026-06-30 12:21:26,PWR-5V2,5V 2A Power Supply,Power,5,3.56,10.76,53.80,17.80,36.00,Alika,Commercial,Cash,799
+HI035-TX-0010,HI035,Makawao,Maui,HI,2026-06-30 17:38:15,PICO-RP,Raspberry Pi Pico,Microcontrollers,8,3.24,8.46,67.68,25.92,41.76,Makana,Marine,Debit Card,72
+HI035-TX-0011,HI035,Makawao,Maui,HI,2026-06-30 14:10:33,CON-JMP,Jumper Wire Set,Connectors,33,0.92,3.95,130.35,30.36,99.99,Alika,Marine,Purchase Order,856
+HI035-TX-0012,HI035,Makawao,Maui,HI,2026-06-30 17:53:43,DIO-4007,1N4007 Diode,Semiconductors,17,0.04,0.19,3.23,0.68,2.55,Ikaika,Education,Credit Card,396
+HI035-TX-0013,HI035,Makawao,Maui,HI,2026-06-30 15:41:58,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,9,0.04,0.20,1.80,0.36,1.44,Pualani,Tourism/Hospitality,Debit Card,662
+HI035-TX-0014,HI035,Makawao,Maui,HI,2026-06-30 16:56:11,IC-555,NE555 Timer IC,Integrated Circuits,34,0.34,1.32,44.88,11.56,33.32,Nalu,Tourism/Hospitality,Debit Card,205
+HI035-TX-0015,HI035,Makawao,Maui,HI,2026-06-30 15:23:52,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.03,22.91,91.64,32.12,59.52,Ikaika,Tourism/Hospitality,Debit Card,13
+HI035-TX-0016,HI035,Makawao,Maui,HI,2026-06-30 13:47:25,PWR-5V2,5V 2A Power Supply,Power,3,3.43,10.64,31.92,10.29,21.63,Alika,Commercial,Mobile Pay,394
+HI035-TX-0017,HI035,Makawao,Maui,HI,2026-06-30 16:34:41,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.29,13.17,13.17,4.29,8.88,Iolana,Commercial,Credit Card,51
+HI035-TX-0018,HI035,Makawao,Maui,HI,2026-06-30 13:14:59,PWR-12V,12V 5A Power Supply,Power,7,9.21,24.63,172.41,64.47,107.94,Ailani,Marine,Purchase Order,717
+HI035-TX-0019,HI035,Makawao,Maui,HI,2026-06-30 13:36:16,LED-RED,5mm Red LED,LEDs,20,0.05,0.28,5.60,1.00,4.60,Keanu,Maker/Hobbyist,ACH,730
+HI035-TX-0020,HI035,Makawao,Maui,HI,2026-06-30 10:55:05,LED-RGB,RGB LED Strip,LEDs,2,5.08,14.52,29.04,10.16,18.88,Iolana,Retail,Mobile Pay,526
+HI035-TX-0021,HI035,Makawao,Maui,HI,2026-06-30 08:22:11,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.42,9.08,27.24,10.26,16.98,Leilani,Tourism/Hospitality,Purchase Order,437
+HI035-TX-0022,HI035,Makawao,Maui,HI,2026-06-30 15:42:20,PWR-BUCK,Buck Converter Module,Power,1,1.05,4.78,4.78,1.05,3.73,Kaleo,Education,Purchase Order,166
+HI035-TX-0023,HI035,Makawao,Maui,HI,2026-06-30 12:23:09,PWR-12V,12V 5A Power Supply,Power,6,9.64,24.89,149.34,57.84,91.50,Keahi,Retail,Mobile Pay,296
+HI035-TX-0024,HI035,Makawao,Maui,HI,2026-06-30 16:30:26,BAT-AAH,AA Battery Holder,Batteries,7,0.51,2.54,17.78,3.57,14.21,Leilani,Government,Purchase Order,187
+HI035-TX-0025,HI035,Makawao,Maui,HI,2026-06-30 15:22:02,PWR-12V,12V 5A Power Supply,Power,6,8.96,24.77,148.62,53.76,94.86,Ailani,Education,Purchase Order,775
+HI035-TX-0026,HI035,Makawao,Maui,HI,2026-06-30 13:23:47,PWR-5V2,5V 2A Power Supply,Power,7,3.40,11.57,80.99,23.80,57.19,Ikaika,Tourism/Hospitality,Credit Card,42
+HI035-TX-0027,HI035,Makawao,Maui,HI,2026-06-30 14:19:18,LED-RGB,RGB LED Strip,LEDs,6,5.02,14.23,85.38,30.12,55.26,Iolana,Education,Mobile Pay,286
+HI035-TX-0028,HI035,Makawao,Maui,HI,2026-06-30 16:53:16,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,12,0.04,0.21,2.52,0.48,2.04,Hana,Commercial,Credit Card,608
+HI035-TX-0029,HI035,Makawao,Maui,HI,2026-06-30 13:29:13,RES-010,10k Ohm Resistor,Resistors,32,0.03,0.13,4.16,0.96,3.20,Alika,Commercial,Mobile Pay,124
+HI035-TX-0030,HI035,Makawao,Maui,HI,2026-06-30 11:36:25,SNS-DHT,DHT22 Temperature Sensor,Sensors,5,2.36,7.67,38.35,11.80,26.55,Noelani,Government,Mobile Pay,379
+HI035-TX-0031,HI035,Makawao,Maui,HI,2026-06-30 09:55:11,MOS-44N,IRFZ44N MOSFET,Semiconductors,34,0.65,2.38,80.92,22.10,58.82,Pualani,Government,Purchase Order,564
+HI035-TX-0032,HI035,Makawao,Maui,HI,2026-06-30 17:18:20,PWR-5V2,5V 2A Power Supply,Power,5,3.42,11.05,55.25,17.10,38.15,Akamu,Maker/Hobbyist,Mobile Pay,388
+HI035-TX-0033,HI035,Makawao,Maui,HI,2026-06-30 13:41:21,CAP-010,10uF Capacitor,Capacitors,36,0.09,0.38,13.68,3.24,10.44,Lani,Retail,Mobile Pay,812
+HI035-TX-0034,HI035,Makawao,Maui,HI,2026-06-30 17:35:18,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.27,8.55,17.10,6.54,10.56,Noah,Retail,ACH,242
+HI035-TX-0035,HI035,Makawao,Maui,HI,2026-06-30 16:44:18,CON-JMP,Jumper Wire Set,Connectors,36,1.00,3.56,128.16,36.00,92.16,Leilani,Tourism/Hospitality,Cash,214
+HI035-TX-0036,HI035,Makawao,Maui,HI,2026-06-30 10:28:47,TOOL-DMM,Digital Multimeter,Tools,1,8.71,28.57,28.57,8.71,19.86,Kai,Marine,Mobile Pay,429
+HI035-TX-0037,HI035,Makawao,Maui,HI,2026-06-30 11:20:27,PWR-5V2,5V 2A Power Supply,Power,2,3.39,10.93,21.86,6.78,15.08,Ikaika,Tourism/Hospitality,Mobile Pay,539
+HI035-TX-0038,HI035,Makawao,Maui,HI,2026-06-30 09:29:00,PWR-5V2,5V 2A Power Supply,Power,1,3.73,10.49,10.49,3.73,6.76,Makana,Maker/Hobbyist,ACH,342
+HI035-TX-0039,HI035,Makawao,Maui,HI,2026-06-30 15:35:35,PWR-12V,12V 5A Power Supply,Power,7,9.84,25.37,177.59,68.88,108.71,Alika,Commercial,ACH,3
+HI035-TX-0040,HI035,Makawao,Maui,HI,2026-06-30 09:28:20,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.55,6.47,19.41,4.65,14.76,Kai,Government,Cash,691
+HI035-TX-0041,HI035,Makawao,Maui,HI,2026-06-30 11:08:44,LED-RED,5mm Red LED,LEDs,5,0.05,0.27,1.35,0.25,1.10,Alika,Maker/Hobbyist,Debit Card,616
+HI035-TX-0042,HI035,Makawao,Maui,HI,2026-06-30 14:44:58,PWR-5V2,5V 2A Power Supply,Power,5,3.56,10.48,52.40,17.80,34.60,Iolana,Tourism/Hospitality,ACH,676
+HI035-TX-0043,HI035,Makawao,Maui,HI,2026-06-30 16:59:20,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,8.83,27.06,54.12,17.66,36.46,Noah,Marine,Mobile Pay,231
+HI035-TX-0044,HI035,Makawao,Maui,HI,2026-06-30 11:53:07,LED-BLU,5mm Blue LED,LEDs,26,0.06,0.32,8.32,1.56,6.76,Kai,Retail,Purchase Order,614
+HI035-TX-0045,HI035,Makawao,Maui,HI,2026-06-30 14:03:48,PWR-BUCK,Buck Converter Module,Power,34,1.04,4.96,168.64,35.36,133.28,Noah,Marine,Cash,514
+HI035-TX-0046,HI035,Makawao,Maui,HI,2026-06-30 12:16:08,LED-RED,5mm Red LED,LEDs,25,0.06,0.27,6.75,1.50,5.25,Keanu,Government,Cash,365
+HI035-TX-0047,HI035,Makawao,Maui,HI,2026-06-30 11:23:46,LED-RED,5mm Red LED,LEDs,1,0.06,0.26,0.26,0.06,0.20,Leilani,Retail,Debit Card,644
+HI035-TX-0048,HI035,Makawao,Maui,HI,2026-06-30 11:50:11,PWR-12V,12V 5A Power Supply,Power,1,9.78,25.78,25.78,9.78,16.00,Malia,Maker/Hobbyist,Purchase Order,23
+HI035-TX-0049,HI035,Makawao,Maui,HI,2026-06-30 11:30:08,TOOL-DMM,Digital Multimeter,Tools,5,9.09,28.86,144.30,45.45,98.85,Ikaika,Marine,Purchase Order,105
+HI035-TX-0050,HI035,Makawao,Maui,HI,2026-06-30 12:45:37,PWR-5V2,5V 2A Power Supply,Power,5,3.51,10.28,51.40,17.55,33.85,Iolana,Retail,Debit Card,740
+HI035-TX-0051,HI035,Makawao,Maui,HI,2026-06-30 15:55:12,CAP-100,100uF Capacitor,Capacitors,1,0.17,0.61,0.61,0.17,0.44,Malia,Marine,Debit Card,867
+HI035-TX-0052,HI035,Makawao,Maui,HI,2026-06-30 15:16:31,PWR-5V2,5V 2A Power Supply,Power,7,3.54,11.28,78.96,24.78,54.18,Leilani,Tourism/Hospitality,Mobile Pay,843
+HI035-TX-0053,HI035,Makawao,Maui,HI,2026-06-30 13:03:08,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.17,8.31,58.17,22.19,35.98,Koa,Retail,Purchase Order,54
+HI035-TX-0054,HI035,Makawao,Maui,HI,2026-06-30 12:37:03,SNS-DHT,DHT22 Temperature Sensor,Sensors,5,2.61,8.04,40.20,13.05,27.15,Iolana,Tourism/Hospitality,Credit Card,849
+HI035-TX-0055,HI035,Makawao,Maui,HI,2026-06-30 10:41:28,CAP-010,10uF Capacitor,Capacitors,8,0.08,0.38,3.04,0.64,2.40,Lani,Marine,Debit Card,165
+HI035-TX-0056,HI035,Makawao,Maui,HI,2026-06-30 11:49:46,BAT-LIPO,LiPo Battery Pack,Batteries,8,5.00,15.76,126.08,40.00,86.08,Pualani,Government,Mobile Pay,540
+HI035-TX-0057,HI035,Makawao,Maui,HI,2026-06-30 16:41:38,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.64,16.77,83.85,28.20,55.65,Leilani,Education,Cash,368
+HI035-TX-0058,HI035,Makawao,Maui,HI,2026-06-30 15:17:34,SNS-ULT,Ultrasonic Distance Sensor,Sensors,21,1.22,5.68,119.28,25.62,93.66,Noah,Tourism/Hospitality,ACH,7
+HI035-TX-0059,HI035,Makawao,Maui,HI,2026-06-30 11:10:02,PWR-5V2,5V 2A Power Supply,Power,5,3.42,10.89,54.45,17.10,37.35,Lani,Government,Cash,484
+HI035-TX-0060,HI035,Makawao,Maui,HI,2026-06-30 09:16:18,LED-BLU,5mm Blue LED,LEDs,7,0.07,0.34,2.38,0.49,1.89,Keahi,Government,Cash,33
+HI035-TX-0061,HI035,Makawao,Maui,HI,2026-06-30 08:05:54,SNS-PIR,PIR Motion Sensor,Sensors,1,1.60,6.24,6.24,1.60,4.64,Ailani,Education,Purchase Order,704

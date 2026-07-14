@@ -92,6 +92,36 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-structured-specialist"
 
+  SalesSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/sales-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-sales-specialist"
+
+  HrSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/hr-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-hr-specialist"
+
   JiraSpecialistRepo:
     Type: AWS::ECR::Repository
     Properties:
@@ -106,21 +136,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-jira-specialist"
-
-  ServicenowSpecialistRepo:
-    Type: AWS::ECR::Repository
-    Properties:
-      RepositoryName: !Sub "${Environment}-${ProjectName}/servicenow-specialist"
-      ImageScanningConfiguration:
-        ScanOnPush: true
-      EncryptionConfiguration:
-        EncryptionType: KMS
-        KmsKey:
-          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
-      ImageTagMutability: MUTABLE
-      Tags:
-        - Key: Name
-          Value: !Sub "${Environment}-${ProjectName}-servicenow-specialist"
 
   ServicenowSpecialistRepo:
     Type: AWS::ECR::Repository
@@ -332,6 +347,33 @@ Resources:
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/athena-results/*"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/projects/*"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/projects/*/metadata/project.json"
+              # ── Sales specialist: semantic search over the S3 Vectors
+              # 'sales-facts' index. QUERY-ONLY (the ingest script — not the agent —
+              # holds Create*/Put*). s3vectors is a distinct service namespace (not s3:*).
+              - Sid: SalesS3VectorsQuery
+                Effect: Allow
+                Action:
+                  - s3vectors:QueryVectors
+                  - s3vectors:GetVectors
+                  - s3vectors:ListVectors
+                  - s3vectors:GetIndex
+                  - s3vectors:GetVectorBucket
+                Resource:
+                  - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-sales-vectors"
+                  - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-sales-vectors/index/*"
+              # HR specialist (unstructured): query-only on its OWN vector bucket. Kept a
+              # separate bucket from sales for least-privilege isolation between the two agents.
+              - Sid: HrS3VectorsQuery
+                Effect: Allow
+                Action:
+                  - s3vectors:QueryVectors
+                  - s3vectors:GetVectors
+                  - s3vectors:ListVectors
+                  - s3vectors:GetIndex
+                  - s3vectors:GetVectorBucket
+                Resource:
+                  - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-hr-vectors"
+                  - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-hr-vectors/index/*"
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-agentcore-runtime-role"
@@ -773,6 +815,14 @@ Outputs:
     Value: !GetAtt StructuredSpecialistRepo.RepositoryUri
     Export:
       Name: !Sub "${Environment}-${ProjectName}-StructuredSpecialistRepoUri"
+  SalesSpecialistRepoUri:
+    Value: !GetAtt SalesSpecialistRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-SalesSpecialistRepoUri"
+  HrSpecialistRepoUri:
+    Value: !GetAtt HrSpecialistRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-HrSpecialistRepoUri"
   JiraSpecialistRepoUri:
     Value: !GetAtt JiraSpecialistRepo.RepositoryUri
     Export:

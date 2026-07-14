@@ -1,0 +1,80 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI063-TX-0001,HI063,Waimea Kauai,Kauai,HI,2026-06-30 11:20:28,PWR-BUCK,Buck Converter Module,Power,9,1.11,5.13,46.17,9.99,36.18,Hana,Government,Cash,185
+HI063-TX-0002,HI063,Waimea Kauai,Kauai,HI,2026-06-30 08:38:10,BAT-LIPO,LiPo Battery Pack,Batteries,7,5.09,15.93,111.51,35.63,75.88,Keahi,Government,Credit Card,876
+HI063-TX-0003,HI063,Waimea Kauai,Kauai,HI,2026-06-30 13:40:09,TOOL-SOL,Soldering Iron Tips,Tools,4,1.86,7.41,29.64,7.44,22.20,Kaleo,Maker/Hobbyist,Credit Card,763
+HI063-TX-0004,HI063,Waimea Kauai,Kauai,HI,2026-06-30 16:54:13,IC-555,NE555 Timer IC,Integrated Circuits,26,0.34,1.41,36.66,8.84,27.82,Makana,Retail,Purchase Order,827
+HI063-TX-0005,HI063,Waimea Kauai,Kauai,HI,2026-06-30 08:50:58,LED-RGB,RGB LED Strip,LEDs,7,4.67,14.16,99.12,32.69,66.43,Nalu,Retail,ACH,8
+HI063-TX-0006,HI063,Waimea Kauai,Kauai,HI,2026-06-30 10:51:37,DIO-4007,1N4007 Diode,Semiconductors,26,0.05,0.20,5.20,1.30,3.90,Keanu,Commercial,ACH,188
+HI063-TX-0007,HI063,Waimea Kauai,Kauai,HI,2026-06-30 11:25:03,DIO-4007,1N4007 Diode,Semiconductors,31,0.05,0.20,6.20,1.55,4.65,Makana,Tourism/Hospitality,Debit Card,18
+HI063-TX-0008,HI063,Waimea Kauai,Kauai,HI,2026-06-30 17:48:25,USB-CBO,USB-C Breakout Board,Connectors,15,1.38,5.52,82.80,20.70,62.10,Nalu,Commercial,Mobile Pay,145
+HI063-TX-0009,HI063,Waimea Kauai,Kauai,HI,2026-06-30 12:33:20,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,9.70,27.56,192.92,67.90,125.02,Noelani,Commercial,Mobile Pay,493
+HI063-TX-0010,HI063,Waimea Kauai,Kauai,HI,2026-06-30 14:09:37,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.63,31.46,125.84,42.52,83.32,Makana,Commercial,Cash,124
+HI063-TX-0011,HI063,Waimea Kauai,Kauai,HI,2026-06-30 16:22:15,PWR-BUCK,Buck Converter Module,Power,11,1.00,4.65,51.15,11.00,40.15,Noelani,Maker/Hobbyist,Debit Card,575
+HI063-TX-0012,HI063,Waimea Kauai,Kauai,HI,2026-06-30 14:45:35,SNS-PIR,PIR Motion Sensor,Sensors,4,1.60,6.11,24.44,6.40,18.04,Alika,Tourism/Hospitality,Debit Card,126
+HI063-TX-0013,HI063,Waimea Kauai,Kauai,HI,2026-06-30 16:07:49,PWR-12V,12V 5A Power Supply,Power,4,9.07,26.20,104.80,36.28,68.52,Keahi,Maker/Hobbyist,Debit Card,105
+HI063-TX-0014,HI063,Waimea Kauai,Kauai,HI,2026-06-30 14:06:51,DIO-4007,1N4007 Diode,Semiconductors,2,0.04,0.20,0.40,0.08,0.32,Hana,Retail,ACH,178
+HI063-TX-0015,HI063,Waimea Kauai,Kauai,HI,2026-06-30 10:37:10,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.85,13.61,95.27,26.95,68.32,Ailani,Marine,Purchase Order,817
+HI063-TX-0016,HI063,Waimea Kauai,Kauai,HI,2026-06-30 11:15:47,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.38,8.65,17.30,6.76,10.54,Ikaika,Retail,Credit Card,175
+HI063-TX-0017,HI063,Waimea Kauai,Kauai,HI,2026-06-30 15:06:38,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,4.09,13.37,26.74,8.18,18.56,Malia,Retail,Purchase Order,557
+HI063-TX-0018,HI063,Waimea Kauai,Kauai,HI,2026-06-30 10:39:22,PWR-12V,12V 5A Power Supply,Power,5,9.53,23.99,119.95,47.65,72.30,Makana,Retail,Credit Card,211
+HI063-TX-0019,HI063,Waimea Kauai,Kauai,HI,2026-06-30 15:20:19,PWR-BUCK,Buck Converter Module,Power,12,1.06,4.82,57.84,12.72,45.12,Makana,Retail,Credit Card,76
+HI063-TX-0020,HI063,Waimea Kauai,Kauai,HI,2026-06-30 16:22:18,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,8.78,25.67,51.34,17.56,33.78,Ailani,Commercial,Cash,62
+HI063-TX-0021,HI063,Waimea Kauai,Kauai,HI,2026-06-30 14:14:43,PWR-5V2,5V 2A Power Supply,Power,4,3.60,11.40,45.60,14.40,31.20,Ailani,Retail,Credit Card,275
+HI063-TX-0022,HI063,Waimea Kauai,Kauai,HI,2026-06-30 09:41:44,RES-010,10k Ohm Resistor,Resistors,33,0.03,0.14,4.62,0.99,3.63,Mika,Commercial,Cash,760
+HI063-TX-0023,HI063,Waimea Kauai,Kauai,HI,2026-06-30 10:05:50,PWR-5V2,5V 2A Power Supply,Power,2,3.53,10.83,21.66,7.06,14.60,Kaleo,Retail,Purchase Order,840
+HI063-TX-0024,HI063,Waimea Kauai,Kauai,HI,2026-06-30 10:57:33,PWR-5V2,5V 2A Power Supply,Power,3,3.49,10.65,31.95,10.47,21.48,Ailani,Commercial,Debit Card,162
+HI063-TX-0025,HI063,Waimea Kauai,Kauai,HI,2026-06-30 10:49:05,BAT-AAH,AA Battery Holder,Batteries,22,0.51,2.71,59.62,11.22,48.40,Ikaika,Tourism/Hospitality,Purchase Order,611
+HI063-TX-0026,HI063,Waimea Kauai,Kauai,HI,2026-06-30 14:19:01,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,22,0.04,0.19,4.18,0.88,3.30,Hana,Education,Cash,731
+HI063-TX-0027,HI063,Waimea Kauai,Kauai,HI,2026-06-30 11:46:41,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,7.73,21.91,109.55,38.65,70.90,Leilani,Maker/Hobbyist,Credit Card,844
+HI063-TX-0028,HI063,Waimea Kauai,Kauai,HI,2026-06-30 15:21:14,IC-555,NE555 Timer IC,Integrated Circuits,9,0.36,1.39,12.51,3.24,9.27,Kai,Commercial,Credit Card,732
+HI063-TX-0029,HI063,Waimea Kauai,Kauai,HI,2026-06-30 13:56:44,PWR-BUCK,Buck Converter Module,Power,23,1.04,4.79,110.17,23.92,86.25,Makana,Maker/Hobbyist,ACH,403
+HI063-TX-0030,HI063,Waimea Kauai,Kauai,HI,2026-06-30 08:58:05,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,8.73,27.34,54.68,17.46,37.22,Keahi,Marine,Purchase Order,894
+HI063-TX-0031,HI063,Waimea Kauai,Kauai,HI,2026-06-30 17:26:11,BAT-AAH,AA Battery Holder,Batteries,1,0.47,2.85,2.85,0.47,2.38,Alika,Marine,ACH,124
+HI063-TX-0032,HI063,Waimea Kauai,Kauai,HI,2026-06-30 17:12:00,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.35,13.05,52.20,17.40,34.80,Makana,Maker/Hobbyist,Purchase Order,305
+HI063-TX-0033,HI063,Waimea Kauai,Kauai,HI,2026-06-30 16:59:16,SOL-CTRL,Solar Charge Controller,Solar Power,1,10.19,34.36,34.36,10.19,24.17,Alika,Maker/Hobbyist,Debit Card,800
+HI063-TX-0034,HI063,Waimea Kauai,Kauai,HI,2026-06-30 14:50:47,SNS-ULT,Ultrasonic Distance Sensor,Sensors,8,1.26,5.45,43.60,10.08,33.52,Pualani,Government,Mobile Pay,758
+HI063-TX-0035,HI063,Waimea Kauai,Kauai,HI,2026-06-30 16:29:19,SNS-ULT,Ultrasonic Distance Sensor,Sensors,9,1.22,5.21,46.89,10.98,35.91,Leilani,Education,Purchase Order,186
+HI063-TX-0036,HI063,Waimea Kauai,Kauai,HI,2026-06-30 16:10:56,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.98,15.02,45.06,11.94,33.12,Kai,Marine,Mobile Pay,767
+HI063-TX-0037,HI063,Waimea Kauai,Kauai,HI,2026-06-30 13:53:48,RES-010,10k Ohm Resistor,Resistors,21,0.04,0.13,2.73,0.84,1.89,Malia,Marine,Debit Card,65
+HI063-TX-0038,HI063,Waimea Kauai,Kauai,HI,2026-06-30 16:49:35,SOL-CTRL,Solar Charge Controller,Solar Power,2,10.73,33.19,66.38,21.46,44.92,Ailani,Marine,Debit Card,169
+HI063-TX-0039,HI063,Waimea Kauai,Kauai,HI,2026-06-30 14:00:58,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.65,16.96,33.92,11.30,22.62,Lani,Maker/Hobbyist,Credit Card,814
+HI063-TX-0040,HI063,Waimea Kauai,Kauai,HI,2026-06-30 08:09:42,TOOL-WIRE,Wire Stripper,Tools,5,4.74,15.35,76.75,23.70,53.05,Noah,Maker/Hobbyist,Mobile Pay,846
+HI063-TX-0041,HI063,Waimea Kauai,Kauai,HI,2026-06-30 16:46:41,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.06,8.59,25.77,9.18,16.59,Mika,Education,ACH,44
+HI063-TX-0042,HI063,Waimea Kauai,Kauai,HI,2026-06-30 13:13:31,SOL-CTRL,Solar Charge Controller,Solar Power,5,10.51,34.22,171.10,52.55,118.55,Akamu,Marine,Purchase Order,460
+HI063-TX-0043,HI063,Waimea Kauai,Kauai,HI,2026-06-30 17:30:36,SNS-ULT,Ultrasonic Distance Sensor,Sensors,17,1.28,5.30,90.10,21.76,68.34,Akamu,Marine,Purchase Order,861
+HI063-TX-0044,HI063,Waimea Kauai,Kauai,HI,2026-06-30 13:11:51,CON-JMP,Jumper Wire Set,Connectors,34,0.98,3.69,125.46,33.32,92.14,Ailani,Education,Debit Card,662
+HI063-TX-0045,HI063,Waimea Kauai,Kauai,HI,2026-06-30 11:45:56,PWR-5V2,5V 2A Power Supply,Power,6,3.67,10.69,64.14,22.02,42.12,Leilani,Government,Purchase Order,138
+HI063-TX-0046,HI063,Waimea Kauai,Kauai,HI,2026-06-30 15:41:21,MOS-44N,IRFZ44N MOSFET,Semiconductors,11,0.63,2.56,28.16,6.93,21.23,Akamu,Education,Cash,760
+HI063-TX-0047,HI063,Waimea Kauai,Kauai,HI,2026-06-30 09:18:31,PWR-5V2,5V 2A Power Supply,Power,5,3.79,10.89,54.45,18.95,35.50,Lani,Commercial,Cash,576
+HI063-TX-0048,HI063,Waimea Kauai,Kauai,HI,2026-06-30 15:32:33,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.98,13.53,54.12,19.92,34.20,Iolana,Commercial,Cash,451
+HI063-TX-0049,HI063,Waimea Kauai,Kauai,HI,2026-06-30 12:44:30,CON-JMP,Jumper Wire Set,Connectors,39,0.91,3.95,154.05,35.49,118.56,Mika,Maker/Hobbyist,Cash,98
+HI063-TX-0050,HI063,Waimea Kauai,Kauai,HI,2026-06-30 10:47:46,PWR-12V,12V 5A Power Supply,Power,8,9.17,25.75,206.00,73.36,132.64,Makana,Government,Credit Card,609
+HI063-TX-0051,HI063,Waimea Kauai,Kauai,HI,2026-06-30 17:22:20,PWR-5V2,5V 2A Power Supply,Power,4,3.60,11.48,45.92,14.40,31.52,Kai,Commercial,Debit Card,707
+HI063-TX-0052,HI063,Waimea Kauai,Kauai,HI,2026-06-30 10:56:38,RES-010,10k Ohm Resistor,Resistors,35,0.03,0.13,4.55,1.05,3.50,Mika,Tourism/Hospitality,Credit Card,346
+HI063-TX-0053,HI063,Waimea Kauai,Kauai,HI,2026-06-30 12:07:04,TR-3904,2N3904 NPN Transistor,Semiconductors,40,0.06,0.25,10.00,2.40,7.60,Akamu,Tourism/Hospitality,Mobile Pay,187
+HI063-TX-0054,HI063,Waimea Kauai,Kauai,HI,2026-06-30 12:07:57,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,3.75,13.32,26.64,7.50,19.14,Leilani,Marine,Credit Card,807
+HI063-TX-0055,HI063,Waimea Kauai,Kauai,HI,2026-06-30 11:17:42,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,8.57,26.38,211.04,68.56,142.48,Akamu,Government,Mobile Pay,810
+HI063-TX-0056,HI063,Waimea Kauai,Kauai,HI,2026-06-30 13:49:57,DIO-4007,1N4007 Diode,Semiconductors,29,0.05,0.19,5.51,1.45,4.06,Keanu,Government,Mobile Pay,786
+HI063-TX-0057,HI063,Waimea Kauai,Kauai,HI,2026-06-30 11:43:06,TOOL-DMM,Digital Multimeter,Tools,5,8.38,28.39,141.95,41.90,100.05,Kaleo,Tourism/Hospitality,Mobile Pay,433
+HI063-TX-0058,HI063,Waimea Kauai,Kauai,HI,2026-06-30 16:43:05,SOL-CTRL,Solar Charge Controller,Solar Power,4,11.00,31.74,126.96,44.00,82.96,Kaleo,Education,Debit Card,629
+HI063-TX-0059,HI063,Waimea Kauai,Kauai,HI,2026-06-30 10:30:23,SNS-SOIL,Soil Moisture Sensor,Sensors,33,0.93,4.53,149.49,30.69,118.80,Makana,Marine,Mobile Pay,826
+HI063-TX-0060,HI063,Waimea Kauai,Kauai,HI,2026-06-30 13:47:09,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.08,31.66,126.64,40.32,86.32,Kaleo,Education,Debit Card,318
+HI063-TX-0061,HI063,Waimea Kauai,Kauai,HI,2026-06-30 13:29:26,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,36,0.04,0.19,6.84,1.44,5.40,Lani,Retail,Cash,498
+HI063-TX-0062,HI063,Waimea Kauai,Kauai,HI,2026-06-30 13:08:26,IC-358,LM358 Op Amp,Integrated Circuits,22,0.31,1.26,27.72,6.82,20.90,Noah,Education,Purchase Order,160
+HI063-TX-0063,HI063,Waimea Kauai,Kauai,HI,2026-06-30 10:27:15,PWR-5V2,5V 2A Power Supply,Power,3,3.41,11.32,33.96,10.23,23.73,Ailani,Maker/Hobbyist,Debit Card,282
+HI063-TX-0064,HI063,Waimea Kauai,Kauai,HI,2026-06-30 09:13:53,USB-CBO,USB-C Breakout Board,Connectors,16,1.45,5.33,85.28,23.20,62.08,Nalu,Marine,Debit Card,23
+HI063-TX-0065,HI063,Waimea Kauai,Kauai,HI,2026-06-30 13:32:24,RES-220,220 Ohm Resistor,Resistors,9,0.03,0.13,1.17,0.27,0.90,Akamu,Retail,Debit Card,325
+HI063-TX-0066,HI063,Waimea Kauai,Kauai,HI,2026-06-30 10:46:55,RES-001,1k Ohm Resistor,Resistors,28,0.03,0.13,3.64,0.84,2.80,Ikaika,Maker/Hobbyist,ACH,701
+HI063-TX-0067,HI063,Waimea Kauai,Kauai,HI,2026-06-30 14:23:44,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,8.70,27.66,138.30,43.50,94.80,Noah,Maker/Hobbyist,Cash,406
+HI063-TX-0068,HI063,Waimea Kauai,Kauai,HI,2026-06-30 16:35:48,LED-RGB,RGB LED Strip,LEDs,6,4.81,14.13,84.78,28.86,55.92,Nalu,Government,Mobile Pay,574
+HI063-TX-0069,HI063,Waimea Kauai,Kauai,HI,2026-06-30 15:15:02,TOOL-WIRE,Wire Stripper,Tools,8,5.19,14.27,114.16,41.52,72.64,Koa,Government,ACH,565
+HI063-TX-0070,HI063,Waimea Kauai,Kauai,HI,2026-06-30 09:46:34,PWR-5V2,5V 2A Power Supply,Power,6,3.69,10.28,61.68,22.14,39.54,Iolana,Commercial,Mobile Pay,87
+HI063-TX-0071,HI063,Waimea Kauai,Kauai,HI,2026-06-30 09:11:12,IC-REG,7805 Voltage Regulator,Integrated Circuits,25,0.19,0.98,24.50,4.75,19.75,Iolana,Commercial,ACH,139
+HI063-TX-0072,HI063,Waimea Kauai,Kauai,HI,2026-06-30 09:27:34,BAT-AAH,AA Battery Holder,Batteries,15,0.49,2.74,41.10,7.35,33.75,Akamu,Tourism/Hospitality,Purchase Order,198
+HI063-TX-0073,HI063,Waimea Kauai,Kauai,HI,2026-06-30 17:07:52,LED-RGB,RGB LED Strip,LEDs,2,5.28,14.04,28.08,10.56,17.52,Ikaika,Maker/Hobbyist,Credit Card,614
+HI063-TX-0074,HI063,Waimea Kauai,Kauai,HI,2026-06-30 16:17:19,TOOL-SOL,Soldering Iron Tips,Tools,7,2.12,7.71,53.97,14.84,39.13,Noelani,Maker/Hobbyist,Cash,35
+HI063-TX-0075,HI063,Waimea Kauai,Kauai,HI,2026-06-30 09:54:23,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.72,14.47,28.94,9.44,19.50,Noelani,Retail,Purchase Order,849
+HI063-TX-0076,HI063,Waimea Kauai,Kauai,HI,2026-06-30 11:36:19,PWR-5V2,5V 2A Power Supply,Power,5,3.46,11.10,55.50,17.30,38.20,Kaleo,Retail,Debit Card,348
+HI063-TX-0077,HI063,Waimea Kauai,Kauai,HI,2026-06-30 10:15:07,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,8.39,21.31,170.48,67.12,103.36,Noah,Commercial,Debit Card,835
+HI063-TX-0078,HI063,Waimea Kauai,Kauai,HI,2026-06-30 12:05:01,LED-RED,5mm Red LED,LEDs,17,0.06,0.28,4.76,1.02,3.74,Koa,Marine,Debit Card,518
+HI063-TX-0079,HI063,Waimea Kauai,Kauai,HI,2026-06-30 15:30:25,BAT-AAH,AA Battery Holder,Batteries,8,0.52,2.74,21.92,4.16,17.76,Mika,Commercial,Credit Card,310

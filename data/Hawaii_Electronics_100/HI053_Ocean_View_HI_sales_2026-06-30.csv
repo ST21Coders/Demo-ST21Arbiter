@@ -1,0 +1,98 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI053-TX-0001,HI053,Ocean View,Hawaii Island,HI,2026-06-30 09:38:01,IC-555,NE555 Timer IC,Integrated Circuits,37,0.36,1.43,52.91,13.32,39.59,Kai,Retail,Cash,843
+HI053-TX-0002,HI053,Ocean View,Hawaii Island,HI,2026-06-30 11:40:26,MOS-44N,IRFZ44N MOSFET,Semiconductors,34,0.64,2.39,81.26,21.76,59.50,Lani,Retail,Debit Card,99
+HI053-TX-0003,HI053,Ocean View,Hawaii Island,HI,2026-06-30 14:27:56,CAP-100,100uF Capacitor,Capacitors,3,0.18,0.64,1.92,0.54,1.38,Lani,Commercial,ACH,566
+HI053-TX-0004,HI053,Ocean View,Hawaii Island,HI,2026-06-30 12:21:36,CAP-010,10uF Capacitor,Capacitors,13,0.09,0.40,5.20,1.17,4.03,Leilani,Marine,ACH,563
+HI053-TX-0005,HI053,Ocean View,Hawaii Island,HI,2026-06-30 16:18:42,SNS-ULT,Ultrasonic Distance Sensor,Sensors,19,1.27,5.37,102.03,24.13,77.90,Ikaika,Commercial,ACH,615
+HI053-TX-0006,HI053,Ocean View,Hawaii Island,HI,2026-06-30 16:35:36,CAP-100,100uF Capacitor,Capacitors,40,0.16,0.60,24.00,6.40,17.60,Noelani,Marine,Mobile Pay,264
+HI053-TX-0007,HI053,Ocean View,Hawaii Island,HI,2026-06-30 09:40:34,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.49,7.20,57.60,19.92,37.68,Keahi,Retail,Purchase Order,178
+HI053-TX-0008,HI053,Ocean View,Hawaii Island,HI,2026-06-30 16:38:19,SNS-PIR,PIR Motion Sensor,Sensors,7,1.46,5.64,39.48,10.22,29.26,Ikaika,Maker/Hobbyist,Cash,206
+HI053-TX-0009,HI053,Ocean View,Hawaii Island,HI,2026-06-30 17:53:43,SNS-ULT,Ultrasonic Distance Sensor,Sensors,18,1.23,5.26,94.68,22.14,72.54,Hana,Tourism/Hospitality,Mobile Pay,268
+HI053-TX-0010,HI053,Ocean View,Hawaii Island,HI,2026-06-30 10:20:01,PWR-5V2,5V 2A Power Supply,Power,3,3.81,10.44,31.32,11.43,19.89,Alika,Retail,Purchase Order,680
+HI053-TX-0011,HI053,Ocean View,Hawaii Island,HI,2026-06-30 15:21:49,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.98,13.46,80.76,29.88,50.88,Koa,Retail,Mobile Pay,387
+HI053-TX-0012,HI053,Ocean View,Hawaii Island,HI,2026-06-30 17:34:04,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.44,8.84,61.88,24.08,37.80,Koa,Retail,Purchase Order,94
+HI053-TX-0013,HI053,Ocean View,Hawaii Island,HI,2026-06-30 12:36:39,SNS-SOIL,Soil Moisture Sensor,Sensors,27,0.90,4.23,114.21,24.30,89.91,Makana,Government,ACH,254
+HI053-TX-0014,HI053,Ocean View,Hawaii Island,HI,2026-06-30 10:07:59,IC-358,LM358 Op Amp,Integrated Circuits,10,0.30,1.19,11.90,3.00,8.90,Akamu,Maker/Hobbyist,Cash,341
+HI053-TX-0015,HI053,Ocean View,Hawaii Island,HI,2026-06-30 09:49:15,SOL-CTRL,Solar Charge Controller,Solar Power,6,11.33,34.56,207.36,67.98,139.38,Koa,Maker/Hobbyist,Mobile Pay,28
+HI053-TX-0016,HI053,Ocean View,Hawaii Island,HI,2026-06-30 15:29:41,MOS-44N,IRFZ44N MOSFET,Semiconductors,38,0.60,2.32,88.16,22.80,65.36,Iolana,Government,Purchase Order,675
+HI053-TX-0017,HI053,Ocean View,Hawaii Island,HI,2026-06-30 13:17:17,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.47,6.54,32.70,7.35,25.35,Kaleo,Maker/Hobbyist,Debit Card,399
+HI053-TX-0018,HI053,Ocean View,Hawaii Island,HI,2026-06-30 10:52:56,REL-5V,5V Relay Module,Relays,25,0.99,5.63,140.75,24.75,116.00,Ailani,Commercial,Purchase Order,753
+HI053-TX-0019,HI053,Ocean View,Hawaii Island,HI,2026-06-30 13:09:22,SNS-DHT,DHT22 Temperature Sensor,Sensors,4,2.63,7.73,30.92,10.52,20.40,Nalu,Tourism/Hospitality,Credit Card,520
+HI053-TX-0020,HI053,Ocean View,Hawaii Island,HI,2026-06-30 16:13:02,SNS-PIR,PIR Motion Sensor,Sensors,6,1.53,6.22,37.32,9.18,28.14,Leilani,Marine,Credit Card,868
+HI053-TX-0021,HI053,Ocean View,Hawaii Island,HI,2026-06-30 09:11:45,SNS-SOIL,Soil Moisture Sensor,Sensors,15,0.90,4.60,69.00,13.50,55.50,Keanu,Government,Purchase Order,857
+HI053-TX-0022,HI053,Ocean View,Hawaii Island,HI,2026-06-30 08:35:39,RES-220,220 Ohm Resistor,Resistors,37,0.03,0.13,4.81,1.11,3.70,Kai,Maker/Hobbyist,Credit Card,231
+HI053-TX-0023,HI053,Ocean View,Hawaii Island,HI,2026-06-30 12:29:11,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.34,8.15,57.05,23.38,33.67,Noah,Government,Debit Card,191
+HI053-TX-0024,HI053,Ocean View,Hawaii Island,HI,2026-06-30 10:57:47,SOL-CTRL,Solar Charge Controller,Solar Power,3,10.79,34.36,103.08,32.37,70.71,Pualani,Government,Cash,186
+HI053-TX-0025,HI053,Ocean View,Hawaii Island,HI,2026-06-30 08:23:08,PWR-5V2,5V 2A Power Supply,Power,6,3.35,11.37,68.22,20.10,48.12,Ailani,Government,Debit Card,720
+HI053-TX-0026,HI053,Ocean View,Hawaii Island,HI,2026-06-30 08:29:30,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.63,6.93,13.86,3.26,10.60,Akamu,Government,Credit Card,196
+HI053-TX-0027,HI053,Ocean View,Hawaii Island,HI,2026-06-30 17:41:15,RES-220,220 Ohm Resistor,Resistors,26,0.03,0.13,3.38,0.78,2.60,Alika,Tourism/Hospitality,Mobile Pay,502
+HI053-TX-0028,HI053,Ocean View,Hawaii Island,HI,2026-06-30 10:19:36,PWR-BUCK,Buck Converter Module,Power,26,1.04,4.71,122.46,27.04,95.42,Noah,Retail,Mobile Pay,146
+HI053-TX-0029,HI053,Ocean View,Hawaii Island,HI,2026-06-30 09:12:30,LED-RGB,RGB LED Strip,LEDs,2,4.86,14.95,29.90,9.72,20.18,Ikaika,Government,Credit Card,296
+HI053-TX-0030,HI053,Ocean View,Hawaii Island,HI,2026-06-30 08:15:12,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.47,32.72,229.04,73.29,155.75,Nalu,Marine,Cash,778
+HI053-TX-0031,HI053,Ocean View,Hawaii Island,HI,2026-06-30 11:16:01,PWR-5V2,5V 2A Power Supply,Power,7,3.71,10.32,72.24,25.97,46.27,Malia,Commercial,Mobile Pay,575
+HI053-TX-0032,HI053,Ocean View,Hawaii Island,HI,2026-06-30 15:39:55,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.89,14.86,89.16,29.34,59.82,Akamu,Tourism/Hospitality,Credit Card,97
+HI053-TX-0033,HI053,Ocean View,Hawaii Island,HI,2026-06-30 09:46:11,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.38,13.10,91.70,30.66,61.04,Leilani,Commercial,Cash,526
+HI053-TX-0034,HI053,Ocean View,Hawaii Island,HI,2026-06-30 08:27:01,PWR-12V,12V 5A Power Supply,Power,2,8.90,23.99,47.98,17.80,30.18,Malia,Tourism/Hospitality,Cash,576
+HI053-TX-0035,HI053,Ocean View,Hawaii Island,HI,2026-06-30 13:20:46,IC-358,LM358 Op Amp,Integrated Circuits,9,0.32,1.15,10.35,2.88,7.47,Noah,Marine,Debit Card,846
+HI053-TX-0036,HI053,Ocean View,Hawaii Island,HI,2026-06-30 17:58:57,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.48,6.38,31.90,7.40,24.50,Leilani,Retail,Purchase Order,579
+HI053-TX-0037,HI053,Ocean View,Hawaii Island,HI,2026-06-30 12:46:08,PWR-5V2,5V 2A Power Supply,Power,6,3.72,10.85,65.10,22.32,42.78,Pualani,Retail,ACH,806
+HI053-TX-0038,HI053,Ocean View,Hawaii Island,HI,2026-06-30 10:35:00,SOL-CTRL,Solar Charge Controller,Solar Power,7,11.24,31.67,221.69,78.68,143.01,Alika,Government,ACH,760
+HI053-TX-0039,HI053,Ocean View,Hawaii Island,HI,2026-06-30 10:16:23,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,9.06,26.48,105.92,36.24,69.68,Keanu,Government,ACH,199
+HI053-TX-0040,HI053,Ocean View,Hawaii Island,HI,2026-06-30 13:16:02,IC-REG,7805 Voltage Regulator,Integrated Circuits,29,0.19,0.98,28.42,5.51,22.91,Nalu,Marine,Purchase Order,72
+HI053-TX-0041,HI053,Ocean View,Hawaii Island,HI,2026-06-30 14:27:17,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.23,15.81,79.05,26.15,52.90,Kai,Tourism/Hospitality,Mobile Pay,895
+HI053-TX-0042,HI053,Ocean View,Hawaii Island,HI,2026-06-30 11:32:55,SNS-ULT,Ultrasonic Distance Sensor,Sensors,6,1.34,5.59,33.54,8.04,25.50,Leilani,Commercial,Credit Card,60
+HI053-TX-0043,HI053,Ocean View,Hawaii Island,HI,2026-06-30 10:49:34,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.62,13.93,97.51,32.34,65.17,Noelani,Government,Mobile Pay,50
+HI053-TX-0044,HI053,Ocean View,Hawaii Island,HI,2026-06-30 12:35:29,PWR-5V2,5V 2A Power Supply,Power,1,3.63,10.28,10.28,3.63,6.65,Nalu,Government,Debit Card,740
+HI053-TX-0045,HI053,Ocean View,Hawaii Island,HI,2026-06-30 09:33:12,SNS-PIR,PIR Motion Sensor,Sensors,5,1.64,5.71,28.55,8.20,20.35,Makana,Government,Debit Card,156
+HI053-TX-0046,HI053,Ocean View,Hawaii Island,HI,2026-06-30 14:01:26,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.63,6.36,50.88,13.04,37.84,Makana,Education,Credit Card,21
+HI053-TX-0047,HI053,Ocean View,Hawaii Island,HI,2026-06-30 17:26:15,SNS-ULT,Ultrasonic Distance Sensor,Sensors,10,1.26,5.78,57.80,12.60,45.20,Alika,Maker/Hobbyist,Cash,48
+HI053-TX-0048,HI053,Ocean View,Hawaii Island,HI,2026-06-30 14:02:52,PWR-12V,12V 5A Power Supply,Power,5,9.63,25.99,129.95,48.15,81.80,Makana,Tourism/Hospitality,Debit Card,213
+HI053-TX-0049,HI053,Ocean View,Hawaii Island,HI,2026-06-30 15:02:19,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.36,22.13,44.26,16.72,27.54,Kaleo,Government,Credit Card,511
+HI053-TX-0050,HI053,Ocean View,Hawaii Island,HI,2026-06-30 15:38:48,PICO-RP,Raspberry Pi Pico,Microcontrollers,8,3.31,8.99,71.92,26.48,45.44,Lani,Marine,Purchase Order,811
+HI053-TX-0051,HI053,Ocean View,Hawaii Island,HI,2026-06-30 16:59:05,RES-010,10k Ohm Resistor,Resistors,10,0.04,0.13,1.30,0.40,0.90,Kaleo,Retail,Purchase Order,520
+HI053-TX-0052,HI053,Ocean View,Hawaii Island,HI,2026-06-30 10:51:19,CAP-100,100uF Capacitor,Capacitors,17,0.16,0.60,10.20,2.72,7.48,Pualani,Commercial,Cash,28
+HI053-TX-0053,HI053,Ocean View,Hawaii Island,HI,2026-06-30 08:01:20,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.43,7.40,14.80,4.86,9.94,Makana,Retail,Debit Card,519
+HI053-TX-0054,HI053,Ocean View,Hawaii Island,HI,2026-06-30 09:27:31,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.41,14.65,58.60,17.64,40.96,Ikaika,Retail,Mobile Pay,784
+HI053-TX-0055,HI053,Ocean View,Hawaii Island,HI,2026-06-30 15:04:19,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.29,8.75,43.75,16.45,27.30,Makana,Retail,Mobile Pay,613
+HI053-TX-0056,HI053,Ocean View,Hawaii Island,HI,2026-06-30 17:36:50,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,11,0.04,0.19,2.09,0.44,1.65,Keanu,Tourism/Hospitality,Mobile Pay,543
+HI053-TX-0057,HI053,Ocean View,Hawaii Island,HI,2026-06-30 09:27:17,LED-RED,5mm Red LED,LEDs,35,0.05,0.27,9.45,1.75,7.70,Kai,Marine,ACH,678
+HI053-TX-0058,HI053,Ocean View,Hawaii Island,HI,2026-06-30 09:22:18,SNS-ULT,Ultrasonic Distance Sensor,Sensors,9,1.28,5.64,50.76,11.52,39.24,Makana,Education,Cash,687
+HI053-TX-0059,HI053,Ocean View,Hawaii Island,HI,2026-06-30 09:58:32,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.99,14.94,119.52,31.92,87.60,Makana,Marine,ACH,514
+HI053-TX-0060,HI053,Ocean View,Hawaii Island,HI,2026-06-30 11:03:34,RES-001,1k Ohm Resistor,Resistors,38,0.03,0.12,4.56,1.14,3.42,Alika,Retail,Cash,599
+HI053-TX-0061,HI053,Ocean View,Hawaii Island,HI,2026-06-30 13:29:30,SNS-ULT,Ultrasonic Distance Sensor,Sensors,14,1.27,5.34,74.76,17.78,56.98,Keanu,Retail,Debit Card,619
+HI053-TX-0062,HI053,Ocean View,Hawaii Island,HI,2026-06-30 15:49:13,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.43,16.41,82.05,27.15,54.90,Leilani,Commercial,Credit Card,637
+HI053-TX-0063,HI053,Ocean View,Hawaii Island,HI,2026-06-30 12:57:05,RES-010,10k Ohm Resistor,Resistors,4,0.04,0.14,0.56,0.16,0.40,Ikaika,Tourism/Hospitality,Credit Card,75
+HI053-TX-0064,HI053,Ocean View,Hawaii Island,HI,2026-06-30 10:57:11,SNS-PIR,PIR Motion Sensor,Sensors,6,1.48,5.78,34.68,8.88,25.80,Keahi,Marine,Debit Card,886
+HI053-TX-0065,HI053,Ocean View,Hawaii Island,HI,2026-06-30 17:21:37,CAP-100,100uF Capacitor,Capacitors,26,0.16,0.58,15.08,4.16,10.92,Ikaika,Commercial,ACH,338
+HI053-TX-0066,HI053,Ocean View,Hawaii Island,HI,2026-06-30 08:55:21,TOOL-WIRE,Wire Stripper,Tools,1,5.11,16.05,16.05,5.11,10.94,Iolana,Tourism/Hospitality,Mobile Pay,671
+HI053-TX-0067,HI053,Ocean View,Hawaii Island,HI,2026-06-30 16:54:02,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.09,21.36,64.08,24.27,39.81,Hana,Tourism/Hospitality,Mobile Pay,253
+HI053-TX-0068,HI053,Ocean View,Hawaii Island,HI,2026-06-30 12:17:30,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.39,8.58,8.58,3.39,5.19,Ailani,Tourism/Hospitality,ACH,693
+HI053-TX-0069,HI053,Ocean View,Hawaii Island,HI,2026-06-30 16:10:19,LED-BLU,5mm Blue LED,LEDs,35,0.07,0.34,11.90,2.45,9.45,Lani,Tourism/Hospitality,Mobile Pay,724
+HI053-TX-0070,HI053,Ocean View,Hawaii Island,HI,2026-06-30 13:29:30,PWR-BUCK,Buck Converter Module,Power,2,1.07,4.81,9.62,2.14,7.48,Ikaika,Tourism/Hospitality,Debit Card,28
+HI053-TX-0071,HI053,Ocean View,Hawaii Island,HI,2026-06-30 14:35:09,SNS-SOIL,Soil Moisture Sensor,Sensors,3,0.95,4.54,13.62,2.85,10.77,Leilani,Government,Credit Card,254
+HI053-TX-0072,HI053,Ocean View,Hawaii Island,HI,2026-06-30 08:25:42,PWR-12V,12V 5A Power Supply,Power,6,9.36,26.04,156.24,56.16,100.08,Ikaika,Commercial,ACH,520
+HI053-TX-0073,HI053,Ocean View,Hawaii Island,HI,2026-06-30 17:35:29,CON-JMP,Jumper Wire Set,Connectors,8,0.98,3.79,30.32,7.84,22.48,Kaleo,Tourism/Hospitality,Cash,797
+HI053-TX-0074,HI053,Ocean View,Hawaii Island,HI,2026-06-30 14:35:52,PWR-BUCK,Buck Converter Module,Power,36,0.98,4.75,171.00,35.28,135.72,Ikaika,Commercial,Debit Card,50
+HI053-TX-0075,HI053,Ocean View,Hawaii Island,HI,2026-06-30 16:33:24,PWR-BUCK,Buck Converter Module,Power,26,1.04,4.79,124.54,27.04,97.50,Akamu,Government,Purchase Order,239
+HI053-TX-0076,HI053,Ocean View,Hawaii Island,HI,2026-06-30 10:57:33,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.90,13.77,27.54,9.80,17.74,Ikaika,Education,Cash,699
+HI053-TX-0077,HI053,Ocean View,Hawaii Island,HI,2026-06-30 11:36:41,SOL-CTRL,Solar Charge Controller,Solar Power,1,10.94,34.10,34.10,10.94,23.16,Kai,Tourism/Hospitality,Credit Card,623
+HI053-TX-0078,HI053,Ocean View,Hawaii Island,HI,2026-06-30 12:29:01,DIO-4007,1N4007 Diode,Semiconductors,10,0.05,0.20,2.00,0.50,1.50,Noelani,Retail,Credit Card,494
+HI053-TX-0079,HI053,Ocean View,Hawaii Island,HI,2026-06-30 13:03:27,MOS-44N,IRFZ44N MOSFET,Semiconductors,6,0.59,2.34,14.04,3.54,10.50,Iolana,Retail,Credit Card,450
+HI053-TX-0080,HI053,Ocean View,Hawaii Island,HI,2026-06-30 10:36:15,SNS-SOIL,Soil Moisture Sensor,Sensors,5,0.88,4.08,20.40,4.40,16.00,Keanu,Retail,Debit Card,361
+HI053-TX-0081,HI053,Ocean View,Hawaii Island,HI,2026-06-30 16:15:29,SNS-SOIL,Soil Moisture Sensor,Sensors,18,0.93,4.54,81.72,16.74,64.98,Malia,Retail,Purchase Order,562
+HI053-TX-0082,HI053,Ocean View,Hawaii Island,HI,2026-06-30 11:05:18,PWR-BUCK,Buck Converter Module,Power,13,1.04,5.15,66.95,13.52,53.43,Makana,Government,Purchase Order,337
+HI053-TX-0083,HI053,Ocean View,Hawaii Island,HI,2026-06-30 08:24:55,SOL-CTRL,Solar Charge Controller,Solar Power,1,11.30,33.79,33.79,11.30,22.49,Iolana,Government,Credit Card,108
+HI053-TX-0084,HI053,Ocean View,Hawaii Island,HI,2026-06-30 11:35:38,TOOL-SOL,Soldering Iron Tips,Tools,1,1.86,7.53,7.53,1.86,5.67,Keanu,Marine,Credit Card,601
+HI053-TX-0085,HI053,Ocean View,Hawaii Island,HI,2026-06-30 16:25:03,PWR-12V,12V 5A Power Supply,Power,4,9.02,26.23,104.92,36.08,68.84,Ailani,Maker/Hobbyist,Mobile Pay,331
+HI053-TX-0086,HI053,Ocean View,Hawaii Island,HI,2026-06-30 13:41:08,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.08,8.33,16.66,6.16,10.50,Makana,Tourism/Hospitality,ACH,728
+HI053-TX-0087,HI053,Ocean View,Hawaii Island,HI,2026-06-30 17:30:05,PWR-12V,12V 5A Power Supply,Power,6,9.70,23.56,141.36,58.20,83.16,Noah,Education,Purchase Order,309
+HI053-TX-0088,HI053,Ocean View,Hawaii Island,HI,2026-06-30 14:12:21,CON-JMP,Jumper Wire Set,Connectors,13,0.98,4.00,52.00,12.74,39.26,Keahi,Government,Debit Card,796
+HI053-TX-0089,HI053,Ocean View,Hawaii Island,HI,2026-06-30 11:27:51,LED-BLU,5mm Blue LED,LEDs,39,0.07,0.31,12.09,2.73,9.36,Pualani,Marine,Mobile Pay,71
+HI053-TX-0090,HI053,Ocean View,Hawaii Island,HI,2026-06-30 15:29:04,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.40,8.92,62.44,23.80,38.64,Mika,Commercial,ACH,355
+HI053-TX-0091,HI053,Ocean View,Hawaii Island,HI,2026-06-30 12:59:30,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.81,14.21,28.42,9.62,18.80,Malia,Maker/Hobbyist,Debit Card,421
+HI053-TX-0092,HI053,Ocean View,Hawaii Island,HI,2026-06-30 17:19:50,PWR-5V2,5V 2A Power Supply,Power,7,3.65,10.74,75.18,25.55,49.63,Ikaika,Commercial,Debit Card,305
+HI053-TX-0093,HI053,Ocean View,Hawaii Island,HI,2026-06-30 08:45:24,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.70,13.66,95.62,25.90,69.72,Nalu,Education,Credit Card,576
+HI053-TX-0094,HI053,Ocean View,Hawaii Island,HI,2026-06-30 11:36:20,USB-CBO,USB-C Breakout Board,Connectors,33,1.32,5.17,170.61,43.56,127.05,Noah,Tourism/Hospitality,ACH,609
+HI053-TX-0095,HI053,Ocean View,Hawaii Island,HI,2026-06-30 12:27:00,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.95,15.02,30.04,9.90,20.14,Koa,Education,Debit Card,513
+HI053-TX-0096,HI053,Ocean View,Hawaii Island,HI,2026-06-30 12:47:26,SNS-PIR,PIR Motion Sensor,Sensors,3,1.55,5.92,17.76,4.65,13.11,Kaleo,Government,Mobile Pay,769
+HI053-TX-0097,HI053,Ocean View,Hawaii Island,HI,2026-06-30 13:56:39,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.02,12.94,90.58,28.14,62.44,Iolana,Marine,Debit Card,325

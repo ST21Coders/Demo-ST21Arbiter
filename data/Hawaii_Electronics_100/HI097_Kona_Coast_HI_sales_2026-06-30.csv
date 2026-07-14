@@ -1,0 +1,58 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI097-TX-0001,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 12:00:56,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.21,33.68,269.44,89.68,179.76,Koa,Government,Purchase Order,86
+HI097-TX-0002,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 16:18:39,MOS-44N,IRFZ44N MOSFET,Semiconductors,9,0.61,2.31,20.79,5.49,15.30,Nalu,Education,Credit Card,862
+HI097-TX-0003,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 17:58:52,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,7.75,21.74,43.48,15.50,27.98,Hana,Education,Mobile Pay,117
+HI097-TX-0004,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 15:50:06,REL-5V,5V Relay Module,Relays,24,0.99,5.39,129.36,23.76,105.60,Ikaika,Tourism/Hospitality,ACH,42
+HI097-TX-0005,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 12:04:01,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.77,14.39,57.56,19.08,38.48,Ailani,Retail,Credit Card,846
+HI097-TX-0006,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 13:44:00,PWR-5V2,5V 2A Power Supply,Power,4,3.77,10.29,41.16,15.08,26.08,Malia,Commercial,ACH,761
+HI097-TX-0007,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 10:46:54,USB-CBO,USB-C Breakout Board,Connectors,32,1.32,5.42,173.44,42.24,131.20,Mika,Maker/Hobbyist,ACH,225
+HI097-TX-0008,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 13:50:27,IC-358,LM358 Op Amp,Integrated Circuits,8,0.30,1.22,9.76,2.40,7.36,Iolana,Maker/Hobbyist,Credit Card,501
+HI097-TX-0009,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 14:37:35,IC-REG,7805 Voltage Regulator,Integrated Circuits,32,0.20,0.94,30.08,6.40,23.68,Kai,Maker/Hobbyist,ACH,364
+HI097-TX-0010,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 14:42:17,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.88,33.00,132.00,43.52,88.48,Nalu,Maker/Hobbyist,ACH,201
+HI097-TX-0011,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 10:17:32,SNS-ULT,Ultrasonic Distance Sensor,Sensors,13,1.34,5.25,68.25,17.42,50.83,Nalu,Government,Credit Card,649
+HI097-TX-0012,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 15:39:45,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.59,6.43,12.86,3.18,9.68,Pualani,Retail,Mobile Pay,678
+HI097-TX-0013,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 14:13:55,IC-REG,7805 Voltage Regulator,Integrated Circuits,21,0.20,0.97,20.37,4.20,16.17,Nalu,Commercial,Cash,608
+HI097-TX-0014,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 09:01:48,RES-220,220 Ohm Resistor,Resistors,30,0.03,0.12,3.60,0.90,2.70,Kai,Education,Mobile Pay,636
+HI097-TX-0015,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 12:37:43,BAT-AAH,AA Battery Holder,Batteries,29,0.50,2.70,78.30,14.50,63.80,Malia,Government,ACH,139
+HI097-TX-0016,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 13:21:17,PWR-12V,12V 5A Power Supply,Power,6,9.92,23.53,141.18,59.52,81.66,Kaleo,Tourism/Hospitality,Debit Card,870
+HI097-TX-0017,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 15:32:28,REL-5V,5V Relay Module,Relays,8,0.99,5.15,41.20,7.92,33.28,Ikaika,Retail,Debit Card,475
+HI097-TX-0018,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 14:28:15,TOOL-SOL,Soldering Iron Tips,Tools,8,1.87,7.31,58.48,14.96,43.52,Hana,Marine,Debit Card,796
+HI097-TX-0019,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 14:38:51,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.02,13.34,40.02,12.06,27.96,Hana,Maker/Hobbyist,Debit Card,198
+HI097-TX-0020,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 08:54:05,IC-555,NE555 Timer IC,Integrated Circuits,32,0.34,1.35,43.20,10.88,32.32,Keanu,Education,Credit Card,213
+HI097-TX-0021,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 11:54:56,TOOL-DMM,Digital Multimeter,Tools,3,9.10,28.48,85.44,27.30,58.14,Alika,Government,ACH,114
+HI097-TX-0022,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 10:31:34,RES-001,1k Ohm Resistor,Resistors,34,0.03,0.14,4.76,1.02,3.74,Iolana,Commercial,Cash,636
+HI097-TX-0023,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 08:48:48,TR-3904,2N3904 NPN Transistor,Semiconductors,36,0.06,0.24,8.64,2.16,6.48,Koa,Maker/Hobbyist,Credit Card,7
+HI097-TX-0024,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 11:30:20,SNS-SOIL,Soil Moisture Sensor,Sensors,36,0.94,4.37,157.32,33.84,123.48,Hana,Government,Mobile Pay,764
+HI097-TX-0025,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 12:35:47,RES-220,220 Ohm Resistor,Resistors,27,0.03,0.12,3.24,0.81,2.43,Noah,Education,Mobile Pay,712
+HI097-TX-0026,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 12:57:22,SNS-ULT,Ultrasonic Distance Sensor,Sensors,2,1.31,5.26,10.52,2.62,7.90,Malia,Commercial,Purchase Order,126
+HI097-TX-0027,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 13:55:29,SNS-SOIL,Soil Moisture Sensor,Sensors,16,0.98,4.17,66.72,15.68,51.04,Keanu,Retail,Cash,78
+HI097-TX-0028,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 16:44:00,SNS-DHT,DHT22 Temperature Sensor,Sensors,6,2.46,7.98,47.88,14.76,33.12,Iolana,Tourism/Hospitality,Mobile Pay,139
+HI097-TX-0029,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 12:34:56,BAT-AAH,AA Battery Holder,Batteries,8,0.53,2.77,22.16,4.24,17.92,Makana,Education,Purchase Order,302
+HI097-TX-0030,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 11:14:10,TR-3904,2N3904 NPN Transistor,Semiconductors,21,0.05,0.23,4.83,1.05,3.78,Ikaika,Commercial,Debit Card,834
+HI097-TX-0031,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 14:07:01,SNS-SOIL,Soil Moisture Sensor,Sensors,27,0.91,4.45,120.15,24.57,95.58,Ailani,Marine,Purchase Order,589
+HI097-TX-0032,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 17:03:58,RES-220,220 Ohm Resistor,Resistors,20,0.03,0.12,2.40,0.60,1.80,Noelani,Tourism/Hospitality,ACH,280
+HI097-TX-0033,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 09:50:37,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.78,22.24,44.48,17.56,26.92,Keanu,Maker/Hobbyist,Mobile Pay,781
+HI097-TX-0034,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 15:32:02,BAT-AAH,AA Battery Holder,Batteries,2,0.52,2.83,5.66,1.04,4.62,Mika,Tourism/Hospitality,Debit Card,835
+HI097-TX-0035,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 11:02:33,PWR-12V,12V 5A Power Supply,Power,5,9.31,25.44,127.20,46.55,80.65,Iolana,Commercial,Debit Card,712
+HI097-TX-0036,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 15:27:08,LED-RED,5mm Red LED,LEDs,5,0.06,0.28,1.40,0.30,1.10,Kai,Maker/Hobbyist,Purchase Order,93
+HI097-TX-0037,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 16:47:18,MAR-TIN,Tinned Marine Wire,Marine Electronics,3,9.59,28.96,86.88,28.77,58.11,Mika,Education,Credit Card,409
+HI097-TX-0038,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 11:20:25,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,8.59,28.06,140.30,42.95,97.35,Ailani,Tourism/Hospitality,ACH,437
+HI097-TX-0039,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 08:12:47,SNS-PIR,PIR Motion Sensor,Sensors,3,1.55,5.84,17.52,4.65,12.87,Kai,Marine,Mobile Pay,200
+HI097-TX-0040,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 11:32:45,SNS-DHT,DHT22 Temperature Sensor,Sensors,6,2.42,7.21,43.26,14.52,28.74,Malia,Education,Purchase Order,356
+HI097-TX-0041,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 12:59:17,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.39,22.86,137.16,50.34,86.82,Ikaika,Commercial,Mobile Pay,257
+HI097-TX-0042,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 10:01:33,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.35,12.97,64.85,21.75,43.10,Lani,Marine,Debit Card,343
+HI097-TX-0043,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 08:49:55,LED-RGB,RGB LED Strip,LEDs,4,4.66,14.26,57.04,18.64,38.40,Leilani,Commercial,Purchase Order,472
+HI097-TX-0044,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 08:31:38,PWR-5V2,5V 2A Power Supply,Power,7,3.41,11.13,77.91,23.87,54.04,Kaleo,Maker/Hobbyist,Purchase Order,459
+HI097-TX-0045,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 09:44:05,SNS-PIR,PIR Motion Sensor,Sensors,2,1.54,5.90,11.80,3.08,8.72,Mika,Maker/Hobbyist,Debit Card,86
+HI097-TX-0046,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 12:14:17,DIO-4007,1N4007 Diode,Semiconductors,9,0.04,0.20,1.80,0.36,1.44,Mika,Education,Credit Card,200
+HI097-TX-0047,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 13:48:41,SNS-DHT,DHT22 Temperature Sensor,Sensors,4,2.46,7.35,29.40,9.84,19.56,Noelani,Commercial,ACH,60
+HI097-TX-0048,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 08:20:33,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,7.81,22.14,110.70,39.05,71.65,Hana,Retail,ACH,153
+HI097-TX-0049,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 13:56:59,TR-3904,2N3904 NPN Transistor,Semiconductors,8,0.06,0.22,1.76,0.48,1.28,Noah,Government,Purchase Order,17
+HI097-TX-0050,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 12:57:08,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.23,8.52,51.12,19.38,31.74,Noah,Maker/Hobbyist,Cash,853
+HI097-TX-0051,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 09:43:19,SNS-ULT,Ultrasonic Distance Sensor,Sensors,19,1.22,5.19,98.61,23.18,75.43,Noelani,Government,Cash,288
+HI097-TX-0052,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 12:09:24,SOL-CTRL,Solar Charge Controller,Solar Power,8,10.39,32.86,262.88,83.12,179.76,Noah,Maker/Hobbyist,Purchase Order,168
+HI097-TX-0053,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 10:18:38,PWR-12V,12V 5A Power Supply,Power,7,9.38,25.31,177.17,65.66,111.51,Makana,Commercial,Debit Card,115
+HI097-TX-0054,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 17:42:30,LED-RGB,RGB LED Strip,LEDs,1,4.66,13.96,13.96,4.66,9.30,Noah,Tourism/Hospitality,Debit Card,308
+HI097-TX-0055,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 13:41:51,BAT-LIPO,LiPo Battery Pack,Batteries,8,5.04,17.32,138.56,40.32,98.24,Akamu,Commercial,ACH,554
+HI097-TX-0056,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 09:25:18,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.28,9.20,46.00,16.40,29.60,Noelani,Government,ACH,335
+HI097-TX-0057,HI097,Kona Coast,Hawaii Island,HI,2026-06-30 17:05:26,IC-358,LM358 Op Amp,Integrated Circuits,33,0.33,1.21,39.93,10.89,29.04,Alika,Maker/Hobbyist,ACH,27

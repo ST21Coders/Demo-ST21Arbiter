@@ -1,0 +1,54 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI074-TX-0001,HI074,Manele,Lanai,HI,2026-06-30 15:41:43,MOS-44N,IRFZ44N MOSFET,Semiconductors,12,0.58,2.37,28.44,6.96,21.48,Makana,Maker/Hobbyist,ACH,505
+HI074-TX-0002,HI074,Manele,Lanai,HI,2026-06-30 13:20:13,BAT-LIPO,LiPo Battery Pack,Batteries,4,5.12,16.01,64.04,20.48,43.56,Ikaika,Retail,Debit Card,555
+HI074-TX-0003,HI074,Manele,Lanai,HI,2026-06-30 08:59:47,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,3.77,14.56,29.12,7.54,21.58,Noah,Tourism/Hospitality,Mobile Pay,866
+HI074-TX-0004,HI074,Manele,Lanai,HI,2026-06-30 13:52:45,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,4.09,13.82,82.92,24.54,58.38,Ailani,Maker/Hobbyist,Cash,97
+HI074-TX-0005,HI074,Manele,Lanai,HI,2026-06-30 16:40:24,IC-REG,7805 Voltage Regulator,Integrated Circuits,22,0.21,0.95,20.90,4.62,16.28,Iolana,Government,Debit Card,42
+HI074-TX-0006,HI074,Manele,Lanai,HI,2026-06-30 09:28:50,MAR-ANT,Marine Antenna Connector,Marine Electronics,5,3.67,13.36,66.80,18.35,48.45,Makana,Education,Purchase Order,55
+HI074-TX-0007,HI074,Manele,Lanai,HI,2026-06-30 10:54:38,CON-JMP,Jumper Wire Set,Connectors,15,1.00,3.65,54.75,15.00,39.75,Koa,Marine,ACH,105
+HI074-TX-0008,HI074,Manele,Lanai,HI,2026-06-30 08:48:36,PWR-5V2,5V 2A Power Supply,Power,8,3.61,10.85,86.80,28.88,57.92,Mika,Tourism/Hospitality,Cash,621
+HI074-TX-0009,HI074,Manele,Lanai,HI,2026-06-30 15:44:17,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,3.64,14.60,29.20,7.28,21.92,Ikaika,Education,Cash,707
+HI074-TX-0010,HI074,Manele,Lanai,HI,2026-06-30 10:12:44,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.79,14.08,70.40,23.95,46.45,Alika,Government,Debit Card,22
+HI074-TX-0011,HI074,Manele,Lanai,HI,2026-06-30 16:53:30,IC-555,NE555 Timer IC,Integrated Circuits,19,0.35,1.37,26.03,6.65,19.38,Keahi,Marine,Credit Card,166
+HI074-TX-0012,HI074,Manele,Lanai,HI,2026-06-30 15:23:32,IC-555,NE555 Timer IC,Integrated Circuits,35,0.35,1.33,46.55,12.25,34.30,Ikaika,Retail,ACH,890
+HI074-TX-0013,HI074,Manele,Lanai,HI,2026-06-30 13:49:13,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,8.50,25.86,155.16,51.00,104.16,Malia,Government,Cash,694
+HI074-TX-0014,HI074,Manele,Lanai,HI,2026-06-30 12:25:02,IC-555,NE555 Timer IC,Integrated Circuits,21,0.37,1.41,29.61,7.77,21.84,Kaleo,Education,Cash,882
+HI074-TX-0015,HI074,Manele,Lanai,HI,2026-06-30 08:05:36,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.70,13.59,95.13,25.90,69.23,Pualani,Maker/Hobbyist,ACH,810
+HI074-TX-0016,HI074,Manele,Lanai,HI,2026-06-30 09:07:39,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.69,14.10,112.80,29.52,83.28,Noah,Marine,Cash,607
+HI074-TX-0017,HI074,Manele,Lanai,HI,2026-06-30 17:41:14,LED-RGB,RGB LED Strip,LEDs,6,5.03,14.41,86.46,30.18,56.28,Noelani,Tourism/Hospitality,Mobile Pay,875
+HI074-TX-0018,HI074,Manele,Lanai,HI,2026-06-30 13:07:05,MOS-44N,IRFZ44N MOSFET,Semiconductors,36,0.60,2.38,85.68,21.60,64.08,Pualani,Tourism/Hospitality,Cash,653
+HI074-TX-0019,HI074,Manele,Lanai,HI,2026-06-30 15:49:25,SNS-ULT,Ultrasonic Distance Sensor,Sensors,20,1.36,5.50,110.00,27.20,82.80,Nalu,Maker/Hobbyist,Cash,646
+HI074-TX-0020,HI074,Manele,Lanai,HI,2026-06-30 09:40:25,PWR-12V,12V 5A Power Supply,Power,7,10.01,25.99,181.93,70.07,111.86,Makana,Marine,Cash,202
+HI074-TX-0021,HI074,Manele,Lanai,HI,2026-06-30 10:59:08,PWR-BUCK,Buck Converter Module,Power,35,1.04,5.20,182.00,36.40,145.60,Mika,Marine,Debit Card,654
+HI074-TX-0022,HI074,Manele,Lanai,HI,2026-06-30 16:37:42,PWR-12V,12V 5A Power Supply,Power,2,9.92,24.99,49.98,19.84,30.14,Malia,Government,Debit Card,704
+HI074-TX-0023,HI074,Manele,Lanai,HI,2026-06-30 09:42:58,TOOL-SOL,Soldering Iron Tips,Tools,7,2.01,7.52,52.64,14.07,38.57,Alika,Marine,Purchase Order,731
+HI074-TX-0024,HI074,Manele,Lanai,HI,2026-06-30 14:53:07,PWR-5V2,5V 2A Power Supply,Power,1,3.67,10.76,10.76,3.67,7.09,Keahi,Retail,ACH,512
+HI074-TX-0025,HI074,Manele,Lanai,HI,2026-06-30 09:58:54,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.86,14.94,14.94,3.86,11.08,Kaleo,Marine,Credit Card,5
+HI074-TX-0026,HI074,Manele,Lanai,HI,2026-06-30 12:58:20,USB-CBO,USB-C Breakout Board,Connectors,36,1.34,5.55,199.80,48.24,151.56,Iolana,Government,Credit Card,712
+HI074-TX-0027,HI074,Manele,Lanai,HI,2026-06-30 17:43:23,REL-5V,5V Relay Module,Relays,3,0.91,5.68,17.04,2.73,14.31,Nalu,Commercial,Cash,617
+HI074-TX-0028,HI074,Manele,Lanai,HI,2026-06-30 09:28:34,SNS-DHT,DHT22 Temperature Sensor,Sensors,5,2.52,7.94,39.70,12.60,27.10,Keanu,Marine,ACH,311
+HI074-TX-0029,HI074,Manele,Lanai,HI,2026-06-30 15:47:45,IC-REG,7805 Voltage Regulator,Integrated Circuits,7,0.19,0.96,6.72,1.33,5.39,Mika,Commercial,Credit Card,80
+HI074-TX-0030,HI074,Manele,Lanai,HI,2026-06-30 16:31:18,USB-CBO,USB-C Breakout Board,Connectors,31,1.34,5.55,172.05,41.54,130.51,Makana,Commercial,Purchase Order,6
+HI074-TX-0031,HI074,Manele,Lanai,HI,2026-06-30 12:24:59,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.14,8.80,52.80,18.84,33.96,Akamu,Tourism/Hospitality,Debit Card,351
+HI074-TX-0032,HI074,Manele,Lanai,HI,2026-06-30 17:42:45,PWR-12V,12V 5A Power Supply,Power,3,8.99,26.64,79.92,26.97,52.95,Alika,Tourism/Hospitality,Mobile Pay,634
+HI074-TX-0033,HI074,Manele,Lanai,HI,2026-06-30 13:10:53,PWR-BUCK,Buck Converter Module,Power,16,1.04,5.01,80.16,16.64,63.52,Noelani,Retail,Cash,400
+HI074-TX-0034,HI074,Manele,Lanai,HI,2026-06-30 08:52:43,PWR-BUCK,Buck Converter Module,Power,9,1.06,4.67,42.03,9.54,32.49,Mika,Government,Cash,734
+HI074-TX-0035,HI074,Manele,Lanai,HI,2026-06-30 13:50:17,PWR-12V,12V 5A Power Supply,Power,3,9.85,26.59,79.77,29.55,50.22,Kaleo,Tourism/Hospitality,Debit Card,424
+HI074-TX-0036,HI074,Manele,Lanai,HI,2026-06-30 13:00:40,SOL-CTRL,Solar Charge Controller,Solar Power,3,11.50,31.80,95.40,34.50,60.90,Mika,Maker/Hobbyist,Credit Card,648
+HI074-TX-0037,HI074,Manele,Lanai,HI,2026-06-30 13:09:49,TOOL-DMM,Digital Multimeter,Tools,4,9.16,28.02,112.08,36.64,75.44,Ikaika,Maker/Hobbyist,Purchase Order,229
+HI074-TX-0038,HI074,Manele,Lanai,HI,2026-06-30 17:55:49,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.66,14.46,57.84,14.64,43.20,Malia,Government,Debit Card,20
+HI074-TX-0039,HI074,Manele,Lanai,HI,2026-06-30 14:48:56,SNS-ULT,Ultrasonic Distance Sensor,Sensors,27,1.33,5.49,148.23,35.91,112.32,Noelani,Commercial,ACH,802
+HI074-TX-0040,HI074,Manele,Lanai,HI,2026-06-30 10:36:13,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,8.81,28.09,168.54,52.86,115.68,Malia,Maker/Hobbyist,Purchase Order,536
+HI074-TX-0041,HI074,Manele,Lanai,HI,2026-06-30 12:01:04,SNS-SOIL,Soil Moisture Sensor,Sensors,17,0.97,4.55,77.35,16.49,60.86,Lani,Marine,Credit Card,411
+HI074-TX-0042,HI074,Manele,Lanai,HI,2026-06-30 15:52:13,MOS-44N,IRFZ44N MOSFET,Semiconductors,15,0.58,2.41,36.15,8.70,27.45,Leilani,Government,Credit Card,180
+HI074-TX-0043,HI074,Manele,Lanai,HI,2026-06-30 08:37:56,PWR-5V2,5V 2A Power Supply,Power,2,3.49,10.93,21.86,6.98,14.88,Iolana,Maker/Hobbyist,Credit Card,537
+HI074-TX-0044,HI074,Manele,Lanai,HI,2026-06-30 16:34:00,SNS-PIR,PIR Motion Sensor,Sensors,7,1.54,6.01,42.07,10.78,31.29,Alika,Maker/Hobbyist,Credit Card,123
+HI074-TX-0045,HI074,Manele,Lanai,HI,2026-06-30 12:22:25,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.82,13.71,41.13,11.46,29.67,Koa,Retail,Cash,662
+HI074-TX-0046,HI074,Manele,Lanai,HI,2026-06-30 12:52:11,USB-CBO,USB-C Breakout Board,Connectors,19,1.36,5.19,98.61,25.84,72.77,Iolana,Marine,Debit Card,2
+HI074-TX-0047,HI074,Manele,Lanai,HI,2026-06-30 11:44:35,SNS-SOIL,Soil Moisture Sensor,Sensors,39,1.00,4.35,169.65,39.00,130.65,Malia,Retail,Debit Card,138
+HI074-TX-0048,HI074,Manele,Lanai,HI,2026-06-30 10:06:05,USB-CBO,USB-C Breakout Board,Connectors,26,1.36,5.32,138.32,35.36,102.96,Hana,Retail,Mobile Pay,200
+HI074-TX-0049,HI074,Manele,Lanai,HI,2026-06-30 13:30:42,PWR-12V,12V 5A Power Supply,Power,1,9.87,26.33,26.33,9.87,16.46,Pualani,Marine,Debit Card,755
+HI074-TX-0050,HI074,Manele,Lanai,HI,2026-06-30 15:45:40,TR-3904,2N3904 NPN Transistor,Semiconductors,9,0.05,0.23,2.07,0.45,1.62,Ailani,Government,Debit Card,14
+HI074-TX-0051,HI074,Manele,Lanai,HI,2026-06-30 10:48:53,PWR-BUCK,Buck Converter Module,Power,32,1.06,4.67,149.44,33.92,115.52,Makana,Retail,Debit Card,510
+HI074-TX-0052,HI074,Manele,Lanai,HI,2026-06-30 12:38:09,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.42,8.37,16.74,6.84,9.90,Iolana,Maker/Hobbyist,ACH,29
+HI074-TX-0053,HI074,Manele,Lanai,HI,2026-06-30 17:25:47,RES-010,10k Ohm Resistor,Resistors,39,0.03,0.13,5.07,1.17,3.90,Noelani,Maker/Hobbyist,ACH,662

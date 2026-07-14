@@ -1,0 +1,8 @@
+# Test environment overrides (application-level).
+env: test
+index_suffix: test
+log_level: INFO
+ingest_batch_size: 500
+kms_enabled: true
+privatelink_enabled: true
+guardrail_strict: false

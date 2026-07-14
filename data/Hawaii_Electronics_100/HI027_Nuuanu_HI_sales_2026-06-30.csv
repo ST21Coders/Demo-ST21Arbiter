@@ -1,0 +1,56 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI027-TX-0001,HI027,Nuuanu,Oahu,HI,2026-06-30 17:18:01,TOOL-WIRE,Wire Stripper,Tools,6,5.01,15.12,90.72,30.06,60.66,Kai,Commercial,ACH,51
+HI027-TX-0002,HI027,Nuuanu,Oahu,HI,2026-06-30 16:52:52,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,4.02,14.72,103.04,28.14,74.90,Akamu,Marine,Credit Card,634
+HI027-TX-0003,HI027,Nuuanu,Oahu,HI,2026-06-30 11:04:22,DIO-4007,1N4007 Diode,Semiconductors,11,0.04,0.20,2.20,0.44,1.76,Kaleo,Education,ACH,875
+HI027-TX-0004,HI027,Nuuanu,Oahu,HI,2026-06-30 15:31:38,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.82,14.16,84.96,28.92,56.04,Alika,Commercial,Debit Card,450
+HI027-TX-0005,HI027,Nuuanu,Oahu,HI,2026-06-30 15:27:13,PWR-BUCK,Buck Converter Module,Power,18,1.11,5.02,90.36,19.98,70.38,Iolana,Commercial,Mobile Pay,107
+HI027-TX-0006,HI027,Nuuanu,Oahu,HI,2026-06-30 08:01:22,TOOL-WIRE,Wire Stripper,Tools,1,5.00,15.98,15.98,5.00,10.98,Noah,Education,Purchase Order,813
+HI027-TX-0007,HI027,Nuuanu,Oahu,HI,2026-06-30 10:08:56,SNS-ULT,Ultrasonic Distance Sensor,Sensors,2,1.33,5.23,10.46,2.66,7.80,Alika,Marine,Credit Card,387
+HI027-TX-0008,HI027,Nuuanu,Oahu,HI,2026-06-30 14:12:04,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.34,9.05,9.05,3.34,5.71,Lani,Commercial,Cash,222
+HI027-TX-0009,HI027,Nuuanu,Oahu,HI,2026-06-30 09:57:49,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.62,6.71,33.55,8.10,25.45,Kai,Tourism/Hospitality,ACH,827
+HI027-TX-0010,HI027,Nuuanu,Oahu,HI,2026-06-30 14:34:19,MOS-44N,IRFZ44N MOSFET,Semiconductors,21,0.65,2.55,53.55,13.65,39.90,Leilani,Education,Cash,130
+HI027-TX-0011,HI027,Nuuanu,Oahu,HI,2026-06-30 14:08:26,TOOL-SOL,Soldering Iron Tips,Tools,3,1.91,7.49,22.47,5.73,16.74,Lani,Retail,Mobile Pay,593
+HI027-TX-0012,HI027,Nuuanu,Oahu,HI,2026-06-30 15:09:17,RES-220,220 Ohm Resistor,Resistors,1,0.04,0.13,0.13,0.04,0.09,Kaleo,Commercial,Purchase Order,111
+HI027-TX-0013,HI027,Nuuanu,Oahu,HI,2026-06-30 14:10:18,LED-RED,5mm Red LED,LEDs,23,0.05,0.29,6.67,1.15,5.52,Mika,Maker/Hobbyist,ACH,707
+HI027-TX-0014,HI027,Nuuanu,Oahu,HI,2026-06-30 13:22:11,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.54,6.22,49.76,12.32,37.44,Kai,Commercial,Cash,4
+HI027-TX-0015,HI027,Nuuanu,Oahu,HI,2026-06-30 09:32:17,BAT-AAH,AA Battery Holder,Batteries,25,0.49,2.65,66.25,12.25,54.00,Keahi,Commercial,Credit Card,783
+HI027-TX-0016,HI027,Nuuanu,Oahu,HI,2026-06-30 11:49:20,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.50,6.43,25.72,6.00,19.72,Mika,Retail,Purchase Order,339
+HI027-TX-0017,HI027,Nuuanu,Oahu,HI,2026-06-30 10:43:42,BAT-AAH,AA Battery Holder,Batteries,4,0.50,2.65,10.60,2.00,8.60,Hana,Maker/Hobbyist,ACH,850
+HI027-TX-0018,HI027,Nuuanu,Oahu,HI,2026-06-30 09:50:49,PWR-5V2,5V 2A Power Supply,Power,8,3.73,10.69,85.52,29.84,55.68,Malia,Marine,Credit Card,727
+HI027-TX-0019,HI027,Nuuanu,Oahu,HI,2026-06-30 12:29:05,IC-358,LM358 Op Amp,Integrated Circuits,27,0.30,1.18,31.86,8.10,23.76,Akamu,Government,Cash,811
+HI027-TX-0020,HI027,Nuuanu,Oahu,HI,2026-06-30 09:05:17,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,8.81,27.23,217.84,70.48,147.36,Noah,Education,Cash,185
+HI027-TX-0021,HI027,Nuuanu,Oahu,HI,2026-06-30 15:15:47,USB-CBO,USB-C Breakout Board,Connectors,29,1.41,5.29,153.41,40.89,112.52,Ailani,Marine,Debit Card,882
+HI027-TX-0022,HI027,Nuuanu,Oahu,HI,2026-06-30 08:34:52,IC-358,LM358 Op Amp,Integrated Circuits,14,0.32,1.25,17.50,4.48,13.02,Nalu,Marine,Debit Card,797
+HI027-TX-0023,HI027,Nuuanu,Oahu,HI,2026-06-30 17:09:29,TOOL-WIRE,Wire Stripper,Tools,2,5.01,15.24,30.48,10.02,20.46,Hana,Education,Debit Card,94
+HI027-TX-0024,HI027,Nuuanu,Oahu,HI,2026-06-30 17:42:55,SOL-CTRL,Solar Charge Controller,Solar Power,5,10.26,31.35,156.75,51.30,105.45,Kaleo,Retail,Credit Card,8
+HI027-TX-0025,HI027,Nuuanu,Oahu,HI,2026-06-30 11:56:45,USB-CBO,USB-C Breakout Board,Connectors,3,1.47,5.17,15.51,4.41,11.10,Akamu,Government,ACH,336
+HI027-TX-0026,HI027,Nuuanu,Oahu,HI,2026-06-30 12:32:36,TOOL-DMM,Digital Multimeter,Tools,1,9.29,27.67,27.67,9.29,18.38,Koa,Marine,Credit Card,72
+HI027-TX-0027,HI027,Nuuanu,Oahu,HI,2026-06-30 11:44:04,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,5.00,13.48,13.48,5.00,8.48,Lani,Marine,Debit Card,465
+HI027-TX-0028,HI027,Nuuanu,Oahu,HI,2026-06-30 14:58:16,IC-358,LM358 Op Amp,Integrated Circuits,39,0.32,1.20,46.80,12.48,34.32,Makana,Retail,Cash,754
+HI027-TX-0029,HI027,Nuuanu,Oahu,HI,2026-06-30 17:26:05,USB-CBO,USB-C Breakout Board,Connectors,23,1.35,5.28,121.44,31.05,90.39,Kai,Marine,Mobile Pay,247
+HI027-TX-0030,HI027,Nuuanu,Oahu,HI,2026-06-30 14:59:17,RES-220,220 Ohm Resistor,Resistors,27,0.03,0.14,3.78,0.81,2.97,Ailani,Education,Debit Card,108
+HI027-TX-0031,HI027,Nuuanu,Oahu,HI,2026-06-30 09:52:18,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.11,8.19,49.14,18.66,30.48,Kai,Maker/Hobbyist,Credit Card,416
+HI027-TX-0032,HI027,Nuuanu,Oahu,HI,2026-06-30 10:53:49,PICO-RP,Raspberry Pi Pico,Microcontrollers,8,3.21,8.83,70.64,25.68,44.96,Kaleo,Maker/Hobbyist,Cash,109
+HI027-TX-0033,HI027,Nuuanu,Oahu,HI,2026-06-30 17:16:41,DIO-4007,1N4007 Diode,Semiconductors,21,0.05,0.19,3.99,1.05,2.94,Akamu,Retail,ACH,708
+HI027-TX-0034,HI027,Nuuanu,Oahu,HI,2026-06-30 14:25:46,SNS-SOIL,Soil Moisture Sensor,Sensors,34,0.98,4.10,139.40,33.32,106.08,Kai,Maker/Hobbyist,Credit Card,103
+HI027-TX-0035,HI027,Nuuanu,Oahu,HI,2026-06-30 13:17:44,TR-3904,2N3904 NPN Transistor,Semiconductors,1,0.06,0.23,0.23,0.06,0.17,Nalu,Maker/Hobbyist,Credit Card,833
+HI027-TX-0036,HI027,Nuuanu,Oahu,HI,2026-06-30 17:11:21,SOL-CTRL,Solar Charge Controller,Solar Power,7,11.05,33.44,234.08,77.35,156.73,Kai,Commercial,Debit Card,301
+HI027-TX-0037,HI027,Nuuanu,Oahu,HI,2026-06-30 14:02:08,TOOL-WIRE,Wire Stripper,Tools,2,4.88,15.14,30.28,9.76,20.52,Alika,Retail,Cash,367
+HI027-TX-0038,HI027,Nuuanu,Oahu,HI,2026-06-30 11:34:57,LED-BLU,5mm Blue LED,LEDs,5,0.07,0.32,1.60,0.35,1.25,Kaleo,Marine,Purchase Order,837
+HI027-TX-0039,HI027,Nuuanu,Oahu,HI,2026-06-30 14:06:06,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,8.69,28.52,57.04,17.38,39.66,Akamu,Marine,Credit Card,101
+HI027-TX-0040,HI027,Nuuanu,Oahu,HI,2026-06-30 11:44:38,RES-010,10k Ohm Resistor,Resistors,16,0.03,0.13,2.08,0.48,1.60,Malia,Retail,Purchase Order,335
+HI027-TX-0041,HI027,Nuuanu,Oahu,HI,2026-06-30 09:30:10,IC-555,NE555 Timer IC,Integrated Circuits,1,0.36,1.37,1.37,0.36,1.01,Malia,Education,Cash,308
+HI027-TX-0042,HI027,Nuuanu,Oahu,HI,2026-06-30 12:52:23,BAT-LIPO,LiPo Battery Pack,Batteries,6,4.95,17.27,103.62,29.70,73.92,Lani,Commercial,ACH,888
+HI027-TX-0043,HI027,Nuuanu,Oahu,HI,2026-06-30 08:43:06,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.43,7.69,61.52,19.44,42.08,Noelani,Marine,Credit Card,303
+HI027-TX-0044,HI027,Nuuanu,Oahu,HI,2026-06-30 11:55:59,CAP-010,10uF Capacitor,Capacitors,5,0.09,0.37,1.85,0.45,1.40,Iolana,Commercial,Cash,546
+HI027-TX-0045,HI027,Nuuanu,Oahu,HI,2026-06-30 10:21:41,REL-5V,5V Relay Module,Relays,37,0.99,5.13,189.81,36.63,153.18,Leilani,Government,Credit Card,457
+HI027-TX-0046,HI027,Nuuanu,Oahu,HI,2026-06-30 17:37:44,BAT-LIPO,LiPo Battery Pack,Batteries,8,5.19,17.07,136.56,41.52,95.04,Akamu,Tourism/Hospitality,Debit Card,261
+HI027-TX-0047,HI027,Nuuanu,Oahu,HI,2026-06-30 13:49:05,RES-001,1k Ohm Resistor,Resistors,39,0.03,0.14,5.46,1.17,4.29,Mika,Marine,Credit Card,140
+HI027-TX-0048,HI027,Nuuanu,Oahu,HI,2026-06-30 11:39:35,PWR-BUCK,Buck Converter Module,Power,21,1.07,4.74,99.54,22.47,77.07,Keanu,Commercial,Mobile Pay,856
+HI027-TX-0049,HI027,Nuuanu,Oahu,HI,2026-06-30 13:10:33,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.84,13.34,80.04,29.04,51.00,Kaleo,Commercial,Purchase Order,87
+HI027-TX-0050,HI027,Nuuanu,Oahu,HI,2026-06-30 15:17:38,SOL-CTRL,Solar Charge Controller,Solar Power,8,10.55,30.69,245.52,84.40,161.12,Makana,Maker/Hobbyist,Credit Card,439
+HI027-TX-0051,HI027,Nuuanu,Oahu,HI,2026-06-30 16:09:29,LED-RED,5mm Red LED,LEDs,20,0.05,0.29,5.80,1.00,4.80,Makana,Commercial,Cash,2
+HI027-TX-0052,HI027,Nuuanu,Oahu,HI,2026-06-30 12:02:57,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.08,20.67,103.35,40.40,62.95,Noelani,Government,Debit Card,822
+HI027-TX-0053,HI027,Nuuanu,Oahu,HI,2026-06-30 08:37:00,RES-010,10k Ohm Resistor,Resistors,26,0.03,0.13,3.38,0.78,2.60,Nalu,Government,Purchase Order,193
+HI027-TX-0054,HI027,Nuuanu,Oahu,HI,2026-06-30 13:28:08,SNS-ULT,Ultrasonic Distance Sensor,Sensors,23,1.21,5.76,132.48,27.83,104.65,Koa,Maker/Hobbyist,Mobile Pay,118
+HI027-TX-0055,HI027,Nuuanu,Oahu,HI,2026-06-30 14:29:25,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.43,8.35,50.10,20.58,29.52,Malia,Education,Mobile Pay,32

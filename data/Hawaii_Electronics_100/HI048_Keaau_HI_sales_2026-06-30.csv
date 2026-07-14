@@ -1,0 +1,60 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI048-TX-0001,HI048,Keaau,Hawaii Island,HI,2026-06-30 16:16:20,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.40,14.79,118.32,35.20,83.12,Iolana,Tourism/Hospitality,Cash,622
+HI048-TX-0002,HI048,Keaau,Hawaii Island,HI,2026-06-30 13:05:30,SOL-CTRL,Solar Charge Controller,Solar Power,3,10.57,30.70,92.10,31.71,60.39,Keahi,Marine,Mobile Pay,680
+HI048-TX-0003,HI048,Keaau,Hawaii Island,HI,2026-06-30 15:38:35,SNS-PIR,PIR Motion Sensor,Sensors,1,1.63,5.81,5.81,1.63,4.18,Nalu,Education,Credit Card,750
+HI048-TX-0004,HI048,Keaau,Hawaii Island,HI,2026-06-30 17:18:47,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.36,16.55,82.75,26.80,55.95,Noah,Tourism/Hospitality,Credit Card,862
+HI048-TX-0005,HI048,Keaau,Hawaii Island,HI,2026-06-30 10:34:09,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.23,20.55,102.75,41.15,61.60,Mika,Government,Credit Card,705
+HI048-TX-0006,HI048,Keaau,Hawaii Island,HI,2026-06-30 16:49:06,IC-555,NE555 Timer IC,Integrated Circuits,38,0.34,1.43,54.34,12.92,41.42,Akamu,Government,Credit Card,722
+HI048-TX-0007,HI048,Keaau,Hawaii Island,HI,2026-06-30 08:01:52,SNS-DHT,DHT22 Temperature Sensor,Sensors,1,2.43,7.76,7.76,2.43,5.33,Makana,Government,Credit Card,411
+HI048-TX-0008,HI048,Keaau,Hawaii Island,HI,2026-06-30 09:02:26,CON-JMP,Jumper Wire Set,Connectors,35,0.92,3.93,137.55,32.20,105.35,Kaleo,Tourism/Hospitality,Debit Card,666
+HI048-TX-0009,HI048,Keaau,Hawaii Island,HI,2026-06-30 09:43:13,IC-555,NE555 Timer IC,Integrated Circuits,18,0.34,1.33,23.94,6.12,17.82,Noah,Retail,Credit Card,531
+HI048-TX-0010,HI048,Keaau,Hawaii Island,HI,2026-06-30 16:42:46,SNS-PIR,PIR Motion Sensor,Sensors,1,1.53,6.15,6.15,1.53,4.62,Alika,Maker/Hobbyist,Credit Card,21
+HI048-TX-0011,HI048,Keaau,Hawaii Island,HI,2026-06-30 08:34:32,PWR-12V,12V 5A Power Supply,Power,5,9.04,23.53,117.65,45.20,72.45,Mika,Commercial,Cash,34
+HI048-TX-0012,HI048,Keaau,Hawaii Island,HI,2026-06-30 10:12:35,MOS-44N,IRFZ44N MOSFET,Semiconductors,7,0.62,2.53,17.71,4.34,13.37,Lani,Commercial,Credit Card,137
+HI048-TX-0013,HI048,Keaau,Hawaii Island,HI,2026-06-30 15:38:39,MOS-44N,IRFZ44N MOSFET,Semiconductors,6,0.65,2.47,14.82,3.90,10.92,Iolana,Government,Debit Card,259
+HI048-TX-0014,HI048,Keaau,Hawaii Island,HI,2026-06-30 14:25:23,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.24,9.25,55.50,19.44,36.06,Alika,Commercial,Mobile Pay,134
+HI048-TX-0015,HI048,Keaau,Hawaii Island,HI,2026-06-30 15:05:03,ESP-32,ESP32 Dev Board,Microcontrollers,8,3.99,13.70,109.60,31.92,77.68,Koa,Government,Mobile Pay,825
+HI048-TX-0016,HI048,Keaau,Hawaii Island,HI,2026-06-30 11:59:50,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.27,8.91,44.55,16.35,28.20,Iolana,Retail,Purchase Order,849
+HI048-TX-0017,HI048,Keaau,Hawaii Island,HI,2026-06-30 10:03:23,SNS-PIR,PIR Motion Sensor,Sensors,2,1.45,5.97,11.94,2.90,9.04,Mika,Maker/Hobbyist,Purchase Order,231
+HI048-TX-0018,HI048,Keaau,Hawaii Island,HI,2026-06-30 08:42:18,PWR-5V2,5V 2A Power Supply,Power,7,3.57,10.21,71.47,24.99,46.48,Alika,Government,ACH,100
+HI048-TX-0019,HI048,Keaau,Hawaii Island,HI,2026-06-30 09:32:11,DIO-4007,1N4007 Diode,Semiconductors,18,0.05,0.19,3.42,0.90,2.52,Keanu,Retail,ACH,405
+HI048-TX-0020,HI048,Keaau,Hawaii Island,HI,2026-06-30 13:48:06,SNS-PIR,PIR Motion Sensor,Sensors,7,1.62,5.63,39.41,11.34,28.07,Malia,Marine,Mobile Pay,256
+HI048-TX-0021,HI048,Keaau,Hawaii Island,HI,2026-06-30 12:38:36,PWR-BUCK,Buck Converter Module,Power,20,1.11,4.97,99.40,22.20,77.20,Makana,Tourism/Hospitality,Mobile Pay,275
+HI048-TX-0022,HI048,Keaau,Hawaii Island,HI,2026-06-30 15:39:48,TOOL-WIRE,Wire Stripper,Tools,7,4.95,14.39,100.73,34.65,66.08,Malia,Maker/Hobbyist,Purchase Order,120
+HI048-TX-0023,HI048,Keaau,Hawaii Island,HI,2026-06-30 15:53:01,BAT-AAH,AA Battery Holder,Batteries,15,0.49,2.73,40.95,7.35,33.60,Ailani,Government,ACH,381
+HI048-TX-0024,HI048,Keaau,Hawaii Island,HI,2026-06-30 12:00:01,SOL-CTRL,Solar Charge Controller,Solar Power,2,11.05,32.08,64.16,22.10,42.06,Pualani,Government,ACH,409
+HI048-TX-0025,HI048,Keaau,Hawaii Island,HI,2026-06-30 08:50:24,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.04,21.67,108.35,40.20,68.15,Kai,Marine,Cash,146
+HI048-TX-0026,HI048,Keaau,Hawaii Island,HI,2026-06-30 13:01:56,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.33,30.82,123.28,41.32,81.96,Makana,Retail,Credit Card,368
+HI048-TX-0027,HI048,Keaau,Hawaii Island,HI,2026-06-30 13:38:32,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.01,12.61,12.61,4.01,8.60,Mika,Commercial,Purchase Order,276
+HI048-TX-0028,HI048,Keaau,Hawaii Island,HI,2026-06-30 10:56:26,SNS-SOIL,Soil Moisture Sensor,Sensors,39,0.94,4.46,173.94,36.66,137.28,Mika,Tourism/Hospitality,Credit Card,231
+HI048-TX-0029,HI048,Keaau,Hawaii Island,HI,2026-06-30 08:29:39,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.59,16.52,33.04,11.18,21.86,Leilani,Government,Mobile Pay,814
+HI048-TX-0030,HI048,Keaau,Hawaii Island,HI,2026-06-30 17:41:52,TOOL-WIRE,Wire Stripper,Tools,3,5.04,14.64,43.92,15.12,28.80,Alika,Maker/Hobbyist,Mobile Pay,756
+HI048-TX-0031,HI048,Keaau,Hawaii Island,HI,2026-06-30 12:52:09,SOL-CTRL,Solar Charge Controller,Solar Power,3,10.13,32.57,97.71,30.39,67.32,Lani,Maker/Hobbyist,ACH,67
+HI048-TX-0032,HI048,Keaau,Hawaii Island,HI,2026-06-30 13:56:02,PWR-12V,12V 5A Power Supply,Power,8,9.42,26.17,209.36,75.36,134.00,Leilani,Tourism/Hospitality,ACH,588
+HI048-TX-0033,HI048,Keaau,Hawaii Island,HI,2026-06-30 16:51:16,CAP-100,100uF Capacitor,Capacitors,37,0.16,0.63,23.31,5.92,17.39,Kaleo,Retail,ACH,226
+HI048-TX-0034,HI048,Keaau,Hawaii Island,HI,2026-06-30 12:49:51,MOS-44N,IRFZ44N MOSFET,Semiconductors,19,0.59,2.54,48.26,11.21,37.05,Kai,Education,Purchase Order,876
+HI048-TX-0035,HI048,Keaau,Hawaii Island,HI,2026-06-30 15:38:52,SNS-ULT,Ultrasonic Distance Sensor,Sensors,13,1.32,5.54,72.02,17.16,54.86,Malia,Maker/Hobbyist,ACH,538
+HI048-TX-0036,HI048,Keaau,Hawaii Island,HI,2026-06-30 15:20:45,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.58,22.03,132.18,51.48,80.70,Ikaika,Retail,ACH,653
+HI048-TX-0037,HI048,Keaau,Hawaii Island,HI,2026-06-30 17:51:18,SNS-ULT,Ultrasonic Distance Sensor,Sensors,28,1.21,5.44,152.32,33.88,118.44,Makana,Government,Mobile Pay,810
+HI048-TX-0038,HI048,Keaau,Hawaii Island,HI,2026-06-30 15:48:40,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.55,6.80,34.00,7.75,26.25,Lani,Education,Purchase Order,322
+HI048-TX-0039,HI048,Keaau,Hawaii Island,HI,2026-06-30 11:25:59,TOOL-DMM,Digital Multimeter,Tools,3,9.01,28.89,86.67,27.03,59.64,Keahi,Commercial,Purchase Order,578
+HI048-TX-0040,HI048,Keaau,Hawaii Island,HI,2026-06-30 14:13:34,SNS-ULT,Ultrasonic Distance Sensor,Sensors,9,1.29,5.50,49.50,11.61,37.89,Akamu,Tourism/Hospitality,Purchase Order,32
+HI048-TX-0041,HI048,Keaau,Hawaii Island,HI,2026-06-30 10:49:30,IC-REG,7805 Voltage Regulator,Integrated Circuits,31,0.21,0.93,28.83,6.51,22.32,Mika,Government,Cash,466
+HI048-TX-0042,HI048,Keaau,Hawaii Island,HI,2026-06-30 09:26:00,LED-BLU,5mm Blue LED,LEDs,20,0.07,0.33,6.60,1.40,5.20,Noah,Government,Debit Card,513
+HI048-TX-0043,HI048,Keaau,Hawaii Island,HI,2026-06-30 08:20:23,PWR-12V,12V 5A Power Supply,Power,5,9.11,25.50,127.50,45.55,81.95,Mika,Education,Debit Card,317
+HI048-TX-0044,HI048,Keaau,Hawaii Island,HI,2026-06-30 13:30:44,IC-358,LM358 Op Amp,Integrated Circuits,22,0.31,1.27,27.94,6.82,21.12,Lani,Maker/Hobbyist,ACH,252
+HI048-TX-0045,HI048,Keaau,Hawaii Island,HI,2026-06-30 08:52:21,IC-REG,7805 Voltage Regulator,Integrated Circuits,29,0.21,0.89,25.81,6.09,19.72,Pualani,Government,Debit Card,626
+HI048-TX-0046,HI048,Keaau,Hawaii Island,HI,2026-06-30 11:34:55,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.46,31.92,127.68,41.84,85.84,Akamu,Education,Purchase Order,368
+HI048-TX-0047,HI048,Keaau,Hawaii Island,HI,2026-06-30 16:40:00,BAT-AAH,AA Battery Holder,Batteries,15,0.51,2.55,38.25,7.65,30.60,Koa,Education,Credit Card,192
+HI048-TX-0048,HI048,Keaau,Hawaii Island,HI,2026-06-30 16:35:51,SNS-DHT,DHT22 Temperature Sensor,Sensors,6,2.47,7.70,46.20,14.82,31.38,Keanu,Commercial,Debit Card,161
+HI048-TX-0049,HI048,Keaau,Hawaii Island,HI,2026-06-30 16:17:55,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.80,21.35,128.10,52.80,75.30,Lani,Commercial,ACH,818
+HI048-TX-0050,HI048,Keaau,Hawaii Island,HI,2026-06-30 09:15:38,SNS-ULT,Ultrasonic Distance Sensor,Sensors,15,1.22,5.47,82.05,18.30,63.75,Iolana,Tourism/Hospitality,ACH,434
+HI048-TX-0051,HI048,Keaau,Hawaii Island,HI,2026-06-30 10:07:35,LED-BLU,5mm Blue LED,LEDs,23,0.06,0.34,7.82,1.38,6.44,Lani,Education,Debit Card,287
+HI048-TX-0052,HI048,Keaau,Hawaii Island,HI,2026-06-30 08:41:29,IC-REG,7805 Voltage Regulator,Integrated Circuits,16,0.20,0.94,15.04,3.20,11.84,Kaleo,Commercial,Purchase Order,465
+HI048-TX-0053,HI048,Keaau,Hawaii Island,HI,2026-06-30 14:54:18,PWR-5V2,5V 2A Power Supply,Power,6,3.45,10.86,65.16,20.70,44.46,Kai,Commercial,Credit Card,546
+HI048-TX-0054,HI048,Keaau,Hawaii Island,HI,2026-06-30 10:36:00,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.41,8.73,8.73,3.41,5.32,Makana,Tourism/Hospitality,ACH,94
+HI048-TX-0055,HI048,Keaau,Hawaii Island,HI,2026-06-30 10:45:15,PWR-5V2,5V 2A Power Supply,Power,6,3.63,11.14,66.84,21.78,45.06,Iolana,Education,Mobile Pay,650
+HI048-TX-0056,HI048,Keaau,Hawaii Island,HI,2026-06-30 14:45:38,REL-5V,5V Relay Module,Relays,26,0.95,5.60,145.60,24.70,120.90,Ikaika,Education,Debit Card,603
+HI048-TX-0057,HI048,Keaau,Hawaii Island,HI,2026-06-30 16:46:56,SOL-CTRL,Solar Charge Controller,Solar Power,2,10.25,31.82,63.64,20.50,43.14,Mika,Commercial,Cash,619
+HI048-TX-0058,HI048,Keaau,Hawaii Island,HI,2026-06-30 08:27:57,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,9.16,28.25,141.25,45.80,95.45,Malia,Retail,Debit Card,348
+HI048-TX-0059,HI048,Keaau,Hawaii Island,HI,2026-06-30 17:14:08,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.49,22.57,135.42,50.94,84.48,Keahi,Education,Mobile Pay,447

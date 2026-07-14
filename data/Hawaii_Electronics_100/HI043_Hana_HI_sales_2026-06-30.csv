@@ -1,0 +1,52 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI043-TX-0001,HI043,Hana,Maui,HI,2026-06-30 14:52:16,LED-RGB,RGB LED Strip,LEDs,6,4.74,14.91,89.46,28.44,61.02,Lani,Retail,Debit Card,68
+HI043-TX-0002,HI043,Hana,Maui,HI,2026-06-30 14:34:38,TOOL-SOL,Soldering Iron Tips,Tools,2,1.88,8.04,16.08,3.76,12.32,Koa,Maker/Hobbyist,Purchase Order,190
+HI043-TX-0003,HI043,Hana,Maui,HI,2026-06-30 09:30:36,BAT-AAH,AA Battery Holder,Batteries,38,0.51,2.71,102.98,19.38,83.60,Keahi,Retail,Mobile Pay,683
+HI043-TX-0004,HI043,Hana,Maui,HI,2026-06-30 12:42:37,LED-RED,5mm Red LED,LEDs,8,0.05,0.28,2.24,0.40,1.84,Alika,Retail,Debit Card,742
+HI043-TX-0005,HI043,Hana,Maui,HI,2026-06-30 16:39:17,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.85,13.80,82.80,29.10,53.70,Nalu,Government,Cash,867
+HI043-TX-0006,HI043,Hana,Maui,HI,2026-06-30 12:16:05,PWR-BUCK,Buck Converter Module,Power,14,1.06,5.03,70.42,14.84,55.58,Kaleo,Commercial,ACH,540
+HI043-TX-0007,HI043,Hana,Maui,HI,2026-06-30 17:49:53,LED-BLU,5mm Blue LED,LEDs,31,0.06,0.35,10.85,1.86,8.99,Noelani,Retail,Credit Card,161
+HI043-TX-0008,HI043,Hana,Maui,HI,2026-06-30 10:07:50,PWR-BUCK,Buck Converter Module,Power,22,1.07,4.69,103.18,23.54,79.64,Keahi,Commercial,Mobile Pay,678
+HI043-TX-0009,HI043,Hana,Maui,HI,2026-06-30 14:03:37,PWR-BUCK,Buck Converter Module,Power,18,1.06,4.72,84.96,19.08,65.88,Kaleo,Government,Debit Card,721
+HI043-TX-0010,HI043,Hana,Maui,HI,2026-06-30 11:27:41,TOOL-DMM,Digital Multimeter,Tools,2,8.79,26.49,52.98,17.58,35.40,Keanu,Retail,Purchase Order,764
+HI043-TX-0011,HI043,Hana,Maui,HI,2026-06-30 16:51:01,PWR-5V2,5V 2A Power Supply,Power,5,3.50,10.91,54.55,17.50,37.05,Koa,Education,Credit Card,271
+HI043-TX-0012,HI043,Hana,Maui,HI,2026-06-30 11:12:26,IC-555,NE555 Timer IC,Integrated Circuits,29,0.34,1.32,38.28,9.86,28.42,Noelani,Tourism/Hospitality,Purchase Order,448
+HI043-TX-0013,HI043,Hana,Maui,HI,2026-06-30 12:48:28,RES-010,10k Ohm Resistor,Resistors,28,0.03,0.13,3.64,0.84,2.80,Ikaika,Retail,Mobile Pay,44
+HI043-TX-0014,HI043,Hana,Maui,HI,2026-06-30 15:25:35,RES-001,1k Ohm Resistor,Resistors,39,0.03,0.13,5.07,1.17,3.90,Makana,Marine,Mobile Pay,193
+HI043-TX-0015,HI043,Hana,Maui,HI,2026-06-30 17:33:57,SNS-PIR,PIR Motion Sensor,Sensors,1,1.63,6.20,6.20,1.63,4.57,Kaleo,Commercial,Mobile Pay,810
+HI043-TX-0016,HI043,Hana,Maui,HI,2026-06-30 13:54:35,CON-JMP,Jumper Wire Set,Connectors,18,0.99,3.90,70.20,17.82,52.38,Koa,Retail,Purchase Order,101
+HI043-TX-0017,HI043,Hana,Maui,HI,2026-06-30 08:32:30,LED-BLU,5mm Blue LED,LEDs,27,0.07,0.34,9.18,1.89,7.29,Pualani,Government,Purchase Order,643
+HI043-TX-0018,HI043,Hana,Maui,HI,2026-06-30 15:41:37,BAT-AAH,AA Battery Holder,Batteries,31,0.46,2.83,87.73,14.26,73.47,Mika,Retail,ACH,601
+HI043-TX-0019,HI043,Hana,Maui,HI,2026-06-30 13:16:14,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.27,8.66,25.98,9.81,16.17,Keanu,Maker/Hobbyist,Cash,555
+HI043-TX-0020,HI043,Hana,Maui,HI,2026-06-30 13:22:35,MOS-44N,IRFZ44N MOSFET,Semiconductors,33,0.59,2.42,79.86,19.47,60.39,Kaleo,Tourism/Hospitality,Credit Card,669
+HI043-TX-0021,HI043,Hana,Maui,HI,2026-06-30 14:09:43,LED-BLU,5mm Blue LED,LEDs,4,0.06,0.31,1.24,0.24,1.00,Noelani,Marine,Purchase Order,336
+HI043-TX-0022,HI043,Hana,Maui,HI,2026-06-30 16:09:35,LED-RED,5mm Red LED,LEDs,2,0.06,0.29,0.58,0.12,0.46,Keanu,Commercial,Purchase Order,344
+HI043-TX-0023,HI043,Hana,Maui,HI,2026-06-30 10:43:34,IC-555,NE555 Timer IC,Integrated Circuits,3,0.37,1.42,4.26,1.11,3.15,Nalu,Maker/Hobbyist,Debit Card,470
+HI043-TX-0024,HI043,Hana,Maui,HI,2026-06-30 16:39:18,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.28,31.78,127.12,41.12,86.00,Lani,Education,Debit Card,449
+HI043-TX-0025,HI043,Hana,Maui,HI,2026-06-30 10:53:20,MOS-44N,IRFZ44N MOSFET,Semiconductors,40,0.60,2.60,104.00,24.00,80.00,Keanu,Retail,Debit Card,432
+HI043-TX-0026,HI043,Hana,Maui,HI,2026-06-30 08:58:20,LED-BLU,5mm Blue LED,LEDs,39,0.06,0.33,12.87,2.34,10.53,Ailani,Commercial,Credit Card,823
+HI043-TX-0027,HI043,Hana,Maui,HI,2026-06-30 11:09:41,PWR-BUCK,Buck Converter Module,Power,26,1.02,5.07,131.82,26.52,105.30,Ikaika,Marine,Credit Card,70
+HI043-TX-0028,HI043,Hana,Maui,HI,2026-06-30 12:43:29,SOL-CTRL,Solar Charge Controller,Solar Power,5,11.32,34.07,170.35,56.60,113.75,Makana,Marine,Mobile Pay,406
+HI043-TX-0029,HI043,Hana,Maui,HI,2026-06-30 17:06:44,SNS-PIR,PIR Motion Sensor,Sensors,6,1.62,5.88,35.28,9.72,25.56,Mika,Maker/Hobbyist,Debit Card,119
+HI043-TX-0030,HI043,Hana,Maui,HI,2026-06-30 14:09:02,LED-BLU,5mm Blue LED,LEDs,10,0.07,0.34,3.40,0.70,2.70,Nalu,Maker/Hobbyist,Cash,490
+HI043-TX-0031,HI043,Hana,Maui,HI,2026-06-30 12:58:34,TOOL-DMM,Digital Multimeter,Tools,5,8.61,26.82,134.10,43.05,91.05,Mika,Government,ACH,194
+HI043-TX-0032,HI043,Hana,Maui,HI,2026-06-30 09:04:15,BAT-AAH,AA Battery Holder,Batteries,16,0.53,2.77,44.32,8.48,35.84,Iolana,Tourism/Hospitality,Debit Card,608
+HI043-TX-0033,HI043,Hana,Maui,HI,2026-06-30 13:34:12,LED-BLU,5mm Blue LED,LEDs,22,0.07,0.32,7.04,1.54,5.50,Lani,Government,Mobile Pay,803
+HI043-TX-0034,HI043,Hana,Maui,HI,2026-06-30 11:18:26,PWR-BUCK,Buck Converter Module,Power,23,1.06,4.87,112.01,24.38,87.63,Koa,Government,Purchase Order,870
+HI043-TX-0035,HI043,Hana,Maui,HI,2026-06-30 08:05:14,IC-358,LM358 Op Amp,Integrated Circuits,8,0.31,1.26,10.08,2.48,7.60,Leilani,Maker/Hobbyist,Purchase Order,131
+HI043-TX-0036,HI043,Hana,Maui,HI,2026-06-30 16:47:41,PWR-12V,12V 5A Power Supply,Power,4,9.66,26.43,105.72,38.64,67.08,Kaleo,Maker/Hobbyist,Credit Card,56
+HI043-TX-0037,HI043,Hana,Maui,HI,2026-06-30 14:27:38,LED-BLU,5mm Blue LED,LEDs,8,0.07,0.34,2.72,0.56,2.16,Ailani,Maker/Hobbyist,Cash,763
+HI043-TX-0038,HI043,Hana,Maui,HI,2026-06-30 17:39:20,LED-RGB,RGB LED Strip,LEDs,7,4.74,13.68,95.76,33.18,62.58,Mika,Maker/Hobbyist,Cash,205
+HI043-TX-0039,HI043,Hana,Maui,HI,2026-06-30 08:15:51,LED-BLU,5mm Blue LED,LEDs,22,0.06,0.31,6.82,1.32,5.50,Leilani,Marine,Mobile Pay,205
+HI043-TX-0040,HI043,Hana,Maui,HI,2026-06-30 12:01:55,LED-RGB,RGB LED Strip,LEDs,6,4.67,14.76,88.56,28.02,60.54,Makana,Maker/Hobbyist,Debit Card,391
+HI043-TX-0041,HI043,Hana,Maui,HI,2026-06-30 13:29:56,IC-REG,7805 Voltage Regulator,Integrated Circuits,18,0.19,0.93,16.74,3.42,13.32,Noelani,Commercial,Credit Card,384
+HI043-TX-0042,HI043,Hana,Maui,HI,2026-06-30 10:54:10,PWR-BUCK,Buck Converter Module,Power,3,1.09,5.13,15.39,3.27,12.12,Malia,Maker/Hobbyist,Purchase Order,0
+HI043-TX-0043,HI043,Hana,Maui,HI,2026-06-30 09:28:59,LED-RED,5mm Red LED,LEDs,33,0.05,0.26,8.58,1.65,6.93,Akamu,Retail,Mobile Pay,44
+HI043-TX-0044,HI043,Hana,Maui,HI,2026-06-30 16:03:08,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.66,13.55,13.55,3.66,9.89,Noelani,Education,Credit Card,167
+HI043-TX-0045,HI043,Hana,Maui,HI,2026-06-30 15:47:11,LED-RED,5mm Red LED,LEDs,23,0.05,0.28,6.44,1.15,5.29,Ikaika,Marine,Mobile Pay,88
+HI043-TX-0046,HI043,Hana,Maui,HI,2026-06-30 08:44:12,TOOL-SOL,Soldering Iron Tips,Tools,1,1.94,8.08,8.08,1.94,6.14,Ailani,Marine,Purchase Order,272
+HI043-TX-0047,HI043,Hana,Maui,HI,2026-06-30 08:57:48,PWR-12V,12V 5A Power Supply,Power,4,9.80,25.52,102.08,39.20,62.88,Noah,Education,Mobile Pay,778
+HI043-TX-0048,HI043,Hana,Maui,HI,2026-06-30 11:10:09,RES-001,1k Ohm Resistor,Resistors,16,0.03,0.13,2.08,0.48,1.60,Leilani,Education,Credit Card,18
+HI043-TX-0049,HI043,Hana,Maui,HI,2026-06-30 16:32:30,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.35,34.58,207.48,62.10,145.38,Malia,Tourism/Hospitality,Credit Card,519
+HI043-TX-0050,HI043,Hana,Maui,HI,2026-06-30 11:45:20,PWR-12V,12V 5A Power Supply,Power,2,9.38,23.95,47.90,18.76,29.14,Mika,Retail,Cash,515
+HI043-TX-0051,HI043,Hana,Maui,HI,2026-06-30 17:22:21,DIO-4007,1N4007 Diode,Semiconductors,22,0.04,0.21,4.62,0.88,3.74,Keanu,Tourism/Hospitality,Purchase Order,151
