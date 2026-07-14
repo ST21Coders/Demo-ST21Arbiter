@@ -360,13 +360,21 @@ def _handle_chat(event):
     selected_data_project_id = _s3_segment(body.get("data_project_id") or "", "")
     selected_data_project_name = (body.get("data_project_name") or "").strip()[:200]
     selected_data_group_id = (body.get("data_group_id") or "").strip()[:300]
+    selected_data_content_type = (body.get("data_content_type") or "").strip().lower()
+    if selected_data_content_type not in {"structured", "documents", "mixed"}:
+        selected_data_content_type = ""
 
     # Direct per-agent routing: the MCP page sends a "target" naming the
     # specialist to invoke; the Analyst page sends none → master orchestrator.
     # An unknown target falls back to master for backward compatibility.
     target = (body.get("target") or "master").strip().lower()
-    if selected_data_group or _looks_like_structured_inventory_prompt(prompt):
+    if ((selected_data_group and (selected_data_content_type in {"", "structured"} or target == "structured"))
+            or _looks_like_structured_inventory_prompt(prompt)):
         target = "structured"
+    elif selected_data_group and selected_data_content_type == "documents":
+        target = "sharepoint"
+    elif selected_data_group and selected_data_content_type == "mixed":
+        target = "master"
     runtime_arn = SPECIALIST_RUNTIME_ARNS.get(target) or MASTER_AGENT_RUNTIME_ARN
     if not runtime_arn:
         return _err(503, f"Runtime ARN for '{target}' not configured (run scripts/deploy_agents.py)")

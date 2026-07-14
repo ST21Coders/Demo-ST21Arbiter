@@ -428,7 +428,7 @@ export function useConversations(opts = {}) {
 // the message: absent/'master' → orchestrator fan-out (Analyst page); a
 // specialist id ('sharepoint' | 'zscaler' | 'awsconfig' | 'jira' | 'servicenow')
 // → that agent directly (MCP page). Response: { reply, session_id }.
-export async function sendChat({ prompt, session_id, chat_type, target, data_group, data_project_id, data_project_name, data_group_id }) {
+export async function sendChat({ prompt, session_id, chat_type, target, data_group, data_project_id, data_project_name, data_group_id, data_content_type }) {
   if (USE_MOCK || !CHAT_URL) {
     await sleep(600 + Math.random() * 800)
     return { reply: `(mock reply) You asked: "${prompt}". Wire VITE_CHAT_URL to get a real answer.`, session_id }
@@ -445,6 +445,7 @@ export async function sendChat({ prompt, session_id, chat_type, target, data_gro
       data_project_id,
       data_project_name,
       data_group_id,
+      data_content_type,
     }),
   })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)

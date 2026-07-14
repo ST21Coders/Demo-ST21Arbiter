@@ -53,6 +53,7 @@ GUARDRAIL_VERSION = os.environ.get("GUARDRAIL_VERSION", "DRAFT")
 ATHENA_TIMEOUT_S = int(os.environ.get("ATHENA_TIMEOUT_S", "45"))
 ATHENA_MAX_ROWS = int(os.environ.get("ATHENA_MAX_ROWS", "500"))
 CHAT_TOOL_MAX_ROWS = int(os.environ.get("CHAT_TOOL_MAX_ROWS", "20"))
+GROUP_TABLE_HINT_LIMIT = int(os.environ.get("GROUP_TABLE_HINT_LIMIT", "250"))
 SESSION_GROUP_CONTEXTS: dict[str, dict[str, Any]] = {}
 
 SYSTEM_PROMPT = """You are the Structured Data specialist for ARBITER. You answer
@@ -228,7 +229,10 @@ def _load_projects() -> list[dict[str, Any]]:
                     "fileCount": len(files),
                     "csvCount": sum(1 for item in files if item.get("type") == "csv"),
                     "tableCount": len(table_hints),
-                    "tableHints": table_hints[:12],
+                    # Large groups such as Storm Glass 02 span more than 100
+                    # Glue tables. A 12-table alphabetical sample omitted the
+                    # claims, invoice, and weather families required for joins.
+                    "tableHints": table_hints[:GROUP_TABLE_HINT_LIMIT],
                     "groupProfile": group.get("groupProfile") or {},
                     "groupKey": group_key if isinstance(group_key, dict) else {},
                     "governancePolicyId": group.get("governancePolicyId") or (group_key or {}).get("governance_policy_id"),
@@ -631,7 +635,10 @@ def _classify_governed_request(prompt: str, context: dict[str, Any] | None) -> d
     required_evidence = ["selected_project_and_group", "tables_or_files_used", "columns_used"]
     constraints = ["stay_within_selected_group", "neutral_language"]
 
-    if any(term in text for term in ("create ticket", "open ticket", "draft ticket", "create jira", "servicenow")):
+    if any(term in text for term in ("discrepancy", "discrepancies", "contradiction", "contradictions", "differences between", "compare documents", "compare these documents")):
+        intent = "compare_documents"
+        required_evidence = ["selected_project_and_group", "files_used", "sections_or_passages_used", "limitations_or_missing_data"]
+    elif any(term in text for term in ("create ticket", "open ticket", "draft ticket", "create jira", "servicenow")):
         intent = "action_recommendation"
         risk_level = "medium"
         required_evidence = ["human_confirmation_required", "supporting_evidence_summary"]
@@ -751,6 +758,12 @@ def _safe_rewrite_for_plan(plan: dict[str, Any], prompt: str) -> str:
             "Compare or rank records inside the selected group using explicit tables/files, columns, grouping logic, "
             "counts, and limitations."
         )
+    if intent == "compare_documents":
+        return (
+            "Compare only the documents in the selected group. Identify contradictions, version differences, "
+            "missing requirements, and scope differences. Cite the files and relevant sections or passages, "
+            "use neutral language, and state limitations."
+        )
     return (
         "Answer using only the selected group. Include source tables/files, columns used, neutral language, "
         "and limitations."
@@ -766,6 +779,8 @@ def _useful_blocked_response(prompt: str, raw_result: str, plan: dict[str, Any],
         missing.append("source tables/files")
     if "columns_used" in (plan.get("required_evidence") or []) and not (context.get("groupSchema") or {}).get("tables"):
         missing.append("sampled schema/columns")
+    if "files_used" in (plan.get("required_evidence") or []) and not context.get("files"):
+        missing.append("source documents")
     missing_text = ", ".join(missing) if missing else "none detected; original wording likely triggered model safety"
     safe_rewrite = _safe_rewrite_for_plan(plan, prompt)
     return "\n\n".join([
@@ -3029,15 +3044,25 @@ def _context_project_table_tokens(context: dict[str, Any]) -> set[str]:
 def _context_with_glue_table_hints(context: dict[str, Any] | None) -> dict[str, Any] | None:
     if not context:
         return None
-    if context.get("tableHints"):
-        return context
     group_name = str(context.get("groupName") or "")
     token = _group_name_to_table_token(group_name)
     if not token:
         return context
     try:
         paginator = glue.get_paginator("get_tables")
-        hints: list[str] = []
+        existing_hints = {
+            str(hint) for hint in (context.get("tableHints") or []) if hint
+        }
+        hints: set[str] = set(existing_hints)
+        # UI project results intentionally carry a bounded display list. Use a
+        # table already in that list to infer the exact materialized prefix,
+        # then complete the same group from Glue instead of treating the sample
+        # as the full analysis boundary.
+        materialized_prefixes = {
+            hint.lower().split(token, 1)[0]
+            for hint in existing_hints
+            if token in hint.lower()
+        }
         project_tokens = _context_project_table_tokens(context)
         for page in paginator.paginate(DatabaseName=GLUE_DATABASE):
             for table in page.get("TableList", []):
@@ -3045,14 +3070,18 @@ def _context_with_glue_table_hints(context: dict[str, Any] | None) -> dict[str, 
                 name_lower = name.lower()
                 if token not in name_lower:
                     continue
-                if project_tokens and not any(project_token in name_lower for project_token in project_tokens):
+                if materialized_prefixes and not any(
+                    name_lower.startswith(prefix + token) for prefix in materialized_prefixes
+                ):
                     continue
-                if context.get("fromUiSelector") and not project_tokens:
+                if not materialized_prefixes and project_tokens and not any(project_token in name_lower for project_token in project_tokens):
+                    continue
+                if context.get("fromUiSelector") and not project_tokens and not materialized_prefixes:
                     continue
                 if token in name_lower:
-                    hints.append(name)
+                    hints.add(name)
         if hints:
-            return {**context, "tableHints": sorted(set(hints))}
+            return {**context, "tableHints": sorted(hints)[:GROUP_TABLE_HINT_LIMIT]}
     except Exception as e:
         log.warning("Glue table hint fill failed: %s", e)
     return context
@@ -3099,8 +3128,11 @@ def _context_with_project_metadata(context: dict[str, Any] | None) -> dict[str, 
                             **current_facts,
                             "sources": group_facts.get("sources") or [],
                         }
-                if group.get("tableHints") and not enriched.get("tableHints"):
-                    enriched["tableHints"] = group.get("tableHints") or []
+                if group.get("tableHints"):
+                    enriched["tableHints"] = sorted(set([
+                        *(enriched.get("tableHints") or []),
+                        *(group.get("tableHints") or []),
+                    ]))[:GROUP_TABLE_HINT_LIMIT]
                 if group.get("fileCount") is not None and enriched.get("fileCount") is None:
                     enriched["fileCount"] = group.get("fileCount")
                 if group.get("files") and not enriched.get("files"):
@@ -4747,6 +4779,7 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
     policy_tables = _storm_glass_tables(storm_token, "policy_master_coverage_changes", context, prompt)
     weather_tables = _storm_glass_tables(storm_token, "weather_claim_match", context, prompt)
     call_tables = _storm_glass_tables(storm_token, "call_center_logs", context, prompt)
+    supplement_tables = _storm_glass_tables(storm_token, "claim_supplements", context, prompt)
     siu_tables = _storm_glass_tables(storm_token, "fraud_scoring_export", context, prompt)
     benchmark_tables = _storm_glass_tables(storm_token, "regional_cost_benchmarks", context, prompt)
 
@@ -4812,6 +4845,16 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
         """,
         "col0 <> 'call_id'",
     ) if call_tables else "SELECT CAST(NULL AS VARCHAR) AS claim_id, CAST(NULL AS VARCHAR) AS call_date, CAST(NULL AS VARCHAR) AS caller_type, CAST(NULL AS VARCHAR) AS summary, CAST(NULL AS VARCHAR) AS early_contact_flag"
+    supplement_union = _union_from_tables(
+        supplement_tables,
+        """
+            CAST(claim_id AS VARCHAR) AS claim_id,
+            CAST(supplement_reason AS VARCHAR) AS supplement_reason,
+            CAST(review_status AS VARCHAR) AS review_status,
+            TRY_CAST(supplement_count AS DOUBLE) AS supplement_count
+        """,
+        "CAST(claim_id AS VARCHAR) <> 'claim_id'",
+    ) if supplement_tables else "SELECT CAST(NULL AS VARCHAR) AS claim_id, CAST(NULL AS VARCHAR) AS supplement_reason, CAST(NULL AS VARCHAR) AS review_status, CAST(NULL AS DOUBLE) AS supplement_count"
     siu_union = _union_from_tables(
         siu_tables,
         """
@@ -4841,6 +4884,7 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
         weather AS ({weather_union}),
         policies AS ({policy_union}),
         calls AS ({call_union}),
+        supplements AS ({supplement_union}),
         siu AS ({siu_union}),
         benchmarks AS ({benchmark_union}),
         invoice_rollup AS (
@@ -4876,6 +4920,16 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
             WHERE claim_id IS NOT NULL
             GROUP BY claim_id
         ),
+        note_rollup AS (
+            SELECT
+                claim_id,
+                SUM(COALESCE(supplement_count, 0)) AS supplement_count,
+                ARRAY_JOIN(SLICE(ARRAY_AGG(supplement_reason), 1, 2), ' | ') AS note_signals,
+                MAX(review_status) AS supplement_review_status
+            FROM supplements
+            WHERE claim_id IS NOT NULL
+            GROUP BY claim_id
+        ),
         scored AS (
             SELECT
                 c.claim_id,
@@ -4894,6 +4948,7 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
                 i.invoice_signals,
                 MAX(b.benchmark_high) AS benchmark_high,
                 MAX(p.recent_upgrade) AS recent_upgrade,
+                MAX(CASE WHEN LOWER(COALESCE(p.recent_upgrade, '')) IN ('y', 'yes', 'true') THEN p.effective_date END) AS recent_upgrade_date,
                 COALESCE(w.max_hail_inches, 0) AS max_hail_inches,
                 COALESCE(w.max_wind_mph, 0) AS max_wind_mph,
                 COALESCE(w.nearest_storm_miles, 999) AS nearest_storm_miles,
@@ -4902,6 +4957,9 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
                 COALESCE(cr.call_count, 0) AS call_count,
                 COALESCE(cr.early_contact_calls, 0) AS early_contact_calls,
                 COALESCE(cr.call_signals, '') AS call_signals,
+                COALESCE(n.supplement_count, 0) AS supplement_count,
+                COALESCE(n.note_signals, '') AS note_signals,
+                COALESCE(n.supplement_review_status, '') AS supplement_review_status,
                 MAX(s.fraud_score) AS siu_risk_score,
                 MAX(s.drivers) AS siu_drivers,
                 c.fraud_cluster,
@@ -4911,6 +4969,7 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
             LEFT JOIN policies p ON p.policy_id = c.policy_id
             LEFT JOIN weather_rollup w ON w.claim_id = c.claim_id
             LEFT JOIN call_rollup cr ON cr.claim_id = c.claim_id
+            LEFT JOIN note_rollup n ON n.claim_id = c.claim_id
             LEFT JOIN siu s ON s.claim_id = c.claim_id
             LEFT JOIN benchmarks b ON CAST(b.zip AS VARCHAR) = CAST(c.zip AS VARCHAR)
             GROUP BY
@@ -4920,10 +4979,12 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
                 w.max_hail_inches, w.max_wind_mph, w.nearest_storm_miles,
                 w.nearby_weather_events, w.unsupported_weather_rows,
                 cr.call_count, cr.early_contact_calls, cr.call_signals,
+                n.supplement_count, n.note_signals, n.supplement_review_status,
                 c.fraud_cluster, c.embedded_flags
         )
         SELECT
             claim_id,
+            policy_id,
             claim_status,
             loss_date,
             zip,
@@ -4934,6 +4995,12 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
             ROUND(benchmark_high, 2) AS benchmark_high,
             top_vendor,
             recent_upgrade,
+            recent_upgrade_date,
+            CASE
+                WHEN unsupported_weather_rows > 0 THEN 'not supported'
+                WHEN nearby_weather_events > 0 THEN 'supported'
+                ELSE 'no weather match'
+            END AS weather_match_status,
             max_hail_inches,
             max_wind_mph,
             nearest_storm_miles,
@@ -4963,10 +5030,12 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
                     item -> item IS NOT NULL
                 ),
                 '; '
-            ) AS review_explanation,
+            ) AS joined_data_factors,
             invoice_signals,
-            call_signals,
-            siu_drivers
+            call_signals AS call_context,
+            note_signals AS note_context,
+            siu_drivers,
+            supplement_review_status
         FROM scored
         WHERE
             invoice_total > estimated_loss * 1.35
@@ -4995,12 +5064,12 @@ def _handle_storm_glass_02_claim_review_request(prompt: str, context: dict[str, 
         _format_rows_as_markdown(rows, "No cross-evidence claim review candidates found."),
         "",
         "How to read this",
-        "- `review_explanation` lists which joined evidence signals put the claim into the review set.",
+        "- `joined_data_factors` lists which joined evidence signals put the claim into the review set.",
         "- Weather signals use the Storm Glass 02 weather-claim match tables and storm-cell distance, not Storm Glass 01 weather tables.",
         "- Invoice and call signals are short table excerpts; review source records before drawing conclusions.",
         "",
         "Suggested follow-up prompts",
-        f"- Create a neutral claim-level evidence summary for the top {storm_label} claim IDs above. Include claim_id, policy_id, loss date, invoice total, benchmark high, weather support, recent upgrade flag, call context, SIU score if available, and joined data factors.",
+        f"- Create a neutral claim-level evidence summary for the top {storm_label} claim IDs above. Include claim_id, policy_id, loss date, invoice total, benchmark high, weather match status, recent upgrade date, call context, note context, SIU score if available, and joined data factors.",
         f"- Review {storm_label} claims where contractor invoice totals exceed regional benchmarks. Include claim_id, vendor, invoice total, benchmark high, estimated loss, and amount above benchmark.",
         f"- Validate {storm_label} weather support for the highest-value claims. Include claim_id, ZIP, loss date, invoice total, nearest storm miles, max hail inches, max wind mph, and whether weather supports the reported loss.",
     ])

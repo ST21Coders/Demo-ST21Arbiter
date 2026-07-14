@@ -107,5 +107,5 @@ export function modelLabel(modelId) {
 // ──────────────────────────── App metadata ───────────────────
 // Single source of truth for the version string. Shown in the Sidebar
 // footer and the Settings → Environment section.
-export const APP_VERSION = '1.7.24-poc'
+export const APP_VERSION = '1.7.25-poc'
 export const APP_VERSION_NOTE = 'Tune structured discovery and report export workflow'

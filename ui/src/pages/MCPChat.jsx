@@ -11,6 +11,7 @@ import { detectProblem } from '../detectProblem'
 import CreateTicketButton from '../components/CreateTicketButton'
 import ClearChatsButton from '../components/ClearChatsButton'
 import { downloadChatPdf } from '../utils/pdfReport'
+import { dataGroupContentType, isDataGroupChatTarget, isStructuredEvidenceQuestion } from '../dataGroupRouting'
 
 /* ─── MCP server registry ────────────────────────────────────────────
    Each entry maps to a real ARBITER AgentCore runtime. `id` is the routing
@@ -18,6 +19,15 @@ import { downloadChatPdf } from '../utils/pdfReport'
    status comes from useAgentStatus() (GET /agent-status). */
 
 const MCP_SERVERS = [
+  {
+    id: 'master',
+    name: 'Arbiter Orchestrator',
+    host: 'agentcore · master_orchestrator',
+    description: 'Routes mixed Data Groups to the appropriate structured and document specialists.',
+    tools: [
+      { name: 'specialist routing', desc: 'Coordinates evidence across the selected Data Group' },
+    ],
+  },
   {
     id: 'sharepoint',
     name: 'SharePoint Specialist',
@@ -454,7 +464,7 @@ function looksLikeDeterministicStructuredQuestion(question) {
   )
 }
 
-function buildStructuredScopedPrompt(question, selectedGroup) {
+function buildDataGroupScopedPrompt(question, selectedGroup) {
   if (!selectedGroup) return question
   const minimalContext = looksLikeDeterministicStructuredQuestion(question)
   if (minimalContext) {
@@ -467,7 +477,10 @@ function buildStructuredScopedPrompt(question, selectedGroup) {
       `User request:\n${question}`,
     ].filter(Boolean).join('\n')
   }
-  const includeFileInventory = looksLikeGroupInventoryQuestion(question)
+  const includeFileInventory = (
+    looksLikeGroupInventoryQuestion(question)
+    || dataGroupContentType(selectedGroup) !== 'structured'
+  )
   const fileLines = selectedGroup.files?.length
     ? selectedGroup.files.slice(0, 100).map(file => `- ${file.name || 'Unnamed file'} (${file.type || 'file'}${file.glueTableHint ? `, table: ${file.glueTableHint}` : ''})`).join('\n')
     : ''
@@ -528,6 +541,10 @@ export default function MCPChat() {
   const servers = MCP_SERVERS.map(decorate)
   const sel = decorate(selectedServer)
   const selectedDataGroup = dataGroups.find(group => group.id === selectedDataGroupId) || null
+  const selectedDataContentType = selectedDataGroup
+    ? dataGroupContentType(selectedDataGroup)
+    : restoredDraftRef.current?.selectedDataContentType || ''
+  const dataGroupChat = isDataGroupChatTarget(selectedServer.id)
   const dataProjectOptions = projectOptionsFromGroups(dataGroups)
   const filteredDataGroups = selectedDataProjectId
     ? dataGroups.filter(group => (group.projectId || DEFAULT_DATA_PROJECT_ID) === selectedDataProjectId)
@@ -555,9 +572,10 @@ export default function MCPChat() {
       activeSessionTitle,
       selectedDataProjectId,
       selectedDataGroupId,
+      selectedDataContentType,
       messages,
     })
-  }, [selectedServer.id, activeSessionId, activeSessionTitle, selectedDataProjectId, selectedDataGroupId, messages])
+  }, [selectedServer.id, activeSessionId, activeSessionTitle, selectedDataProjectId, selectedDataGroupId, selectedDataContentType, messages])
 
   // Fetch the user's session list once on mount.
   useEffect(() => {
@@ -565,7 +583,7 @@ export default function MCPChat() {
   }, [listSessions])
 
   useEffect(() => {
-    if (selectedServer.id !== 'structured') return
+    if (!dataGroupChat) return
     let cancelled = false
     const localGroups = readLocalDataGroupingGroups()
     setDataGroups(localGroups)
@@ -665,7 +683,7 @@ export default function MCPChat() {
     const userMsg = { role: 'user', content: q, time: new Date().toLocaleTimeString() }
     setMessages(prev => [...prev, userMsg])
 
-    const outOfScopeGroup = selectedServer.id === 'structured'
+    const outOfScopeGroup = dataGroupChat
       ? findOutOfScopeGroup(q, selectedDataGroup, dataGroups)
       : null
     if (outOfScopeGroup) {
@@ -679,7 +697,7 @@ export default function MCPChat() {
       return
     }
 
-    const outsideProjectGroup = selectedServer.id === 'structured' && !selectedDataGroup
+    const outsideProjectGroup = dataGroupChat && !selectedDataGroup
       ? findGroupOutsideSelectedProject(q, selectedDataProjectId, dataGroups)
       : null
     if (outsideProjectGroup) {
@@ -694,12 +712,12 @@ export default function MCPChat() {
       return
     }
 
-    if (selectedServer.id === 'structured' && selectedDataProjectId && !selectedDataGroup) {
+    if (dataGroupChat && selectedDataProjectId && !selectedDataGroup) {
       const projectName = dataProjectOptions.find(project => project.id === selectedDataProjectId)?.name || selectedDataProjectId || 'the selected project'
       setMessages(prev => [...prev, {
         role: 'assistant',
         system: true,
-        content: `Select a data group inside **${projectName}** before running this structured-data query. This prevents the specialist from inferring a same-named group from another project.`,
+        content: `Select a data group inside **${projectName}** before running this query. This prevents Arbiter from inferring a same-named group from another project.`,
         toolCalls: [],
         time: new Date().toLocaleTimeString(),
       }])
@@ -731,9 +749,16 @@ export default function MCPChat() {
     }
 
     try {
-      const scopedPrompt = selectedServer.id === 'structured' && selectedDataGroup
-        ? buildStructuredScopedPrompt(q, selectedDataGroup)
-        : selectedServer.id === 'structured' && selectedDataProjectId
+      // Mixed groups normally use the master so document and CSV evidence can
+      // be combined. Explicit table/join questions should go straight to the
+      // structured runtime with the concrete group name; otherwise the master
+      // can reduce the scope to the ambiguous phrase "selected group".
+      const effectiveTarget = selectedDataGroup && isStructuredEvidenceQuestion(q)
+        ? 'structured'
+        : selectedServer.id
+      const scopedPrompt = dataGroupChat && selectedDataGroup
+        ? buildDataGroupScopedPrompt(q, selectedDataGroup)
+        : dataGroupChat && selectedDataProjectId
           ? [
               'Resolved project context from the UI selector.',
               `Project: ${dataProjectOptions.find(project => project.id === selectedDataProjectId)?.name || selectedDataProjectId} (${selectedDataProjectId})`,
@@ -746,23 +771,27 @@ export default function MCPChat() {
         prompt: scopedPrompt,
         session_id: sid,
         chat_type: 'mcp',
-        target: selectedServer.id,
-        data_group: selectedServer.id === 'structured' && selectedDataGroup
+        target: effectiveTarget,
+        // Older deployed APIs force every request carrying data_group to the
+        // structured runtime. Keep that legacy field CSV-only; document/mixed
+        // scope is already embedded in scopedPrompt and data_content_type.
+        data_group: dataGroupChat && selectedDataGroup && effectiveTarget === 'structured'
           ? selectedDataGroup.groupName
           : '',
-        data_project_id: selectedServer.id === 'structured' && selectedDataGroup
+        data_project_id: dataGroupChat && selectedDataGroup
           ? selectedDataGroup.projectId
-          : selectedServer.id === 'structured'
+          : dataGroupChat
             ? selectedDataProjectId
             : '',
-        data_project_name: selectedServer.id === 'structured' && selectedDataGroup
+        data_project_name: dataGroupChat && selectedDataGroup
           ? selectedDataGroup.projectName
-          : selectedServer.id === 'structured'
+          : dataGroupChat
             ? dataProjectOptions.find(project => project.id === selectedDataProjectId)?.name || ''
             : '',
-        data_group_id: selectedServer.id === 'structured' && selectedDataGroup
+        data_group_id: dataGroupChat && selectedDataGroup
           ? selectedDataGroup.id
           : '',
+        data_content_type: selectedDataContentType,
       })
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -890,15 +919,15 @@ export default function MCPChat() {
               <MessageSquare size={9} /> History: {activeSessionTitle}
             </span>
           )}
-          {selectedServer.id === 'structured' && selectedDataGroup && (
+          {dataGroupChat && selectedDataGroup && (
             <span className="flex max-w-[320px] items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700">
               <Database size={9} /> <span className="truncate">{selectedDataGroup.label}</span>
             </span>
           )}
-          {selectedServer.id === 'structured' && (
+          {dataGroupChat && (
             <button
               onClick={clearChat}
-              title="Clear chat history and reset this Structured Data session"
+              title="Clear chat history and reset this Data Group session"
               className="inline-flex items-center gap-1 text-[10px] border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 px-2 py-1 rounded-lg transition-colors"
             >
               <RotateCcw size={11} /> Clear Chat
@@ -993,7 +1022,7 @@ export default function MCPChat() {
         {/* Input */}
         <div className="p-4 border-t border-slate-200 bg-white">
           <div className="flex gap-2">
-            {selectedServer.id === 'structured' && (
+            {dataGroupChat && (
               <>
                 <label className="relative flex min-w-[190px] max-w-[260px] flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                   <Database size={14} className="shrink-0 text-indigo-600" />

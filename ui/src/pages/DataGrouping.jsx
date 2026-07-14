@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { USE_MOCK } from '../config'
 import { analyzeDataGroupingDocuments, getDataGroupingProject, getUploadStatus, listDataGroupingProjects, listUploadedFiles, materializeDataGroupingProject, startDataGroupingCrawler } from '../hooks/useApi'
+import { dataGroupChatTarget, dataGroupContentType } from '../dataGroupRouting'
 
 const GROUPING_STORAGE_KEY = 'arbiter.dataGrouping.v2.projectMetadata'
 const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.v2.savedGroups'
@@ -2065,7 +2066,8 @@ export default function DataGrouping() {
     const selectedDataGroupId = `local::${group.projectId || defaultProject().id}::${group.id || group.name}`
     try {
       sessionStorage.setItem(MCP_CHAT_DRAFT_KEY, JSON.stringify({
-        selectedServerId: 'structured',
+        selectedServerId: dataGroupChatTarget(group),
+        selectedDataContentType: dataGroupContentType(group),
         selectedDataGroupId,
         selectedDataProjectId: group.projectId || defaultProject().id,
         selectedDataProjectName: group.projectName || defaultProject().name,
