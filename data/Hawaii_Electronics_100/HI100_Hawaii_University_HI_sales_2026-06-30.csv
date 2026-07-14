@@ -1,0 +1,74 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI100-TX-0001,HI100,Hawaii University,Oahu,HI,2026-06-30 09:50:50,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.23,8.79,17.58,6.46,11.12,Nalu,Marine,Credit Card,896
+HI100-TX-0002,HI100,Hawaii University,Oahu,HI,2026-06-30 15:34:02,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.40,9.15,9.15,3.40,5.75,Lani,Marine,Cash,449
+HI100-TX-0003,HI100,Hawaii University,Oahu,HI,2026-06-30 14:32:30,USB-CBO,USB-C Breakout Board,Connectors,8,1.45,5.56,44.48,11.60,32.88,Pualani,Retail,Cash,10
+HI100-TX-0004,HI100,Hawaii University,Oahu,HI,2026-06-30 10:47:57,CON-JMP,Jumper Wire Set,Connectors,5,0.90,3.72,18.60,4.50,14.10,Ikaika,Education,ACH,365
+HI100-TX-0005,HI100,Hawaii University,Oahu,HI,2026-06-30 10:19:21,SNS-SOIL,Soil Moisture Sensor,Sensors,39,0.90,4.52,176.28,35.10,141.18,Keanu,Commercial,Cash,897
+HI100-TX-0006,HI100,Hawaii University,Oahu,HI,2026-06-30 17:03:22,RES-220,220 Ohm Resistor,Resistors,35,0.04,0.14,4.90,1.40,3.50,Kaleo,Education,Purchase Order,643
+HI100-TX-0007,HI100,Hawaii University,Oahu,HI,2026-06-30 08:59:59,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.29,8.27,57.89,23.03,34.86,Nalu,Education,Mobile Pay,817
+HI100-TX-0008,HI100,Hawaii University,Oahu,HI,2026-06-30 13:00:03,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.60,14.64,102.48,32.20,70.28,Koa,Government,Mobile Pay,438
+HI100-TX-0009,HI100,Hawaii University,Oahu,HI,2026-06-30 13:09:14,RES-010,10k Ohm Resistor,Resistors,27,0.03,0.14,3.78,0.81,2.97,Keanu,Marine,Debit Card,205
+HI100-TX-0010,HI100,Hawaii University,Oahu,HI,2026-06-30 15:56:42,LED-BLU,5mm Blue LED,LEDs,34,0.07,0.31,10.54,2.38,8.16,Ailani,Maker/Hobbyist,Cash,326
+HI100-TX-0011,HI100,Hawaii University,Oahu,HI,2026-06-30 13:25:48,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.32,13.22,26.44,8.64,17.80,Nalu,Government,Credit Card,81
+HI100-TX-0012,HI100,Hawaii University,Oahu,HI,2026-06-30 09:11:03,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,8.75,28.18,169.08,52.50,116.58,Noelani,Commercial,Debit Card,611
+HI100-TX-0013,HI100,Hawaii University,Oahu,HI,2026-06-30 15:01:36,IC-555,NE555 Timer IC,Integrated Circuits,35,0.33,1.30,45.50,11.55,33.95,Akamu,Government,Debit Card,372
+HI100-TX-0014,HI100,Hawaii University,Oahu,HI,2026-06-30 12:58:21,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.87,13.68,95.76,34.09,61.67,Nalu,Tourism/Hospitality,Debit Card,9
+HI100-TX-0015,HI100,Hawaii University,Oahu,HI,2026-06-30 11:56:11,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.20,9.09,45.45,16.00,29.45,Mika,Education,Purchase Order,870
+HI100-TX-0016,HI100,Hawaii University,Oahu,HI,2026-06-30 17:29:12,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,19,0.04,0.20,3.80,0.76,3.04,Kaleo,Government,Credit Card,518
+HI100-TX-0017,HI100,Hawaii University,Oahu,HI,2026-06-30 12:14:35,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.52,6.55,19.65,4.56,15.09,Iolana,Commercial,Purchase Order,28
+HI100-TX-0018,HI100,Hawaii University,Oahu,HI,2026-06-30 08:46:37,PWR-5V2,5V 2A Power Supply,Power,1,3.45,11.31,11.31,3.45,7.86,Alika,Retail,Cash,318
+HI100-TX-0019,HI100,Hawaii University,Oahu,HI,2026-06-30 14:25:21,SNS-PIR,PIR Motion Sensor,Sensors,8,1.63,5.62,44.96,13.04,31.92,Koa,Tourism/Hospitality,Credit Card,574
+HI100-TX-0020,HI100,Hawaii University,Oahu,HI,2026-06-30 16:23:22,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.02,13.74,41.22,12.06,29.16,Lani,Education,Credit Card,775
+HI100-TX-0021,HI100,Hawaii University,Oahu,HI,2026-06-30 10:18:35,USB-CBO,USB-C Breakout Board,Connectors,9,1.38,5.48,49.32,12.42,36.90,Noah,Government,Mobile Pay,230
+HI100-TX-0022,HI100,Hawaii University,Oahu,HI,2026-06-30 14:33:03,IC-358,LM358 Op Amp,Integrated Circuits,13,0.30,1.18,15.34,3.90,11.44,Alika,Education,Credit Card,794
+HI100-TX-0023,HI100,Hawaii University,Oahu,HI,2026-06-30 12:42:28,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.37,8.37,8.37,3.37,5.00,Alika,Marine,Cash,456
+HI100-TX-0024,HI100,Hawaii University,Oahu,HI,2026-06-30 15:18:16,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.13,20.63,61.89,24.39,37.50,Alika,Government,Purchase Order,589
+HI100-TX-0025,HI100,Hawaii University,Oahu,HI,2026-06-30 16:43:51,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.05,12.84,38.52,12.15,26.37,Nalu,Commercial,ACH,640
+HI100-TX-0026,HI100,Hawaii University,Oahu,HI,2026-06-30 13:50:50,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.98,13.31,13.31,4.98,8.33,Hana,Tourism/Hospitality,Mobile Pay,151
+HI100-TX-0027,HI100,Hawaii University,Oahu,HI,2026-06-30 09:46:55,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,8.96,26.30,105.20,35.84,69.36,Noelani,Government,Credit Card,477
+HI100-TX-0028,HI100,Hawaii University,Oahu,HI,2026-06-30 14:07:22,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.17,13.31,106.48,33.36,73.12,Malia,Education,Debit Card,750
+HI100-TX-0029,HI100,Hawaii University,Oahu,HI,2026-06-30 16:51:07,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.71,13.90,69.50,23.55,45.95,Keanu,Retail,Mobile Pay,749
+HI100-TX-0030,HI100,Hawaii University,Oahu,HI,2026-06-30 14:24:10,IC-REG,7805 Voltage Regulator,Integrated Circuits,15,0.19,0.94,14.10,2.85,11.25,Leilani,Education,Debit Card,681
+HI100-TX-0031,HI100,Hawaii University,Oahu,HI,2026-06-30 13:50:45,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.85,14.94,14.94,4.85,10.09,Nalu,Government,Purchase Order,767
+HI100-TX-0032,HI100,Hawaii University,Oahu,HI,2026-06-30 10:02:04,IC-REG,7805 Voltage Regulator,Integrated Circuits,35,0.19,0.90,31.50,6.65,24.85,Akamu,Education,Debit Card,587
+HI100-TX-0033,HI100,Hawaii University,Oahu,HI,2026-06-30 10:37:32,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.10,12.65,101.20,32.80,68.40,Noah,Government,Credit Card,556
+HI100-TX-0034,HI100,Hawaii University,Oahu,HI,2026-06-30 09:15:12,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.63,6.85,13.70,3.26,10.44,Koa,Retail,ACH,260
+HI100-TX-0035,HI100,Hawaii University,Oahu,HI,2026-06-30 14:27:35,TR-3904,2N3904 NPN Transistor,Semiconductors,36,0.06,0.24,8.64,2.16,6.48,Lani,Marine,Purchase Order,58
+HI100-TX-0036,HI100,Hawaii University,Oahu,HI,2026-06-30 13:52:58,SNS-SOIL,Soil Moisture Sensor,Sensors,33,0.99,4.54,149.82,32.67,117.15,Mika,Education,Cash,619
+HI100-TX-0037,HI100,Hawaii University,Oahu,HI,2026-06-30 11:29:59,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.06,21.78,87.12,32.24,54.88,Ikaika,Commercial,Debit Card,759
+HI100-TX-0038,HI100,Hawaii University,Oahu,HI,2026-06-30 14:05:38,IC-REG,7805 Voltage Regulator,Integrated Circuits,32,0.21,0.95,30.40,6.72,23.68,Hana,Marine,Credit Card,520
+HI100-TX-0039,HI100,Hawaii University,Oahu,HI,2026-06-30 16:53:22,TOOL-DMM,Digital Multimeter,Tools,6,8.26,26.96,161.76,49.56,112.20,Lani,Government,Cash,412
+HI100-TX-0040,HI100,Hawaii University,Oahu,HI,2026-06-30 17:33:48,IC-358,LM358 Op Amp,Integrated Circuits,10,0.30,1.25,12.50,3.00,9.50,Noelani,Government,Debit Card,114
+HI100-TX-0041,HI100,Hawaii University,Oahu,HI,2026-06-30 08:55:56,RES-220,220 Ohm Resistor,Resistors,4,0.03,0.14,0.56,0.12,0.44,Keahi,Tourism/Hospitality,ACH,884
+HI100-TX-0042,HI100,Hawaii University,Oahu,HI,2026-06-30 08:24:32,IC-358,LM358 Op Amp,Integrated Circuits,18,0.31,1.16,20.88,5.58,15.30,Ikaika,Education,Mobile Pay,37
+HI100-TX-0043,HI100,Hawaii University,Oahu,HI,2026-06-30 14:14:50,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,39,0.05,0.19,7.41,1.95,5.46,Alika,Retail,Credit Card,651
+HI100-TX-0044,HI100,Hawaii University,Oahu,HI,2026-06-30 10:49:06,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.47,12.39,49.56,17.88,31.68,Noelani,Marine,ACH,675
+HI100-TX-0045,HI100,Hawaii University,Oahu,HI,2026-06-30 15:42:29,SOL-CTRL,Solar Charge Controller,Solar Power,3,10.68,34.32,102.96,32.04,70.92,Hana,Education,Mobile Pay,291
+HI100-TX-0046,HI100,Hawaii University,Oahu,HI,2026-06-30 10:50:33,DIO-4007,1N4007 Diode,Semiconductors,27,0.05,0.21,5.67,1.35,4.32,Iolana,Maker/Hobbyist,Credit Card,692
+HI100-TX-0047,HI100,Hawaii University,Oahu,HI,2026-06-30 12:50:39,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.60,13.64,68.20,23.00,45.20,Malia,Maker/Hobbyist,Mobile Pay,203
+HI100-TX-0048,HI100,Hawaii University,Oahu,HI,2026-06-30 09:12:30,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,8.55,20.70,165.60,68.40,97.20,Mika,Commercial,Mobile Pay,454
+HI100-TX-0049,HI100,Hawaii University,Oahu,HI,2026-06-30 15:27:16,SNS-ULT,Ultrasonic Distance Sensor,Sensors,21,1.30,5.35,112.35,27.30,85.05,Lani,Marine,Cash,402
+HI100-TX-0050,HI100,Hawaii University,Oahu,HI,2026-06-30 16:32:20,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.51,7.50,15.00,5.02,9.98,Iolana,Tourism/Hospitality,Debit Card,318
+HI100-TX-0051,HI100,Hawaii University,Oahu,HI,2026-06-30 13:38:32,USB-CBO,USB-C Breakout Board,Connectors,8,1.38,5.33,42.64,11.04,31.60,Kai,Commercial,ACH,512
+HI100-TX-0052,HI100,Hawaii University,Oahu,HI,2026-06-30 16:43:33,IC-555,NE555 Timer IC,Integrated Circuits,32,0.35,1.38,44.16,11.20,32.96,Kai,Tourism/Hospitality,ACH,290
+HI100-TX-0053,HI100,Hawaii University,Oahu,HI,2026-06-30 16:47:20,RES-010,10k Ohm Resistor,Resistors,1,0.03,0.14,0.14,0.03,0.11,Malia,Maker/Hobbyist,Mobile Pay,198
+HI100-TX-0054,HI100,Hawaii University,Oahu,HI,2026-06-30 11:30:41,LED-RED,5mm Red LED,LEDs,15,0.06,0.26,3.90,0.90,3.00,Leilani,Government,ACH,587
+HI100-TX-0055,HI100,Hawaii University,Oahu,HI,2026-06-30 08:17:43,MOS-44N,IRFZ44N MOSFET,Semiconductors,31,0.57,2.42,75.02,17.67,57.35,Keahi,Maker/Hobbyist,ACH,377
+HI100-TX-0056,HI100,Hawaii University,Oahu,HI,2026-06-30 10:19:01,REL-5V,5V Relay Module,Relays,38,0.97,5.72,217.36,36.86,180.50,Nalu,Commercial,Cash,762
+HI100-TX-0057,HI100,Hawaii University,Oahu,HI,2026-06-30 12:23:40,MOS-44N,IRFZ44N MOSFET,Semiconductors,1,0.59,2.47,2.47,0.59,1.88,Malia,Tourism/Hospitality,ACH,752
+HI100-TX-0058,HI100,Hawaii University,Oahu,HI,2026-06-30 09:03:45,SNS-ULT,Ultrasonic Distance Sensor,Sensors,37,1.28,5.48,202.76,47.36,155.40,Kaleo,Marine,Mobile Pay,532
+HI100-TX-0059,HI100,Hawaii University,Oahu,HI,2026-06-30 14:04:34,LED-RED,5mm Red LED,LEDs,3,0.06,0.26,0.78,0.18,0.60,Malia,Marine,Debit Card,199
+HI100-TX-0060,HI100,Hawaii University,Oahu,HI,2026-06-30 15:00:42,RES-010,10k Ohm Resistor,Resistors,16,0.03,0.14,2.24,0.48,1.76,Keanu,Maker/Hobbyist,Debit Card,150
+HI100-TX-0061,HI100,Hawaii University,Oahu,HI,2026-06-30 11:45:17,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.52,6.68,13.36,3.04,10.32,Koa,Retail,Credit Card,63
+HI100-TX-0062,HI100,Hawaii University,Oahu,HI,2026-06-30 16:07:45,CAP-010,10uF Capacitor,Capacitors,13,0.09,0.41,5.33,1.17,4.16,Kaleo,Commercial,Purchase Order,740
+HI100-TX-0063,HI100,Hawaii University,Oahu,HI,2026-06-30 17:30:51,CAP-100,100uF Capacitor,Capacitors,24,0.16,0.60,14.40,3.84,10.56,Lani,Marine,Cash,362
+HI100-TX-0064,HI100,Hawaii University,Oahu,HI,2026-06-30 17:26:31,IC-555,NE555 Timer IC,Integrated Circuits,10,0.36,1.44,14.40,3.60,10.80,Koa,Marine,Credit Card,753
+HI100-TX-0065,HI100,Hawaii University,Oahu,HI,2026-06-30 16:31:47,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,9.30,26.06,104.24,37.20,67.04,Kaleo,Commercial,Cash,519
+HI100-TX-0066,HI100,Hawaii University,Oahu,HI,2026-06-30 08:29:21,TOOL-DMM,Digital Multimeter,Tools,1,9.00,27.04,27.04,9.00,18.04,Kaleo,Maker/Hobbyist,Mobile Pay,333
+HI100-TX-0067,HI100,Hawaii University,Oahu,HI,2026-06-30 09:10:19,REL-5V,5V Relay Module,Relays,3,0.97,5.31,15.93,2.91,13.02,Ailani,Government,Mobile Pay,463
+HI100-TX-0068,HI100,Hawaii University,Oahu,HI,2026-06-30 15:12:38,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.63,16.37,98.22,33.78,64.44,Akamu,Tourism/Hospitality,Debit Card,807
+HI100-TX-0069,HI100,Hawaii University,Oahu,HI,2026-06-30 14:04:42,CAP-100,100uF Capacitor,Capacitors,24,0.16,0.59,14.16,3.84,10.32,Alika,Education,Cash,408
+HI100-TX-0070,HI100,Hawaii University,Oahu,HI,2026-06-30 08:46:51,CON-JMP,Jumper Wire Set,Connectors,20,0.92,3.65,73.00,18.40,54.60,Lani,Maker/Hobbyist,ACH,384
+HI100-TX-0071,HI100,Hawaii University,Oahu,HI,2026-06-30 08:50:26,IC-555,NE555 Timer IC,Integrated Circuits,34,0.36,1.36,46.24,12.24,34.00,Koa,Marine,Credit Card,151
+HI100-TX-0072,HI100,Hawaii University,Oahu,HI,2026-06-30 11:19:15,CON-JMP,Jumper Wire Set,Connectors,13,0.96,3.75,48.75,12.48,36.27,Lani,Retail,ACH,5
+HI100-TX-0073,HI100,Hawaii University,Oahu,HI,2026-06-30 14:16:37,RES-010,10k Ohm Resistor,Resistors,29,0.03,0.12,3.48,0.87,2.61,Malia,Government,Cash,739

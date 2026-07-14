@@ -29,6 +29,7 @@ ui/.env.*.local
 # Plan files / scratch
 .claude/plans/
 .aws-sam/
+Documents/rag_enhancements_prompt.txt
 
 # Pip wheels, egg-info
 *.egg-info/

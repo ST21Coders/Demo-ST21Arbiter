@@ -1,0 +1,72 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI094-TX-0001,HI094,Pearlridge,Oahu,HI,2026-06-30 11:03:45,TOOL-WIRE,Wire Stripper,Tools,4,4.99,16.07,64.28,19.96,44.32,Hana,Education,Mobile Pay,453
+HI094-TX-0002,HI094,Pearlridge,Oahu,HI,2026-06-30 13:15:07,IC-REG,7805 Voltage Regulator,Integrated Circuits,3,0.19,0.92,2.76,0.57,2.19,Alika,Commercial,ACH,746
+HI094-TX-0003,HI094,Pearlridge,Oahu,HI,2026-06-30 17:50:55,TR-3904,2N3904 NPN Transistor,Semiconductors,20,0.06,0.25,5.00,1.20,3.80,Kai,Tourism/Hospitality,Purchase Order,579
+HI094-TX-0004,HI094,Pearlridge,Oahu,HI,2026-06-30 12:30:40,RES-010,10k Ohm Resistor,Resistors,9,0.03,0.13,1.17,0.27,0.90,Iolana,Marine,Mobile Pay,453
+HI094-TX-0005,HI094,Pearlridge,Oahu,HI,2026-06-30 13:09:21,IC-358,LM358 Op Amp,Integrated Circuits,3,0.33,1.22,3.66,0.99,2.67,Mika,Education,Credit Card,252
+HI094-TX-0006,HI094,Pearlridge,Oahu,HI,2026-06-30 10:54:34,CAP-100,100uF Capacitor,Capacitors,26,0.16,0.62,16.12,4.16,11.96,Ikaika,Marine,Purchase Order,394
+HI094-TX-0007,HI094,Pearlridge,Oahu,HI,2026-06-30 09:32:50,TR-3904,2N3904 NPN Transistor,Semiconductors,32,0.06,0.25,8.00,1.92,6.08,Leilani,Commercial,Purchase Order,121
+HI094-TX-0008,HI094,Pearlridge,Oahu,HI,2026-06-30 15:18:15,LED-RGB,RGB LED Strip,LEDs,1,4.93,14.91,14.91,4.93,9.98,Keahi,Commercial,ACH,266
+HI094-TX-0009,HI094,Pearlridge,Oahu,HI,2026-06-30 17:53:51,TR-3904,2N3904 NPN Transistor,Semiconductors,25,0.06,0.22,5.50,1.50,4.00,Keahi,Marine,Debit Card,385
+HI094-TX-0010,HI094,Pearlridge,Oahu,HI,2026-06-30 12:41:41,CON-JMP,Jumper Wire Set,Connectors,31,1.00,3.85,119.35,31.00,88.35,Ikaika,Marine,Debit Card,814
+HI094-TX-0011,HI094,Pearlridge,Oahu,HI,2026-06-30 16:19:03,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.68,14.15,14.15,3.68,10.47,Ailani,Government,Credit Card,794
+HI094-TX-0012,HI094,Pearlridge,Oahu,HI,2026-06-30 10:52:52,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.64,6.57,13.14,3.28,9.86,Hana,Maker/Hobbyist,Cash,580
+HI094-TX-0013,HI094,Pearlridge,Oahu,HI,2026-06-30 14:12:10,TOOL-DMM,Digital Multimeter,Tools,5,8.46,25.59,127.95,42.30,85.65,Mika,Government,Debit Card,716
+HI094-TX-0014,HI094,Pearlridge,Oahu,HI,2026-06-30 09:23:50,RES-220,220 Ohm Resistor,Resistors,25,0.03,0.13,3.25,0.75,2.50,Lani,Commercial,Debit Card,533
+HI094-TX-0015,HI094,Pearlridge,Oahu,HI,2026-06-30 11:52:35,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.19,8.22,24.66,9.57,15.09,Ikaika,Education,ACH,712
+HI094-TX-0016,HI094,Pearlridge,Oahu,HI,2026-06-30 10:25:54,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,17,0.05,0.19,3.23,0.85,2.38,Keanu,Government,ACH,20
+HI094-TX-0017,HI094,Pearlridge,Oahu,HI,2026-06-30 10:20:49,IC-REG,7805 Voltage Regulator,Integrated Circuits,40,0.21,0.94,37.60,8.40,29.20,Noah,Marine,Debit Card,611
+HI094-TX-0018,HI094,Pearlridge,Oahu,HI,2026-06-30 10:18:11,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.64,6.71,13.42,3.28,10.14,Keanu,Education,Debit Card,886
+HI094-TX-0019,HI094,Pearlridge,Oahu,HI,2026-06-30 11:39:22,RES-010,10k Ohm Resistor,Resistors,11,0.03,0.13,1.43,0.33,1.10,Noah,Marine,Cash,1
+HI094-TX-0020,HI094,Pearlridge,Oahu,HI,2026-06-30 13:10:01,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,9,0.04,0.19,1.71,0.36,1.35,Keahi,Retail,Mobile Pay,247
+HI094-TX-0021,HI094,Pearlridge,Oahu,HI,2026-06-30 16:52:27,USB-CBO,USB-C Breakout Board,Connectors,26,1.40,5.30,137.80,36.40,101.40,Iolana,Marine,ACH,887
+HI094-TX-0022,HI094,Pearlridge,Oahu,HI,2026-06-30 08:32:15,CON-JMP,Jumper Wire Set,Connectors,6,0.98,3.92,23.52,5.88,17.64,Kai,Maker/Hobbyist,Mobile Pay,807
+HI094-TX-0023,HI094,Pearlridge,Oahu,HI,2026-06-30 16:37:21,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.56,6.65,53.20,12.48,40.72,Pualani,Retail,ACH,361
+HI094-TX-0024,HI094,Pearlridge,Oahu,HI,2026-06-30 11:12:05,LED-RGB,RGB LED Strip,LEDs,6,5.22,14.17,85.02,31.32,53.70,Noah,Maker/Hobbyist,Cash,682
+HI094-TX-0025,HI094,Pearlridge,Oahu,HI,2026-06-30 15:28:22,IC-REG,7805 Voltage Regulator,Integrated Circuits,11,0.19,0.95,10.45,2.09,8.36,Leilani,Maker/Hobbyist,ACH,260
+HI094-TX-0026,HI094,Pearlridge,Oahu,HI,2026-06-30 08:19:31,CAP-100,100uF Capacitor,Capacitors,3,0.18,0.61,1.83,0.54,1.29,Noah,Commercial,Cash,276
+HI094-TX-0027,HI094,Pearlridge,Oahu,HI,2026-06-30 11:30:07,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.61,6.22,12.44,3.22,9.22,Ailani,Tourism/Hospitality,Mobile Pay,38
+HI094-TX-0028,HI094,Pearlridge,Oahu,HI,2026-06-30 17:40:13,TOOL-SOL,Soldering Iron Tips,Tools,4,1.95,7.63,30.52,7.80,22.72,Noah,Retail,Cash,143
+HI094-TX-0029,HI094,Pearlridge,Oahu,HI,2026-06-30 10:39:44,CON-JMP,Jumper Wire Set,Connectors,39,0.98,3.84,149.76,38.22,111.54,Ailani,Government,Credit Card,561
+HI094-TX-0030,HI094,Pearlridge,Oahu,HI,2026-06-30 09:45:50,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,9.14,26.84,187.88,63.98,123.90,Koa,Maker/Hobbyist,Purchase Order,877
+HI094-TX-0031,HI094,Pearlridge,Oahu,HI,2026-06-30 15:23:48,SNS-ULT,Ultrasonic Distance Sensor,Sensors,9,1.32,5.24,47.16,11.88,35.28,Alika,Education,Credit Card,795
+HI094-TX-0032,HI094,Pearlridge,Oahu,HI,2026-06-30 13:03:28,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.82,13.64,95.48,26.74,68.74,Noah,Government,Mobile Pay,716
+HI094-TX-0033,HI094,Pearlridge,Oahu,HI,2026-06-30 11:06:07,SNS-PIR,PIR Motion Sensor,Sensors,7,1.48,5.78,40.46,10.36,30.10,Kaleo,Commercial,ACH,884
+HI094-TX-0034,HI094,Pearlridge,Oahu,HI,2026-06-30 11:43:49,SNS-PIR,PIR Motion Sensor,Sensors,3,1.46,6.16,18.48,4.38,14.10,Nalu,Retail,Mobile Pay,790
+HI094-TX-0035,HI094,Pearlridge,Oahu,HI,2026-06-30 15:55:53,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.46,8.76,26.28,10.38,15.90,Nalu,Education,Purchase Order,380
+HI094-TX-0036,HI094,Pearlridge,Oahu,HI,2026-06-30 09:50:21,CON-JMP,Jumper Wire Set,Connectors,32,0.96,3.67,117.44,30.72,86.72,Malia,Tourism/Hospitality,Cash,41
+HI094-TX-0037,HI094,Pearlridge,Oahu,HI,2026-06-30 09:06:31,SNS-PIR,PIR Motion Sensor,Sensors,3,1.58,5.78,17.34,4.74,12.60,Keanu,Maker/Hobbyist,Cash,214
+HI094-TX-0038,HI094,Pearlridge,Oahu,HI,2026-06-30 08:59:47,IC-REG,7805 Voltage Regulator,Integrated Circuits,14,0.21,0.98,13.72,2.94,10.78,Hana,Government,Purchase Order,604
+HI094-TX-0039,HI094,Pearlridge,Oahu,HI,2026-06-30 10:47:26,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.45,9.06,54.36,20.70,33.66,Pualani,Education,Debit Card,568
+HI094-TX-0040,HI094,Pearlridge,Oahu,HI,2026-06-30 10:19:25,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.40,15.01,45.03,13.20,31.83,Kaleo,Government,Credit Card,808
+HI094-TX-0041,HI094,Pearlridge,Oahu,HI,2026-06-30 09:34:28,TR-3904,2N3904 NPN Transistor,Semiconductors,37,0.06,0.24,8.88,2.22,6.66,Malia,Commercial,Debit Card,508
+HI094-TX-0042,HI094,Pearlridge,Oahu,HI,2026-06-30 08:52:00,PWR-12V,12V 5A Power Supply,Power,3,8.76,25.25,75.75,26.28,49.47,Kai,Education,Credit Card,759
+HI094-TX-0043,HI094,Pearlridge,Oahu,HI,2026-06-30 10:22:37,USB-CBO,USB-C Breakout Board,Connectors,7,1.46,5.44,38.08,10.22,27.86,Mika,Marine,Mobile Pay,179
+HI094-TX-0044,HI094,Pearlridge,Oahu,HI,2026-06-30 12:55:08,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.93,14.17,70.85,24.65,46.20,Ailani,Government,Purchase Order,201
+HI094-TX-0045,HI094,Pearlridge,Oahu,HI,2026-06-30 11:11:02,SNS-DHT,DHT22 Temperature Sensor,Sensors,3,2.44,7.91,23.73,7.32,16.41,Keanu,Marine,ACH,414
+HI094-TX-0046,HI094,Pearlridge,Oahu,HI,2026-06-30 11:45:39,RES-010,10k Ohm Resistor,Resistors,35,0.03,0.14,4.90,1.05,3.85,Leilani,Tourism/Hospitality,Cash,335
+HI094-TX-0047,HI094,Pearlridge,Oahu,HI,2026-06-30 15:58:24,PWR-BUCK,Buck Converter Module,Power,32,1.05,5.19,166.08,33.60,132.48,Ailani,Education,ACH,206
+HI094-TX-0048,HI094,Pearlridge,Oahu,HI,2026-06-30 09:20:53,BAT-AAH,AA Battery Holder,Batteries,18,0.53,2.77,49.86,9.54,40.32,Leilani,Tourism/Hospitality,Cash,585
+HI094-TX-0049,HI094,Pearlridge,Oahu,HI,2026-06-30 15:32:27,IC-555,NE555 Timer IC,Integrated Circuits,6,0.33,1.32,7.92,1.98,5.94,Malia,Marine,ACH,565
+HI094-TX-0050,HI094,Pearlridge,Oahu,HI,2026-06-30 09:50:18,IC-358,LM358 Op Amp,Integrated Circuits,29,0.30,1.22,35.38,8.70,26.68,Malia,Education,Mobile Pay,438
+HI094-TX-0051,HI094,Pearlridge,Oahu,HI,2026-06-30 10:42:05,IC-REG,7805 Voltage Regulator,Integrated Circuits,37,0.21,0.91,33.67,7.77,25.90,Hana,Maker/Hobbyist,Purchase Order,598
+HI094-TX-0052,HI094,Pearlridge,Oahu,HI,2026-06-30 13:50:15,IC-358,LM358 Op Amp,Integrated Circuits,39,0.30,1.12,43.68,11.70,31.98,Kai,Tourism/Hospitality,ACH,421
+HI094-TX-0053,HI094,Pearlridge,Oahu,HI,2026-06-30 12:43:54,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.51,6.52,13.04,3.02,10.02,Kai,Retail,ACH,578
+HI094-TX-0054,HI094,Pearlridge,Oahu,HI,2026-06-30 10:23:46,DIO-4007,1N4007 Diode,Semiconductors,3,0.04,0.20,0.60,0.12,0.48,Akamu,Tourism/Hospitality,ACH,672
+HI094-TX-0055,HI094,Pearlridge,Oahu,HI,2026-06-30 11:42:41,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.48,13.50,13.50,4.48,9.02,Alika,Commercial,Credit Card,182
+HI094-TX-0056,HI094,Pearlridge,Oahu,HI,2026-06-30 08:14:18,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.56,14.64,29.28,9.12,20.16,Nalu,Retail,Cash,831
+HI094-TX-0057,HI094,Pearlridge,Oahu,HI,2026-06-30 09:29:41,USB-CBO,USB-C Breakout Board,Connectors,11,1.47,5.34,58.74,16.17,42.57,Leilani,Maker/Hobbyist,Debit Card,501
+HI094-TX-0058,HI094,Pearlridge,Oahu,HI,2026-06-30 11:06:11,LED-BLU,5mm Blue LED,LEDs,25,0.07,0.31,7.75,1.75,6.00,Ailani,Commercial,Cash,269
+HI094-TX-0059,HI094,Pearlridge,Oahu,HI,2026-06-30 17:24:21,IC-555,NE555 Timer IC,Integrated Circuits,39,0.33,1.32,51.48,12.87,38.61,Malia,Commercial,Credit Card,778
+HI094-TX-0060,HI094,Pearlridge,Oahu,HI,2026-06-30 10:39:29,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.34,8.66,17.32,6.68,10.64,Noah,Maker/Hobbyist,ACH,259
+HI094-TX-0061,HI094,Pearlridge,Oahu,HI,2026-06-30 16:28:31,CON-JMP,Jumper Wire Set,Connectors,19,0.97,3.72,70.68,18.43,52.25,Noah,Tourism/Hospitality,Mobile Pay,410
+HI094-TX-0062,HI094,Pearlridge,Oahu,HI,2026-06-30 14:14:04,USB-CBO,USB-C Breakout Board,Connectors,40,1.44,5.23,209.20,57.60,151.60,Ikaika,Maker/Hobbyist,Purchase Order,546
+HI094-TX-0063,HI094,Pearlridge,Oahu,HI,2026-06-30 13:40:28,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.10,13.36,80.16,24.60,55.56,Malia,Maker/Hobbyist,ACH,708
+HI094-TX-0064,HI094,Pearlridge,Oahu,HI,2026-06-30 13:54:32,IC-REG,7805 Voltage Regulator,Integrated Circuits,38,0.19,0.96,36.48,7.22,29.26,Nalu,Tourism/Hospitality,Credit Card,810
+HI094-TX-0065,HI094,Pearlridge,Oahu,HI,2026-06-30 08:36:39,LED-RGB,RGB LED Strip,LEDs,3,4.78,13.59,40.77,14.34,26.43,Leilani,Marine,Debit Card,273
+HI094-TX-0066,HI094,Pearlridge,Oahu,HI,2026-06-30 09:27:13,CON-JMP,Jumper Wire Set,Connectors,16,0.98,3.67,58.72,15.68,43.04,Mika,Government,Mobile Pay,771
+HI094-TX-0067,HI094,Pearlridge,Oahu,HI,2026-06-30 09:30:34,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.49,8.01,56.07,17.43,38.64,Ikaika,Retail,Purchase Order,807
+HI094-TX-0068,HI094,Pearlridge,Oahu,HI,2026-06-30 08:25:32,DIO-4007,1N4007 Diode,Semiconductors,39,0.04,0.21,8.19,1.56,6.63,Koa,Commercial,ACH,898
+HI094-TX-0069,HI094,Pearlridge,Oahu,HI,2026-06-30 17:39:18,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.80,13.60,40.80,11.40,29.40,Koa,Commercial,Cash,696
+HI094-TX-0070,HI094,Pearlridge,Oahu,HI,2026-06-30 12:31:36,RES-220,220 Ohm Resistor,Resistors,14,0.03,0.13,1.82,0.42,1.40,Keanu,Maker/Hobbyist,Purchase Order,845
+HI094-TX-0071,HI094,Pearlridge,Oahu,HI,2026-06-30 14:32:09,IC-555,NE555 Timer IC,Integrated Circuits,35,0.37,1.28,44.80,12.95,31.85,Mika,Education,Credit Card,273

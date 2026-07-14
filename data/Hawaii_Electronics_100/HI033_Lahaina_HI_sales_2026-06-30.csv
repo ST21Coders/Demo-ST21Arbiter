@@ -1,0 +1,52 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI033-TX-0001,HI033,Lahaina,Maui,HI,2026-06-30 11:28:52,PWR-BUCK,Buck Converter Module,Power,39,1.08,4.81,187.59,42.12,145.47,Nalu,Retail,Purchase Order,820
+HI033-TX-0002,HI033,Lahaina,Maui,HI,2026-06-30 13:39:02,CAP-100,100uF Capacitor,Capacitors,21,0.16,0.63,13.23,3.36,9.87,Mika,Retail,Debit Card,412
+HI033-TX-0003,HI033,Lahaina,Maui,HI,2026-06-30 11:56:19,CAP-010,10uF Capacitor,Capacitors,13,0.09,0.37,4.81,1.17,3.64,Nalu,Tourism/Hospitality,Credit Card,609
+HI033-TX-0004,HI033,Lahaina,Maui,HI,2026-06-30 16:46:15,LED-RED,5mm Red LED,LEDs,22,0.05,0.28,6.16,1.10,5.06,Kaleo,Education,Cash,396
+HI033-TX-0005,HI033,Lahaina,Maui,HI,2026-06-30 16:44:32,CON-JMP,Jumper Wire Set,Connectors,27,0.93,3.89,105.03,25.11,79.92,Noelani,Retail,Debit Card,850
+HI033-TX-0006,HI033,Lahaina,Maui,HI,2026-06-30 17:04:16,LED-RED,5mm Red LED,LEDs,12,0.06,0.28,3.36,0.72,2.64,Kai,Government,Mobile Pay,125
+HI033-TX-0007,HI033,Lahaina,Maui,HI,2026-06-30 14:14:55,CAP-100,100uF Capacitor,Capacitors,18,0.18,0.59,10.62,3.24,7.38,Koa,Education,Debit Card,269
+HI033-TX-0008,HI033,Lahaina,Maui,HI,2026-06-30 16:37:17,BAT-AAH,AA Battery Holder,Batteries,38,0.50,2.60,98.80,19.00,79.80,Makana,Government,ACH,37
+HI033-TX-0009,HI033,Lahaina,Maui,HI,2026-06-30 16:17:52,REL-5V,5V Relay Module,Relays,16,0.97,5.50,88.00,15.52,72.48,Ikaika,Commercial,Mobile Pay,578
+HI033-TX-0010,HI033,Lahaina,Maui,HI,2026-06-30 17:21:38,LED-BLU,5mm Blue LED,LEDs,12,0.06,0.31,3.72,0.72,3.00,Alika,Maker/Hobbyist,Mobile Pay,758
+HI033-TX-0011,HI033,Lahaina,Maui,HI,2026-06-30 14:12:04,LED-BLU,5mm Blue LED,LEDs,9,0.07,0.34,3.06,0.63,2.43,Nalu,Maker/Hobbyist,Purchase Order,760
+HI033-TX-0012,HI033,Lahaina,Maui,HI,2026-06-30 17:17:19,LED-RGB,RGB LED Strip,LEDs,6,5.17,13.70,82.20,31.02,51.18,Noah,Government,Debit Card,24
+HI033-TX-0013,HI033,Lahaina,Maui,HI,2026-06-30 11:58:50,LED-RED,5mm Red LED,LEDs,38,0.05,0.28,10.64,1.90,8.74,Lani,Education,ACH,598
+HI033-TX-0014,HI033,Lahaina,Maui,HI,2026-06-30 11:37:50,SNS-ULT,Ultrasonic Distance Sensor,Sensors,32,1.24,5.43,173.76,39.68,134.08,Hana,Maker/Hobbyist,Cash,765
+HI033-TX-0015,HI033,Lahaina,Maui,HI,2026-06-30 15:13:32,TR-3904,2N3904 NPN Transistor,Semiconductors,6,0.06,0.23,1.38,0.36,1.02,Keanu,Retail,Credit Card,641
+HI033-TX-0016,HI033,Lahaina,Maui,HI,2026-06-30 10:53:02,LED-BLU,5mm Blue LED,LEDs,20,0.07,0.34,6.80,1.40,5.40,Mika,Tourism/Hospitality,Cash,721
+HI033-TX-0017,HI033,Lahaina,Maui,HI,2026-06-30 11:03:02,CAP-100,100uF Capacitor,Capacitors,30,0.17,0.61,18.30,5.10,13.20,Keanu,Maker/Hobbyist,Cash,356
+HI033-TX-0018,HI033,Lahaina,Maui,HI,2026-06-30 12:37:39,TOOL-SOL,Soldering Iron Tips,Tools,6,1.94,7.61,45.66,11.64,34.02,Leilani,Education,ACH,140
+HI033-TX-0019,HI033,Lahaina,Maui,HI,2026-06-30 16:49:58,LED-RED,5mm Red LED,LEDs,25,0.05,0.27,6.75,1.25,5.50,Lani,Government,Debit Card,548
+HI033-TX-0020,HI033,Lahaina,Maui,HI,2026-06-30 11:20:45,LED-RGB,RGB LED Strip,LEDs,7,4.83,13.78,96.46,33.81,62.65,Akamu,Commercial,Purchase Order,562
+HI033-TX-0021,HI033,Lahaina,Maui,HI,2026-06-30 08:20:57,LED-RGB,RGB LED Strip,LEDs,4,5.14,15.03,60.12,20.56,39.56,Noah,Retail,Credit Card,94
+HI033-TX-0022,HI033,Lahaina,Maui,HI,2026-06-30 10:20:08,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,10,0.04,0.21,2.10,0.40,1.70,Noah,Tourism/Hospitality,Mobile Pay,498
+HI033-TX-0023,HI033,Lahaina,Maui,HI,2026-06-30 10:32:13,LED-RGB,RGB LED Strip,LEDs,1,4.94,14.86,14.86,4.94,9.92,Kai,Marine,Credit Card,515
+HI033-TX-0024,HI033,Lahaina,Maui,HI,2026-06-30 11:14:48,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,4.11,13.93,97.51,28.77,68.74,Alika,Education,Cash,165
+HI033-TX-0025,HI033,Lahaina,Maui,HI,2026-06-30 16:32:30,SNS-ULT,Ultrasonic Distance Sensor,Sensors,24,1.20,5.45,130.80,28.80,102.00,Noelani,Tourism/Hospitality,Cash,567
+HI033-TX-0026,HI033,Lahaina,Maui,HI,2026-06-30 14:15:35,LED-BLU,5mm Blue LED,LEDs,17,0.06,0.31,5.27,1.02,4.25,Kai,Maker/Hobbyist,Cash,821
+HI033-TX-0027,HI033,Lahaina,Maui,HI,2026-06-30 10:51:27,PWR-12V,12V 5A Power Supply,Power,4,8.97,24.11,96.44,35.88,60.56,Keanu,Retail,Cash,259
+HI033-TX-0028,HI033,Lahaina,Maui,HI,2026-06-30 16:11:14,PWR-12V,12V 5A Power Supply,Power,4,9.77,23.56,94.24,39.08,55.16,Mika,Marine,Mobile Pay,707
+HI033-TX-0029,HI033,Lahaina,Maui,HI,2026-06-30 17:15:30,BAT-AAH,AA Battery Holder,Batteries,9,0.53,2.85,25.65,4.77,20.88,Mika,Retail,Debit Card,753
+HI033-TX-0030,HI033,Lahaina,Maui,HI,2026-06-30 12:46:05,PWR-12V,12V 5A Power Supply,Power,3,9.34,24.59,73.77,28.02,45.75,Leilani,Commercial,Cash,568
+HI033-TX-0031,HI033,Lahaina,Maui,HI,2026-06-30 16:38:55,BAT-AAH,AA Battery Holder,Batteries,5,0.49,2.86,14.30,2.45,11.85,Keahi,Maker/Hobbyist,Debit Card,861
+HI033-TX-0032,HI033,Lahaina,Maui,HI,2026-06-30 16:26:45,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.59,16.64,83.20,27.95,55.25,Leilani,Commercial,Purchase Order,869
+HI033-TX-0033,HI033,Lahaina,Maui,HI,2026-06-30 12:17:21,LED-RED,5mm Red LED,LEDs,36,0.05,0.28,10.08,1.80,8.28,Ikaika,Marine,ACH,120
+HI033-TX-0034,HI033,Lahaina,Maui,HI,2026-06-30 09:23:16,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,1,0.04,0.20,0.20,0.04,0.16,Ikaika,Marine,Mobile Pay,282
+HI033-TX-0035,HI033,Lahaina,Maui,HI,2026-06-30 17:08:43,USB-CBO,USB-C Breakout Board,Connectors,39,1.35,5.74,223.86,52.65,171.21,Lani,Tourism/Hospitality,Purchase Order,516
+HI033-TX-0036,HI033,Lahaina,Maui,HI,2026-06-30 16:20:37,LED-RGB,RGB LED Strip,LEDs,7,4.73,14.76,103.32,33.11,70.21,Hana,Commercial,Debit Card,555
+HI033-TX-0037,HI033,Lahaina,Maui,HI,2026-06-30 16:35:35,RES-220,220 Ohm Resistor,Resistors,31,0.03,0.13,4.03,0.93,3.10,Lani,Maker/Hobbyist,ACH,7
+HI033-TX-0038,HI033,Lahaina,Maui,HI,2026-06-30 12:56:11,MOS-44N,IRFZ44N MOSFET,Semiconductors,26,0.59,2.36,61.36,15.34,46.02,Keahi,Tourism/Hospitality,Mobile Pay,273
+HI033-TX-0039,HI033,Lahaina,Maui,HI,2026-06-30 10:45:04,TOOL-DMM,Digital Multimeter,Tools,5,8.58,28.32,141.60,42.90,98.70,Makana,Tourism/Hospitality,Debit Card,619
+HI033-TX-0040,HI033,Lahaina,Maui,HI,2026-06-30 08:47:56,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.37,13.04,91.28,30.59,60.69,Kaleo,Commercial,Debit Card,817
+HI033-TX-0041,HI033,Lahaina,Maui,HI,2026-06-30 11:57:32,BAT-LIPO,LiPo Battery Pack,Batteries,6,4.97,16.34,98.04,29.82,68.22,Hana,Maker/Hobbyist,Mobile Pay,189
+HI033-TX-0042,HI033,Lahaina,Maui,HI,2026-06-30 17:18:37,RES-001,1k Ohm Resistor,Resistors,9,0.03,0.13,1.17,0.27,0.90,Hana,Marine,Debit Card,380
+HI033-TX-0043,HI033,Lahaina,Maui,HI,2026-06-30 16:01:35,PWR-BUCK,Buck Converter Module,Power,25,1.03,4.70,117.50,25.75,91.75,Noelani,Tourism/Hospitality,Cash,612
+HI033-TX-0044,HI033,Lahaina,Maui,HI,2026-06-30 08:33:57,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.21,16.85,33.70,10.42,23.28,Kai,Marine,Credit Card,102
+HI033-TX-0045,HI033,Lahaina,Maui,HI,2026-06-30 14:00:32,DIO-4007,1N4007 Diode,Semiconductors,29,0.05,0.21,6.09,1.45,4.64,Leilani,Maker/Hobbyist,Debit Card,215
+HI033-TX-0046,HI033,Lahaina,Maui,HI,2026-06-30 09:00:39,SNS-SOIL,Soil Moisture Sensor,Sensors,22,1.00,4.23,93.06,22.00,71.06,Ikaika,Maker/Hobbyist,Debit Card,856
+HI033-TX-0047,HI033,Lahaina,Maui,HI,2026-06-30 10:00:03,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.42,8.27,33.08,13.68,19.40,Iolana,Government,Purchase Order,352
+HI033-TX-0048,HI033,Lahaina,Maui,HI,2026-06-30 09:22:52,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.42,8.35,58.45,23.94,34.51,Noelani,Tourism/Hospitality,Debit Card,62
+HI033-TX-0049,HI033,Lahaina,Maui,HI,2026-06-30 09:46:05,BAT-AAH,AA Battery Holder,Batteries,8,0.52,2.58,20.64,4.16,16.48,Koa,Commercial,Credit Card,284
+HI033-TX-0050,HI033,Lahaina,Maui,HI,2026-06-30 10:17:30,IC-REG,7805 Voltage Regulator,Integrated Circuits,35,0.20,0.91,31.85,7.00,24.85,Leilani,Tourism/Hospitality,Purchase Order,833
+HI033-TX-0051,HI033,Lahaina,Maui,HI,2026-06-30 14:47:56,PWR-12V,12V 5A Power Supply,Power,5,9.87,25.33,126.65,49.35,77.30,Kai,Tourism/Hospitality,Purchase Order,582

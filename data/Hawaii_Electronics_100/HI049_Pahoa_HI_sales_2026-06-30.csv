@@ -1,0 +1,57 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI049-TX-0001,HI049,Pahoa,Hawaii Island,HI,2026-06-30 14:36:47,CAP-100,100uF Capacitor,Capacitors,7,0.17,0.62,4.34,1.19,3.15,Pualani,Commercial,Debit Card,320
+HI049-TX-0002,HI049,Pahoa,Hawaii Island,HI,2026-06-30 13:10:11,TOOL-DMM,Digital Multimeter,Tools,4,8.86,27.41,109.64,35.44,74.20,Kaleo,Education,Debit Card,802
+HI049-TX-0003,HI049,Pahoa,Hawaii Island,HI,2026-06-30 12:09:06,SNS-SOIL,Soil Moisture Sensor,Sensors,1,0.98,4.61,4.61,0.98,3.63,Makana,Maker/Hobbyist,Debit Card,218
+HI049-TX-0004,HI049,Pahoa,Hawaii Island,HI,2026-06-30 12:01:58,PWR-12V,12V 5A Power Supply,Power,8,9.99,23.85,190.80,79.92,110.88,Leilani,Tourism/Hospitality,Mobile Pay,393
+HI049-TX-0005,HI049,Pahoa,Hawaii Island,HI,2026-06-30 11:38:55,TOOL-SOL,Soldering Iron Tips,Tools,3,2.03,7.81,23.43,6.09,17.34,Malia,Maker/Hobbyist,ACH,154
+HI049-TX-0006,HI049,Pahoa,Hawaii Island,HI,2026-06-30 13:40:10,SNS-PIR,PIR Motion Sensor,Sensors,2,1.61,6.11,12.22,3.22,9.00,Noelani,Marine,Cash,660
+HI049-TX-0007,HI049,Pahoa,Hawaii Island,HI,2026-06-30 14:12:35,SNS-ULT,Ultrasonic Distance Sensor,Sensors,22,1.30,5.31,116.82,28.60,88.22,Alika,Retail,ACH,688
+HI049-TX-0008,HI049,Pahoa,Hawaii Island,HI,2026-06-30 16:09:40,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.22,8.80,26.40,9.66,16.74,Nalu,Marine,Credit Card,567
+HI049-TX-0009,HI049,Pahoa,Hawaii Island,HI,2026-06-30 12:01:50,PWR-BUCK,Buck Converter Module,Power,28,1.11,4.68,131.04,31.08,99.96,Noelani,Maker/Hobbyist,Debit Card,876
+HI049-TX-0010,HI049,Pahoa,Hawaii Island,HI,2026-06-30 12:20:26,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.72,13.43,94.01,33.04,60.97,Kaleo,Commercial,Cash,405
+HI049-TX-0011,HI049,Pahoa,Hawaii Island,HI,2026-06-30 09:08:34,SNS-SOIL,Soil Moisture Sensor,Sensors,25,0.88,4.37,109.25,22.00,87.25,Ikaika,Education,Credit Card,423
+HI049-TX-0012,HI049,Pahoa,Hawaii Island,HI,2026-06-30 17:26:58,SNS-PIR,PIR Motion Sensor,Sensors,3,1.47,6.28,18.84,4.41,14.43,Nalu,Education,Cash,515
+HI049-TX-0013,HI049,Pahoa,Hawaii Island,HI,2026-06-30 09:59:01,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,37,0.05,0.19,7.03,1.85,5.18,Keahi,Commercial,Cash,30
+HI049-TX-0014,HI049,Pahoa,Hawaii Island,HI,2026-06-30 17:52:46,PWR-5V2,5V 2A Power Supply,Power,2,3.71,10.43,20.86,7.42,13.44,Malia,Education,Debit Card,229
+HI049-TX-0015,HI049,Pahoa,Hawaii Island,HI,2026-06-30 08:47:00,TOOL-WIRE,Wire Stripper,Tools,2,4.88,15.64,31.28,9.76,21.52,Keahi,Commercial,Cash,438
+HI049-TX-0016,HI049,Pahoa,Hawaii Island,HI,2026-06-30 16:17:31,SNS-SOIL,Soil Moisture Sensor,Sensors,5,0.92,4.08,20.40,4.60,15.80,Kaleo,Marine,Purchase Order,642
+HI049-TX-0017,HI049,Pahoa,Hawaii Island,HI,2026-06-30 16:48:13,MAR-ANT,Marine Antenna Connector,Marine Electronics,5,3.92,14.88,74.40,19.60,54.80,Koa,Marine,Purchase Order,438
+HI049-TX-0018,HI049,Pahoa,Hawaii Island,HI,2026-06-30 12:44:10,CON-JMP,Jumper Wire Set,Connectors,35,0.88,3.87,135.45,30.80,104.65,Kaleo,Marine,Cash,315
+HI049-TX-0019,HI049,Pahoa,Hawaii Island,HI,2026-06-30 12:12:28,IC-555,NE555 Timer IC,Integrated Circuits,28,0.35,1.28,35.84,9.80,26.04,Ikaika,Marine,Credit Card,868
+HI049-TX-0020,HI049,Pahoa,Hawaii Island,HI,2026-06-30 16:47:02,REL-5V,5V Relay Module,Relays,36,0.92,5.45,196.20,33.12,163.08,Malia,Retail,Debit Card,44
+HI049-TX-0021,HI049,Pahoa,Hawaii Island,HI,2026-06-30 12:54:31,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.63,22.86,137.16,51.78,85.38,Nalu,Marine,Debit Card,228
+HI049-TX-0022,HI049,Pahoa,Hawaii Island,HI,2026-06-30 09:04:08,TOOL-DMM,Digital Multimeter,Tools,3,9.39,28.12,84.36,28.17,56.19,Akamu,Education,Purchase Order,770
+HI049-TX-0023,HI049,Pahoa,Hawaii Island,HI,2026-06-30 13:12:32,IC-358,LM358 Op Amp,Integrated Circuits,13,0.29,1.25,16.25,3.77,12.48,Keahi,Education,Purchase Order,322
+HI049-TX-0024,HI049,Pahoa,Hawaii Island,HI,2026-06-30 09:11:01,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.10,8.77,35.08,12.40,22.68,Nalu,Retail,ACH,490
+HI049-TX-0025,HI049,Pahoa,Hawaii Island,HI,2026-06-30 17:16:00,LED-RGB,RGB LED Strip,LEDs,1,4.64,14.77,14.77,4.64,10.13,Hana,Government,Cash,593
+HI049-TX-0026,HI049,Pahoa,Hawaii Island,HI,2026-06-30 09:17:35,SNS-DHT,DHT22 Temperature Sensor,Sensors,1,2.48,7.75,7.75,2.48,5.27,Keanu,Marine,Credit Card,868
+HI049-TX-0027,HI049,Pahoa,Hawaii Island,HI,2026-06-30 16:55:52,SNS-PIR,PIR Motion Sensor,Sensors,1,1.51,6.22,6.22,1.51,4.71,Leilani,Retail,Mobile Pay,783
+HI049-TX-0028,HI049,Pahoa,Hawaii Island,HI,2026-06-30 10:44:13,LED-BLU,5mm Blue LED,LEDs,21,0.07,0.34,7.14,1.47,5.67,Akamu,Commercial,ACH,553
+HI049-TX-0029,HI049,Pahoa,Hawaii Island,HI,2026-06-30 14:18:49,TR-3904,2N3904 NPN Transistor,Semiconductors,13,0.05,0.24,3.12,0.65,2.47,Koa,Retail,Mobile Pay,485
+HI049-TX-0030,HI049,Pahoa,Hawaii Island,HI,2026-06-30 17:23:36,SNS-PIR,PIR Motion Sensor,Sensors,3,1.60,5.90,17.70,4.80,12.90,Mika,Government,Debit Card,443
+HI049-TX-0031,HI049,Pahoa,Hawaii Island,HI,2026-06-30 16:13:02,LED-RGB,RGB LED Strip,LEDs,1,5.18,14.71,14.71,5.18,9.53,Makana,Education,Debit Card,617
+HI049-TX-0032,HI049,Pahoa,Hawaii Island,HI,2026-06-30 09:00:54,SNS-ULT,Ultrasonic Distance Sensor,Sensors,36,1.28,5.18,186.48,46.08,140.40,Makana,Commercial,Cash,103
+HI049-TX-0033,HI049,Pahoa,Hawaii Island,HI,2026-06-30 15:58:23,IC-REG,7805 Voltage Regulator,Integrated Circuits,22,0.21,0.91,20.02,4.62,15.40,Kaleo,Tourism/Hospitality,Mobile Pay,231
+HI049-TX-0034,HI049,Pahoa,Hawaii Island,HI,2026-06-30 14:23:32,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.79,22.28,111.40,43.95,67.45,Keahi,Government,ACH,36
+HI049-TX-0035,HI049,Pahoa,Hawaii Island,HI,2026-06-30 09:32:55,DIO-4007,1N4007 Diode,Semiconductors,13,0.04,0.21,2.73,0.52,2.21,Nalu,Government,Purchase Order,114
+HI049-TX-0036,HI049,Pahoa,Hawaii Island,HI,2026-06-30 15:20:03,BAT-LIPO,LiPo Battery Pack,Batteries,4,5.08,15.55,62.20,20.32,41.88,Keahi,Tourism/Hospitality,Purchase Order,238
+HI049-TX-0037,HI049,Pahoa,Hawaii Island,HI,2026-06-30 16:46:58,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,5.00,14.03,56.12,20.00,36.12,Mika,Marine,Cash,830
+HI049-TX-0038,HI049,Pahoa,Hawaii Island,HI,2026-06-30 11:54:09,LED-RED,5mm Red LED,LEDs,37,0.05,0.26,9.62,1.85,7.77,Koa,Education,Debit Card,642
+HI049-TX-0039,HI049,Pahoa,Hawaii Island,HI,2026-06-30 12:21:57,IC-358,LM358 Op Amp,Integrated Circuits,20,0.29,1.17,23.40,5.80,17.60,Akamu,Education,Purchase Order,255
+HI049-TX-0040,HI049,Pahoa,Hawaii Island,HI,2026-06-30 16:06:08,MOS-44N,IRFZ44N MOSFET,Semiconductors,25,0.57,2.37,59.25,14.25,45.00,Lani,Education,ACH,5
+HI049-TX-0041,HI049,Pahoa,Hawaii Island,HI,2026-06-30 09:53:39,TOOL-DMM,Digital Multimeter,Tools,6,8.38,27.72,166.32,50.28,116.04,Nalu,Government,Mobile Pay,39
+HI049-TX-0042,HI049,Pahoa,Hawaii Island,HI,2026-06-30 16:15:44,SNS-PIR,PIR Motion Sensor,Sensors,4,1.59,6.18,24.72,6.36,18.36,Makana,Tourism/Hospitality,Purchase Order,85
+HI049-TX-0043,HI049,Pahoa,Hawaii Island,HI,2026-06-30 10:28:48,PWR-12V,12V 5A Power Supply,Power,3,9.18,24.09,72.27,27.54,44.73,Akamu,Maker/Hobbyist,ACH,624
+HI049-TX-0044,HI049,Pahoa,Hawaii Island,HI,2026-06-30 14:52:29,SNS-SOIL,Soil Moisture Sensor,Sensors,22,0.96,4.38,96.36,21.12,75.24,Makana,Marine,Purchase Order,161
+HI049-TX-0045,HI049,Pahoa,Hawaii Island,HI,2026-06-30 13:44:45,SOL-CTRL,Solar Charge Controller,Solar Power,1,10.72,33.12,33.12,10.72,22.40,Kai,Commercial,Debit Card,206
+HI049-TX-0046,HI049,Pahoa,Hawaii Island,HI,2026-06-30 14:56:48,REL-5V,5V Relay Module,Relays,39,0.98,5.10,198.90,38.22,160.68,Mika,Education,Cash,630
+HI049-TX-0047,HI049,Pahoa,Hawaii Island,HI,2026-06-30 11:07:37,SNS-PIR,PIR Motion Sensor,Sensors,5,1.44,5.66,28.30,7.20,21.10,Keanu,Government,Mobile Pay,65
+HI049-TX-0048,HI049,Pahoa,Hawaii Island,HI,2026-06-30 17:32:38,IC-555,NE555 Timer IC,Integrated Circuits,32,0.34,1.37,43.84,10.88,32.96,Keanu,Marine,Credit Card,233
+HI049-TX-0049,HI049,Pahoa,Hawaii Island,HI,2026-06-30 13:12:32,SNS-DHT,DHT22 Temperature Sensor,Sensors,5,2.57,7.94,39.70,12.85,26.85,Leilani,Education,Purchase Order,738
+HI049-TX-0050,HI049,Pahoa,Hawaii Island,HI,2026-06-30 11:33:10,TOOL-SOL,Soldering Iron Tips,Tools,2,1.90,7.48,14.96,3.80,11.16,Iolana,Marine,Mobile Pay,711
+HI049-TX-0051,HI049,Pahoa,Hawaii Island,HI,2026-06-30 10:16:47,MOS-44N,IRFZ44N MOSFET,Semiconductors,28,0.64,2.53,70.84,17.92,52.92,Ikaika,Commercial,Credit Card,375
+HI049-TX-0052,HI049,Pahoa,Hawaii Island,HI,2026-06-30 11:01:46,CAP-010,10uF Capacitor,Capacitors,40,0.08,0.38,15.20,3.20,12.00,Mika,Government,Mobile Pay,460
+HI049-TX-0053,HI049,Pahoa,Hawaii Island,HI,2026-06-30 16:24:14,BAT-LIPO,LiPo Battery Pack,Batteries,1,5.62,15.40,15.40,5.62,9.78,Ailani,Maker/Hobbyist,Mobile Pay,257
+HI049-TX-0054,HI049,Pahoa,Hawaii Island,HI,2026-06-30 17:36:38,CON-JMP,Jumper Wire Set,Connectors,28,0.91,3.97,111.16,25.48,85.68,Malia,Government,Purchase Order,122
+HI049-TX-0055,HI049,Pahoa,Hawaii Island,HI,2026-06-30 13:06:04,CON-JMP,Jumper Wire Set,Connectors,22,0.97,4.01,88.22,21.34,66.88,Pualani,Marine,Cash,65
+HI049-TX-0056,HI049,Pahoa,Hawaii Island,HI,2026-06-30 13:44:13,TOOL-WIRE,Wire Stripper,Tools,1,5.24,15.31,15.31,5.24,10.07,Kai,Marine,Mobile Pay,554

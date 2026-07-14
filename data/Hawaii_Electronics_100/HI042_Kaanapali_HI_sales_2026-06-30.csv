@@ -1,0 +1,80 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI042-TX-0001,HI042,Kaanapali,Maui,HI,2026-06-30 12:40:38,RES-001,1k Ohm Resistor,Resistors,34,0.03,0.12,4.08,1.02,3.06,Keanu,Commercial,Purchase Order,522
+HI042-TX-0002,HI042,Kaanapali,Maui,HI,2026-06-30 12:07:48,SNS-DHT,DHT22 Temperature Sensor,Sensors,1,2.38,7.43,7.43,2.38,5.05,Akamu,Government,Credit Card,100
+HI042-TX-0003,HI042,Kaanapali,Maui,HI,2026-06-30 15:53:40,LED-BLU,5mm Blue LED,LEDs,37,0.06,0.32,11.84,2.22,9.62,Keanu,Retail,ACH,515
+HI042-TX-0004,HI042,Kaanapali,Maui,HI,2026-06-30 11:57:04,BAT-AAH,AA Battery Holder,Batteries,5,0.50,2.86,14.30,2.50,11.80,Pualani,Commercial,Mobile Pay,759
+HI042-TX-0005,HI042,Kaanapali,Maui,HI,2026-06-30 14:20:01,PWR-BUCK,Buck Converter Module,Power,27,1.10,5.20,140.40,29.70,110.70,Malia,Commercial,ACH,205
+HI042-TX-0006,HI042,Kaanapali,Maui,HI,2026-06-30 09:24:16,LED-BLU,5mm Blue LED,LEDs,16,0.07,0.34,5.44,1.12,4.32,Kaleo,Government,ACH,195
+HI042-TX-0007,HI042,Kaanapali,Maui,HI,2026-06-30 11:52:02,CAP-100,100uF Capacitor,Capacitors,23,0.17,0.61,14.03,3.91,10.12,Lani,Commercial,Purchase Order,683
+HI042-TX-0008,HI042,Kaanapali,Maui,HI,2026-06-30 15:23:47,SNS-PIR,PIR Motion Sensor,Sensors,1,1.55,6.00,6.00,1.55,4.45,Kaleo,Maker/Hobbyist,Mobile Pay,737
+HI042-TX-0009,HI042,Kaanapali,Maui,HI,2026-06-30 12:27:17,LED-BLU,5mm Blue LED,LEDs,31,0.07,0.31,9.61,2.17,7.44,Keahi,Education,Cash,372
+HI042-TX-0010,HI042,Kaanapali,Maui,HI,2026-06-30 15:24:44,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.72,14.08,56.32,14.88,41.44,Akamu,Government,ACH,176
+HI042-TX-0011,HI042,Kaanapali,Maui,HI,2026-06-30 11:47:56,BAT-AAH,AA Battery Holder,Batteries,33,0.52,2.88,95.04,17.16,77.88,Noah,Maker/Hobbyist,Credit Card,892
+HI042-TX-0012,HI042,Kaanapali,Maui,HI,2026-06-30 16:02:49,LED-BLU,5mm Blue LED,LEDs,35,0.07,0.31,10.85,2.45,8.40,Hana,Government,Credit Card,338
+HI042-TX-0013,HI042,Kaanapali,Maui,HI,2026-06-30 14:55:57,BAT-LIPO,LiPo Battery Pack,Batteries,1,5.04,16.89,16.89,5.04,11.85,Makana,Commercial,Mobile Pay,834
+HI042-TX-0014,HI042,Kaanapali,Maui,HI,2026-06-30 15:54:11,CON-JMP,Jumper Wire Set,Connectors,6,0.99,3.80,22.80,5.94,16.86,Noah,Maker/Hobbyist,Credit Card,777
+HI042-TX-0015,HI042,Kaanapali,Maui,HI,2026-06-30 16:57:22,PWR-BUCK,Buck Converter Module,Power,34,1.09,5.05,171.70,37.06,134.64,Nalu,Maker/Hobbyist,Mobile Pay,355
+HI042-TX-0016,HI042,Kaanapali,Maui,HI,2026-06-30 09:56:40,DIO-4007,1N4007 Diode,Semiconductors,18,0.04,0.19,3.42,0.72,2.70,Keahi,Education,Mobile Pay,575
+HI042-TX-0017,HI042,Kaanapali,Maui,HI,2026-06-30 10:29:32,TR-3904,2N3904 NPN Transistor,Semiconductors,9,0.06,0.25,2.25,0.54,1.71,Ikaika,Maker/Hobbyist,Debit Card,819
+HI042-TX-0018,HI042,Kaanapali,Maui,HI,2026-06-30 11:18:16,LED-RGB,RGB LED Strip,LEDs,5,4.70,14.73,73.65,23.50,50.15,Nalu,Commercial,Mobile Pay,136
+HI042-TX-0019,HI042,Kaanapali,Maui,HI,2026-06-30 15:45:16,LED-RED,5mm Red LED,LEDs,33,0.06,0.28,9.24,1.98,7.26,Makana,Retail,Purchase Order,171
+HI042-TX-0020,HI042,Kaanapali,Maui,HI,2026-06-30 11:10:01,IC-555,NE555 Timer IC,Integrated Circuits,16,0.35,1.32,21.12,5.60,15.52,Kai,Maker/Hobbyist,Purchase Order,647
+HI042-TX-0021,HI042,Kaanapali,Maui,HI,2026-06-30 11:09:31,LED-RGB,RGB LED Strip,LEDs,7,5.10,14.75,103.25,35.70,67.55,Makana,Maker/Hobbyist,Purchase Order,361
+HI042-TX-0022,HI042,Kaanapali,Maui,HI,2026-06-30 17:28:39,SNS-ULT,Ultrasonic Distance Sensor,Sensors,13,1.31,5.32,69.16,17.03,52.13,Akamu,Marine,Cash,713
+HI042-TX-0023,HI042,Kaanapali,Maui,HI,2026-06-30 09:45:07,RES-010,10k Ohm Resistor,Resistors,30,0.03,0.12,3.60,0.90,2.70,Keahi,Tourism/Hospitality,ACH,634
+HI042-TX-0024,HI042,Kaanapali,Maui,HI,2026-06-30 17:47:37,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.05,13.75,13.75,4.05,9.70,Pualani,Maker/Hobbyist,Credit Card,145
+HI042-TX-0025,HI042,Kaanapali,Maui,HI,2026-06-30 09:06:58,PWR-12V,12V 5A Power Supply,Power,8,9.86,23.61,188.88,78.88,110.00,Makana,Education,Debit Card,338
+HI042-TX-0026,HI042,Kaanapali,Maui,HI,2026-06-30 16:03:39,LED-RED,5mm Red LED,LEDs,25,0.05,0.26,6.50,1.25,5.25,Alika,Tourism/Hospitality,Mobile Pay,128
+HI042-TX-0027,HI042,Kaanapali,Maui,HI,2026-06-30 10:44:05,SOL-CTRL,Solar Charge Controller,Solar Power,6,11.13,32.14,192.84,66.78,126.06,Hana,Marine,Mobile Pay,779
+HI042-TX-0028,HI042,Kaanapali,Maui,HI,2026-06-30 17:01:53,TOOL-WIRE,Wire Stripper,Tools,5,4.80,15.69,78.45,24.00,54.45,Leilani,Government,Mobile Pay,567
+HI042-TX-0029,HI042,Kaanapali,Maui,HI,2026-06-30 13:22:21,DIO-4007,1N4007 Diode,Semiconductors,16,0.04,0.20,3.20,0.64,2.56,Mika,Tourism/Hospitality,Credit Card,834
+HI042-TX-0030,HI042,Kaanapali,Maui,HI,2026-06-30 10:41:41,LED-RGB,RGB LED Strip,LEDs,2,4.99,14.41,28.82,9.98,18.84,Ailani,Commercial,Cash,461
+HI042-TX-0031,HI042,Kaanapali,Maui,HI,2026-06-30 17:01:29,CON-JMP,Jumper Wire Set,Connectors,28,0.90,3.99,111.72,25.20,86.52,Pualani,Marine,ACH,235
+HI042-TX-0032,HI042,Kaanapali,Maui,HI,2026-06-30 11:57:37,PWR-12V,12V 5A Power Supply,Power,4,9.55,24.22,96.88,38.20,58.68,Pualani,Maker/Hobbyist,ACH,687
+HI042-TX-0033,HI042,Kaanapali,Maui,HI,2026-06-30 14:40:40,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.48,6.17,24.68,5.92,18.76,Koa,Marine,Credit Card,567
+HI042-TX-0034,HI042,Kaanapali,Maui,HI,2026-06-30 13:54:02,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.69,13.99,111.92,37.52,74.40,Kai,Tourism/Hospitality,Debit Card,358
+HI042-TX-0035,HI042,Kaanapali,Maui,HI,2026-06-30 12:25:28,LED-RED,5mm Red LED,LEDs,33,0.06,0.27,8.91,1.98,6.93,Noelani,Retail,Credit Card,41
+HI042-TX-0036,HI042,Kaanapali,Maui,HI,2026-06-30 15:22:34,PWR-12V,12V 5A Power Supply,Power,4,9.08,24.88,99.52,36.32,63.20,Alika,Commercial,Mobile Pay,900
+HI042-TX-0037,HI042,Kaanapali,Maui,HI,2026-06-30 08:43:09,PWR-BUCK,Buck Converter Module,Power,3,0.98,4.59,13.77,2.94,10.83,Kai,Tourism/Hospitality,Mobile Pay,102
+HI042-TX-0038,HI042,Kaanapali,Maui,HI,2026-06-30 11:30:32,SNS-DHT,DHT22 Temperature Sensor,Sensors,4,2.32,7.46,29.84,9.28,20.56,Iolana,Tourism/Hospitality,ACH,109
+HI042-TX-0039,HI042,Kaanapali,Maui,HI,2026-06-30 08:47:01,LED-BLU,5mm Blue LED,LEDs,18,0.07,0.34,6.12,1.26,4.86,Malia,Maker/Hobbyist,ACH,183
+HI042-TX-0040,HI042,Kaanapali,Maui,HI,2026-06-30 17:25:24,BAT-AAH,AA Battery Holder,Batteries,33,0.51,2.88,95.04,16.83,78.21,Malia,Government,Credit Card,374
+HI042-TX-0041,HI042,Kaanapali,Maui,HI,2026-06-30 12:41:21,TOOL-SOL,Soldering Iron Tips,Tools,6,2.01,7.53,45.18,12.06,33.12,Keahi,Tourism/Hospitality,ACH,755
+HI042-TX-0042,HI042,Kaanapali,Maui,HI,2026-06-30 15:45:13,BAT-AAH,AA Battery Holder,Batteries,21,0.47,2.89,60.69,9.87,50.82,Lani,Education,Mobile Pay,537
+HI042-TX-0043,HI042,Kaanapali,Maui,HI,2026-06-30 11:21:10,REL-5V,5V Relay Module,Relays,10,0.97,5.23,52.30,9.70,42.60,Mika,Education,ACH,422
+HI042-TX-0044,HI042,Kaanapali,Maui,HI,2026-06-30 16:55:40,IC-REG,7805 Voltage Regulator,Integrated Circuits,1,0.21,0.87,0.87,0.21,0.66,Keahi,Tourism/Hospitality,Cash,111
+HI042-TX-0045,HI042,Kaanapali,Maui,HI,2026-06-30 17:23:37,TR-3904,2N3904 NPN Transistor,Semiconductors,38,0.06,0.24,9.12,2.28,6.84,Malia,Government,Debit Card,245
+HI042-TX-0046,HI042,Kaanapali,Maui,HI,2026-06-30 12:36:17,PWR-12V,12V 5A Power Supply,Power,4,9.52,25.15,100.60,38.08,62.52,Mika,Retail,Mobile Pay,586
+HI042-TX-0047,HI042,Kaanapali,Maui,HI,2026-06-30 13:35:56,MOS-44N,IRFZ44N MOSFET,Semiconductors,38,0.64,2.40,91.20,24.32,66.88,Noah,Tourism/Hospitality,Purchase Order,518
+HI042-TX-0048,HI042,Kaanapali,Maui,HI,2026-06-30 17:00:57,PWR-5V2,5V 2A Power Supply,Power,2,3.68,10.30,20.60,7.36,13.24,Alika,Government,Purchase Order,666
+HI042-TX-0049,HI042,Kaanapali,Maui,HI,2026-06-30 09:45:53,BAT-LIPO,LiPo Battery Pack,Batteries,8,5.37,15.91,127.28,42.96,84.32,Kaleo,Maker/Hobbyist,ACH,510
+HI042-TX-0050,HI042,Kaanapali,Maui,HI,2026-06-30 14:00:15,LED-BLU,5mm Blue LED,LEDs,10,0.07,0.35,3.50,0.70,2.80,Iolana,Education,Mobile Pay,867
+HI042-TX-0051,HI042,Kaanapali,Maui,HI,2026-06-30 12:03:30,USB-CBO,USB-C Breakout Board,Connectors,37,1.34,5.55,205.35,49.58,155.77,Kai,Retail,Credit Card,798
+HI042-TX-0052,HI042,Kaanapali,Maui,HI,2026-06-30 14:20:55,SNS-SOIL,Soil Moisture Sensor,Sensors,33,0.92,4.46,147.18,30.36,116.82,Kai,Tourism/Hospitality,ACH,64
+HI042-TX-0053,HI042,Kaanapali,Maui,HI,2026-06-30 12:36:06,IC-358,LM358 Op Amp,Integrated Circuits,33,0.29,1.27,41.91,9.57,32.34,Lani,Government,Cash,281
+HI042-TX-0054,HI042,Kaanapali,Maui,HI,2026-06-30 10:19:04,RES-001,1k Ohm Resistor,Resistors,32,0.03,0.13,4.16,0.96,3.20,Noah,Tourism/Hospitality,Mobile Pay,241
+HI042-TX-0055,HI042,Kaanapali,Maui,HI,2026-06-30 09:24:19,BAT-AAH,AA Battery Holder,Batteries,12,0.51,2.70,32.40,6.12,26.28,Keanu,Education,Mobile Pay,644
+HI042-TX-0056,HI042,Kaanapali,Maui,HI,2026-06-30 09:10:59,MOS-44N,IRFZ44N MOSFET,Semiconductors,10,0.64,2.43,24.30,6.40,17.90,Malia,Retail,Purchase Order,513
+HI042-TX-0057,HI042,Kaanapali,Maui,HI,2026-06-30 17:00:43,PWR-5V2,5V 2A Power Supply,Power,6,3.59,10.93,65.58,21.54,44.04,Hana,Retail,ACH,611
+HI042-TX-0058,HI042,Kaanapali,Maui,HI,2026-06-30 10:30:03,MOS-44N,IRFZ44N MOSFET,Semiconductors,14,0.64,2.42,33.88,8.96,24.92,Keahi,Commercial,Purchase Order,851
+HI042-TX-0059,HI042,Kaanapali,Maui,HI,2026-06-30 14:58:38,DIO-4007,1N4007 Diode,Semiconductors,35,0.04,0.19,6.65,1.40,5.25,Hana,Education,Purchase Order,37
+HI042-TX-0060,HI042,Kaanapali,Maui,HI,2026-06-30 13:41:17,PWR-12V,12V 5A Power Supply,Power,2,9.29,25.34,50.68,18.58,32.10,Iolana,Government,Debit Card,530
+HI042-TX-0061,HI042,Kaanapali,Maui,HI,2026-06-30 11:59:27,BAT-LIPO,LiPo Battery Pack,Batteries,8,5.05,15.89,127.12,40.40,86.72,Alika,Tourism/Hospitality,Purchase Order,219
+HI042-TX-0062,HI042,Kaanapali,Maui,HI,2026-06-30 09:04:13,PWR-BUCK,Buck Converter Module,Power,17,1.06,4.62,78.54,18.02,60.52,Leilani,Marine,Debit Card,838
+HI042-TX-0063,HI042,Kaanapali,Maui,HI,2026-06-30 15:08:21,PWR-BUCK,Buck Converter Module,Power,7,1.05,4.65,32.55,7.35,25.20,Keanu,Maker/Hobbyist,Cash,706
+HI042-TX-0064,HI042,Kaanapali,Maui,HI,2026-06-30 08:13:30,TOOL-DMM,Digital Multimeter,Tools,5,8.96,27.68,138.40,44.80,93.60,Malia,Education,ACH,589
+HI042-TX-0065,HI042,Kaanapali,Maui,HI,2026-06-30 10:02:11,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.63,7.43,59.44,21.04,38.40,Akamu,Marine,Mobile Pay,415
+HI042-TX-0066,HI042,Kaanapali,Maui,HI,2026-06-30 10:42:27,TOOL-DMM,Digital Multimeter,Tools,3,9.16,27.09,81.27,27.48,53.79,Kai,Tourism/Hospitality,Cash,81
+HI042-TX-0067,HI042,Kaanapali,Maui,HI,2026-06-30 11:28:53,TOOL-SOL,Soldering Iron Tips,Tools,2,1.94,7.16,14.32,3.88,10.44,Hana,Tourism/Hospitality,Debit Card,805
+HI042-TX-0068,HI042,Kaanapali,Maui,HI,2026-06-30 09:30:11,LED-RGB,RGB LED Strip,LEDs,6,4.93,14.73,88.38,29.58,58.80,Makana,Government,Cash,852
+HI042-TX-0069,HI042,Kaanapali,Maui,HI,2026-06-30 15:11:05,PWR-12V,12V 5A Power Supply,Power,6,9.97,23.84,143.04,59.82,83.22,Mika,Commercial,Purchase Order,100
+HI042-TX-0070,HI042,Kaanapali,Maui,HI,2026-06-30 11:29:18,CON-JMP,Jumper Wire Set,Connectors,7,0.96,3.57,24.99,6.72,18.27,Ailani,Tourism/Hospitality,Debit Card,516
+HI042-TX-0071,HI042,Kaanapali,Maui,HI,2026-06-30 14:15:00,PWR-BUCK,Buck Converter Module,Power,34,1.10,5.02,170.68,37.40,133.28,Nalu,Retail,Cash,133
+HI042-TX-0072,HI042,Kaanapali,Maui,HI,2026-06-30 10:02:11,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.13,22.64,158.48,56.91,101.57,Iolana,Commercial,ACH,446
+HI042-TX-0073,HI042,Kaanapali,Maui,HI,2026-06-30 17:56:23,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.56,16.92,33.84,11.12,22.72,Noelani,Commercial,ACH,153
+HI042-TX-0074,HI042,Kaanapali,Maui,HI,2026-06-30 08:42:11,TOOL-WIRE,Wire Stripper,Tools,2,4.70,14.86,29.72,9.40,20.32,Keahi,Government,Cash,303
+HI042-TX-0075,HI042,Kaanapali,Maui,HI,2026-06-30 08:22:43,TOOL-WIRE,Wire Stripper,Tools,5,4.95,14.50,72.50,24.75,47.75,Malia,Maker/Hobbyist,Debit Card,321
+HI042-TX-0076,HI042,Kaanapali,Maui,HI,2026-06-30 14:11:05,USB-CBO,USB-C Breakout Board,Connectors,38,1.45,5.10,193.80,55.10,138.70,Alika,Tourism/Hospitality,Purchase Order,171
+HI042-TX-0077,HI042,Kaanapali,Maui,HI,2026-06-30 11:13:21,ESP-32,ESP32 Dev Board,Microcontrollers,6,3.99,12.29,73.74,23.94,49.80,Kaleo,Government,ACH,800
+HI042-TX-0078,HI042,Kaanapali,Maui,HI,2026-06-30 08:23:05,BAT-LIPO,LiPo Battery Pack,Batteries,3,5.46,15.91,47.73,16.38,31.35,Ailani,Government,Debit Card,469
+HI042-TX-0079,HI042,Kaanapali,Maui,HI,2026-06-30 10:53:34,CON-JMP,Jumper Wire Set,Connectors,14,0.89,3.56,49.84,12.46,37.38,Kaleo,Maker/Hobbyist,Purchase Order,25

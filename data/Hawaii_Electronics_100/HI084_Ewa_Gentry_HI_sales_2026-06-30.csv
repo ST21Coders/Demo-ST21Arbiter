@@ -1,0 +1,95 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI084-TX-0001,HI084,Ewa Gentry,Oahu,HI,2026-06-30 08:01:29,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.65,6.29,6.29,1.65,4.64,Koa,Tourism/Hospitality,Mobile Pay,284
+HI084-TX-0002,HI084,Ewa Gentry,Oahu,HI,2026-06-30 10:52:27,BAT-AAH,AA Battery Holder,Batteries,11,0.53,2.80,30.80,5.83,24.97,Malia,Commercial,Purchase Order,400
+HI084-TX-0003,HI084,Ewa Gentry,Oahu,HI,2026-06-30 17:59:03,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.96,13.62,68.10,24.80,43.30,Ailani,Tourism/Hospitality,Mobile Pay,118
+HI084-TX-0004,HI084,Ewa Gentry,Oahu,HI,2026-06-30 10:36:03,CON-JMP,Jumper Wire Set,Connectors,25,0.99,3.80,95.00,24.75,70.25,Keahi,Tourism/Hospitality,Credit Card,445
+HI084-TX-0005,HI084,Ewa Gentry,Oahu,HI,2026-06-30 11:56:07,BAT-AAH,AA Battery Holder,Batteries,17,0.50,2.76,46.92,8.50,38.42,Makana,Education,Debit Card,35
+HI084-TX-0006,HI084,Ewa Gentry,Oahu,HI,2026-06-30 14:00:02,IC-REG,7805 Voltage Regulator,Integrated Circuits,18,0.20,0.98,17.64,3.60,14.04,Mika,Tourism/Hospitality,ACH,758
+HI084-TX-0007,HI084,Ewa Gentry,Oahu,HI,2026-06-30 16:12:59,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,7.95,23.02,115.10,39.75,75.35,Alika,Education,Debit Card,548
+HI084-TX-0008,HI084,Ewa Gentry,Oahu,HI,2026-06-30 15:57:58,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.76,14.00,14.00,3.76,10.24,Keanu,Tourism/Hospitality,Cash,382
+HI084-TX-0009,HI084,Ewa Gentry,Oahu,HI,2026-06-30 16:18:12,PWR-12V,12V 5A Power Supply,Power,4,8.87,25.05,100.20,35.48,64.72,Malia,Maker/Hobbyist,Cash,767
+HI084-TX-0010,HI084,Ewa Gentry,Oahu,HI,2026-06-30 11:23:46,TOOL-WIRE,Wire Stripper,Tools,2,4.64,15.14,30.28,9.28,21.00,Noelani,Retail,Debit Card,476
+HI084-TX-0011,HI084,Ewa Gentry,Oahu,HI,2026-06-30 10:49:07,MOS-44N,IRFZ44N MOSFET,Semiconductors,40,0.60,2.57,102.80,24.00,78.80,Hana,Retail,Purchase Order,777
+HI084-TX-0012,HI084,Ewa Gentry,Oahu,HI,2026-06-30 10:47:30,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.58,22.35,44.70,17.16,27.54,Alika,Commercial,Credit Card,891
+HI084-TX-0013,HI084,Ewa Gentry,Oahu,HI,2026-06-30 14:25:28,TR-3904,2N3904 NPN Transistor,Semiconductors,12,0.06,0.25,3.00,0.72,2.28,Hana,Maker/Hobbyist,Purchase Order,158
+HI084-TX-0014,HI084,Ewa Gentry,Oahu,HI,2026-06-30 10:18:41,BAT-LIPO,LiPo Battery Pack,Batteries,3,5.59,16.29,48.87,16.77,32.10,Alika,Maker/Hobbyist,ACH,297
+HI084-TX-0015,HI084,Ewa Gentry,Oahu,HI,2026-06-30 17:45:15,IC-REG,7805 Voltage Regulator,Integrated Circuits,1,0.19,0.98,0.98,0.19,0.79,Lani,Tourism/Hospitality,Mobile Pay,234
+HI084-TX-0016,HI084,Ewa Gentry,Oahu,HI,2026-06-30 12:02:29,LED-RED,5mm Red LED,LEDs,8,0.06,0.27,2.16,0.48,1.68,Makana,Education,ACH,612
+HI084-TX-0017,HI084,Ewa Gentry,Oahu,HI,2026-06-30 14:04:25,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,9.57,26.70,53.40,19.14,34.26,Lani,Retail,Cash,113
+HI084-TX-0018,HI084,Ewa Gentry,Oahu,HI,2026-06-30 17:09:44,CAP-010,10uF Capacitor,Capacitors,7,0.09,0.40,2.80,0.63,2.17,Nalu,Tourism/Hospitality,Cash,476
+HI084-TX-0019,HI084,Ewa Gentry,Oahu,HI,2026-06-30 10:32:13,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,7.81,21.18,63.54,23.43,40.11,Leilani,Commercial,ACH,314
+HI084-TX-0020,HI084,Ewa Gentry,Oahu,HI,2026-06-30 09:12:37,USB-CBO,USB-C Breakout Board,Connectors,11,1.39,5.38,59.18,15.29,43.89,Keanu,Retail,Purchase Order,154
+HI084-TX-0021,HI084,Ewa Gentry,Oahu,HI,2026-06-30 13:35:11,BRD-830,Breadboard 830 Tie Points,Connectors,6,1.58,6.80,40.80,9.48,31.32,Noah,Maker/Hobbyist,Purchase Order,544
+HI084-TX-0022,HI084,Ewa Gentry,Oahu,HI,2026-06-30 15:02:13,CON-JMP,Jumper Wire Set,Connectors,26,0.92,4.00,104.00,23.92,80.08,Alika,Retail,Debit Card,536
+HI084-TX-0023,HI084,Ewa Gentry,Oahu,HI,2026-06-30 16:30:29,IC-358,LM358 Op Amp,Integrated Circuits,7,0.30,1.15,8.05,2.10,5.95,Akamu,Commercial,Purchase Order,525
+HI084-TX-0024,HI084,Ewa Gentry,Oahu,HI,2026-06-30 12:33:35,LED-BLU,5mm Blue LED,LEDs,31,0.06,0.33,10.23,1.86,8.37,Noah,Marine,Mobile Pay,204
+HI084-TX-0025,HI084,Ewa Gentry,Oahu,HI,2026-06-30 11:18:58,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.41,8.48,8.48,3.41,5.07,Alika,Commercial,Mobile Pay,724
+HI084-TX-0026,HI084,Ewa Gentry,Oahu,HI,2026-06-30 10:00:05,IC-555,NE555 Timer IC,Integrated Circuits,17,0.38,1.31,22.27,6.46,15.81,Ikaika,Commercial,Mobile Pay,488
+HI084-TX-0027,HI084,Ewa Gentry,Oahu,HI,2026-06-30 11:08:10,RES-220,220 Ohm Resistor,Resistors,13,0.03,0.13,1.69,0.39,1.30,Ailani,Marine,ACH,331
+HI084-TX-0028,HI084,Ewa Gentry,Oahu,HI,2026-06-30 10:44:53,CON-JMP,Jumper Wire Set,Connectors,7,0.96,3.94,27.58,6.72,20.86,Kai,Government,Cash,538
+HI084-TX-0029,HI084,Ewa Gentry,Oahu,HI,2026-06-30 15:06:19,TOOL-SOL,Soldering Iron Tips,Tools,1,1.98,7.70,7.70,1.98,5.72,Leilani,Maker/Hobbyist,Cash,733
+HI084-TX-0030,HI084,Ewa Gentry,Oahu,HI,2026-06-30 09:11:56,RES-220,220 Ohm Resistor,Resistors,16,0.03,0.13,2.08,0.48,1.60,Akamu,Education,Mobile Pay,486
+HI084-TX-0031,HI084,Ewa Gentry,Oahu,HI,2026-06-30 09:57:39,CON-JMP,Jumper Wire Set,Connectors,3,0.92,3.84,11.52,2.76,8.76,Malia,Education,Debit Card,285
+HI084-TX-0032,HI084,Ewa Gentry,Oahu,HI,2026-06-30 12:29:01,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.52,6.92,55.36,12.16,43.20,Noah,Education,Purchase Order,579
+HI084-TX-0033,HI084,Ewa Gentry,Oahu,HI,2026-06-30 13:16:30,SNS-ULT,Ultrasonic Distance Sensor,Sensors,9,1.28,5.29,47.61,11.52,36.09,Noah,Government,Mobile Pay,798
+HI084-TX-0034,HI084,Ewa Gentry,Oahu,HI,2026-06-30 11:05:13,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,9.20,28.98,144.90,46.00,98.90,Noah,Tourism/Hospitality,Cash,492
+HI084-TX-0035,HI084,Ewa Gentry,Oahu,HI,2026-06-30 17:40:44,RES-001,1k Ohm Resistor,Resistors,9,0.03,0.14,1.26,0.27,0.99,Alika,Education,Debit Card,389
+HI084-TX-0036,HI084,Ewa Gentry,Oahu,HI,2026-06-30 13:23:34,REL-5V,5V Relay Module,Relays,26,0.91,5.77,150.02,23.66,126.36,Mika,Maker/Hobbyist,Debit Card,578
+HI084-TX-0037,HI084,Ewa Gentry,Oahu,HI,2026-06-30 09:08:29,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.43,20.59,61.77,25.29,36.48,Keanu,Commercial,Cash,166
+HI084-TX-0038,HI084,Ewa Gentry,Oahu,HI,2026-06-30 08:14:51,IC-555,NE555 Timer IC,Integrated Circuits,18,0.34,1.33,23.94,6.12,17.82,Makana,Marine,Cash,748
+HI084-TX-0039,HI084,Ewa Gentry,Oahu,HI,2026-06-30 15:14:45,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.95,14.96,89.76,29.70,60.06,Lani,Commercial,Purchase Order,30
+HI084-TX-0040,HI084,Ewa Gentry,Oahu,HI,2026-06-30 12:51:33,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,7.96,22.35,89.40,31.84,57.56,Nalu,Education,Credit Card,272
+HI084-TX-0041,HI084,Ewa Gentry,Oahu,HI,2026-06-30 15:37:25,BAT-AAH,AA Battery Holder,Batteries,3,0.49,2.82,8.46,1.47,6.99,Hana,Education,Credit Card,168
+HI084-TX-0042,HI084,Ewa Gentry,Oahu,HI,2026-06-30 11:50:10,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.09,12.47,24.94,8.18,16.76,Mika,Marine,Mobile Pay,697
+HI084-TX-0043,HI084,Ewa Gentry,Oahu,HI,2026-06-30 12:38:17,BAT-LIPO,LiPo Battery Pack,Batteries,7,5.41,16.72,117.04,37.87,79.17,Noelani,Marine,Purchase Order,167
+HI084-TX-0044,HI084,Ewa Gentry,Oahu,HI,2026-06-30 16:49:47,CON-JMP,Jumper Wire Set,Connectors,40,0.88,3.88,155.20,35.20,120.00,Makana,Commercial,Debit Card,281
+HI084-TX-0045,HI084,Ewa Gentry,Oahu,HI,2026-06-30 09:04:51,MOS-44N,IRFZ44N MOSFET,Semiconductors,38,0.57,2.33,88.54,21.66,66.88,Leilani,Marine,Mobile Pay,257
+HI084-TX-0046,HI084,Ewa Gentry,Oahu,HI,2026-06-30 11:42:16,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.00,21.62,64.86,24.00,40.86,Mika,Education,ACH,372
+HI084-TX-0047,HI084,Ewa Gentry,Oahu,HI,2026-06-30 08:58:23,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.67,14.84,103.88,32.69,71.19,Pualani,Commercial,Purchase Order,59
+HI084-TX-0048,HI084,Ewa Gentry,Oahu,HI,2026-06-30 17:52:01,IC-555,NE555 Timer IC,Integrated Circuits,21,0.35,1.39,29.19,7.35,21.84,Kai,Education,Mobile Pay,45
+HI084-TX-0049,HI084,Ewa Gentry,Oahu,HI,2026-06-30 16:01:39,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.58,6.80,54.40,12.64,41.76,Pualani,Commercial,Debit Card,283
+HI084-TX-0050,HI084,Ewa Gentry,Oahu,HI,2026-06-30 14:21:48,IC-555,NE555 Timer IC,Integrated Circuits,4,0.35,1.45,5.80,1.40,4.40,Iolana,Education,Cash,296
+HI084-TX-0051,HI084,Ewa Gentry,Oahu,HI,2026-06-30 13:05:34,IC-REG,7805 Voltage Regulator,Integrated Circuits,17,0.19,0.92,15.64,3.23,12.41,Akamu,Government,Cash,309
+HI084-TX-0052,HI084,Ewa Gentry,Oahu,HI,2026-06-30 08:20:39,TOOL-DMM,Digital Multimeter,Tools,6,9.00,27.03,162.18,54.00,108.18,Mika,Government,Credit Card,812
+HI084-TX-0053,HI084,Ewa Gentry,Oahu,HI,2026-06-30 08:49:23,REL-5V,5V Relay Module,Relays,24,0.93,5.37,128.88,22.32,106.56,Pualani,Maker/Hobbyist,Mobile Pay,518
+HI084-TX-0054,HI084,Ewa Gentry,Oahu,HI,2026-06-30 16:05:18,CON-JMP,Jumper Wire Set,Connectors,11,0.94,4.01,44.11,10.34,33.77,Noelani,Commercial,ACH,680
+HI084-TX-0055,HI084,Ewa Gentry,Oahu,HI,2026-06-30 13:47:39,CON-JMP,Jumper Wire Set,Connectors,9,0.90,3.74,33.66,8.10,25.56,Hana,Commercial,Mobile Pay,575
+HI084-TX-0056,HI084,Ewa Gentry,Oahu,HI,2026-06-30 09:02:30,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,32,0.05,0.20,6.40,1.60,4.80,Kai,Retail,Debit Card,635
+HI084-TX-0057,HI084,Ewa Gentry,Oahu,HI,2026-06-30 12:12:47,REL-5V,5V Relay Module,Relays,26,0.98,5.26,136.76,25.48,111.28,Noah,Education,Mobile Pay,266
+HI084-TX-0058,HI084,Ewa Gentry,Oahu,HI,2026-06-30 11:09:57,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.60,6.74,33.70,8.00,25.70,Lani,Marine,Debit Card,571
+HI084-TX-0059,HI084,Ewa Gentry,Oahu,HI,2026-06-30 15:16:00,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.56,6.84,34.20,7.80,26.40,Pualani,Tourism/Hospitality,Debit Card,691
+HI084-TX-0060,HI084,Ewa Gentry,Oahu,HI,2026-06-30 16:30:19,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.59,6.52,52.16,12.72,39.44,Nalu,Government,Purchase Order,28
+HI084-TX-0061,HI084,Ewa Gentry,Oahu,HI,2026-06-30 17:08:33,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,20,0.04,0.20,4.00,0.80,3.20,Ailani,Education,Cash,673
+HI084-TX-0062,HI084,Ewa Gentry,Oahu,HI,2026-06-30 17:34:59,RES-001,1k Ohm Resistor,Resistors,9,0.03,0.12,1.08,0.27,0.81,Noah,Retail,ACH,94
+HI084-TX-0063,HI084,Ewa Gentry,Oahu,HI,2026-06-30 16:55:50,PWR-5V2,5V 2A Power Supply,Power,6,3.50,10.38,62.28,21.00,41.28,Malia,Education,Purchase Order,61
+HI084-TX-0064,HI084,Ewa Gentry,Oahu,HI,2026-06-30 09:06:15,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,10,0.04,0.20,2.00,0.40,1.60,Nalu,Retail,Credit Card,534
+HI084-TX-0065,HI084,Ewa Gentry,Oahu,HI,2026-06-30 09:24:02,USB-CBO,USB-C Breakout Board,Connectors,32,1.44,5.52,176.64,46.08,130.56,Ikaika,Government,Credit Card,170
+HI084-TX-0066,HI084,Ewa Gentry,Oahu,HI,2026-06-30 11:43:04,IC-REG,7805 Voltage Regulator,Integrated Circuits,5,0.20,0.92,4.60,1.00,3.60,Ailani,Education,Purchase Order,515
+HI084-TX-0067,HI084,Ewa Gentry,Oahu,HI,2026-06-30 16:46:17,CON-JMP,Jumper Wire Set,Connectors,28,0.91,3.98,111.44,25.48,85.96,Akamu,Marine,Debit Card,482
+HI084-TX-0068,HI084,Ewa Gentry,Oahu,HI,2026-06-30 12:54:50,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.60,6.40,44.80,11.20,33.60,Pualani,Tourism/Hospitality,Purchase Order,242
+HI084-TX-0069,HI084,Ewa Gentry,Oahu,HI,2026-06-30 17:46:32,LED-RED,5mm Red LED,LEDs,9,0.06,0.27,2.43,0.54,1.89,Mika,Marine,Purchase Order,560
+HI084-TX-0070,HI084,Ewa Gentry,Oahu,HI,2026-06-30 09:33:35,LED-RGB,RGB LED Strip,LEDs,6,5.31,14.57,87.42,31.86,55.56,Nalu,Tourism/Hospitality,Cash,794
+HI084-TX-0071,HI084,Ewa Gentry,Oahu,HI,2026-06-30 12:34:54,RES-001,1k Ohm Resistor,Resistors,4,0.03,0.13,0.52,0.12,0.40,Hana,Commercial,Credit Card,556
+HI084-TX-0072,HI084,Ewa Gentry,Oahu,HI,2026-06-30 17:06:31,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.79,21.64,108.20,43.95,64.25,Akamu,Government,Cash,223
+HI084-TX-0073,HI084,Ewa Gentry,Oahu,HI,2026-06-30 10:35:25,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.83,14.07,112.56,38.64,73.92,Pualani,Education,Credit Card,96
+HI084-TX-0074,HI084,Ewa Gentry,Oahu,HI,2026-06-30 08:31:45,SNS-SOIL,Soil Moisture Sensor,Sensors,17,0.88,4.11,69.87,14.96,54.91,Kaleo,Government,Mobile Pay,141
+HI084-TX-0075,HI084,Ewa Gentry,Oahu,HI,2026-06-30 17:17:20,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,15,0.04,0.20,3.00,0.60,2.40,Leilani,Tourism/Hospitality,Debit Card,373
+HI084-TX-0076,HI084,Ewa Gentry,Oahu,HI,2026-06-30 08:45:27,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,9.70,25.75,103.00,38.80,64.20,Keahi,Education,Mobile Pay,619
+HI084-TX-0077,HI084,Ewa Gentry,Oahu,HI,2026-06-30 12:13:55,LED-BLU,5mm Blue LED,LEDs,20,0.07,0.32,6.40,1.40,5.00,Mika,Government,Cash,770
+HI084-TX-0078,HI084,Ewa Gentry,Oahu,HI,2026-06-30 15:35:24,LED-BLU,5mm Blue LED,LEDs,3,0.07,0.33,0.99,0.21,0.78,Keanu,Maker/Hobbyist,Mobile Pay,291
+HI084-TX-0079,HI084,Ewa Gentry,Oahu,HI,2026-06-30 10:12:18,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.52,14.09,56.36,18.08,38.28,Nalu,Government,Cash,217
+HI084-TX-0080,HI084,Ewa Gentry,Oahu,HI,2026-06-30 15:20:09,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.78,14.88,119.04,38.24,80.80,Kai,Marine,ACH,743
+HI084-TX-0081,HI084,Ewa Gentry,Oahu,HI,2026-06-30 14:21:32,BAT-AAH,AA Battery Holder,Batteries,2,0.47,2.71,5.42,0.94,4.48,Noelani,Maker/Hobbyist,ACH,475
+HI084-TX-0082,HI084,Ewa Gentry,Oahu,HI,2026-06-30 13:00:18,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.32,12.49,62.45,21.60,40.85,Ikaika,Education,Cash,649
+HI084-TX-0083,HI084,Ewa Gentry,Oahu,HI,2026-06-30 10:14:11,LED-RGB,RGB LED Strip,LEDs,4,5.10,14.52,58.08,20.40,37.68,Noelani,Tourism/Hospitality,Debit Card,862
+HI084-TX-0084,HI084,Ewa Gentry,Oahu,HI,2026-06-30 16:45:09,DIO-4007,1N4007 Diode,Semiconductors,32,0.04,0.20,6.40,1.28,5.12,Leilani,Maker/Hobbyist,ACH,509
+HI084-TX-0085,HI084,Ewa Gentry,Oahu,HI,2026-06-30 08:29:12,CON-JMP,Jumper Wire Set,Connectors,2,0.88,3.66,7.32,1.76,5.56,Iolana,Marine,ACH,279
+HI084-TX-0086,HI084,Ewa Gentry,Oahu,HI,2026-06-30 14:48:30,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,7.92,23.04,92.16,31.68,60.48,Pualani,Marine,Cash,33
+HI084-TX-0087,HI084,Ewa Gentry,Oahu,HI,2026-06-30 17:51:09,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.06,8.19,32.76,12.24,20.52,Nalu,Government,Debit Card,774
+HI084-TX-0088,HI084,Ewa Gentry,Oahu,HI,2026-06-30 10:49:10,MOS-44N,IRFZ44N MOSFET,Semiconductors,30,0.64,2.53,75.90,19.20,56.70,Noelani,Retail,Cash,253
+HI084-TX-0089,HI084,Ewa Gentry,Oahu,HI,2026-06-30 16:14:18,SNS-PIR,PIR Motion Sensor,Sensors,7,1.63,5.72,40.04,11.41,28.63,Iolana,Commercial,Cash,688
+HI084-TX-0090,HI084,Ewa Gentry,Oahu,HI,2026-06-30 09:05:47,LED-RED,5mm Red LED,LEDs,19,0.05,0.27,5.13,0.95,4.18,Noah,Commercial,Purchase Order,900
+HI084-TX-0091,HI084,Ewa Gentry,Oahu,HI,2026-06-30 16:58:17,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.25,9.26,27.78,9.75,18.03,Ailani,Tourism/Hospitality,Debit Card,842
+HI084-TX-0092,HI084,Ewa Gentry,Oahu,HI,2026-06-30 11:22:48,DIO-4007,1N4007 Diode,Semiconductors,34,0.04,0.20,6.80,1.36,5.44,Akamu,Maker/Hobbyist,Purchase Order,350
+HI084-TX-0093,HI084,Ewa Gentry,Oahu,HI,2026-06-30 15:20:37,IC-555,NE555 Timer IC,Integrated Circuits,18,0.35,1.35,24.30,6.30,18.00,Ailani,Commercial,Purchase Order,855
+HI084-TX-0094,HI084,Ewa Gentry,Oahu,HI,2026-06-30 15:53:46,REL-5V,5V Relay Module,Relays,1,0.94,5.12,5.12,0.94,4.18,Ailani,Tourism/Hospitality,Debit Card,512

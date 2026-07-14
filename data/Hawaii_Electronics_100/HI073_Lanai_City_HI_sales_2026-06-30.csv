@@ -1,0 +1,86 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI073-TX-0001,HI073,Lanai City,Lanai,HI,2026-06-30 15:31:10,DIO-4007,1N4007 Diode,Semiconductors,18,0.04,0.20,3.60,0.72,2.88,Keanu,Government,Mobile Pay,332
+HI073-TX-0002,HI073,Lanai City,Lanai,HI,2026-06-30 17:20:35,RES-010,10k Ohm Resistor,Resistors,20,0.03,0.13,2.60,0.60,2.00,Kaleo,Tourism/Hospitality,ACH,890
+HI073-TX-0003,HI073,Lanai City,Lanai,HI,2026-06-30 16:23:29,RES-010,10k Ohm Resistor,Resistors,2,0.03,0.12,0.24,0.06,0.18,Akamu,Marine,Credit Card,239
+HI073-TX-0004,HI073,Lanai City,Lanai,HI,2026-06-30 15:55:33,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,9.24,26.22,104.88,36.96,67.92,Kaleo,Marine,Credit Card,867
+HI073-TX-0005,HI073,Lanai City,Lanai,HI,2026-06-30 08:08:13,PWR-5V2,5V 2A Power Supply,Power,7,3.66,11.01,77.07,25.62,51.45,Ailani,Education,Credit Card,130
+HI073-TX-0006,HI073,Lanai City,Lanai,HI,2026-06-30 09:11:16,SNS-DHT,DHT22 Temperature Sensor,Sensors,1,2.43,7.37,7.37,2.43,4.94,Noah,Tourism/Hospitality,Cash,34
+HI073-TX-0007,HI073,Lanai City,Lanai,HI,2026-06-30 11:39:32,IC-REG,7805 Voltage Regulator,Integrated Circuits,7,0.19,0.94,6.58,1.33,5.25,Kaleo,Tourism/Hospitality,Credit Card,230
+HI073-TX-0008,HI073,Lanai City,Lanai,HI,2026-06-30 17:07:23,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.41,7.48,52.36,16.87,35.49,Mika,Education,ACH,35
+HI073-TX-0009,HI073,Lanai City,Lanai,HI,2026-06-30 11:24:30,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.33,31.10,124.40,41.32,83.08,Ailani,Education,Credit Card,374
+HI073-TX-0010,HI073,Lanai City,Lanai,HI,2026-06-30 10:57:12,IC-REG,7805 Voltage Regulator,Integrated Circuits,22,0.20,0.88,19.36,4.40,14.96,Iolana,Retail,Credit Card,313
+HI073-TX-0011,HI073,Lanai City,Lanai,HI,2026-06-30 08:58:01,RES-001,1k Ohm Resistor,Resistors,30,0.03,0.13,3.90,0.90,3.00,Noelani,Tourism/Hospitality,Debit Card,220
+HI073-TX-0012,HI073,Lanai City,Lanai,HI,2026-06-30 14:06:23,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.40,12.55,100.40,35.20,65.20,Kaleo,Government,Credit Card,542
+HI073-TX-0013,HI073,Lanai City,Lanai,HI,2026-06-30 13:53:36,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.43,32.28,258.24,91.44,166.80,Leilani,Retail,Cash,64
+HI073-TX-0014,HI073,Lanai City,Lanai,HI,2026-06-30 10:31:32,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.62,6.86,6.86,1.62,5.24,Mika,Retail,Mobile Pay,269
+HI073-TX-0015,HI073,Lanai City,Lanai,HI,2026-06-30 17:24:18,LED-BLU,5mm Blue LED,LEDs,24,0.06,0.31,7.44,1.44,6.00,Akamu,Maker/Hobbyist,Debit Card,755
+HI073-TX-0016,HI073,Lanai City,Lanai,HI,2026-06-30 14:15:09,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.83,13.97,55.88,15.32,40.56,Alika,Marine,Credit Card,626
+HI073-TX-0017,HI073,Lanai City,Lanai,HI,2026-06-30 08:34:48,LED-BLU,5mm Blue LED,LEDs,6,0.06,0.34,2.04,0.36,1.68,Noelani,Government,Debit Card,222
+HI073-TX-0018,HI073,Lanai City,Lanai,HI,2026-06-30 15:19:36,LED-RGB,RGB LED Strip,LEDs,6,5.22,14.27,85.62,31.32,54.30,Akamu,Government,Mobile Pay,884
+HI073-TX-0019,HI073,Lanai City,Lanai,HI,2026-06-30 11:31:21,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,8.80,26.93,188.51,61.60,126.91,Keahi,Commercial,Mobile Pay,706
+HI073-TX-0020,HI073,Lanai City,Lanai,HI,2026-06-30 16:58:59,PWR-5V2,5V 2A Power Supply,Power,3,3.56,10.69,32.07,10.68,21.39,Malia,Education,Mobile Pay,743
+HI073-TX-0021,HI073,Lanai City,Lanai,HI,2026-06-30 10:29:31,IC-555,NE555 Timer IC,Integrated Circuits,10,0.35,1.28,12.80,3.50,9.30,Mika,Maker/Hobbyist,Cash,605
+HI073-TX-0022,HI073,Lanai City,Lanai,HI,2026-06-30 10:44:05,PWR-5V2,5V 2A Power Supply,Power,7,3.50,11.12,77.84,24.50,53.34,Ikaika,Marine,Mobile Pay,14
+HI073-TX-0023,HI073,Lanai City,Lanai,HI,2026-06-30 12:17:01,SNS-PIR,PIR Motion Sensor,Sensors,1,1.62,5.89,5.89,1.62,4.27,Kaleo,Government,Cash,448
+HI073-TX-0024,HI073,Lanai City,Lanai,HI,2026-06-30 15:06:07,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,4.08,14.19,56.76,16.32,40.44,Malia,Retail,Mobile Pay,810
+HI073-TX-0025,HI073,Lanai City,Lanai,HI,2026-06-30 17:33:06,BAT-AAH,AA Battery Holder,Batteries,25,0.47,2.68,67.00,11.75,55.25,Makana,Retail,ACH,464
+HI073-TX-0026,HI073,Lanai City,Lanai,HI,2026-06-30 13:37:12,BAT-LIPO,LiPo Battery Pack,Batteries,7,5.54,16.34,114.38,38.78,75.60,Alika,Maker/Hobbyist,Purchase Order,101
+HI073-TX-0027,HI073,Lanai City,Lanai,HI,2026-06-30 17:30:45,PWR-12V,12V 5A Power Supply,Power,3,9.29,24.02,72.06,27.87,44.19,Noelani,Education,Debit Card,154
+HI073-TX-0028,HI073,Lanai City,Lanai,HI,2026-06-30 13:56:00,PWR-BUCK,Buck Converter Module,Power,16,1.00,5.16,82.56,16.00,66.56,Hana,Marine,Mobile Pay,346
+HI073-TX-0029,HI073,Lanai City,Lanai,HI,2026-06-30 12:04:41,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,9.17,26.76,160.56,55.02,105.54,Iolana,Tourism/Hospitality,Cash,861
+HI073-TX-0030,HI073,Lanai City,Lanai,HI,2026-06-30 09:04:02,TOOL-SOL,Soldering Iron Tips,Tools,1,1.94,7.90,7.90,1.94,5.96,Mika,Marine,Cash,70
+HI073-TX-0031,HI073,Lanai City,Lanai,HI,2026-06-30 12:25:13,RES-010,10k Ohm Resistor,Resistors,6,0.03,0.12,0.72,0.18,0.54,Hana,Maker/Hobbyist,Credit Card,222
+HI073-TX-0032,HI073,Lanai City,Lanai,HI,2026-06-30 09:30:09,TOOL-DMM,Digital Multimeter,Tools,1,8.35,28.10,28.10,8.35,19.75,Pualani,Government,Debit Card,273
+HI073-TX-0033,HI073,Lanai City,Lanai,HI,2026-06-30 14:21:45,BAT-AAH,AA Battery Holder,Batteries,6,0.52,2.62,15.72,3.12,12.60,Kai,Tourism/Hospitality,Mobile Pay,300
+HI073-TX-0034,HI073,Lanai City,Lanai,HI,2026-06-30 09:52:04,TOOL-WIRE,Wire Stripper,Tools,5,5.11,14.32,71.60,25.55,46.05,Noelani,Education,Credit Card,386
+HI073-TX-0035,HI073,Lanai City,Lanai,HI,2026-06-30 12:15:42,USB-CBO,USB-C Breakout Board,Connectors,10,1.47,5.53,55.30,14.70,40.60,Keahi,Retail,Mobile Pay,270
+HI073-TX-0036,HI073,Lanai City,Lanai,HI,2026-06-30 10:54:29,CON-JMP,Jumper Wire Set,Connectors,17,0.95,3.75,63.75,16.15,47.60,Kai,Tourism/Hospitality,Purchase Order,442
+HI073-TX-0037,HI073,Lanai City,Lanai,HI,2026-06-30 10:21:58,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,22,0.05,0.19,4.18,1.10,3.08,Ailani,Maker/Hobbyist,Credit Card,799
+HI073-TX-0038,HI073,Lanai City,Lanai,HI,2026-06-30 09:00:28,PWR-BUCK,Buck Converter Module,Power,37,1.07,4.81,177.97,39.59,138.38,Koa,Education,Debit Card,523
+HI073-TX-0039,HI073,Lanai City,Lanai,HI,2026-06-30 11:36:54,PWR-BUCK,Buck Converter Module,Power,29,1.12,4.79,138.91,32.48,106.43,Leilani,Retail,Cash,488
+HI073-TX-0040,HI073,Lanai City,Lanai,HI,2026-06-30 13:22:48,PWR-BUCK,Buck Converter Module,Power,27,1.04,4.79,129.33,28.08,101.25,Nalu,Tourism/Hospitality,Purchase Order,192
+HI073-TX-0041,HI073,Lanai City,Lanai,HI,2026-06-30 10:54:36,CAP-100,100uF Capacitor,Capacitors,35,0.16,0.58,20.30,5.60,14.70,Pualani,Commercial,ACH,567
+HI073-TX-0042,HI073,Lanai City,Lanai,HI,2026-06-30 15:01:59,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,9.36,27.60,110.40,37.44,72.96,Leilani,Government,Cash,362
+HI073-TX-0043,HI073,Lanai City,Lanai,HI,2026-06-30 15:22:07,PWR-5V2,5V 2A Power Supply,Power,7,3.68,11.24,78.68,25.76,52.92,Leilani,Commercial,Purchase Order,39
+HI073-TX-0044,HI073,Lanai City,Lanai,HI,2026-06-30 10:22:54,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,8.63,28.19,225.52,69.04,156.48,Alika,Government,Purchase Order,303
+HI073-TX-0045,HI073,Lanai City,Lanai,HI,2026-06-30 10:26:23,PWR-5V2,5V 2A Power Supply,Power,3,3.41,10.33,30.99,10.23,20.76,Ailani,Tourism/Hospitality,Debit Card,884
+HI073-TX-0046,HI073,Lanai City,Lanai,HI,2026-06-30 12:34:48,SNS-DHT,DHT22 Temperature Sensor,Sensors,4,2.51,7.45,29.80,10.04,19.76,Keahi,Government,ACH,802
+HI073-TX-0047,HI073,Lanai City,Lanai,HI,2026-06-30 14:06:43,PWR-12V,12V 5A Power Supply,Power,1,9.18,26.27,26.27,9.18,17.09,Noah,Maker/Hobbyist,Mobile Pay,583
+HI073-TX-0048,HI073,Lanai City,Lanai,HI,2026-06-30 16:12:05,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.33,9.00,63.00,23.31,39.69,Kai,Retail,Credit Card,736
+HI073-TX-0049,HI073,Lanai City,Lanai,HI,2026-06-30 12:53:17,IC-555,NE555 Timer IC,Integrated Circuits,33,0.34,1.36,44.88,11.22,33.66,Malia,Tourism/Hospitality,ACH,505
+HI073-TX-0050,HI073,Lanai City,Lanai,HI,2026-06-30 17:12:51,PWR-BUCK,Buck Converter Module,Power,30,1.03,4.71,141.30,30.90,110.40,Hana,Maker/Hobbyist,ACH,115
+HI073-TX-0051,HI073,Lanai City,Lanai,HI,2026-06-30 17:13:53,CAP-010,10uF Capacitor,Capacitors,6,0.09,0.40,2.40,0.54,1.86,Makana,Commercial,Credit Card,680
+HI073-TX-0052,HI073,Lanai City,Lanai,HI,2026-06-30 08:03:01,PWR-12V,12V 5A Power Supply,Power,8,9.69,26.39,211.12,77.52,133.60,Keanu,Tourism/Hospitality,Cash,427
+HI073-TX-0053,HI073,Lanai City,Lanai,HI,2026-06-30 13:36:52,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.65,14.92,59.68,14.60,45.08,Ailani,Retail,Purchase Order,412
+HI073-TX-0054,HI073,Lanai City,Lanai,HI,2026-06-30 11:20:45,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.73,13.97,13.97,3.73,10.24,Makana,Education,Purchase Order,836
+HI073-TX-0055,HI073,Lanai City,Lanai,HI,2026-06-30 08:17:30,RES-001,1k Ohm Resistor,Resistors,20,0.03,0.14,2.80,0.60,2.20,Keahi,Government,Debit Card,841
+HI073-TX-0056,HI073,Lanai City,Lanai,HI,2026-06-30 09:51:51,MAR-TIN,Tinned Marine Wire,Marine Electronics,1,9.31,28.58,28.58,9.31,19.27,Pualani,Government,Purchase Order,445
+HI073-TX-0057,HI073,Lanai City,Lanai,HI,2026-06-30 17:40:36,PWR-12V,12V 5A Power Supply,Power,2,9.04,25.00,50.00,18.08,31.92,Ailani,Education,Purchase Order,889
+HI073-TX-0058,HI073,Lanai City,Lanai,HI,2026-06-30 08:11:05,PWR-BUCK,Buck Converter Module,Power,19,1.00,4.59,87.21,19.00,68.21,Keanu,Maker/Hobbyist,Purchase Order,838
+HI073-TX-0059,HI073,Lanai City,Lanai,HI,2026-06-30 14:40:35,PWR-12V,12V 5A Power Supply,Power,8,9.89,25.11,200.88,79.12,121.76,Ikaika,Commercial,Mobile Pay,97
+HI073-TX-0060,HI073,Lanai City,Lanai,HI,2026-06-30 09:15:12,LED-RGB,RGB LED Strip,LEDs,4,5.21,14.99,59.96,20.84,39.12,Koa,Government,Credit Card,549
+HI073-TX-0061,HI073,Lanai City,Lanai,HI,2026-06-30 09:51:34,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,3.83,13.90,83.40,22.98,60.42,Noah,Retail,Cash,777
+HI073-TX-0062,HI073,Lanai City,Lanai,HI,2026-06-30 09:14:10,SNS-PIR,PIR Motion Sensor,Sensors,1,1.60,6.15,6.15,1.60,4.55,Ailani,Education,Debit Card,716
+HI073-TX-0063,HI073,Lanai City,Lanai,HI,2026-06-30 10:09:17,TR-3904,2N3904 NPN Transistor,Semiconductors,22,0.06,0.25,5.50,1.32,4.18,Keahi,Tourism/Hospitality,Mobile Pay,385
+HI073-TX-0064,HI073,Lanai City,Lanai,HI,2026-06-30 10:34:52,BAT-AAH,AA Battery Holder,Batteries,11,0.47,2.71,29.81,5.17,24.64,Kai,Tourism/Hospitality,Purchase Order,287
+HI073-TX-0065,HI073,Lanai City,Lanai,HI,2026-06-30 10:26:44,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.30,12.49,49.96,17.20,32.76,Alika,Marine,Debit Card,704
+HI073-TX-0066,HI073,Lanai City,Lanai,HI,2026-06-30 12:32:33,PWR-BUCK,Buck Converter Module,Power,27,1.07,5.01,135.27,28.89,106.38,Nalu,Education,Cash,171
+HI073-TX-0067,HI073,Lanai City,Lanai,HI,2026-06-30 17:23:46,TOOL-SOL,Soldering Iron Tips,Tools,6,1.99,7.96,47.76,11.94,35.82,Noelani,Maker/Hobbyist,Cash,56
+HI073-TX-0068,HI073,Lanai City,Lanai,HI,2026-06-30 10:57:49,CAP-100,100uF Capacitor,Capacitors,15,0.17,0.57,8.55,2.55,6.00,Nalu,Retail,ACH,623
+HI073-TX-0069,HI073,Lanai City,Lanai,HI,2026-06-30 09:47:44,TR-3904,2N3904 NPN Transistor,Semiconductors,22,0.05,0.24,5.28,1.10,4.18,Makana,Marine,ACH,403
+HI073-TX-0070,HI073,Lanai City,Lanai,HI,2026-06-30 08:09:50,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.93,31.64,126.56,43.72,82.84,Ikaika,Retail,Purchase Order,225
+HI073-TX-0071,HI073,Lanai City,Lanai,HI,2026-06-30 15:16:57,LED-RED,5mm Red LED,LEDs,30,0.06,0.28,8.40,1.80,6.60,Iolana,Commercial,Debit Card,248
+HI073-TX-0072,HI073,Lanai City,Lanai,HI,2026-06-30 12:56:55,REL-5V,5V Relay Module,Relays,36,0.89,5.36,192.96,32.04,160.92,Nalu,Education,Credit Card,227
+HI073-TX-0073,HI073,Lanai City,Lanai,HI,2026-06-30 16:30:32,SNS-SOIL,Soil Moisture Sensor,Sensors,31,0.96,4.12,127.72,29.76,97.96,Alika,Marine,Purchase Order,442
+HI073-TX-0074,HI073,Lanai City,Lanai,HI,2026-06-30 14:26:04,TR-3904,2N3904 NPN Transistor,Semiconductors,11,0.06,0.23,2.53,0.66,1.87,Iolana,Tourism/Hospitality,Cash,642
+HI073-TX-0075,HI073,Lanai City,Lanai,HI,2026-06-30 10:04:04,PWR-12V,12V 5A Power Supply,Power,1,9.87,25.18,25.18,9.87,15.31,Koa,Retail,Mobile Pay,75
+HI073-TX-0076,HI073,Lanai City,Lanai,HI,2026-06-30 10:54:17,IC-555,NE555 Timer IC,Integrated Circuits,30,0.35,1.29,38.70,10.50,28.20,Mika,Government,Purchase Order,787
+HI073-TX-0077,HI073,Lanai City,Lanai,HI,2026-06-30 17:00:04,TR-3904,2N3904 NPN Transistor,Semiconductors,6,0.06,0.24,1.44,0.36,1.08,Ikaika,Tourism/Hospitality,Debit Card,850
+HI073-TX-0078,HI073,Lanai City,Lanai,HI,2026-06-30 15:35:32,DIO-4007,1N4007 Diode,Semiconductors,18,0.04,0.21,3.78,0.72,3.06,Pualani,Maker/Hobbyist,Mobile Pay,7
+HI073-TX-0079,HI073,Lanai City,Lanai,HI,2026-06-30 13:04:19,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.48,13.54,67.70,22.40,45.30,Koa,Retail,ACH,492
+HI073-TX-0080,HI073,Lanai City,Lanai,HI,2026-06-30 16:34:52,LED-RED,5mm Red LED,LEDs,27,0.06,0.27,7.29,1.62,5.67,Leilani,Government,Purchase Order,389
+HI073-TX-0081,HI073,Lanai City,Lanai,HI,2026-06-30 15:32:47,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,4.08,14.78,14.78,4.08,10.70,Koa,Maker/Hobbyist,Debit Card,760
+HI073-TX-0082,HI073,Lanai City,Lanai,HI,2026-06-30 13:57:49,PWR-12V,12V 5A Power Supply,Power,4,9.23,25.82,103.28,36.92,66.36,Alika,Commercial,Mobile Pay,430
+HI073-TX-0083,HI073,Lanai City,Lanai,HI,2026-06-30 12:38:01,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,9.28,25.59,102.36,37.12,65.24,Ailani,Government,Cash,298
+HI073-TX-0084,HI073,Lanai City,Lanai,HI,2026-06-30 13:55:14,SNS-PIR,PIR Motion Sensor,Sensors,5,1.64,6.14,30.70,8.20,22.50,Alika,Commercial,Mobile Pay,187
+HI073-TX-0085,HI073,Lanai City,Lanai,HI,2026-06-30 13:34:44,PWR-BUCK,Buck Converter Module,Power,27,1.10,4.79,129.33,29.70,99.63,Pualani,Government,Debit Card,101

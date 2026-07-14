@@ -1,0 +1,96 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI082-TX-0001,HI082,Kakaako,Oahu,HI,2026-06-30 12:57:07,IC-555,NE555 Timer IC,Integrated Circuits,11,0.33,1.33,14.63,3.63,11.00,Kaleo,Commercial,ACH,301
+HI082-TX-0002,HI082,Kakaako,Oahu,HI,2026-06-30 17:51:22,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.35,12.35,61.75,21.75,40.00,Keahi,Education,Purchase Order,498
+HI082-TX-0003,HI082,Kakaako,Oahu,HI,2026-06-30 08:27:28,BAT-AAH,AA Battery Holder,Batteries,18,0.53,2.75,49.50,9.54,39.96,Keahi,Marine,Debit Card,9
+HI082-TX-0004,HI082,Kakaako,Oahu,HI,2026-06-30 15:33:25,TOOL-DMM,Digital Multimeter,Tools,8,8.55,26.58,212.64,68.40,144.24,Malia,Marine,Credit Card,485
+HI082-TX-0005,HI082,Kakaako,Oahu,HI,2026-06-30 09:53:48,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.91,14.85,89.10,29.46,59.64,Akamu,Government,Mobile Pay,846
+HI082-TX-0006,HI082,Kakaako,Oahu,HI,2026-06-30 17:46:31,MOS-44N,IRFZ44N MOSFET,Semiconductors,40,0.60,2.46,98.40,24.00,74.40,Iolana,Marine,Debit Card,516
+HI082-TX-0007,HI082,Kakaako,Oahu,HI,2026-06-30 16:48:18,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.42,8.43,25.29,10.26,15.03,Ailani,Government,Purchase Order,578
+HI082-TX-0008,HI082,Kakaako,Oahu,HI,2026-06-30 17:21:32,RES-220,220 Ohm Resistor,Resistors,21,0.03,0.14,2.94,0.63,2.31,Kai,Tourism/Hospitality,Mobile Pay,834
+HI082-TX-0009,HI082,Kakaako,Oahu,HI,2026-06-30 13:36:51,IC-358,LM358 Op Amp,Integrated Circuits,27,0.30,1.27,34.29,8.10,26.19,Ailani,Tourism/Hospitality,Credit Card,856
+HI082-TX-0010,HI082,Kakaako,Oahu,HI,2026-06-30 16:11:22,IC-358,LM358 Op Amp,Integrated Circuits,32,0.33,1.21,38.72,10.56,28.16,Ikaika,Education,Purchase Order,666
+HI082-TX-0011,HI082,Kakaako,Oahu,HI,2026-06-30 15:47:51,SNS-SOIL,Soil Moisture Sensor,Sensors,32,0.95,4.29,137.28,30.40,106.88,Iolana,Education,Debit Card,261
+HI082-TX-0012,HI082,Kakaako,Oahu,HI,2026-06-30 12:01:44,IC-REG,7805 Voltage Regulator,Integrated Circuits,22,0.21,0.95,20.90,4.62,16.28,Mika,Tourism/Hospitality,Mobile Pay,325
+HI082-TX-0013,HI082,Kakaako,Oahu,HI,2026-06-30 10:24:53,CAP-010,10uF Capacitor,Capacitors,5,0.09,0.36,1.80,0.45,1.35,Mika,Marine,Debit Card,42
+HI082-TX-0014,HI082,Kakaako,Oahu,HI,2026-06-30 08:47:41,MOS-44N,IRFZ44N MOSFET,Semiconductors,32,0.62,2.49,79.68,19.84,59.84,Kai,Government,ACH,280
+HI082-TX-0015,HI082,Kakaako,Oahu,HI,2026-06-30 15:55:20,REL-5V,5V Relay Module,Relays,23,0.97,5.32,122.36,22.31,100.05,Mika,Education,Cash,103
+HI082-TX-0016,HI082,Kakaako,Oahu,HI,2026-06-30 13:41:21,PICO-RP,Raspberry Pi Pico,Microcontrollers,8,3.42,8.31,66.48,27.36,39.12,Ikaika,Maker/Hobbyist,Purchase Order,895
+HI082-TX-0017,HI082,Kakaako,Oahu,HI,2026-06-30 10:57:58,IC-REG,7805 Voltage Regulator,Integrated Circuits,9,0.20,0.93,8.37,1.80,6.57,Iolana,Marine,Mobile Pay,555
+HI082-TX-0018,HI082,Kakaako,Oahu,HI,2026-06-30 15:57:08,IC-REG,7805 Voltage Regulator,Integrated Circuits,4,0.19,0.91,3.64,0.76,2.88,Makana,Tourism/Hospitality,Debit Card,8
+HI082-TX-0019,HI082,Kakaako,Oahu,HI,2026-06-30 09:12:41,TOOL-WIRE,Wire Stripper,Tools,8,4.91,14.41,115.28,39.28,76.00,Kai,Government,Purchase Order,633
+HI082-TX-0020,HI082,Kakaako,Oahu,HI,2026-06-30 17:48:19,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.54,13.57,27.14,9.08,18.06,Kai,Government,Cash,371
+HI082-TX-0021,HI082,Kakaako,Oahu,HI,2026-06-30 08:51:24,IC-REG,7805 Voltage Regulator,Integrated Circuits,40,0.19,0.91,36.40,7.60,28.80,Koa,Tourism/Hospitality,Cash,76
+HI082-TX-0022,HI082,Kakaako,Oahu,HI,2026-06-30 16:18:27,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,7.87,21.77,43.54,15.74,27.80,Leilani,Retail,Credit Card,606
+HI082-TX-0023,HI082,Kakaako,Oahu,HI,2026-06-30 08:36:18,CON-JMP,Jumper Wire Set,Connectors,19,0.90,3.83,72.77,17.10,55.67,Mika,Tourism/Hospitality,Cash,175
+HI082-TX-0024,HI082,Kakaako,Oahu,HI,2026-06-30 14:45:58,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.13,8.63,60.41,21.91,38.50,Makana,Commercial,ACH,63
+HI082-TX-0025,HI082,Kakaako,Oahu,HI,2026-06-30 13:11:28,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.75,13.43,80.58,28.50,52.08,Keanu,Government,Debit Card,846
+HI082-TX-0026,HI082,Kakaako,Oahu,HI,2026-06-30 11:13:48,SOL-CTRL,Solar Charge Controller,Solar Power,2,11.13,33.63,67.26,22.26,45.00,Makana,Government,Mobile Pay,155
+HI082-TX-0027,HI082,Kakaako,Oahu,HI,2026-06-30 10:56:00,CON-JMP,Jumper Wire Set,Connectors,7,0.91,3.58,25.06,6.37,18.69,Hana,Education,ACH,349
+HI082-TX-0028,HI082,Kakaako,Oahu,HI,2026-06-30 13:18:35,SNS-SOIL,Soil Moisture Sensor,Sensors,7,0.92,4.62,32.34,6.44,25.90,Noah,Government,Debit Card,644
+HI082-TX-0029,HI082,Kakaako,Oahu,HI,2026-06-30 08:31:43,RES-001,1k Ohm Resistor,Resistors,29,0.03,0.13,3.77,0.87,2.90,Hana,Government,ACH,416
+HI082-TX-0030,HI082,Kakaako,Oahu,HI,2026-06-30 15:49:47,REL-5V,5V Relay Module,Relays,37,0.99,5.41,200.17,36.63,163.54,Pualani,Maker/Hobbyist,ACH,874
+HI082-TX-0031,HI082,Kakaako,Oahu,HI,2026-06-30 10:23:38,PICO-RP,Raspberry Pi Pico,Microcontrollers,8,3.22,8.51,68.08,25.76,42.32,Koa,Maker/Hobbyist,Credit Card,419
+HI082-TX-0032,HI082,Kakaako,Oahu,HI,2026-06-30 17:34:21,DIO-4007,1N4007 Diode,Semiconductors,19,0.04,0.20,3.80,0.76,3.04,Makana,Education,Mobile Pay,827
+HI082-TX-0033,HI082,Kakaako,Oahu,HI,2026-06-30 15:41:30,CAP-100,100uF Capacitor,Capacitors,7,0.16,0.59,4.13,1.12,3.01,Koa,Commercial,Purchase Order,702
+HI082-TX-0034,HI082,Kakaako,Oahu,HI,2026-06-30 17:46:20,IC-555,NE555 Timer IC,Integrated Circuits,37,0.34,1.33,49.21,12.58,36.63,Kaleo,Retail,Mobile Pay,779
+HI082-TX-0035,HI082,Kakaako,Oahu,HI,2026-06-30 08:59:33,MOS-44N,IRFZ44N MOSFET,Semiconductors,35,0.57,2.49,87.15,19.95,67.20,Iolana,Retail,ACH,531
+HI082-TX-0036,HI082,Kakaako,Oahu,HI,2026-06-30 17:14:23,DIO-4007,1N4007 Diode,Semiconductors,23,0.05,0.20,4.60,1.15,3.45,Keanu,Tourism/Hospitality,Purchase Order,836
+HI082-TX-0037,HI082,Kakaako,Oahu,HI,2026-06-30 14:18:25,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,9.45,26.82,214.56,75.60,138.96,Mika,Retail,Debit Card,399
+HI082-TX-0038,HI082,Kakaako,Oahu,HI,2026-06-30 15:19:07,IC-358,LM358 Op Amp,Integrated Circuits,39,0.29,1.21,47.19,11.31,35.88,Leilani,Marine,Purchase Order,601
+HI082-TX-0039,HI082,Kakaako,Oahu,HI,2026-06-30 09:15:06,RES-010,10k Ohm Resistor,Resistors,8,0.03,0.14,1.12,0.24,0.88,Pualani,Maker/Hobbyist,Purchase Order,242
+HI082-TX-0040,HI082,Kakaako,Oahu,HI,2026-06-30 11:20:27,SNS-SOIL,Soil Moisture Sensor,Sensors,31,0.89,4.13,128.03,27.59,100.44,Mika,Government,Debit Card,291
+HI082-TX-0041,HI082,Kakaako,Oahu,HI,2026-06-30 15:54:31,CON-JMP,Jumper Wire Set,Connectors,5,0.96,4.03,20.15,4.80,15.35,Akamu,Commercial,Credit Card,104
+HI082-TX-0042,HI082,Kakaako,Oahu,HI,2026-06-30 09:34:34,TOOL-DMM,Digital Multimeter,Tools,4,8.65,26.21,104.84,34.60,70.24,Keanu,Commercial,Purchase Order,870
+HI082-TX-0043,HI082,Kakaako,Oahu,HI,2026-06-30 13:46:16,IC-555,NE555 Timer IC,Integrated Circuits,12,0.36,1.33,15.96,4.32,11.64,Pualani,Marine,Debit Card,592
+HI082-TX-0044,HI082,Kakaako,Oahu,HI,2026-06-30 11:10:19,TOOL-DMM,Digital Multimeter,Tools,2,8.91,28.42,56.84,17.82,39.02,Koa,Marine,Mobile Pay,127
+HI082-TX-0045,HI082,Kakaako,Oahu,HI,2026-06-30 13:07:20,TOOL-SOL,Soldering Iron Tips,Tools,8,1.88,7.16,57.28,15.04,42.24,Lani,Retail,Purchase Order,133
+HI082-TX-0046,HI082,Kakaako,Oahu,HI,2026-06-30 09:10:54,SOL-CTRL,Solar Charge Controller,Solar Power,6,11.05,33.30,199.80,66.30,133.50,Kaleo,Tourism/Hospitality,Debit Card,642
+HI082-TX-0047,HI082,Kakaako,Oahu,HI,2026-06-30 17:16:51,PWR-BUCK,Buck Converter Module,Power,31,0.99,5.18,160.58,30.69,129.89,Keahi,Maker/Hobbyist,ACH,718
+HI082-TX-0048,HI082,Kakaako,Oahu,HI,2026-06-30 08:24:12,CON-JMP,Jumper Wire Set,Connectors,29,1.00,3.98,115.42,29.00,86.42,Keahi,Government,ACH,111
+HI082-TX-0049,HI082,Kakaako,Oahu,HI,2026-06-30 12:40:00,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.07,21.99,43.98,16.14,27.84,Ailani,Marine,ACH,490
+HI082-TX-0050,HI082,Kakaako,Oahu,HI,2026-06-30 15:39:41,CON-JMP,Jumper Wire Set,Connectors,1,0.93,3.65,3.65,0.93,2.72,Ailani,Retail,Mobile Pay,176
+HI082-TX-0051,HI082,Kakaako,Oahu,HI,2026-06-30 11:59:27,MOS-44N,IRFZ44N MOSFET,Semiconductors,21,0.61,2.34,49.14,12.81,36.33,Alika,Commercial,Credit Card,875
+HI082-TX-0052,HI082,Kakaako,Oahu,HI,2026-06-30 08:11:56,IC-555,NE555 Timer IC,Integrated Circuits,14,0.37,1.34,18.76,5.18,13.58,Lani,Commercial,ACH,34
+HI082-TX-0053,HI082,Kakaako,Oahu,HI,2026-06-30 14:20:07,TOOL-WIRE,Wire Stripper,Tools,2,5.07,14.53,29.06,10.14,18.92,Ailani,Maker/Hobbyist,Credit Card,556
+HI082-TX-0054,HI082,Kakaako,Oahu,HI,2026-06-30 15:32:47,SNS-PIR,PIR Motion Sensor,Sensors,6,1.59,6.28,37.68,9.54,28.14,Lani,Government,Purchase Order,295
+HI082-TX-0055,HI082,Kakaako,Oahu,HI,2026-06-30 17:13:10,SNS-SOIL,Soil Moisture Sensor,Sensors,23,0.90,4.17,95.91,20.70,75.21,Pualani,Marine,Purchase Order,297
+HI082-TX-0056,HI082,Kakaako,Oahu,HI,2026-06-30 14:33:36,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.30,8.42,33.68,13.20,20.48,Koa,Government,Mobile Pay,634
+HI082-TX-0057,HI082,Kakaako,Oahu,HI,2026-06-30 14:28:24,USB-CBO,USB-C Breakout Board,Connectors,2,1.37,5.78,11.56,2.74,8.82,Keahi,Maker/Hobbyist,Credit Card,780
+HI082-TX-0058,HI082,Kakaako,Oahu,HI,2026-06-30 15:23:58,RES-220,220 Ohm Resistor,Resistors,13,0.03,0.13,1.69,0.39,1.30,Ailani,Retail,Mobile Pay,684
+HI082-TX-0059,HI082,Kakaako,Oahu,HI,2026-06-30 17:45:32,REL-5V,5V Relay Module,Relays,14,0.88,5.19,72.66,12.32,60.34,Pualani,Retail,Cash,615
+HI082-TX-0060,HI082,Kakaako,Oahu,HI,2026-06-30 17:39:45,DIO-4007,1N4007 Diode,Semiconductors,17,0.04,0.19,3.23,0.68,2.55,Nalu,Education,Cash,344
+HI082-TX-0061,HI082,Kakaako,Oahu,HI,2026-06-30 11:46:01,DIO-4007,1N4007 Diode,Semiconductors,33,0.05,0.21,6.93,1.65,5.28,Iolana,Government,Cash,464
+HI082-TX-0062,HI082,Kakaako,Oahu,HI,2026-06-30 13:34:30,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.31,8.75,52.50,19.86,32.64,Mika,Marine,Cash,407
+HI082-TX-0063,HI082,Kakaako,Oahu,HI,2026-06-30 11:17:45,BAT-AAH,AA Battery Holder,Batteries,24,0.51,2.62,62.88,12.24,50.64,Iolana,Marine,Debit Card,898
+HI082-TX-0064,HI082,Kakaako,Oahu,HI,2026-06-30 11:06:40,CON-JMP,Jumper Wire Set,Connectors,5,0.96,4.04,20.20,4.80,15.40,Noah,Retail,Cash,401
+HI082-TX-0065,HI082,Kakaako,Oahu,HI,2026-06-30 11:39:09,REL-5V,5V Relay Module,Relays,17,0.90,5.22,88.74,15.30,73.44,Kai,Tourism/Hospitality,Debit Card,889
+HI082-TX-0066,HI082,Kakaako,Oahu,HI,2026-06-30 10:25:15,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.33,13.71,13.71,4.33,9.38,Kaleo,Marine,ACH,567
+HI082-TX-0067,HI082,Kakaako,Oahu,HI,2026-06-30 08:37:00,SNS-SOIL,Soil Moisture Sensor,Sensors,25,0.95,4.28,107.00,23.75,83.25,Noelani,Commercial,Debit Card,247
+HI082-TX-0068,HI082,Kakaako,Oahu,HI,2026-06-30 17:26:11,TR-3904,2N3904 NPN Transistor,Semiconductors,12,0.05,0.23,2.76,0.60,2.16,Keahi,Retail,ACH,88
+HI082-TX-0069,HI082,Kakaako,Oahu,HI,2026-06-30 08:14:00,IC-REG,7805 Voltage Regulator,Integrated Circuits,35,0.21,0.88,30.80,7.35,23.45,Keahi,Retail,Cash,259
+HI082-TX-0070,HI082,Kakaako,Oahu,HI,2026-06-30 08:37:36,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.63,6.25,6.25,1.63,4.62,Pualani,Government,ACH,598
+HI082-TX-0071,HI082,Kakaako,Oahu,HI,2026-06-30 14:12:03,IC-358,LM358 Op Amp,Integrated Circuits,13,0.31,1.25,16.25,4.03,12.22,Mika,Tourism/Hospitality,Debit Card,635
+HI082-TX-0072,HI082,Kakaako,Oahu,HI,2026-06-30 10:25:39,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.45,21.45,85.80,33.80,52.00,Koa,Maker/Hobbyist,Cash,357
+HI082-TX-0073,HI082,Kakaako,Oahu,HI,2026-06-30 11:55:26,RES-001,1k Ohm Resistor,Resistors,34,0.03,0.13,4.42,1.02,3.40,Makana,Tourism/Hospitality,Debit Card,216
+HI082-TX-0074,HI082,Kakaako,Oahu,HI,2026-06-30 17:50:47,USB-CBO,USB-C Breakout Board,Connectors,13,1.46,5.59,72.67,18.98,53.69,Ikaika,Marine,Cash,643
+HI082-TX-0075,HI082,Kakaako,Oahu,HI,2026-06-30 11:27:15,RES-010,10k Ohm Resistor,Resistors,23,0.03,0.13,2.99,0.69,2.30,Ailani,Retail,Cash,231
+HI082-TX-0076,HI082,Kakaako,Oahu,HI,2026-06-30 12:11:29,SOL-CTRL,Solar Charge Controller,Solar Power,5,11.26,34.47,172.35,56.30,116.05,Alika,Maker/Hobbyist,ACH,284
+HI082-TX-0077,HI082,Kakaako,Oahu,HI,2026-06-30 14:53:19,LED-RED,5mm Red LED,LEDs,12,0.06,0.27,3.24,0.72,2.52,Kaleo,Government,Cash,590
+HI082-TX-0078,HI082,Kakaako,Oahu,HI,2026-06-30 15:23:52,PWR-5V2,5V 2A Power Supply,Power,3,3.83,10.28,30.84,11.49,19.35,Nalu,Maker/Hobbyist,Credit Card,90
+HI082-TX-0079,HI082,Kakaako,Oahu,HI,2026-06-30 15:37:36,USB-CBO,USB-C Breakout Board,Connectors,3,1.43,5.12,15.36,4.29,11.07,Kai,Government,Mobile Pay,781
+HI082-TX-0080,HI082,Kakaako,Oahu,HI,2026-06-30 15:35:31,TOOL-WIRE,Wire Stripper,Tools,2,5.31,14.73,29.46,10.62,18.84,Keanu,Retail,Purchase Order,552
+HI082-TX-0081,HI082,Kakaako,Oahu,HI,2026-06-30 17:15:07,SNS-SOIL,Soil Moisture Sensor,Sensors,16,0.95,4.42,70.72,15.20,55.52,Hana,Tourism/Hospitality,Cash,464
+HI082-TX-0082,HI082,Kakaako,Oahu,HI,2026-06-30 16:10:53,SNS-SOIL,Soil Moisture Sensor,Sensors,24,0.96,4.25,102.00,23.04,78.96,Akamu,Government,Debit Card,352
+HI082-TX-0083,HI082,Kakaako,Oahu,HI,2026-06-30 16:41:34,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.54,21.78,108.90,42.70,66.20,Pualani,Retail,Debit Card,442
+HI082-TX-0084,HI082,Kakaako,Oahu,HI,2026-06-30 08:14:10,MOS-44N,IRFZ44N MOSFET,Semiconductors,40,0.65,2.39,95.60,26.00,69.60,Malia,Tourism/Hospitality,Purchase Order,27
+HI082-TX-0085,HI082,Kakaako,Oahu,HI,2026-06-30 16:15:59,BAT-AAH,AA Battery Holder,Batteries,16,0.53,2.79,44.64,8.48,36.16,Makana,Retail,Credit Card,91
+HI082-TX-0086,HI082,Kakaako,Oahu,HI,2026-06-30 17:12:38,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.67,20.42,142.94,60.69,82.25,Noelani,Retail,ACH,376
+HI082-TX-0087,HI082,Kakaako,Oahu,HI,2026-06-30 17:28:10,IC-REG,7805 Voltage Regulator,Integrated Circuits,30,0.19,0.90,27.00,5.70,21.30,Nalu,Retail,Credit Card,323
+HI082-TX-0088,HI082,Kakaako,Oahu,HI,2026-06-30 16:27:34,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.50,6.45,45.15,10.50,34.65,Makana,Education,Credit Card,594
+HI082-TX-0089,HI082,Kakaako,Oahu,HI,2026-06-30 12:25:56,USB-CBO,USB-C Breakout Board,Connectors,10,1.36,5.24,52.40,13.60,38.80,Akamu,Commercial,Mobile Pay,800
+HI082-TX-0090,HI082,Kakaako,Oahu,HI,2026-06-30 17:18:27,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.23,22.88,137.28,49.38,87.90,Kaleo,Tourism/Hospitality,Debit Card,606
+HI082-TX-0091,HI082,Kakaako,Oahu,HI,2026-06-30 08:00:07,IC-555,NE555 Timer IC,Integrated Circuits,40,0.35,1.41,56.40,14.00,42.40,Ailani,Retail,Credit Card,620
+HI082-TX-0092,HI082,Kakaako,Oahu,HI,2026-06-30 13:01:31,RES-001,1k Ohm Resistor,Resistors,12,0.03,0.14,1.68,0.36,1.32,Mika,Marine,Credit Card,333
+HI082-TX-0093,HI082,Kakaako,Oahu,HI,2026-06-30 13:19:03,SNS-ULT,Ultrasonic Distance Sensor,Sensors,31,1.27,5.17,160.27,39.37,120.90,Hana,Commercial,ACH,734
+HI082-TX-0094,HI082,Kakaako,Oahu,HI,2026-06-30 10:42:52,SNS-PIR,PIR Motion Sensor,Sensors,6,1.64,5.85,35.10,9.84,25.26,Pualani,Tourism/Hospitality,Credit Card,89
+HI082-TX-0095,HI082,Kakaako,Oahu,HI,2026-06-30 14:35:22,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.48,14.47,28.94,8.96,19.98,Keahi,Retail,Purchase Order,129

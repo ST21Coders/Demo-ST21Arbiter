@@ -1,0 +1,78 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI015-TX-0001,HI015,Makakilo,Oahu,HI,2026-06-30 15:07:36,LED-BLU,5mm Blue LED,LEDs,14,0.07,0.31,4.34,0.98,3.36,Akamu,Retail,Mobile Pay,0
+HI015-TX-0002,HI015,Makakilo,Oahu,HI,2026-06-30 09:59:50,IC-358,LM358 Op Amp,Integrated Circuits,38,0.29,1.25,47.50,11.02,36.48,Ikaika,Commercial,Cash,298
+HI015-TX-0003,HI015,Makakilo,Oahu,HI,2026-06-30 17:55:02,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.21,32.07,256.56,89.68,166.88,Lani,Tourism/Hospitality,Mobile Pay,713
+HI015-TX-0004,HI015,Makakilo,Oahu,HI,2026-06-30 13:24:44,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,7.85,21.10,105.50,39.25,66.25,Pualani,Education,Mobile Pay,682
+HI015-TX-0005,HI015,Makakilo,Oahu,HI,2026-06-30 08:30:44,MOS-44N,IRFZ44N MOSFET,Semiconductors,7,0.58,2.50,17.50,4.06,13.44,Keanu,Education,Cash,139
+HI015-TX-0006,HI015,Makakilo,Oahu,HI,2026-06-30 09:32:32,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,3,0.04,0.20,0.60,0.12,0.48,Nalu,Education,Debit Card,604
+HI015-TX-0007,HI015,Makakilo,Oahu,HI,2026-06-30 17:59:21,MAR-ANT,Marine Antenna Connector,Marine Electronics,5,3.89,14.09,70.45,19.45,51.00,Lani,Government,Purchase Order,268
+HI015-TX-0008,HI015,Makakilo,Oahu,HI,2026-06-30 17:27:39,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.66,21.64,64.92,25.98,38.94,Noelani,Marine,Mobile Pay,238
+HI015-TX-0009,HI015,Makakilo,Oahu,HI,2026-06-30 09:54:13,CON-JMP,Jumper Wire Set,Connectors,13,0.98,3.84,49.92,12.74,37.18,Iolana,Marine,ACH,818
+HI015-TX-0010,HI015,Makakilo,Oahu,HI,2026-06-30 11:54:09,SNS-SOIL,Soil Moisture Sensor,Sensors,3,0.95,4.29,12.87,2.85,10.02,Ailani,Maker/Hobbyist,Cash,359
+HI015-TX-0011,HI015,Makakilo,Oahu,HI,2026-06-30 10:21:53,SNS-SOIL,Soil Moisture Sensor,Sensors,21,0.91,4.42,92.82,19.11,73.71,Koa,Government,ACH,416
+HI015-TX-0012,HI015,Makakilo,Oahu,HI,2026-06-30 16:03:08,SNS-DHT,DHT22 Temperature Sensor,Sensors,5,2.58,7.24,36.20,12.90,23.30,Hana,Education,ACH,537
+HI015-TX-0013,HI015,Makakilo,Oahu,HI,2026-06-30 16:14:26,RES-010,10k Ohm Resistor,Resistors,33,0.03,0.14,4.62,0.99,3.63,Noah,Commercial,ACH,97
+HI015-TX-0014,HI015,Makakilo,Oahu,HI,2026-06-30 13:04:22,CON-JMP,Jumper Wire Set,Connectors,17,0.89,3.88,65.96,15.13,50.83,Noelani,Government,Mobile Pay,303
+HI015-TX-0015,HI015,Makakilo,Oahu,HI,2026-06-30 11:05:11,TOOL-DMM,Digital Multimeter,Tools,1,9.22,28.58,28.58,9.22,19.36,Iolana,Government,Credit Card,95
+HI015-TX-0016,HI015,Makakilo,Oahu,HI,2026-06-30 15:31:48,IC-555,NE555 Timer IC,Integrated Circuits,34,0.34,1.40,47.60,11.56,36.04,Hana,Commercial,Credit Card,623
+HI015-TX-0017,HI015,Makakilo,Oahu,HI,2026-06-30 12:31:10,MOS-44N,IRFZ44N MOSFET,Semiconductors,35,0.57,2.43,85.05,19.95,65.10,Nalu,Retail,Purchase Order,157
+HI015-TX-0018,HI015,Makakilo,Oahu,HI,2026-06-30 10:09:59,TOOL-WIRE,Wire Stripper,Tools,4,5.22,15.69,62.76,20.88,41.88,Ikaika,Marine,Mobile Pay,443
+HI015-TX-0019,HI015,Makakilo,Oahu,HI,2026-06-30 14:19:21,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,15,0.04,0.20,3.00,0.60,2.40,Akamu,Education,Credit Card,558
+HI015-TX-0020,HI015,Makakilo,Oahu,HI,2026-06-30 09:11:07,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.41,9.05,36.20,13.64,22.56,Keahi,Maker/Hobbyist,Debit Card,379
+HI015-TX-0021,HI015,Makakilo,Oahu,HI,2026-06-30 08:12:45,PWR-5V2,5V 2A Power Supply,Power,4,3.48,10.88,43.52,13.92,29.60,Ailani,Marine,Cash,308
+HI015-TX-0022,HI015,Makakilo,Oahu,HI,2026-06-30 14:12:37,IC-555,NE555 Timer IC,Integrated Circuits,23,0.37,1.37,31.51,8.51,23.00,Alika,Tourism/Hospitality,Credit Card,790
+HI015-TX-0023,HI015,Makakilo,Oahu,HI,2026-06-30 11:40:55,BAT-AAH,AA Battery Holder,Batteries,26,0.47,2.74,71.24,12.22,59.02,Malia,Tourism/Hospitality,ACH,633
+HI015-TX-0024,HI015,Makakilo,Oahu,HI,2026-06-30 09:02:56,PWR-12V,12V 5A Power Supply,Power,7,9.17,26.62,186.34,64.19,122.15,Nalu,Maker/Hobbyist,Cash,316
+HI015-TX-0025,HI015,Makakilo,Oahu,HI,2026-06-30 08:19:07,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.61,7.91,55.37,18.27,37.10,Makana,Education,Debit Card,493
+HI015-TX-0026,HI015,Makakilo,Oahu,HI,2026-06-30 13:28:30,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.51,14.85,103.95,31.57,72.38,Mika,Education,Cash,742
+HI015-TX-0027,HI015,Makakilo,Oahu,HI,2026-06-30 16:55:42,TOOL-WIRE,Wire Stripper,Tools,4,4.84,14.90,59.60,19.36,40.24,Nalu,Retail,Cash,388
+HI015-TX-0028,HI015,Makakilo,Oahu,HI,2026-06-30 11:06:41,CON-JMP,Jumper Wire Set,Connectors,32,0.91,3.88,124.16,29.12,95.04,Ikaika,Government,Cash,274
+HI015-TX-0029,HI015,Makakilo,Oahu,HI,2026-06-30 08:04:11,MOS-44N,IRFZ44N MOSFET,Semiconductors,20,0.57,2.34,46.80,11.40,35.40,Keanu,Government,Debit Card,866
+HI015-TX-0030,HI015,Makakilo,Oahu,HI,2026-06-30 14:46:10,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,31,0.04,0.20,6.20,1.24,4.96,Kai,Retail,Cash,394
+HI015-TX-0031,HI015,Makakilo,Oahu,HI,2026-06-30 18:00:55,LED-RED,5mm Red LED,LEDs,33,0.06,0.28,9.24,1.98,7.26,Hana,Marine,Debit Card,312
+HI015-TX-0032,HI015,Makakilo,Oahu,HI,2026-06-30 11:57:03,USB-CBO,USB-C Breakout Board,Connectors,30,1.37,5.74,172.20,41.10,131.10,Ailani,Maker/Hobbyist,ACH,338
+HI015-TX-0033,HI015,Makakilo,Oahu,HI,2026-06-30 10:28:45,TOOL-SOL,Soldering Iron Tips,Tools,3,1.92,7.25,21.75,5.76,15.99,Koa,Maker/Hobbyist,Debit Card,737
+HI015-TX-0034,HI015,Makakilo,Oahu,HI,2026-06-30 12:01:43,PWR-BUCK,Buck Converter Module,Power,31,1.10,5.18,160.58,34.10,126.48,Ailani,Retail,Cash,32
+HI015-TX-0035,HI015,Makakilo,Oahu,HI,2026-06-30 14:02:22,LED-RED,5mm Red LED,LEDs,6,0.06,0.28,1.68,0.36,1.32,Leilani,Maker/Hobbyist,Debit Card,512
+HI015-TX-0036,HI015,Makakilo,Oahu,HI,2026-06-30 14:05:38,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.04,8.45,42.25,15.20,27.05,Hana,Marine,Debit Card,562
+HI015-TX-0037,HI015,Makakilo,Oahu,HI,2026-06-30 12:19:22,SNS-PIR,PIR Motion Sensor,Sensors,4,1.47,5.80,23.20,5.88,17.32,Iolana,Education,ACH,703
+HI015-TX-0038,HI015,Makakilo,Oahu,HI,2026-06-30 17:42:01,MOS-44N,IRFZ44N MOSFET,Semiconductors,21,0.64,2.35,49.35,13.44,35.91,Hana,Marine,Debit Card,25
+HI015-TX-0039,HI015,Makakilo,Oahu,HI,2026-06-30 17:53:54,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.17,13.53,40.59,12.51,28.08,Mika,Maker/Hobbyist,Mobile Pay,894
+HI015-TX-0040,HI015,Makakilo,Oahu,HI,2026-06-30 12:06:07,IC-REG,7805 Voltage Regulator,Integrated Circuits,14,0.19,0.91,12.74,2.66,10.08,Iolana,Marine,Cash,694
+HI015-TX-0041,HI015,Makakilo,Oahu,HI,2026-06-30 12:43:42,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.10,8.21,49.26,18.60,30.66,Ailani,Marine,Cash,346
+HI015-TX-0042,HI015,Makakilo,Oahu,HI,2026-06-30 13:45:02,TOOL-WIRE,Wire Stripper,Tools,3,4.72,16.10,48.30,14.16,34.14,Malia,Maker/Hobbyist,Purchase Order,128
+HI015-TX-0043,HI015,Makakilo,Oahu,HI,2026-06-30 10:05:26,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.13,22.85,91.40,32.52,58.88,Malia,Retail,ACH,52
+HI015-TX-0044,HI015,Makakilo,Oahu,HI,2026-06-30 17:33:01,IC-555,NE555 Timer IC,Integrated Circuits,31,0.37,1.43,44.33,11.47,32.86,Pualani,Tourism/Hospitality,Debit Card,60
+HI015-TX-0045,HI015,Makakilo,Oahu,HI,2026-06-30 16:44:55,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.44,8.72,34.88,13.76,21.12,Makana,Maker/Hobbyist,Debit Card,223
+HI015-TX-0046,HI015,Makakilo,Oahu,HI,2026-06-30 15:49:05,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.38,9.16,64.12,23.66,40.46,Keahi,Education,Credit Card,209
+HI015-TX-0047,HI015,Makakilo,Oahu,HI,2026-06-30 17:28:43,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.37,13.43,80.58,26.22,54.36,Noah,Tourism/Hospitality,ACH,834
+HI015-TX-0048,HI015,Makakilo,Oahu,HI,2026-06-30 09:56:54,IC-358,LM358 Op Amp,Integrated Circuits,31,0.30,1.21,37.51,9.30,28.21,Ailani,Retail,Credit Card,109
+HI015-TX-0049,HI015,Makakilo,Oahu,HI,2026-06-30 13:06:18,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,3.81,13.91,83.46,22.86,60.60,Kaleo,Commercial,ACH,729
+HI015-TX-0050,HI015,Makakilo,Oahu,HI,2026-06-30 10:43:20,PWR-12V,12V 5A Power Supply,Power,7,9.85,26.13,182.91,68.95,113.96,Keahi,Tourism/Hospitality,Cash,333
+HI015-TX-0051,HI015,Makakilo,Oahu,HI,2026-06-30 10:15:15,IC-358,LM358 Op Amp,Integrated Circuits,25,0.31,1.23,30.75,7.75,23.00,Lani,Commercial,Debit Card,42
+HI015-TX-0052,HI015,Makakilo,Oahu,HI,2026-06-30 17:37:24,CON-JMP,Jumper Wire Set,Connectors,37,0.93,3.89,143.93,34.41,109.52,Kaleo,Retail,Mobile Pay,121
+HI015-TX-0053,HI015,Makakilo,Oahu,HI,2026-06-30 14:56:06,LED-RED,5mm Red LED,LEDs,17,0.06,0.27,4.59,1.02,3.57,Keanu,Tourism/Hospitality,Credit Card,640
+HI015-TX-0054,HI015,Makakilo,Oahu,HI,2026-06-30 11:14:55,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.43,7.98,55.86,17.01,38.85,Kai,Marine,Mobile Pay,282
+HI015-TX-0055,HI015,Makakilo,Oahu,HI,2026-06-30 13:30:08,IC-REG,7805 Voltage Regulator,Integrated Circuits,9,0.19,0.93,8.37,1.71,6.66,Malia,Maker/Hobbyist,Debit Card,867
+HI015-TX-0056,HI015,Makakilo,Oahu,HI,2026-06-30 09:01:19,IC-555,NE555 Timer IC,Integrated Circuits,36,0.37,1.41,50.76,13.32,37.44,Kai,Maker/Hobbyist,Mobile Pay,667
+HI015-TX-0057,HI015,Makakilo,Oahu,HI,2026-06-30 08:15:01,USB-CBO,USB-C Breakout Board,Connectors,10,1.29,5.52,55.20,12.90,42.30,Malia,Government,Cash,557
+HI015-TX-0058,HI015,Makakilo,Oahu,HI,2026-06-30 15:16:33,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.41,8.78,61.46,23.87,37.59,Keahi,Commercial,Purchase Order,84
+HI015-TX-0059,HI015,Makakilo,Oahu,HI,2026-06-30 17:25:17,IC-358,LM358 Op Amp,Integrated Circuits,9,0.33,1.26,11.34,2.97,8.37,Ailani,Maker/Hobbyist,Purchase Order,480
+HI015-TX-0060,HI015,Makakilo,Oahu,HI,2026-06-30 10:09:26,USB-CBO,USB-C Breakout Board,Connectors,5,1.42,5.64,28.20,7.10,21.10,Keahi,Government,Debit Card,761
+HI015-TX-0061,HI015,Makakilo,Oahu,HI,2026-06-30 13:00:40,USB-CBO,USB-C Breakout Board,Connectors,25,1.37,5.51,137.75,34.25,103.50,Iolana,Maker/Hobbyist,Credit Card,598
+HI015-TX-0062,HI015,Makakilo,Oahu,HI,2026-06-30 14:12:34,MOS-44N,IRFZ44N MOSFET,Semiconductors,16,0.64,2.55,40.80,10.24,30.56,Ikaika,Government,Credit Card,807
+HI015-TX-0063,HI015,Makakilo,Oahu,HI,2026-06-30 10:23:54,SNS-SOIL,Soil Moisture Sensor,Sensors,23,0.91,4.38,100.74,20.93,79.81,Keahi,Retail,Purchase Order,359
+HI015-TX-0064,HI015,Makakilo,Oahu,HI,2026-06-30 17:24:29,RES-220,220 Ohm Resistor,Resistors,26,0.03,0.13,3.38,0.78,2.60,Alika,Education,Purchase Order,388
+HI015-TX-0065,HI015,Makakilo,Oahu,HI,2026-06-30 14:49:39,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.38,15.58,93.48,32.28,61.20,Keanu,Maker/Hobbyist,Purchase Order,724
+HI015-TX-0066,HI015,Makakilo,Oahu,HI,2026-06-30 17:54:18,TR-3904,2N3904 NPN Transistor,Semiconductors,39,0.05,0.24,9.36,1.95,7.41,Nalu,Tourism/Hospitality,Purchase Order,575
+HI015-TX-0067,HI015,Makakilo,Oahu,HI,2026-06-30 13:25:25,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.47,12.44,37.32,13.41,23.91,Ikaika,Commercial,ACH,462
+HI015-TX-0068,HI015,Makakilo,Oahu,HI,2026-06-30 16:52:11,BAT-AAH,AA Battery Holder,Batteries,34,0.48,2.55,86.70,16.32,70.38,Ailani,Maker/Hobbyist,Mobile Pay,233
+HI015-TX-0069,HI015,Makakilo,Oahu,HI,2026-06-30 08:57:13,IC-REG,7805 Voltage Regulator,Integrated Circuits,23,0.19,0.96,22.08,4.37,17.71,Noelani,Maker/Hobbyist,Debit Card,692
+HI015-TX-0070,HI015,Makakilo,Oahu,HI,2026-06-30 10:49:28,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,9.44,28.13,196.91,66.08,130.83,Keanu,Tourism/Hospitality,Debit Card,23
+HI015-TX-0071,HI015,Makakilo,Oahu,HI,2026-06-30 13:28:57,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,8.55,28.34,198.38,59.85,138.53,Malia,Marine,Purchase Order,495
+HI015-TX-0072,HI015,Makakilo,Oahu,HI,2026-06-30 10:58:19,IC-358,LM358 Op Amp,Integrated Circuits,2,0.32,1.12,2.24,0.64,1.60,Lani,Commercial,Purchase Order,34
+HI015-TX-0073,HI015,Makakilo,Oahu,HI,2026-06-30 10:21:27,BAT-AAH,AA Battery Holder,Batteries,17,0.47,2.60,44.20,7.99,36.21,Nalu,Commercial,Purchase Order,175
+HI015-TX-0074,HI015,Makakilo,Oahu,HI,2026-06-30 17:19:51,MOS-44N,IRFZ44N MOSFET,Semiconductors,39,0.62,2.43,94.77,24.18,70.59,Malia,Tourism/Hospitality,Purchase Order,799
+HI015-TX-0075,HI015,Makakilo,Oahu,HI,2026-06-30 09:21:38,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,28,0.04,0.20,5.60,1.12,4.48,Noah,Marine,Credit Card,332
+HI015-TX-0076,HI015,Makakilo,Oahu,HI,2026-06-30 16:59:44,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.46,6.73,20.19,4.38,15.81,Malia,Commercial,Cash,161
+HI015-TX-0077,HI015,Makakilo,Oahu,HI,2026-06-30 14:03:26,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.18,13.16,13.16,4.18,8.98,Noah,Commercial,Debit Card,800

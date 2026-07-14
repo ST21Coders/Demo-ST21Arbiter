@@ -1,0 +1,57 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI024-TX-0001,HI024,Schofield,Oahu,HI,2026-06-30 12:59:33,IC-REG,7805 Voltage Regulator,Integrated Circuits,21,0.21,0.87,18.27,4.41,13.86,Mika,Tourism/Hospitality,Cash,227
+HI024-TX-0002,HI024,Schofield,Oahu,HI,2026-06-30 14:19:12,CAP-100,100uF Capacitor,Capacitors,5,0.16,0.60,3.00,0.80,2.20,Kaleo,Commercial,Credit Card,358
+HI024-TX-0003,HI024,Schofield,Oahu,HI,2026-06-30 12:44:15,TOOL-WIRE,Wire Stripper,Tools,4,4.70,15.08,60.32,18.80,41.52,Kaleo,Commercial,Purchase Order,594
+HI024-TX-0004,HI024,Schofield,Oahu,HI,2026-06-30 14:09:15,BAT-LIPO,LiPo Battery Pack,Batteries,8,5.25,17.11,136.88,42.00,94.88,Noelani,Education,Mobile Pay,703
+HI024-TX-0005,HI024,Schofield,Oahu,HI,2026-06-30 13:40:53,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.17,13.61,54.44,16.68,37.76,Kaleo,Commercial,Mobile Pay,267
+HI024-TX-0006,HI024,Schofield,Oahu,HI,2026-06-30 09:22:56,SNS-SOIL,Soil Moisture Sensor,Sensors,37,0.98,4.49,166.13,36.26,129.87,Iolana,Tourism/Hospitality,Debit Card,783
+HI024-TX-0007,HI024,Schofield,Oahu,HI,2026-06-30 10:09:03,TR-3904,2N3904 NPN Transistor,Semiconductors,22,0.06,0.25,5.50,1.32,4.18,Koa,Tourism/Hospitality,Mobile Pay,178
+HI024-TX-0008,HI024,Schofield,Oahu,HI,2026-06-30 17:52:26,CAP-100,100uF Capacitor,Capacitors,30,0.17,0.57,17.10,5.10,12.00,Makana,Education,Purchase Order,779
+HI024-TX-0009,HI024,Schofield,Oahu,HI,2026-06-30 15:31:27,BAT-AAH,AA Battery Holder,Batteries,28,0.49,2.57,71.96,13.72,58.24,Malia,Tourism/Hospitality,Mobile Pay,165
+HI024-TX-0010,HI024,Schofield,Oahu,HI,2026-06-30 12:07:11,SNS-SOIL,Soil Moisture Sensor,Sensors,3,0.96,4.59,13.77,2.88,10.89,Hana,Education,Debit Card,551
+HI024-TX-0011,HI024,Schofield,Oahu,HI,2026-06-30 11:28:31,CON-JMP,Jumper Wire Set,Connectors,12,0.94,3.87,46.44,11.28,35.16,Kai,Education,Cash,608
+HI024-TX-0012,HI024,Schofield,Oahu,HI,2026-06-30 08:29:18,PWR-12V,12V 5A Power Supply,Power,8,9.94,25.82,206.56,79.52,127.04,Lani,Commercial,Cash,52
+HI024-TX-0013,HI024,Schofield,Oahu,HI,2026-06-30 09:49:35,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.08,13.44,107.52,32.64,74.88,Ikaika,Marine,Purchase Order,614
+HI024-TX-0014,HI024,Schofield,Oahu,HI,2026-06-30 16:41:30,BRD-830,Breadboard 830 Tie Points,Connectors,6,1.55,6.32,37.92,9.30,28.62,Hana,Tourism/Hospitality,Debit Card,11
+HI024-TX-0015,HI024,Schofield,Oahu,HI,2026-06-30 15:07:52,RES-001,1k Ohm Resistor,Resistors,21,0.03,0.14,2.94,0.63,2.31,Kai,Marine,ACH,801
+HI024-TX-0016,HI024,Schofield,Oahu,HI,2026-06-30 12:56:57,PWR-12V,12V 5A Power Supply,Power,8,9.89,24.41,195.28,79.12,116.16,Noah,Maker/Hobbyist,Credit Card,663
+HI024-TX-0017,HI024,Schofield,Oahu,HI,2026-06-30 17:00:58,TOOL-WIRE,Wire Stripper,Tools,7,4.82,14.69,102.83,33.74,69.09,Kai,Retail,Purchase Order,37
+HI024-TX-0018,HI024,Schofield,Oahu,HI,2026-06-30 14:56:15,SOL-CTRL,Solar Charge Controller,Solar Power,7,11.40,32.16,225.12,79.80,145.32,Mika,Retail,Credit Card,597
+HI024-TX-0019,HI024,Schofield,Oahu,HI,2026-06-30 11:44:03,REL-5V,5V Relay Module,Relays,37,0.99,5.32,196.84,36.63,160.21,Noelani,Education,Cash,631
+HI024-TX-0020,HI024,Schofield,Oahu,HI,2026-06-30 12:55:09,PWR-BUCK,Buck Converter Module,Power,27,1.10,5.04,136.08,29.70,106.38,Hana,Marine,Cash,176
+HI024-TX-0021,HI024,Schofield,Oahu,HI,2026-06-30 09:44:20,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.50,6.71,33.55,7.50,26.05,Mika,Maker/Hobbyist,Debit Card,360
+HI024-TX-0022,HI024,Schofield,Oahu,HI,2026-06-30 11:14:59,CAP-010,10uF Capacitor,Capacitors,19,0.09,0.38,7.22,1.71,5.51,Lani,Retail,Purchase Order,539
+HI024-TX-0023,HI024,Schofield,Oahu,HI,2026-06-30 14:42:11,BRD-830,Breadboard 830 Tie Points,Connectors,6,1.58,6.73,40.38,9.48,30.90,Koa,Commercial,Mobile Pay,160
+HI024-TX-0024,HI024,Schofield,Oahu,HI,2026-06-30 12:29:58,TR-3904,2N3904 NPN Transistor,Semiconductors,39,0.05,0.23,8.97,1.95,7.02,Nalu,Marine,Debit Card,232
+HI024-TX-0025,HI024,Schofield,Oahu,HI,2026-06-30 08:04:17,REL-5V,5V Relay Module,Relays,31,0.96,5.16,159.96,29.76,130.20,Makana,Tourism/Hospitality,Debit Card,754
+HI024-TX-0026,HI024,Schofield,Oahu,HI,2026-06-30 14:45:21,LED-BLU,5mm Blue LED,LEDs,1,0.07,0.34,0.34,0.07,0.27,Ikaika,Tourism/Hospitality,ACH,605
+HI024-TX-0027,HI024,Schofield,Oahu,HI,2026-06-30 08:22:42,MOS-44N,IRFZ44N MOSFET,Semiconductors,12,0.62,2.30,27.60,7.44,20.16,Alika,Maker/Hobbyist,Cash,89
+HI024-TX-0028,HI024,Schofield,Oahu,HI,2026-06-30 16:05:39,PWR-BUCK,Buck Converter Module,Power,29,1.08,4.71,136.59,31.32,105.27,Hana,Marine,Credit Card,119
+HI024-TX-0029,HI024,Schofield,Oahu,HI,2026-06-30 15:51:51,IC-REG,7805 Voltage Regulator,Integrated Circuits,38,0.19,0.98,37.24,7.22,30.02,Alika,Retail,Debit Card,704
+HI024-TX-0030,HI024,Schofield,Oahu,HI,2026-06-30 12:46:14,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.45,6.37,44.59,10.15,34.44,Ikaika,Education,Credit Card,311
+HI024-TX-0031,HI024,Schofield,Oahu,HI,2026-06-30 12:58:45,RES-001,1k Ohm Resistor,Resistors,11,0.03,0.13,1.43,0.33,1.10,Kai,Commercial,Purchase Order,828
+HI024-TX-0032,HI024,Schofield,Oahu,HI,2026-06-30 11:09:35,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,35,0.04,0.19,6.65,1.40,5.25,Kai,Education,Purchase Order,244
+HI024-TX-0033,HI024,Schofield,Oahu,HI,2026-06-30 08:47:51,IC-555,NE555 Timer IC,Integrated Circuits,11,0.33,1.44,15.84,3.63,12.21,Lani,Retail,Credit Card,332
+HI024-TX-0034,HI024,Schofield,Oahu,HI,2026-06-30 15:39:10,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.46,6.21,6.21,1.46,4.75,Kai,Maker/Hobbyist,Debit Card,669
+HI024-TX-0035,HI024,Schofield,Oahu,HI,2026-06-30 13:43:04,IC-555,NE555 Timer IC,Integrated Circuits,24,0.37,1.36,32.64,8.88,23.76,Malia,Retail,Cash,268
+HI024-TX-0036,HI024,Schofield,Oahu,HI,2026-06-30 11:03:48,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.60,13.27,26.54,9.20,17.34,Keahi,Commercial,Debit Card,79
+HI024-TX-0037,HI024,Schofield,Oahu,HI,2026-06-30 10:27:16,USB-CBO,USB-C Breakout Board,Connectors,1,1.32,5.37,5.37,1.32,4.05,Koa,Commercial,Purchase Order,20
+HI024-TX-0038,HI024,Schofield,Oahu,HI,2026-06-30 10:07:39,PWR-5V2,5V 2A Power Supply,Power,4,3.41,11.03,44.12,13.64,30.48,Noah,Education,Cash,43
+HI024-TX-0039,HI024,Schofield,Oahu,HI,2026-06-30 16:24:31,LED-BLU,5mm Blue LED,LEDs,32,0.07,0.32,10.24,2.24,8.00,Noelani,Commercial,Debit Card,434
+HI024-TX-0040,HI024,Schofield,Oahu,HI,2026-06-30 14:02:20,USB-CBO,USB-C Breakout Board,Connectors,35,1.42,5.29,185.15,49.70,135.45,Koa,Government,ACH,811
+HI024-TX-0041,HI024,Schofield,Oahu,HI,2026-06-30 17:42:43,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.48,8.83,17.66,6.96,10.70,Akamu,Education,ACH,492
+HI024-TX-0042,HI024,Schofield,Oahu,HI,2026-06-30 14:38:49,USB-CBO,USB-C Breakout Board,Connectors,25,1.34,5.15,128.75,33.50,95.25,Noah,Government,Cash,321
+HI024-TX-0043,HI024,Schofield,Oahu,HI,2026-06-30 14:55:24,IC-555,NE555 Timer IC,Integrated Circuits,38,0.35,1.44,54.72,13.30,41.42,Alika,Commercial,Credit Card,334
+HI024-TX-0044,HI024,Schofield,Oahu,HI,2026-06-30 10:23:14,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.63,7.52,60.16,21.04,39.12,Mika,Maker/Hobbyist,Purchase Order,747
+HI024-TX-0045,HI024,Schofield,Oahu,HI,2026-06-30 17:37:44,RES-220,220 Ohm Resistor,Resistors,24,0.03,0.14,3.36,0.72,2.64,Kaleo,Tourism/Hospitality,Cash,42
+HI024-TX-0046,HI024,Schofield,Oahu,HI,2026-06-30 14:47:41,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,25,0.05,0.19,4.75,1.25,3.50,Alika,Government,Debit Card,113
+HI024-TX-0047,HI024,Schofield,Oahu,HI,2026-06-30 12:47:24,IC-555,NE555 Timer IC,Integrated Circuits,6,0.38,1.29,7.74,2.28,5.46,Nalu,Maker/Hobbyist,ACH,116
+HI024-TX-0048,HI024,Schofield,Oahu,HI,2026-06-30 14:19:57,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.33,13.45,53.80,17.32,36.48,Alika,Retail,Purchase Order,48
+HI024-TX-0049,HI024,Schofield,Oahu,HI,2026-06-30 11:57:37,IC-555,NE555 Timer IC,Integrated Circuits,3,0.35,1.36,4.08,1.05,3.03,Hana,Maker/Hobbyist,Cash,640
+HI024-TX-0050,HI024,Schofield,Oahu,HI,2026-06-30 08:20:44,BAT-LIPO,LiPo Battery Pack,Batteries,4,5.31,15.72,62.88,21.24,41.64,Ailani,Tourism/Hospitality,Purchase Order,298
+HI024-TX-0051,HI024,Schofield,Oahu,HI,2026-06-30 14:49:54,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.62,13.85,55.40,14.48,40.92,Mika,Tourism/Hospitality,Mobile Pay,495
+HI024-TX-0052,HI024,Schofield,Oahu,HI,2026-06-30 12:32:52,PWR-12V,12V 5A Power Supply,Power,2,9.02,26.17,52.34,18.04,34.30,Kai,Maker/Hobbyist,ACH,30
+HI024-TX-0053,HI024,Schofield,Oahu,HI,2026-06-30 11:13:38,TOOL-WIRE,Wire Stripper,Tools,4,4.94,15.75,63.00,19.76,43.24,Mika,Tourism/Hospitality,Mobile Pay,879
+HI024-TX-0054,HI024,Schofield,Oahu,HI,2026-06-30 17:01:46,IC-REG,7805 Voltage Regulator,Integrated Circuits,11,0.21,0.87,9.57,2.31,7.26,Keahi,Marine,Cash,195
+HI024-TX-0055,HI024,Schofield,Oahu,HI,2026-06-30 13:53:24,MOS-44N,IRFZ44N MOSFET,Semiconductors,29,0.58,2.43,70.47,16.82,53.65,Koa,Tourism/Hospitality,Purchase Order,784
+HI024-TX-0056,HI024,Schofield,Oahu,HI,2026-06-30 15:41:02,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.93,14.91,89.46,29.58,59.88,Koa,Education,Cash,762

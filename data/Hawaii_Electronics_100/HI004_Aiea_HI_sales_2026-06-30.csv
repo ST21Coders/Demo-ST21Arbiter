@@ -1,0 +1,76 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI004-TX-0001,HI004,Aiea,Oahu,HI,2026-06-30 15:33:07,IC-358,LM358 Op Amp,Integrated Circuits,26,0.30,1.19,30.94,7.80,23.14,Leilani,Government,ACH,278
+HI004-TX-0002,HI004,Aiea,Oahu,HI,2026-06-30 08:32:13,CON-JMP,Jumper Wire Set,Connectors,35,0.89,3.56,124.60,31.15,93.45,Ikaika,Commercial,Debit Card,765
+HI004-TX-0003,HI004,Aiea,Oahu,HI,2026-06-30 17:44:13,TOOL-DMM,Digital Multimeter,Tools,8,9.30,25.52,204.16,74.40,129.76,Koa,Education,Mobile Pay,53
+HI004-TX-0004,HI004,Aiea,Oahu,HI,2026-06-30 14:12:05,CON-JMP,Jumper Wire Set,Connectors,9,0.96,3.94,35.46,8.64,26.82,Leilani,Commercial,Purchase Order,889
+HI004-TX-0005,HI004,Aiea,Oahu,HI,2026-06-30 12:19:19,IC-REG,7805 Voltage Regulator,Integrated Circuits,12,0.21,0.95,11.40,2.52,8.88,Alika,Government,Purchase Order,22
+HI004-TX-0006,HI004,Aiea,Oahu,HI,2026-06-30 14:15:44,LED-RED,5mm Red LED,LEDs,13,0.06,0.28,3.64,0.78,2.86,Keanu,Maker/Hobbyist,ACH,97
+HI004-TX-0007,HI004,Aiea,Oahu,HI,2026-06-30 16:34:24,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.58,21.57,129.42,51.48,77.94,Koa,Education,Purchase Order,896
+HI004-TX-0008,HI004,Aiea,Oahu,HI,2026-06-30 14:33:52,SNS-DHT,DHT22 Temperature Sensor,Sensors,6,2.39,7.99,47.94,14.34,33.60,Nalu,Retail,Cash,33
+HI004-TX-0009,HI004,Aiea,Oahu,HI,2026-06-30 09:21:44,CAP-010,10uF Capacitor,Capacitors,31,0.08,0.39,12.09,2.48,9.61,Kai,Commercial,Debit Card,767
+HI004-TX-0010,HI004,Aiea,Oahu,HI,2026-06-30 09:23:25,IC-555,NE555 Timer IC,Integrated Circuits,30,0.33,1.30,39.00,9.90,29.10,Ailani,Commercial,Debit Card,106
+HI004-TX-0011,HI004,Aiea,Oahu,HI,2026-06-30 14:34:02,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.76,14.37,43.11,11.28,31.83,Malia,Marine,Mobile Pay,555
+HI004-TX-0012,HI004,Aiea,Oahu,HI,2026-06-30 11:13:55,CON-JMP,Jumper Wire Set,Connectors,38,0.97,4.02,152.76,36.86,115.90,Ikaika,Government,Cash,85
+HI004-TX-0013,HI004,Aiea,Oahu,HI,2026-06-30 12:51:36,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.45,13.34,93.38,31.15,62.23,Kai,Education,Cash,187
+HI004-TX-0014,HI004,Aiea,Oahu,HI,2026-06-30 12:40:28,CAP-010,10uF Capacitor,Capacitors,14,0.08,0.40,5.60,1.12,4.48,Pualani,Retail,Mobile Pay,103
+HI004-TX-0015,HI004,Aiea,Oahu,HI,2026-06-30 08:21:02,SNS-ULT,Ultrasonic Distance Sensor,Sensors,27,1.32,5.58,150.66,35.64,115.02,Leilani,Commercial,ACH,8
+HI004-TX-0016,HI004,Aiea,Oahu,HI,2026-06-30 09:10:25,IC-358,LM358 Op Amp,Integrated Circuits,10,0.29,1.19,11.90,2.90,9.00,Koa,Marine,Debit Card,5
+HI004-TX-0017,HI004,Aiea,Oahu,HI,2026-06-30 08:08:20,PWR-BUCK,Buck Converter Module,Power,14,1.05,4.95,69.30,14.70,54.60,Kai,Tourism/Hospitality,ACH,241
+HI004-TX-0018,HI004,Aiea,Oahu,HI,2026-06-30 16:25:43,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.75,13.71,27.42,9.50,17.92,Ailani,Education,ACH,683
+HI004-TX-0019,HI004,Aiea,Oahu,HI,2026-06-30 11:28:07,REL-5V,5V Relay Module,Relays,12,0.89,5.21,62.52,10.68,51.84,Alika,Marine,Debit Card,273
+HI004-TX-0020,HI004,Aiea,Oahu,HI,2026-06-30 11:29:31,LED-RGB,RGB LED Strip,LEDs,2,4.85,13.64,27.28,9.70,17.58,Mika,Education,Cash,340
+HI004-TX-0021,HI004,Aiea,Oahu,HI,2026-06-30 13:04:44,PWR-5V2,5V 2A Power Supply,Power,7,3.62,11.24,78.68,25.34,53.34,Iolana,Maker/Hobbyist,Mobile Pay,643
+HI004-TX-0022,HI004,Aiea,Oahu,HI,2026-06-30 12:11:11,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.13,8.54,17.08,6.26,10.82,Leilani,Government,Debit Card,727
+HI004-TX-0023,HI004,Aiea,Oahu,HI,2026-06-30 12:29:08,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.49,12.90,25.80,8.98,16.82,Pualani,Tourism/Hospitality,ACH,803
+HI004-TX-0024,HI004,Aiea,Oahu,HI,2026-06-30 12:17:41,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.41,14.48,115.84,35.28,80.56,Noelani,Government,ACH,208
+HI004-TX-0025,HI004,Aiea,Oahu,HI,2026-06-30 12:18:56,SOL-CTRL,Solar Charge Controller,Solar Power,3,10.46,32.53,97.59,31.38,66.21,Iolana,Government,ACH,173
+HI004-TX-0026,HI004,Aiea,Oahu,HI,2026-06-30 14:39:07,IC-358,LM358 Op Amp,Integrated Circuits,29,0.32,1.18,34.22,9.28,24.94,Hana,Marine,ACH,323
+HI004-TX-0027,HI004,Aiea,Oahu,HI,2026-06-30 16:02:20,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.85,14.69,102.83,33.95,68.88,Lani,Government,Debit Card,689
+HI004-TX-0028,HI004,Aiea,Oahu,HI,2026-06-30 12:45:59,TR-3904,2N3904 NPN Transistor,Semiconductors,25,0.05,0.23,5.75,1.25,4.50,Pualani,Marine,Credit Card,203
+HI004-TX-0029,HI004,Aiea,Oahu,HI,2026-06-30 13:25:57,RES-001,1k Ohm Resistor,Resistors,23,0.03,0.13,2.99,0.69,2.30,Ailani,Government,Mobile Pay,855
+HI004-TX-0030,HI004,Aiea,Oahu,HI,2026-06-30 14:46:23,PWR-5V2,5V 2A Power Supply,Power,2,3.72,11.17,22.34,7.44,14.90,Hana,Government,Mobile Pay,228
+HI004-TX-0031,HI004,Aiea,Oahu,HI,2026-06-30 16:22:14,IC-REG,7805 Voltage Regulator,Integrated Circuits,37,0.20,0.97,35.89,7.40,28.49,Mika,Retail,Debit Card,641
+HI004-TX-0032,HI004,Aiea,Oahu,HI,2026-06-30 17:55:43,IC-358,LM358 Op Amp,Integrated Circuits,4,0.29,1.21,4.84,1.16,3.68,Kai,Education,ACH,781
+HI004-TX-0033,HI004,Aiea,Oahu,HI,2026-06-30 09:54:45,DIO-4007,1N4007 Diode,Semiconductors,16,0.04,0.20,3.20,0.64,2.56,Hana,Commercial,Debit Card,532
+HI004-TX-0034,HI004,Aiea,Oahu,HI,2026-06-30 08:36:49,RES-010,10k Ohm Resistor,Resistors,32,0.03,0.13,4.16,0.96,3.20,Iolana,Commercial,ACH,281
+HI004-TX-0035,HI004,Aiea,Oahu,HI,2026-06-30 16:09:42,CON-JMP,Jumper Wire Set,Connectors,9,1.00,3.91,35.19,9.00,26.19,Hana,Retail,Cash,634
+HI004-TX-0036,HI004,Aiea,Oahu,HI,2026-06-30 17:27:56,IC-REG,7805 Voltage Regulator,Integrated Circuits,6,0.20,0.93,5.58,1.20,4.38,Akamu,Tourism/Hospitality,Credit Card,241
+HI004-TX-0037,HI004,Aiea,Oahu,HI,2026-06-30 16:32:55,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.34,8.71,17.42,6.68,10.74,Akamu,Maker/Hobbyist,ACH,220
+HI004-TX-0038,HI004,Aiea,Oahu,HI,2026-06-30 12:13:59,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.36,8.73,26.19,10.08,16.11,Akamu,Commercial,Purchase Order,125
+HI004-TX-0039,HI004,Aiea,Oahu,HI,2026-06-30 17:04:30,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.82,14.39,71.95,24.10,47.85,Ikaika,Tourism/Hospitality,ACH,493
+HI004-TX-0040,HI004,Aiea,Oahu,HI,2026-06-30 10:47:41,IC-REG,7805 Voltage Regulator,Integrated Circuits,39,0.19,0.95,37.05,7.41,29.64,Nalu,Marine,Mobile Pay,551
+HI004-TX-0041,HI004,Aiea,Oahu,HI,2026-06-30 08:31:53,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.18,13.40,107.20,33.44,73.76,Mika,Retail,Cash,716
+HI004-TX-0042,HI004,Aiea,Oahu,HI,2026-06-30 12:32:52,IC-555,NE555 Timer IC,Integrated Circuits,5,0.33,1.35,6.75,1.65,5.10,Kaleo,Education,Purchase Order,114
+HI004-TX-0043,HI004,Aiea,Oahu,HI,2026-06-30 15:39:38,TOOL-DMM,Digital Multimeter,Tools,2,9.26,26.64,53.28,18.52,34.76,Nalu,Commercial,ACH,816
+HI004-TX-0044,HI004,Aiea,Oahu,HI,2026-06-30 09:56:21,USB-CBO,USB-C Breakout Board,Connectors,12,1.31,5.36,64.32,15.72,48.60,Malia,Retail,Credit Card,175
+HI004-TX-0045,HI004,Aiea,Oahu,HI,2026-06-30 13:38:49,USB-CBO,USB-C Breakout Board,Connectors,1,1.38,5.20,5.20,1.38,3.82,Pualani,Education,Mobile Pay,380
+HI004-TX-0046,HI004,Aiea,Oahu,HI,2026-06-30 11:13:00,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.58,21.74,108.70,42.90,65.80,Akamu,Marine,ACH,808
+HI004-TX-0047,HI004,Aiea,Oahu,HI,2026-06-30 12:49:59,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.32,22.09,88.36,33.28,55.08,Pualani,Education,ACH,758
+HI004-TX-0048,HI004,Aiea,Oahu,HI,2026-06-30 13:51:44,IC-REG,7805 Voltage Regulator,Integrated Circuits,14,0.19,0.96,13.44,2.66,10.78,Iolana,Tourism/Hospitality,ACH,197
+HI004-TX-0049,HI004,Aiea,Oahu,HI,2026-06-30 14:27:41,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.41,12.43,49.72,17.64,32.08,Nalu,Maker/Hobbyist,Credit Card,521
+HI004-TX-0050,HI004,Aiea,Oahu,HI,2026-06-30 12:49:29,PWR-5V2,5V 2A Power Supply,Power,7,3.52,10.96,76.72,24.64,52.08,Mika,Commercial,ACH,208
+HI004-TX-0051,HI004,Aiea,Oahu,HI,2026-06-30 14:48:45,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.52,12.26,36.78,13.56,23.22,Makana,Retail,ACH,895
+HI004-TX-0052,HI004,Aiea,Oahu,HI,2026-06-30 16:00:23,TR-3904,2N3904 NPN Transistor,Semiconductors,38,0.06,0.25,9.50,2.28,7.22,Ikaika,Education,Purchase Order,365
+HI004-TX-0053,HI004,Aiea,Oahu,HI,2026-06-30 08:44:17,LED-RGB,RGB LED Strip,LEDs,7,5.16,14.26,99.82,36.12,63.70,Alika,Maker/Hobbyist,Mobile Pay,587
+HI004-TX-0054,HI004,Aiea,Oahu,HI,2026-06-30 15:38:21,DIO-4007,1N4007 Diode,Semiconductors,22,0.04,0.20,4.40,0.88,3.52,Noah,Retail,Purchase Order,823
+HI004-TX-0055,HI004,Aiea,Oahu,HI,2026-06-30 17:07:35,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.34,13.80,13.80,4.34,9.46,Koa,Marine,Mobile Pay,464
+HI004-TX-0056,HI004,Aiea,Oahu,HI,2026-06-30 16:18:43,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.70,20.72,145.04,60.90,84.14,Akamu,Marine,Cash,464
+HI004-TX-0057,HI004,Aiea,Oahu,HI,2026-06-30 09:25:50,CAP-100,100uF Capacitor,Capacitors,33,0.16,0.57,18.81,5.28,13.53,Noelani,Government,Debit Card,853
+HI004-TX-0058,HI004,Aiea,Oahu,HI,2026-06-30 12:32:40,IC-358,LM358 Op Amp,Integrated Circuits,17,0.31,1.19,20.23,5.27,14.96,Koa,Government,ACH,215
+HI004-TX-0059,HI004,Aiea,Oahu,HI,2026-06-30 11:06:27,PWR-BUCK,Buck Converter Module,Power,19,1.11,4.69,89.11,21.09,68.02,Keahi,Maker/Hobbyist,ACH,228
+HI004-TX-0060,HI004,Aiea,Oahu,HI,2026-06-30 11:12:42,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,9.18,27.07,216.56,73.44,143.12,Leilani,Tourism/Hospitality,Purchase Order,54
+HI004-TX-0061,HI004,Aiea,Oahu,HI,2026-06-30 17:23:55,TOOL-DMM,Digital Multimeter,Tools,5,8.41,27.45,137.25,42.05,95.20,Mika,Marine,Credit Card,363
+HI004-TX-0062,HI004,Aiea,Oahu,HI,2026-06-30 15:58:09,PWR-5V2,5V 2A Power Supply,Power,3,3.46,11.58,34.74,10.38,24.36,Keanu,Education,Purchase Order,520
+HI004-TX-0063,HI004,Aiea,Oahu,HI,2026-06-30 13:25:25,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.69,14.03,112.24,29.52,82.72,Noelani,Tourism/Hospitality,ACH,291
+HI004-TX-0064,HI004,Aiea,Oahu,HI,2026-06-30 11:21:09,IC-555,NE555 Timer IC,Integrated Circuits,30,0.34,1.30,39.00,10.20,28.80,Koa,Retail,Credit Card,3
+HI004-TX-0065,HI004,Aiea,Oahu,HI,2026-06-30 14:28:26,LED-RED,5mm Red LED,LEDs,1,0.06,0.27,0.27,0.06,0.21,Mika,Tourism/Hospitality,Debit Card,527
+HI004-TX-0066,HI004,Aiea,Oahu,HI,2026-06-30 09:33:19,USB-CBO,USB-C Breakout Board,Connectors,29,1.41,5.26,152.54,40.89,111.65,Kaleo,Commercial,Mobile Pay,774
+HI004-TX-0067,HI004,Aiea,Oahu,HI,2026-06-30 14:46:05,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.26,12.25,12.25,4.26,7.99,Noelani,Government,ACH,387
+HI004-TX-0068,HI004,Aiea,Oahu,HI,2026-06-30 16:19:24,LED-RED,5mm Red LED,LEDs,2,0.05,0.29,0.58,0.10,0.48,Hana,Education,Purchase Order,29
+HI004-TX-0069,HI004,Aiea,Oahu,HI,2026-06-30 17:48:17,IC-358,LM358 Op Amp,Integrated Circuits,22,0.31,1.19,26.18,6.82,19.36,Akamu,Education,Debit Card,258
+HI004-TX-0070,HI004,Aiea,Oahu,HI,2026-06-30 11:50:54,TOOL-DMM,Digital Multimeter,Tools,8,8.26,27.77,222.16,66.08,156.08,Pualani,Marine,Debit Card,407
+HI004-TX-0071,HI004,Aiea,Oahu,HI,2026-06-30 15:28:38,IC-555,NE555 Timer IC,Integrated Circuits,26,0.34,1.29,33.54,8.84,24.70,Akamu,Tourism/Hospitality,Debit Card,721
+HI004-TX-0072,HI004,Aiea,Oahu,HI,2026-06-30 16:14:35,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.72,22.36,89.44,34.88,54.56,Malia,Government,Credit Card,826
+HI004-TX-0073,HI004,Aiea,Oahu,HI,2026-06-30 09:15:45,USB-CBO,USB-C Breakout Board,Connectors,35,1.31,5.53,193.55,45.85,147.70,Leilani,Maker/Hobbyist,Purchase Order,703
+HI004-TX-0074,HI004,Aiea,Oahu,HI,2026-06-30 13:36:07,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.31,8.44,25.32,9.93,15.39,Noah,Government,Debit Card,541
+HI004-TX-0075,HI004,Aiea,Oahu,HI,2026-06-30 16:54:34,DIO-4007,1N4007 Diode,Semiconductors,33,0.05,0.20,6.60,1.65,4.95,Makana,Retail,Mobile Pay,821

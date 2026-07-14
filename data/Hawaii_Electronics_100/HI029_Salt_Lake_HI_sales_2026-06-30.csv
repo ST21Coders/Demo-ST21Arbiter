@@ -1,0 +1,95 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI029-TX-0001,HI029,Salt Lake,Oahu,HI,2026-06-30 11:27:21,MOS-44N,IRFZ44N MOSFET,Semiconductors,3,0.64,2.39,7.17,1.92,5.25,Malia,Commercial,Purchase Order,670
+HI029-TX-0002,HI029,Salt Lake,Oahu,HI,2026-06-30 11:35:17,MOS-44N,IRFZ44N MOSFET,Semiconductors,31,0.61,2.41,74.71,18.91,55.80,Lani,Maker/Hobbyist,Purchase Order,81
+HI029-TX-0003,HI029,Salt Lake,Oahu,HI,2026-06-30 11:03:32,USB-CBO,USB-C Breakout Board,Connectors,15,1.34,5.55,83.25,20.10,63.15,Lani,Retail,Cash,538
+HI029-TX-0004,HI029,Salt Lake,Oahu,HI,2026-06-30 13:12:39,RES-220,220 Ohm Resistor,Resistors,32,0.03,0.13,4.16,0.96,3.20,Keanu,Government,Debit Card,307
+HI029-TX-0005,HI029,Salt Lake,Oahu,HI,2026-06-30 11:38:32,RES-010,10k Ohm Resistor,Resistors,19,0.03,0.13,2.47,0.57,1.90,Mika,Retail,Credit Card,461
+HI029-TX-0006,HI029,Salt Lake,Oahu,HI,2026-06-30 15:03:53,PWR-12V,12V 5A Power Supply,Power,2,9.88,26.61,53.22,19.76,33.46,Koa,Commercial,ACH,273
+HI029-TX-0007,HI029,Salt Lake,Oahu,HI,2026-06-30 16:12:19,TOOL-SOL,Soldering Iron Tips,Tools,8,2.05,7.41,59.28,16.40,42.88,Alika,Commercial,Mobile Pay,286
+HI029-TX-0008,HI029,Salt Lake,Oahu,HI,2026-06-30 15:50:43,CAP-100,100uF Capacitor,Capacitors,19,0.17,0.61,11.59,3.23,8.36,Makana,Maker/Hobbyist,Debit Card,704
+HI029-TX-0009,HI029,Salt Lake,Oahu,HI,2026-06-30 09:35:25,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.64,6.14,18.42,4.92,13.50,Pualani,Marine,Debit Card,833
+HI029-TX-0010,HI029,Salt Lake,Oahu,HI,2026-06-30 11:36:30,IC-358,LM358 Op Amp,Integrated Circuits,34,0.31,1.16,39.44,10.54,28.90,Keahi,Government,ACH,222
+HI029-TX-0011,HI029,Salt Lake,Oahu,HI,2026-06-30 09:35:24,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.73,13.96,55.84,14.92,40.92,Ikaika,Retail,ACH,470
+HI029-TX-0012,HI029,Salt Lake,Oahu,HI,2026-06-30 15:57:24,CON-JMP,Jumper Wire Set,Connectors,21,0.93,3.70,77.70,19.53,58.17,Iolana,Commercial,Credit Card,293
+HI029-TX-0013,HI029,Salt Lake,Oahu,HI,2026-06-30 14:32:30,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.48,13.74,41.22,13.44,27.78,Pualani,Commercial,Debit Card,5
+HI029-TX-0014,HI029,Salt Lake,Oahu,HI,2026-06-30 17:46:48,TOOL-DMM,Digital Multimeter,Tools,1,8.60,27.93,27.93,8.60,19.33,Malia,Retail,Debit Card,0
+HI029-TX-0015,HI029,Salt Lake,Oahu,HI,2026-06-30 09:01:02,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.40,8.93,17.86,6.80,11.06,Malia,Government,ACH,756
+HI029-TX-0016,HI029,Salt Lake,Oahu,HI,2026-06-30 17:19:44,CAP-010,10uF Capacitor,Capacitors,40,0.09,0.38,15.20,3.60,11.60,Malia,Retail,Purchase Order,470
+HI029-TX-0017,HI029,Salt Lake,Oahu,HI,2026-06-30 14:25:03,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.64,13.50,40.50,13.92,26.58,Kai,Maker/Hobbyist,Debit Card,830
+HI029-TX-0018,HI029,Salt Lake,Oahu,HI,2026-06-30 09:09:26,CAP-100,100uF Capacitor,Capacitors,24,0.16,0.61,14.64,3.84,10.80,Ailani,Marine,Cash,112
+HI029-TX-0019,HI029,Salt Lake,Oahu,HI,2026-06-30 13:18:29,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.90,13.95,83.70,29.40,54.30,Leilani,Government,Mobile Pay,549
+HI029-TX-0020,HI029,Salt Lake,Oahu,HI,2026-06-30 11:38:18,IC-555,NE555 Timer IC,Integrated Circuits,36,0.37,1.32,47.52,13.32,34.20,Kaleo,Education,Purchase Order,75
+HI029-TX-0021,HI029,Salt Lake,Oahu,HI,2026-06-30 09:19:57,IC-358,LM358 Op Amp,Integrated Circuits,35,0.30,1.22,42.70,10.50,32.20,Lani,Maker/Hobbyist,Mobile Pay,336
+HI029-TX-0022,HI029,Salt Lake,Oahu,HI,2026-06-30 11:11:23,IC-REG,7805 Voltage Regulator,Integrated Circuits,3,0.21,0.97,2.91,0.63,2.28,Mika,Education,Purchase Order,487
+HI029-TX-0023,HI029,Salt Lake,Oahu,HI,2026-06-30 12:38:04,IC-555,NE555 Timer IC,Integrated Circuits,2,0.34,1.32,2.64,0.68,1.96,Iolana,Tourism/Hospitality,Mobile Pay,879
+HI029-TX-0024,HI029,Salt Lake,Oahu,HI,2026-06-30 09:54:11,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.38,21.19,105.95,41.90,64.05,Leilani,Education,Purchase Order,543
+HI029-TX-0025,HI029,Salt Lake,Oahu,HI,2026-06-30 17:57:06,CON-JMP,Jumper Wire Set,Connectors,20,0.95,3.61,72.20,19.00,53.20,Kai,Government,Purchase Order,434
+HI029-TX-0026,HI029,Salt Lake,Oahu,HI,2026-06-30 08:38:21,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,29,0.04,0.19,5.51,1.16,4.35,Mika,Commercial,Credit Card,394
+HI029-TX-0027,HI029,Salt Lake,Oahu,HI,2026-06-30 10:13:38,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.31,8.33,8.33,3.31,5.02,Lani,Maker/Hobbyist,Purchase Order,802
+HI029-TX-0028,HI029,Salt Lake,Oahu,HI,2026-06-30 16:34:48,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.68,14.24,42.72,14.04,28.68,Malia,Education,Credit Card,357
+HI029-TX-0029,HI029,Salt Lake,Oahu,HI,2026-06-30 14:19:25,IC-555,NE555 Timer IC,Integrated Circuits,21,0.37,1.39,29.19,7.77,21.42,Lani,Government,Credit Card,763
+HI029-TX-0030,HI029,Salt Lake,Oahu,HI,2026-06-30 10:21:20,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.50,6.30,12.60,3.00,9.60,Malia,Commercial,Cash,358
+HI029-TX-0031,HI029,Salt Lake,Oahu,HI,2026-06-30 17:36:45,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.32,7.15,50.05,16.24,33.81,Akamu,Maker/Hobbyist,Cash,27
+HI029-TX-0032,HI029,Salt Lake,Oahu,HI,2026-06-30 12:22:31,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.72,14.64,29.28,9.44,19.84,Kaleo,Education,Purchase Order,659
+HI029-TX-0033,HI029,Salt Lake,Oahu,HI,2026-06-30 10:39:08,LED-RGB,RGB LED Strip,LEDs,5,4.95,13.35,66.75,24.75,42.00,Noah,Commercial,Debit Card,114
+HI029-TX-0034,HI029,Salt Lake,Oahu,HI,2026-06-30 10:07:46,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.83,14.94,104.58,33.81,70.77,Noelani,Education,Mobile Pay,795
+HI029-TX-0035,HI029,Salt Lake,Oahu,HI,2026-06-30 08:56:49,IC-REG,7805 Voltage Regulator,Integrated Circuits,6,0.19,0.87,5.22,1.14,4.08,Noelani,Commercial,ACH,226
+HI029-TX-0036,HI029,Salt Lake,Oahu,HI,2026-06-30 15:29:55,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,11,0.04,0.20,2.20,0.44,1.76,Lani,Maker/Hobbyist,Mobile Pay,246
+HI029-TX-0037,HI029,Salt Lake,Oahu,HI,2026-06-30 12:25:09,RES-001,1k Ohm Resistor,Resistors,9,0.03,0.14,1.26,0.27,0.99,Akamu,Maker/Hobbyist,ACH,293
+HI029-TX-0038,HI029,Salt Lake,Oahu,HI,2026-06-30 15:46:14,IC-555,NE555 Timer IC,Integrated Circuits,9,0.34,1.40,12.60,3.06,9.54,Ikaika,Education,Cash,615
+HI029-TX-0039,HI029,Salt Lake,Oahu,HI,2026-06-30 10:22:46,IC-358,LM358 Op Amp,Integrated Circuits,39,0.29,1.15,44.85,11.31,33.54,Ailani,Maker/Hobbyist,Mobile Pay,31
+HI029-TX-0040,HI029,Salt Lake,Oahu,HI,2026-06-30 15:09:42,USB-CBO,USB-C Breakout Board,Connectors,21,1.43,5.27,110.67,30.03,80.64,Noah,Marine,ACH,830
+HI029-TX-0041,HI029,Salt Lake,Oahu,HI,2026-06-30 10:25:29,USB-CBO,USB-C Breakout Board,Connectors,3,1.44,5.46,16.38,4.32,12.06,Iolana,Commercial,Cash,438
+HI029-TX-0042,HI029,Salt Lake,Oahu,HI,2026-06-30 15:04:52,CAP-100,100uF Capacitor,Capacitors,1,0.16,0.58,0.58,0.16,0.42,Koa,Marine,Mobile Pay,414
+HI029-TX-0043,HI029,Salt Lake,Oahu,HI,2026-06-30 08:10:50,IC-358,LM358 Op Amp,Integrated Circuits,20,0.31,1.24,24.80,6.20,18.60,Hana,Education,Cash,163
+HI029-TX-0044,HI029,Salt Lake,Oahu,HI,2026-06-30 13:19:47,BAT-AAH,AA Battery Holder,Batteries,14,0.51,2.61,36.54,7.14,29.40,Lani,Marine,Purchase Order,561
+HI029-TX-0045,HI029,Salt Lake,Oahu,HI,2026-06-30 17:03:26,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.73,22.46,44.92,17.46,27.46,Kaleo,Marine,Mobile Pay,650
+HI029-TX-0046,HI029,Salt Lake,Oahu,HI,2026-06-30 11:28:07,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.03,12.38,37.14,12.09,25.05,Akamu,Tourism/Hospitality,Debit Card,769
+HI029-TX-0047,HI029,Salt Lake,Oahu,HI,2026-06-30 08:15:38,CON-JMP,Jumper Wire Set,Connectors,23,0.88,3.61,83.03,20.24,62.79,Mika,Maker/Hobbyist,Credit Card,616
+HI029-TX-0048,HI029,Salt Lake,Oahu,HI,2026-06-30 10:50:34,SNS-PIR,PIR Motion Sensor,Sensors,8,1.55,6.03,48.24,12.40,35.84,Koa,Marine,ACH,393
+HI029-TX-0049,HI029,Salt Lake,Oahu,HI,2026-06-30 08:03:00,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.95,13.43,107.44,39.60,67.84,Ailani,Government,Cash,867
+HI029-TX-0050,HI029,Salt Lake,Oahu,HI,2026-06-30 08:16:07,IC-358,LM358 Op Amp,Integrated Circuits,36,0.31,1.17,42.12,11.16,30.96,Kai,Retail,Cash,382
+HI029-TX-0051,HI029,Salt Lake,Oahu,HI,2026-06-30 14:59:52,TOOL-WIRE,Wire Stripper,Tools,2,4.75,16.12,32.24,9.50,22.74,Akamu,Commercial,Debit Card,483
+HI029-TX-0052,HI029,Salt Lake,Oahu,HI,2026-06-30 08:58:47,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.15,8.44,16.88,6.30,10.58,Keahi,Marine,Purchase Order,623
+HI029-TX-0053,HI029,Salt Lake,Oahu,HI,2026-06-30 13:49:07,RES-001,1k Ohm Resistor,Resistors,35,0.03,0.12,4.20,1.05,3.15,Nalu,Retail,Cash,672
+HI029-TX-0054,HI029,Salt Lake,Oahu,HI,2026-06-30 17:42:53,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,7.95,20.43,81.72,31.80,49.92,Hana,Marine,Mobile Pay,506
+HI029-TX-0055,HI029,Salt Lake,Oahu,HI,2026-06-30 10:56:53,TOOL-DMM,Digital Multimeter,Tools,2,8.71,28.92,57.84,17.42,40.42,Kai,Government,Purchase Order,835
+HI029-TX-0056,HI029,Salt Lake,Oahu,HI,2026-06-30 10:52:40,LED-RED,5mm Red LED,LEDs,3,0.05,0.26,0.78,0.15,0.63,Kai,Government,Credit Card,395
+HI029-TX-0057,HI029,Salt Lake,Oahu,HI,2026-06-30 09:18:57,RES-001,1k Ohm Resistor,Resistors,6,0.04,0.14,0.84,0.24,0.60,Lani,Commercial,Credit Card,92
+HI029-TX-0058,HI029,Salt Lake,Oahu,HI,2026-06-30 14:17:44,IC-358,LM358 Op Amp,Integrated Circuits,3,0.30,1.13,3.39,0.90,2.49,Makana,Retail,Purchase Order,164
+HI029-TX-0059,HI029,Salt Lake,Oahu,HI,2026-06-30 17:47:14,IC-555,NE555 Timer IC,Integrated Circuits,27,0.36,1.32,35.64,9.72,25.92,Leilani,Retail,Mobile Pay,492
+HI029-TX-0060,HI029,Salt Lake,Oahu,HI,2026-06-30 15:05:23,CON-JMP,Jumper Wire Set,Connectors,38,0.94,3.66,139.08,35.72,103.36,Iolana,Commercial,Purchase Order,441
+HI029-TX-0061,HI029,Salt Lake,Oahu,HI,2026-06-30 14:12:52,PWR-12V,12V 5A Power Supply,Power,1,8.89,26.38,26.38,8.89,17.49,Makana,Tourism/Hospitality,Credit Card,69
+HI029-TX-0062,HI029,Salt Lake,Oahu,HI,2026-06-30 12:35:23,CAP-100,100uF Capacitor,Capacitors,37,0.16,0.61,22.57,5.92,16.65,Leilani,Maker/Hobbyist,Debit Card,607
+HI029-TX-0063,HI029,Salt Lake,Oahu,HI,2026-06-30 08:20:48,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.42,12.27,12.27,4.42,7.85,Keanu,Retail,Cash,455
+HI029-TX-0064,HI029,Salt Lake,Oahu,HI,2026-06-30 12:33:43,CON-JMP,Jumper Wire Set,Connectors,21,0.94,3.67,77.07,19.74,57.33,Pualani,Government,Mobile Pay,219
+HI029-TX-0065,HI029,Salt Lake,Oahu,HI,2026-06-30 17:17:13,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.76,13.89,97.23,33.32,63.91,Lani,Maker/Hobbyist,Mobile Pay,430
+HI029-TX-0066,HI029,Salt Lake,Oahu,HI,2026-06-30 17:36:17,CAP-100,100uF Capacitor,Capacitors,14,0.16,0.60,8.40,2.24,6.16,Noelani,Education,ACH,251
+HI029-TX-0067,HI029,Salt Lake,Oahu,HI,2026-06-30 16:59:28,LED-RED,5mm Red LED,LEDs,13,0.06,0.26,3.38,0.78,2.60,Kaleo,Commercial,Credit Card,607
+HI029-TX-0068,HI029,Salt Lake,Oahu,HI,2026-06-30 10:13:36,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.80,14.96,44.88,14.40,30.48,Leilani,Marine,ACH,358
+HI029-TX-0069,HI029,Salt Lake,Oahu,HI,2026-06-30 15:45:06,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.08,12.26,12.26,4.08,8.18,Keahi,Tourism/Hospitality,Mobile Pay,330
+HI029-TX-0070,HI029,Salt Lake,Oahu,HI,2026-06-30 11:17:45,RES-001,1k Ohm Resistor,Resistors,5,0.03,0.13,0.65,0.15,0.50,Noah,Marine,Purchase Order,771
+HI029-TX-0071,HI029,Salt Lake,Oahu,HI,2026-06-30 09:44:07,CON-JMP,Jumper Wire Set,Connectors,10,0.90,3.98,39.80,9.00,30.80,Malia,Government,Credit Card,820
+HI029-TX-0072,HI029,Salt Lake,Oahu,HI,2026-06-30 14:35:39,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.46,13.62,13.62,4.46,9.16,Keahi,Commercial,Credit Card,535
+HI029-TX-0073,HI029,Salt Lake,Oahu,HI,2026-06-30 12:18:03,RES-220,220 Ohm Resistor,Resistors,10,0.03,0.13,1.30,0.30,1.00,Noelani,Marine,Purchase Order,104
+HI029-TX-0074,HI029,Salt Lake,Oahu,HI,2026-06-30 14:57:59,IC-REG,7805 Voltage Regulator,Integrated Circuits,1,0.20,0.89,0.89,0.20,0.69,Malia,Commercial,Debit Card,119
+HI029-TX-0075,HI029,Salt Lake,Oahu,HI,2026-06-30 14:50:45,BAT-AAH,AA Battery Holder,Batteries,25,0.47,2.76,69.00,11.75,57.25,Kaleo,Education,Credit Card,641
+HI029-TX-0076,HI029,Salt Lake,Oahu,HI,2026-06-30 09:53:47,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.39,13.43,26.86,8.78,18.08,Ailani,Marine,ACH,95
+HI029-TX-0077,HI029,Salt Lake,Oahu,HI,2026-06-30 08:34:22,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.16,13.31,79.86,24.96,54.90,Malia,Government,Purchase Order,341
+HI029-TX-0078,HI029,Salt Lake,Oahu,HI,2026-06-30 10:06:02,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,2,0.05,0.20,0.40,0.10,0.30,Mika,Commercial,Credit Card,838
+HI029-TX-0079,HI029,Salt Lake,Oahu,HI,2026-06-30 11:14:09,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.92,13.50,13.50,4.92,8.58,Makana,Government,Credit Card,770
+HI029-TX-0080,HI029,Salt Lake,Oahu,HI,2026-06-30 11:22:39,IC-358,LM358 Op Amp,Integrated Circuits,11,0.31,1.20,13.20,3.41,9.79,Kai,Retail,Cash,41
+HI029-TX-0081,HI029,Salt Lake,Oahu,HI,2026-06-30 12:36:44,IC-358,LM358 Op Amp,Integrated Circuits,9,0.32,1.15,10.35,2.88,7.47,Malia,Retail,ACH,188
+HI029-TX-0082,HI029,Salt Lake,Oahu,HI,2026-06-30 16:03:15,BAT-AAH,AA Battery Holder,Batteries,11,0.51,2.67,29.37,5.61,23.76,Hana,Education,Debit Card,540
+HI029-TX-0083,HI029,Salt Lake,Oahu,HI,2026-06-30 12:38:24,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.17,8.57,34.28,12.68,21.60,Lani,Retail,Cash,628
+HI029-TX-0084,HI029,Salt Lake,Oahu,HI,2026-06-30 09:59:09,TOOL-WIRE,Wire Stripper,Tools,5,5.10,14.67,73.35,25.50,47.85,Noelani,Marine,Credit Card,559
+HI029-TX-0085,HI029,Salt Lake,Oahu,HI,2026-06-30 11:54:05,TOOL-SOL,Soldering Iron Tips,Tools,2,1.90,7.35,14.70,3.80,10.90,Malia,Commercial,Mobile Pay,542
+HI029-TX-0086,HI029,Salt Lake,Oahu,HI,2026-06-30 16:49:21,CAP-010,10uF Capacitor,Capacitors,13,0.08,0.36,4.68,1.04,3.64,Keahi,Maker/Hobbyist,Purchase Order,748
+HI029-TX-0087,HI029,Salt Lake,Oahu,HI,2026-06-30 12:28:41,LED-BLU,5mm Blue LED,LEDs,39,0.06,0.32,12.48,2.34,10.14,Koa,Education,Credit Card,650
+HI029-TX-0088,HI029,Salt Lake,Oahu,HI,2026-06-30 10:59:15,IC-555,NE555 Timer IC,Integrated Circuits,38,0.38,1.31,49.78,14.44,35.34,Ikaika,Commercial,Purchase Order,593
+HI029-TX-0089,HI029,Salt Lake,Oahu,HI,2026-06-30 15:54:23,TOOL-SOL,Soldering Iron Tips,Tools,2,2.08,7.94,15.88,4.16,11.72,Makana,Maker/Hobbyist,Debit Card,408
+HI029-TX-0090,HI029,Salt Lake,Oahu,HI,2026-06-30 15:27:11,TOOL-DMM,Digital Multimeter,Tools,2,8.89,26.52,53.04,17.78,35.26,Hana,Maker/Hobbyist,Debit Card,410
+HI029-TX-0091,HI029,Salt Lake,Oahu,HI,2026-06-30 12:12:41,IC-358,LM358 Op Amp,Integrated Circuits,10,0.32,1.24,12.40,3.20,9.20,Keahi,Maker/Hobbyist,ACH,518
+HI029-TX-0092,HI029,Salt Lake,Oahu,HI,2026-06-30 09:39:00,TOOL-DMM,Digital Multimeter,Tools,4,9.38,26.10,104.40,37.52,66.88,Makana,Education,Credit Card,456
+HI029-TX-0093,HI029,Salt Lake,Oahu,HI,2026-06-30 09:09:02,IC-REG,7805 Voltage Regulator,Integrated Circuits,32,0.20,0.95,30.40,6.40,24.00,Keanu,Tourism/Hospitality,Purchase Order,290
+HI029-TX-0094,HI029,Salt Lake,Oahu,HI,2026-06-30 11:06:20,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.47,6.15,43.05,10.29,32.76,Alika,Commercial,Cash,542

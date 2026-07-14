@@ -1,0 +1,94 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI095-TX-0001,HI095,Windward Mall,Oahu,HI,2026-06-30 11:09:43,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.56,6.83,13.66,3.12,10.54,Iolana,Government,Purchase Order,154
+HI095-TX-0002,HI095,Windward Mall,Oahu,HI,2026-06-30 17:04:27,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.18,13.40,80.40,25.08,55.32,Noelani,Retail,Purchase Order,681
+HI095-TX-0003,HI095,Windward Mall,Oahu,HI,2026-06-30 10:30:04,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.62,6.26,25.04,6.48,18.56,Iolana,Government,Mobile Pay,784
+HI095-TX-0004,HI095,Windward Mall,Oahu,HI,2026-06-30 12:19:12,PWR-5V2,5V 2A Power Supply,Power,5,3.56,11.20,56.00,17.80,38.20,Alika,Education,ACH,439
+HI095-TX-0005,HI095,Windward Mall,Oahu,HI,2026-06-30 13:55:07,RES-010,10k Ohm Resistor,Resistors,40,0.03,0.14,5.60,1.20,4.40,Akamu,Tourism/Hospitality,Mobile Pay,237
+HI095-TX-0006,HI095,Windward Mall,Oahu,HI,2026-06-30 14:32:53,TOOL-WIRE,Wire Stripper,Tools,3,5.04,14.66,43.98,15.12,28.86,Keahi,Maker/Hobbyist,Credit Card,312
+HI095-TX-0007,HI095,Windward Mall,Oahu,HI,2026-06-30 12:49:10,USB-CBO,USB-C Breakout Board,Connectors,4,1.42,5.62,22.48,5.68,16.80,Leilani,Maker/Hobbyist,Debit Card,39
+HI095-TX-0008,HI095,Windward Mall,Oahu,HI,2026-06-30 09:36:33,PWR-BUCK,Buck Converter Module,Power,23,1.06,5.13,117.99,24.38,93.61,Ikaika,Government,Purchase Order,559
+HI095-TX-0009,HI095,Windward Mall,Oahu,HI,2026-06-30 17:53:55,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.00,15.31,30.62,10.00,20.62,Noah,Tourism/Hospitality,ACH,693
+HI095-TX-0010,HI095,Windward Mall,Oahu,HI,2026-06-30 08:37:52,CON-JMP,Jumper Wire Set,Connectors,34,0.97,3.93,133.62,32.98,100.64,Noelani,Education,Debit Card,337
+HI095-TX-0011,HI095,Windward Mall,Oahu,HI,2026-06-30 14:02:21,IC-358,LM358 Op Amp,Integrated Circuits,21,0.33,1.18,24.78,6.93,17.85,Pualani,Retail,ACH,92
+HI095-TX-0012,HI095,Windward Mall,Oahu,HI,2026-06-30 11:12:56,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.66,14.30,114.40,29.28,85.12,Kai,Maker/Hobbyist,Debit Card,131
+HI095-TX-0013,HI095,Windward Mall,Oahu,HI,2026-06-30 08:00:27,MAR-TIN,Tinned Marine Wire,Marine Electronics,3,9.66,27.81,83.43,28.98,54.45,Koa,Government,Mobile Pay,470
+HI095-TX-0014,HI095,Windward Mall,Oahu,HI,2026-06-30 15:42:01,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.41,8.66,60.62,23.87,36.75,Leilani,Marine,Debit Card,304
+HI095-TX-0015,HI095,Windward Mall,Oahu,HI,2026-06-30 15:33:11,CAP-010,10uF Capacitor,Capacitors,14,0.09,0.36,5.04,1.26,3.78,Koa,Government,Purchase Order,288
+HI095-TX-0016,HI095,Windward Mall,Oahu,HI,2026-06-30 08:05:32,SNS-ULT,Ultrasonic Distance Sensor,Sensors,31,1.21,5.15,159.65,37.51,122.14,Keanu,Tourism/Hospitality,Purchase Order,396
+HI095-TX-0017,HI095,Windward Mall,Oahu,HI,2026-06-30 13:08:03,SNS-ULT,Ultrasonic Distance Sensor,Sensors,18,1.19,5.52,99.36,21.42,77.94,Koa,Government,Mobile Pay,504
+HI095-TX-0018,HI095,Windward Mall,Oahu,HI,2026-06-30 12:35:00,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.57,6.34,44.38,10.99,33.39,Iolana,Tourism/Hospitality,Debit Card,875
+HI095-TX-0019,HI095,Windward Mall,Oahu,HI,2026-06-30 11:23:03,BAT-AAH,AA Battery Holder,Batteries,39,0.48,2.82,109.98,18.72,91.26,Leilani,Retail,Cash,314
+HI095-TX-0020,HI095,Windward Mall,Oahu,HI,2026-06-30 15:02:12,CON-JMP,Jumper Wire Set,Connectors,10,0.95,3.81,38.10,9.50,28.60,Kai,Government,Credit Card,391
+HI095-TX-0021,HI095,Windward Mall,Oahu,HI,2026-06-30 09:16:04,CAP-100,100uF Capacitor,Capacitors,16,0.17,0.62,9.92,2.72,7.20,Noelani,Retail,Purchase Order,737
+HI095-TX-0022,HI095,Windward Mall,Oahu,HI,2026-06-30 16:36:09,TR-3904,2N3904 NPN Transistor,Semiconductors,16,0.06,0.23,3.68,0.96,2.72,Pualani,Tourism/Hospitality,ACH,109
+HI095-TX-0023,HI095,Windward Mall,Oahu,HI,2026-06-30 11:50:30,RES-001,1k Ohm Resistor,Resistors,15,0.04,0.13,1.95,0.60,1.35,Mika,Marine,Mobile Pay,430
+HI095-TX-0024,HI095,Windward Mall,Oahu,HI,2026-06-30 08:18:40,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.73,14.00,98.00,33.11,64.89,Nalu,Government,Mobile Pay,814
+HI095-TX-0025,HI095,Windward Mall,Oahu,HI,2026-06-30 12:07:47,PWR-12V,12V 5A Power Supply,Power,4,9.61,25.94,103.76,38.44,65.32,Pualani,Retail,ACH,684
+HI095-TX-0026,HI095,Windward Mall,Oahu,HI,2026-06-30 10:58:05,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.21,9.03,18.06,6.42,11.64,Malia,Marine,Debit Card,397
+HI095-TX-0027,HI095,Windward Mall,Oahu,HI,2026-06-30 09:34:58,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.16,13.53,40.59,12.48,28.11,Nalu,Tourism/Hospitality,Purchase Order,446
+HI095-TX-0028,HI095,Windward Mall,Oahu,HI,2026-06-30 11:04:56,IC-555,NE555 Timer IC,Integrated Circuits,10,0.35,1.33,13.30,3.50,9.80,Keanu,Retail,Credit Card,871
+HI095-TX-0029,HI095,Windward Mall,Oahu,HI,2026-06-30 09:11:05,IC-555,NE555 Timer IC,Integrated Circuits,39,0.37,1.40,54.60,14.43,40.17,Hana,Retail,Purchase Order,31
+HI095-TX-0030,HI095,Windward Mall,Oahu,HI,2026-06-30 08:38:42,USB-CBO,USB-C Breakout Board,Connectors,33,1.30,5.50,181.50,42.90,138.60,Keahi,Commercial,Purchase Order,501
+HI095-TX-0031,HI095,Windward Mall,Oahu,HI,2026-06-30 17:06:13,IC-555,NE555 Timer IC,Integrated Circuits,7,0.35,1.44,10.08,2.45,7.63,Kai,Commercial,ACH,64
+HI095-TX-0032,HI095,Windward Mall,Oahu,HI,2026-06-30 12:46:04,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.26,9.05,27.15,9.78,17.37,Lani,Education,Debit Card,682
+HI095-TX-0033,HI095,Windward Mall,Oahu,HI,2026-06-30 17:58:47,IC-555,NE555 Timer IC,Integrated Circuits,30,0.36,1.31,39.30,10.80,28.50,Leilani,Government,ACH,794
+HI095-TX-0034,HI095,Windward Mall,Oahu,HI,2026-06-30 09:16:17,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.45,12.76,63.80,22.25,41.55,Ikaika,Retail,Credit Card,288
+HI095-TX-0035,HI095,Windward Mall,Oahu,HI,2026-06-30 12:37:08,PICO-RP,Raspberry Pi Pico,Microcontrollers,8,3.40,8.27,66.16,27.20,38.96,Alika,Retail,Mobile Pay,605
+HI095-TX-0036,HI095,Windward Mall,Oahu,HI,2026-06-30 09:26:03,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,9,0.05,0.20,1.80,0.45,1.35,Ikaika,Tourism/Hospitality,Mobile Pay,54
+HI095-TX-0037,HI095,Windward Mall,Oahu,HI,2026-06-30 11:30:35,TR-3904,2N3904 NPN Transistor,Semiconductors,35,0.06,0.24,8.40,2.10,6.30,Keanu,Government,Purchase Order,708
+HI095-TX-0038,HI095,Windward Mall,Oahu,HI,2026-06-30 08:39:24,SNS-ULT,Ultrasonic Distance Sensor,Sensors,36,1.33,5.16,185.76,47.88,137.88,Makana,Education,Purchase Order,807
+HI095-TX-0039,HI095,Windward Mall,Oahu,HI,2026-06-30 15:19:46,IC-REG,7805 Voltage Regulator,Integrated Circuits,24,0.21,0.91,21.84,5.04,16.80,Makana,Maker/Hobbyist,Credit Card,341
+HI095-TX-0040,HI095,Windward Mall,Oahu,HI,2026-06-30 09:50:36,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,7.96,20.49,61.47,23.88,37.59,Malia,Government,Debit Card,172
+HI095-TX-0041,HI095,Windward Mall,Oahu,HI,2026-06-30 14:55:00,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.87,14.15,84.90,29.22,55.68,Malia,Education,ACH,196
+HI095-TX-0042,HI095,Windward Mall,Oahu,HI,2026-06-30 09:34:05,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.27,13.53,13.53,4.27,9.26,Pualani,Tourism/Hospitality,Purchase Order,758
+HI095-TX-0043,HI095,Windward Mall,Oahu,HI,2026-06-30 10:24:31,CON-JMP,Jumper Wire Set,Connectors,18,0.97,3.86,69.48,17.46,52.02,Ikaika,Education,Cash,652
+HI095-TX-0044,HI095,Windward Mall,Oahu,HI,2026-06-30 13:43:52,MOS-44N,IRFZ44N MOSFET,Semiconductors,33,0.58,2.54,83.82,19.14,64.68,Pualani,Education,Credit Card,563
+HI095-TX-0045,HI095,Windward Mall,Oahu,HI,2026-06-30 14:06:16,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.27,12.32,61.60,21.35,40.25,Malia,Retail,Credit Card,75
+HI095-TX-0046,HI095,Windward Mall,Oahu,HI,2026-06-30 14:54:51,IC-555,NE555 Timer IC,Integrated Circuits,39,0.36,1.37,53.43,14.04,39.39,Ailani,Commercial,Debit Card,210
+HI095-TX-0047,HI095,Windward Mall,Oahu,HI,2026-06-30 13:41:39,PWR-12V,12V 5A Power Supply,Power,7,9.53,24.01,168.07,66.71,101.36,Koa,Tourism/Hospitality,Credit Card,550
+HI095-TX-0048,HI095,Windward Mall,Oahu,HI,2026-06-30 17:33:23,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.83,14.32,28.64,9.66,18.98,Koa,Government,Mobile Pay,465
+HI095-TX-0049,HI095,Windward Mall,Oahu,HI,2026-06-30 10:42:59,MOS-44N,IRFZ44N MOSFET,Semiconductors,11,0.58,2.40,26.40,6.38,20.02,Iolana,Commercial,Credit Card,244
+HI095-TX-0050,HI095,Windward Mall,Oahu,HI,2026-06-30 10:05:41,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.17,22.58,112.90,40.85,72.05,Malia,Tourism/Hospitality,Debit Card,789
+HI095-TX-0051,HI095,Windward Mall,Oahu,HI,2026-06-30 17:15:29,TOOL-DMM,Digital Multimeter,Tools,1,9.05,28.67,28.67,9.05,19.62,Koa,Education,ACH,553
+HI095-TX-0052,HI095,Windward Mall,Oahu,HI,2026-06-30 13:21:29,BAT-LIPO,LiPo Battery Pack,Batteries,1,5.06,17.04,17.04,5.06,11.98,Ailani,Commercial,Cash,517
+HI095-TX-0053,HI095,Windward Mall,Oahu,HI,2026-06-30 10:01:25,IC-358,LM358 Op Amp,Integrated Circuits,8,0.31,1.18,9.44,2.48,6.96,Keahi,Education,Debit Card,585
+HI095-TX-0054,HI095,Windward Mall,Oahu,HI,2026-06-30 13:40:02,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.64,6.37,50.96,13.12,37.84,Nalu,Government,Mobile Pay,530
+HI095-TX-0055,HI095,Windward Mall,Oahu,HI,2026-06-30 16:03:15,IC-358,LM358 Op Amp,Integrated Circuits,6,0.30,1.12,6.72,1.80,4.92,Malia,Retail,Purchase Order,135
+HI095-TX-0056,HI095,Windward Mall,Oahu,HI,2026-06-30 16:05:32,MOS-44N,IRFZ44N MOSFET,Semiconductors,5,0.60,2.34,11.70,3.00,8.70,Iolana,Marine,Cash,603
+HI095-TX-0057,HI095,Windward Mall,Oahu,HI,2026-06-30 13:26:36,TOOL-WIRE,Wire Stripper,Tools,7,4.76,16.21,113.47,33.32,80.15,Noah,Marine,Cash,489
+HI095-TX-0058,HI095,Windward Mall,Oahu,HI,2026-06-30 17:55:47,RES-010,10k Ohm Resistor,Resistors,34,0.03,0.14,4.76,1.02,3.74,Pualani,Maker/Hobbyist,Purchase Order,850
+HI095-TX-0059,HI095,Windward Mall,Oahu,HI,2026-06-30 17:57:23,IC-358,LM358 Op Amp,Integrated Circuits,30,0.30,1.19,35.70,9.00,26.70,Akamu,Retail,Debit Card,222
+HI095-TX-0060,HI095,Windward Mall,Oahu,HI,2026-06-30 13:08:12,TOOL-SOL,Soldering Iron Tips,Tools,7,2.07,7.56,52.92,14.49,38.43,Lani,Marine,Purchase Order,278
+HI095-TX-0061,HI095,Windward Mall,Oahu,HI,2026-06-30 16:16:45,LED-RED,5mm Red LED,LEDs,11,0.05,0.28,3.08,0.55,2.53,Noah,Government,Credit Card,192
+HI095-TX-0062,HI095,Windward Mall,Oahu,HI,2026-06-30 12:22:08,USB-CBO,USB-C Breakout Board,Connectors,17,1.44,5.40,91.80,24.48,67.32,Keanu,Retail,Purchase Order,77
+HI095-TX-0063,HI095,Windward Mall,Oahu,HI,2026-06-30 14:30:34,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.90,14.82,88.92,29.40,59.52,Kaleo,Education,Cash,405
+HI095-TX-0064,HI095,Windward Mall,Oahu,HI,2026-06-30 10:20:22,PWR-5V2,5V 2A Power Supply,Power,6,3.39,10.55,63.30,20.34,42.96,Keanu,Tourism/Hospitality,Debit Card,619
+HI095-TX-0065,HI095,Windward Mall,Oahu,HI,2026-06-30 16:58:22,DIO-4007,1N4007 Diode,Semiconductors,34,0.04,0.20,6.80,1.36,5.44,Akamu,Tourism/Hospitality,Mobile Pay,494
+HI095-TX-0066,HI095,Windward Mall,Oahu,HI,2026-06-30 13:11:32,SNS-ULT,Ultrasonic Distance Sensor,Sensors,24,1.19,5.67,136.08,28.56,107.52,Ailani,Education,Purchase Order,208
+HI095-TX-0067,HI095,Windward Mall,Oahu,HI,2026-06-30 09:12:53,USB-CBO,USB-C Breakout Board,Connectors,27,1.29,5.54,149.58,34.83,114.75,Pualani,Government,Mobile Pay,149
+HI095-TX-0068,HI095,Windward Mall,Oahu,HI,2026-06-30 17:15:31,SOL-CTRL,Solar Charge Controller,Solar Power,3,10.36,33.38,100.14,31.08,69.06,Nalu,Retail,Debit Card,833
+HI095-TX-0069,HI095,Windward Mall,Oahu,HI,2026-06-30 16:26:25,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.79,14.56,43.68,11.37,32.31,Noelani,Commercial,ACH,424
+HI095-TX-0070,HI095,Windward Mall,Oahu,HI,2026-06-30 13:25:55,IC-358,LM358 Op Amp,Integrated Circuits,22,0.32,1.24,27.28,7.04,20.24,Keanu,Marine,Debit Card,852
+HI095-TX-0071,HI095,Windward Mall,Oahu,HI,2026-06-30 14:20:33,MOS-44N,IRFZ44N MOSFET,Semiconductors,26,0.61,2.30,59.80,15.86,43.94,Ailani,Retail,Credit Card,616
+HI095-TX-0072,HI095,Windward Mall,Oahu,HI,2026-06-30 08:54:22,IC-358,LM358 Op Amp,Integrated Circuits,22,0.30,1.26,27.72,6.60,21.12,Makana,Government,Mobile Pay,416
+HI095-TX-0073,HI095,Windward Mall,Oahu,HI,2026-06-30 14:54:24,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.18,12.28,98.24,33.44,64.80,Akamu,Commercial,Credit Card,48
+HI095-TX-0074,HI095,Windward Mall,Oahu,HI,2026-06-30 14:49:14,PWR-5V2,5V 2A Power Supply,Power,4,3.49,11.44,45.76,13.96,31.80,Mika,Education,Cash,246
+HI095-TX-0075,HI095,Windward Mall,Oahu,HI,2026-06-30 10:40:38,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.53,6.54,45.78,10.71,35.07,Keahi,Government,Mobile Pay,558
+HI095-TX-0076,HI095,Windward Mall,Oahu,HI,2026-06-30 10:30:00,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.94,13.29,26.58,9.88,16.70,Mika,Maker/Hobbyist,Mobile Pay,260
+HI095-TX-0077,HI095,Windward Mall,Oahu,HI,2026-06-30 16:10:19,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.53,6.21,24.84,6.12,18.72,Pualani,Maker/Hobbyist,Purchase Order,822
+HI095-TX-0078,HI095,Windward Mall,Oahu,HI,2026-06-30 17:20:23,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.49,6.80,20.40,4.47,15.93,Iolana,Government,Cash,242
+HI095-TX-0079,HI095,Windward Mall,Oahu,HI,2026-06-30 17:29:19,USB-CBO,USB-C Breakout Board,Connectors,27,1.31,5.48,147.96,35.37,112.59,Nalu,Tourism/Hospitality,Mobile Pay,218
+HI095-TX-0080,HI095,Windward Mall,Oahu,HI,2026-06-30 11:07:56,PWR-12V,12V 5A Power Supply,Power,5,9.06,23.67,118.35,45.30,73.05,Hana,Marine,Mobile Pay,117
+HI095-TX-0081,HI095,Windward Mall,Oahu,HI,2026-06-30 15:05:45,MOS-44N,IRFZ44N MOSFET,Semiconductors,13,0.57,2.30,29.90,7.41,22.49,Iolana,Commercial,Cash,682
+HI095-TX-0082,HI095,Windward Mall,Oahu,HI,2026-06-30 12:51:40,IC-358,LM358 Op Amp,Integrated Circuits,16,0.29,1.16,18.56,4.64,13.92,Lani,Marine,Mobile Pay,326
+HI095-TX-0083,HI095,Windward Mall,Oahu,HI,2026-06-30 08:23:33,TOOL-DMM,Digital Multimeter,Tools,2,8.37,28.23,56.46,16.74,39.72,Ailani,Tourism/Hospitality,Purchase Order,280
+HI095-TX-0084,HI095,Windward Mall,Oahu,HI,2026-06-30 17:05:18,SNS-SOIL,Soil Moisture Sensor,Sensors,16,0.98,4.47,71.52,15.68,55.84,Iolana,Retail,Cash,21
+HI095-TX-0085,HI095,Windward Mall,Oahu,HI,2026-06-30 09:08:07,SNS-SOIL,Soil Moisture Sensor,Sensors,19,0.91,4.21,79.99,17.29,62.70,Ailani,Government,Cash,121
+HI095-TX-0086,HI095,Windward Mall,Oahu,HI,2026-06-30 15:54:26,IC-358,LM358 Op Amp,Integrated Circuits,21,0.30,1.21,25.41,6.30,19.11,Lani,Government,Mobile Pay,612
+HI095-TX-0087,HI095,Windward Mall,Oahu,HI,2026-06-30 11:46:13,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.06,31.66,221.62,70.42,151.20,Pualani,Education,Cash,846
+HI095-TX-0088,HI095,Windward Mall,Oahu,HI,2026-06-30 12:51:31,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.36,7.17,50.19,16.52,33.67,Ailani,Education,ACH,105
+HI095-TX-0089,HI095,Windward Mall,Oahu,HI,2026-06-30 09:39:39,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.55,6.22,43.54,10.85,32.69,Ailani,Government,Cash,306
+HI095-TX-0090,HI095,Windward Mall,Oahu,HI,2026-06-30 13:07:58,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,9.59,28.46,113.84,38.36,75.48,Hana,Retail,Mobile Pay,707
+HI095-TX-0091,HI095,Windward Mall,Oahu,HI,2026-06-30 09:27:23,LED-RED,5mm Red LED,LEDs,17,0.05,0.29,4.93,0.85,4.08,Malia,Government,Mobile Pay,116
+HI095-TX-0092,HI095,Windward Mall,Oahu,HI,2026-06-30 16:16:46,LED-BLU,5mm Blue LED,LEDs,1,0.06,0.35,0.35,0.06,0.29,Nalu,Retail,Debit Card,452
+HI095-TX-0093,HI095,Windward Mall,Oahu,HI,2026-06-30 11:03:56,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.47,12.98,90.86,31.29,59.57,Noah,Commercial,ACH,608

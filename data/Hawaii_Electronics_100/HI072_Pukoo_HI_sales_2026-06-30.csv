@@ -1,0 +1,68 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI072-TX-0001,HI072,Pukoo,Molokai,HI,2026-06-30 17:13:00,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.38,12.81,89.67,30.66,59.01,Iolana,Education,Mobile Pay,621
+HI072-TX-0002,HI072,Pukoo,Molokai,HI,2026-06-30 08:18:20,SOL-CTRL,Solar Charge Controller,Solar Power,5,11.19,31.12,155.60,55.95,99.65,Keahi,Retail,Purchase Order,833
+HI072-TX-0003,HI072,Pukoo,Molokai,HI,2026-06-30 10:30:48,TOOL-WIRE,Wire Stripper,Tools,5,4.76,15.74,78.70,23.80,54.90,Pualani,Retail,Purchase Order,575
+HI072-TX-0004,HI072,Pukoo,Molokai,HI,2026-06-30 12:35:53,PWR-BUCK,Buck Converter Module,Power,15,1.09,5.17,77.55,16.35,61.20,Kaleo,Maker/Hobbyist,Purchase Order,381
+HI072-TX-0005,HI072,Pukoo,Molokai,HI,2026-06-30 14:42:33,CON-JMP,Jumper Wire Set,Connectors,24,0.90,4.05,97.20,21.60,75.60,Alika,Commercial,ACH,521
+HI072-TX-0006,HI072,Pukoo,Molokai,HI,2026-06-30 11:39:59,PWR-5V2,5V 2A Power Supply,Power,2,3.40,10.86,21.72,6.80,14.92,Iolana,Government,Mobile Pay,44
+HI072-TX-0007,HI072,Pukoo,Molokai,HI,2026-06-30 09:56:09,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.01,13.71,13.71,4.01,9.70,Mika,Retail,Cash,555
+HI072-TX-0008,HI072,Pukoo,Molokai,HI,2026-06-30 11:19:26,TR-3904,2N3904 NPN Transistor,Semiconductors,39,0.05,0.25,9.75,1.95,7.80,Iolana,Marine,Credit Card,656
+HI072-TX-0009,HI072,Pukoo,Molokai,HI,2026-06-30 14:02:29,DIO-4007,1N4007 Diode,Semiconductors,11,0.04,0.19,2.09,0.44,1.65,Keahi,Maker/Hobbyist,Purchase Order,662
+HI072-TX-0010,HI072,Pukoo,Molokai,HI,2026-06-30 16:40:04,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.62,6.49,6.49,1.62,4.87,Keanu,Government,ACH,427
+HI072-TX-0011,HI072,Pukoo,Molokai,HI,2026-06-30 11:11:02,DIO-4007,1N4007 Diode,Semiconductors,1,0.04,0.20,0.20,0.04,0.16,Iolana,Tourism/Hospitality,Debit Card,381
+HI072-TX-0012,HI072,Pukoo,Molokai,HI,2026-06-30 17:27:16,BRD-830,Breadboard 830 Tie Points,Connectors,6,1.56,6.69,40.14,9.36,30.78,Lani,Government,Debit Card,899
+HI072-TX-0013,HI072,Pukoo,Molokai,HI,2026-06-30 08:36:08,SOL-CTRL,Solar Charge Controller,Solar Power,3,11.09,31.48,94.44,33.27,61.17,Noelani,Maker/Hobbyist,Mobile Pay,890
+HI072-TX-0014,HI072,Pukoo,Molokai,HI,2026-06-30 17:11:21,SNS-ULT,Ultrasonic Distance Sensor,Sensors,39,1.29,5.15,200.85,50.31,150.54,Ailani,Maker/Hobbyist,Mobile Pay,227
+HI072-TX-0015,HI072,Pukoo,Molokai,HI,2026-06-30 13:41:19,PWR-12V,12V 5A Power Supply,Power,2,8.95,26.33,52.66,17.90,34.76,Hana,Government,Debit Card,340
+HI072-TX-0016,HI072,Pukoo,Molokai,HI,2026-06-30 15:48:24,SNS-PIR,PIR Motion Sensor,Sensors,2,1.45,5.79,11.58,2.90,8.68,Alika,Tourism/Hospitality,Mobile Pay,0
+HI072-TX-0017,HI072,Pukoo,Molokai,HI,2026-06-30 13:17:26,MAR-ANT,Marine Antenna Connector,Marine Electronics,5,3.81,14.72,73.60,19.05,54.55,Makana,Education,Cash,242
+HI072-TX-0018,HI072,Pukoo,Molokai,HI,2026-06-30 17:35:56,BAT-AAH,AA Battery Holder,Batteries,21,0.51,2.83,59.43,10.71,48.72,Malia,Education,Debit Card,522
+HI072-TX-0019,HI072,Pukoo,Molokai,HI,2026-06-30 09:41:59,SNS-PIR,PIR Motion Sensor,Sensors,7,1.62,6.17,43.19,11.34,31.85,Pualani,Education,Cash,81
+HI072-TX-0020,HI072,Pukoo,Molokai,HI,2026-06-30 15:17:19,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.45,9.22,18.44,6.90,11.54,Makana,Tourism/Hospitality,Mobile Pay,147
+HI072-TX-0021,HI072,Pukoo,Molokai,HI,2026-06-30 11:55:56,PWR-5V2,5V 2A Power Supply,Power,7,3.82,11.11,77.77,26.74,51.03,Ikaika,Maker/Hobbyist,Mobile Pay,516
+HI072-TX-0022,HI072,Pukoo,Molokai,HI,2026-06-30 13:14:30,RES-001,1k Ohm Resistor,Resistors,3,0.03,0.13,0.39,0.09,0.30,Keanu,Maker/Hobbyist,Cash,653
+HI072-TX-0023,HI072,Pukoo,Molokai,HI,2026-06-30 09:50:28,PWR-12V,12V 5A Power Supply,Power,6,9.21,25.35,152.10,55.26,96.84,Nalu,Marine,Credit Card,112
+HI072-TX-0024,HI072,Pukoo,Molokai,HI,2026-06-30 16:41:42,DIO-4007,1N4007 Diode,Semiconductors,11,0.04,0.20,2.20,0.44,1.76,Alika,Government,ACH,566
+HI072-TX-0025,HI072,Pukoo,Molokai,HI,2026-06-30 12:19:26,CON-JMP,Jumper Wire Set,Connectors,14,0.98,3.96,55.44,13.72,41.72,Mika,Commercial,Debit Card,691
+HI072-TX-0026,HI072,Pukoo,Molokai,HI,2026-06-30 12:58:55,IC-358,LM358 Op Amp,Integrated Circuits,16,0.32,1.19,19.04,5.12,13.92,Lani,Marine,Purchase Order,51
+HI072-TX-0027,HI072,Pukoo,Molokai,HI,2026-06-30 16:14:10,CAP-010,10uF Capacitor,Capacitors,10,0.09,0.39,3.90,0.90,3.00,Keanu,Marine,Mobile Pay,885
+HI072-TX-0028,HI072,Pukoo,Molokai,HI,2026-06-30 12:43:42,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,2,0.05,0.21,0.42,0.10,0.32,Leilani,Tourism/Hospitality,Credit Card,643
+HI072-TX-0029,HI072,Pukoo,Molokai,HI,2026-06-30 17:50:27,PWR-5V2,5V 2A Power Supply,Power,2,3.67,11.41,22.82,7.34,15.48,Keanu,Marine,Credit Card,422
+HI072-TX-0030,HI072,Pukoo,Molokai,HI,2026-06-30 15:49:15,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,8.57,27.74,221.92,68.56,153.36,Keanu,Education,ACH,887
+HI072-TX-0031,HI072,Pukoo,Molokai,HI,2026-06-30 14:59:49,CON-JMP,Jumper Wire Set,Connectors,30,0.90,3.71,111.30,27.00,84.30,Noelani,Commercial,Mobile Pay,799
+HI072-TX-0032,HI072,Pukoo,Molokai,HI,2026-06-30 09:39:23,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.58,6.36,19.08,4.74,14.34,Ikaika,Government,Cash,202
+HI072-TX-0033,HI072,Pukoo,Molokai,HI,2026-06-30 09:48:55,SNS-ULT,Ultrasonic Distance Sensor,Sensors,31,1.20,5.61,173.91,37.20,136.71,Mika,Education,Purchase Order,185
+HI072-TX-0034,HI072,Pukoo,Molokai,HI,2026-06-30 09:21:44,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.54,14.32,14.32,4.54,9.78,Malia,Tourism/Hospitality,Cash,869
+HI072-TX-0035,HI072,Pukoo,Molokai,HI,2026-06-30 11:52:04,BAT-LIPO,LiPo Battery Pack,Batteries,4,4.97,16.09,64.36,19.88,44.48,Makana,Tourism/Hospitality,Purchase Order,700
+HI072-TX-0036,HI072,Pukoo,Molokai,HI,2026-06-30 14:52:58,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.92,14.11,14.11,3.92,10.19,Keanu,Maker/Hobbyist,Mobile Pay,899
+HI072-TX-0037,HI072,Pukoo,Molokai,HI,2026-06-30 16:00:31,PWR-BUCK,Buck Converter Module,Power,17,1.04,4.61,78.37,17.68,60.69,Noah,Education,Cash,574
+HI072-TX-0038,HI072,Pukoo,Molokai,HI,2026-06-30 16:52:15,CON-JMP,Jumper Wire Set,Connectors,18,0.97,3.64,65.52,17.46,48.06,Koa,Tourism/Hospitality,Purchase Order,326
+HI072-TX-0039,HI072,Pukoo,Molokai,HI,2026-06-30 14:46:23,REL-5V,5V Relay Module,Relays,31,0.96,5.30,164.30,29.76,134.54,Ikaika,Maker/Hobbyist,Cash,742
+HI072-TX-0040,HI072,Pukoo,Molokai,HI,2026-06-30 14:04:36,PWR-BUCK,Buck Converter Module,Power,6,1.08,4.97,29.82,6.48,23.34,Iolana,Education,Purchase Order,241
+HI072-TX-0041,HI072,Pukoo,Molokai,HI,2026-06-30 09:30:51,USB-CBO,USB-C Breakout Board,Connectors,14,1.38,5.63,78.82,19.32,59.50,Malia,Government,Mobile Pay,170
+HI072-TX-0042,HI072,Pukoo,Molokai,HI,2026-06-30 11:27:01,PWR-BUCK,Buck Converter Module,Power,21,0.98,4.82,101.22,20.58,80.64,Leilani,Tourism/Hospitality,Credit Card,328
+HI072-TX-0043,HI072,Pukoo,Molokai,HI,2026-06-30 12:13:40,PWR-5V2,5V 2A Power Supply,Power,1,3.42,11.03,11.03,3.42,7.61,Noah,Marine,Mobile Pay,799
+HI072-TX-0044,HI072,Pukoo,Molokai,HI,2026-06-30 10:42:16,PWR-BUCK,Buck Converter Module,Power,4,1.08,5.14,20.56,4.32,16.24,Mika,Maker/Hobbyist,Mobile Pay,507
+HI072-TX-0045,HI072,Pukoo,Molokai,HI,2026-06-30 13:35:44,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,9.73,27.94,139.70,48.65,91.05,Ikaika,Commercial,Purchase Order,222
+HI072-TX-0046,HI072,Pukoo,Molokai,HI,2026-06-30 14:00:02,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.61,14.20,113.60,28.88,84.72,Kaleo,Maker/Hobbyist,Debit Card,369
+HI072-TX-0047,HI072,Pukoo,Molokai,HI,2026-06-30 11:59:18,PWR-12V,12V 5A Power Supply,Power,7,9.23,25.12,175.84,64.61,111.23,Nalu,Maker/Hobbyist,Mobile Pay,830
+HI072-TX-0048,HI072,Pukoo,Molokai,HI,2026-06-30 09:02:32,SNS-PIR,PIR Motion Sensor,Sensors,6,1.50,6.36,38.16,9.00,29.16,Kaleo,Education,Mobile Pay,558
+HI072-TX-0049,HI072,Pukoo,Molokai,HI,2026-06-30 17:54:02,SNS-PIR,PIR Motion Sensor,Sensors,5,1.55,5.74,28.70,7.75,20.95,Pualani,Government,ACH,493
+HI072-TX-0050,HI072,Pukoo,Molokai,HI,2026-06-30 09:01:47,PWR-BUCK,Buck Converter Module,Power,19,1.07,5.15,97.85,20.33,77.52,Keahi,Education,Debit Card,104
+HI072-TX-0051,HI072,Pukoo,Molokai,HI,2026-06-30 13:57:37,PWR-12V,12V 5A Power Supply,Power,3,9.96,25.80,77.40,29.88,47.52,Noah,Marine,Purchase Order,855
+HI072-TX-0052,HI072,Pukoo,Molokai,HI,2026-06-30 10:04:09,LED-RGB,RGB LED Strip,LEDs,3,4.68,13.58,40.74,14.04,26.70,Alika,Commercial,Debit Card,231
+HI072-TX-0053,HI072,Pukoo,Molokai,HI,2026-06-30 14:24:15,PWR-12V,12V 5A Power Supply,Power,3,10.02,24.65,73.95,30.06,43.89,Koa,Maker/Hobbyist,Credit Card,611
+HI072-TX-0054,HI072,Pukoo,Molokai,HI,2026-06-30 13:57:47,MAR-TIN,Tinned Marine Wire,Marine Electronics,3,9.07,27.88,83.64,27.21,56.43,Malia,Government,Debit Card,124
+HI072-TX-0055,HI072,Pukoo,Molokai,HI,2026-06-30 08:55:11,SNS-ULT,Ultrasonic Distance Sensor,Sensors,39,1.34,5.13,200.07,52.26,147.81,Noah,Retail,Purchase Order,705
+HI072-TX-0056,HI072,Pukoo,Molokai,HI,2026-06-30 09:35:11,RES-010,10k Ohm Resistor,Resistors,36,0.03,0.13,4.68,1.08,3.60,Kaleo,Commercial,Mobile Pay,881
+HI072-TX-0057,HI072,Pukoo,Molokai,HI,2026-06-30 13:52:59,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,5.01,14.30,57.20,20.04,37.16,Nalu,Tourism/Hospitality,ACH,24
+HI072-TX-0058,HI072,Pukoo,Molokai,HI,2026-06-30 13:11:33,TR-3904,2N3904 NPN Transistor,Semiconductors,33,0.05,0.25,8.25,1.65,6.60,Noah,Education,Credit Card,614
+HI072-TX-0059,HI072,Pukoo,Molokai,HI,2026-06-30 08:08:16,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.13,8.97,8.97,3.13,5.84,Iolana,Maker/Hobbyist,Mobile Pay,569
+HI072-TX-0060,HI072,Pukoo,Molokai,HI,2026-06-30 11:58:02,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.93,34.71,242.97,76.51,166.46,Malia,Tourism/Hospitality,Purchase Order,627
+HI072-TX-0061,HI072,Pukoo,Molokai,HI,2026-06-30 11:17:30,TOOL-WIRE,Wire Stripper,Tools,4,5.10,14.90,59.60,20.40,39.20,Hana,Government,Credit Card,651
+HI072-TX-0062,HI072,Pukoo,Molokai,HI,2026-06-30 09:14:49,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.07,32.43,259.44,88.56,170.88,Iolana,Tourism/Hospitality,Debit Card,189
+HI072-TX-0063,HI072,Pukoo,Molokai,HI,2026-06-30 12:12:54,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.27,34.17,136.68,41.08,95.60,Noelani,Maker/Hobbyist,Mobile Pay,233
+HI072-TX-0064,HI072,Pukoo,Molokai,HI,2026-06-30 08:30:44,MAR-ANT,Marine Antenna Connector,Marine Electronics,5,3.73,13.73,68.65,18.65,50.00,Nalu,Government,Credit Card,856
+HI072-TX-0065,HI072,Pukoo,Molokai,HI,2026-06-30 14:56:38,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.83,34.65,138.60,43.32,95.28,Mika,Education,Credit Card,395
+HI072-TX-0066,HI072,Pukoo,Molokai,HI,2026-06-30 12:23:20,IC-555,NE555 Timer IC,Integrated Circuits,30,0.34,1.40,42.00,10.20,31.80,Koa,Maker/Hobbyist,Purchase Order,882
+HI072-TX-0067,HI072,Pukoo,Molokai,HI,2026-06-30 10:05:11,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,4.07,14.40,28.80,8.14,20.66,Koa,Commercial,Cash,645

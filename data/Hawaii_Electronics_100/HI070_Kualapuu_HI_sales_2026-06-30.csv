@@ -1,0 +1,75 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI070-TX-0001,HI070,Kualapuu,Molokai,HI,2026-06-30 12:46:59,IC-555,NE555 Timer IC,Integrated Circuits,17,0.34,1.28,21.76,5.78,15.98,Akamu,Tourism/Hospitality,ACH,611
+HI070-TX-0002,HI070,Kualapuu,Molokai,HI,2026-06-30 11:32:38,PWR-5V2,5V 2A Power Supply,Power,3,3.76,11.48,34.44,11.28,23.16,Leilani,Maker/Hobbyist,Purchase Order,790
+HI070-TX-0003,HI070,Kualapuu,Molokai,HI,2026-06-30 11:09:02,BAT-AAH,AA Battery Holder,Batteries,25,0.48,2.76,69.00,12.00,57.00,Leilani,Commercial,Mobile Pay,681
+HI070-TX-0004,HI070,Kualapuu,Molokai,HI,2026-06-30 12:29:11,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,8.98,27.22,217.76,71.84,145.92,Noah,Commercial,Mobile Pay,490
+HI070-TX-0005,HI070,Kualapuu,Molokai,HI,2026-06-30 10:31:24,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.84,14.99,14.99,4.84,10.15,Hana,Commercial,Cash,496
+HI070-TX-0006,HI070,Kualapuu,Molokai,HI,2026-06-30 11:52:37,CAP-100,100uF Capacitor,Capacitors,11,0.17,0.60,6.60,1.87,4.73,Keanu,Education,Mobile Pay,242
+HI070-TX-0007,HI070,Kualapuu,Molokai,HI,2026-06-30 13:09:53,PWR-5V2,5V 2A Power Supply,Power,1,3.80,11.17,11.17,3.80,7.37,Lani,Commercial,Mobile Pay,1
+HI070-TX-0008,HI070,Kualapuu,Molokai,HI,2026-06-30 10:48:50,PWR-12V,12V 5A Power Supply,Power,2,9.47,25.93,51.86,18.94,32.92,Makana,Marine,Credit Card,446
+HI070-TX-0009,HI070,Kualapuu,Molokai,HI,2026-06-30 12:38:53,RES-010,10k Ohm Resistor,Resistors,18,0.03,0.13,2.34,0.54,1.80,Akamu,Tourism/Hospitality,Mobile Pay,65
+HI070-TX-0010,HI070,Kualapuu,Molokai,HI,2026-06-30 12:15:16,IC-555,NE555 Timer IC,Integrated Circuits,5,0.37,1.33,6.65,1.85,4.80,Makana,Tourism/Hospitality,ACH,175
+HI070-TX-0011,HI070,Kualapuu,Molokai,HI,2026-06-30 09:47:38,DIO-4007,1N4007 Diode,Semiconductors,18,0.04,0.19,3.42,0.72,2.70,Lani,Education,Credit Card,143
+HI070-TX-0012,HI070,Kualapuu,Molokai,HI,2026-06-30 16:29:14,PWR-BUCK,Buck Converter Module,Power,39,1.02,5.01,195.39,39.78,155.61,Iolana,Education,Mobile Pay,393
+HI070-TX-0013,HI070,Kualapuu,Molokai,HI,2026-06-30 12:01:13,PWR-BUCK,Buck Converter Module,Power,2,1.01,4.71,9.42,2.02,7.40,Alika,Retail,Credit Card,188
+HI070-TX-0014,HI070,Kualapuu,Molokai,HI,2026-06-30 15:25:58,PWR-5V2,5V 2A Power Supply,Power,5,3.73,10.30,51.50,18.65,32.85,Makana,Retail,Mobile Pay,614
+HI070-TX-0015,HI070,Kualapuu,Molokai,HI,2026-06-30 14:09:03,PWR-12V,12V 5A Power Supply,Power,7,9.01,23.47,164.29,63.07,101.22,Ailani,Tourism/Hospitality,Mobile Pay,80
+HI070-TX-0016,HI070,Kualapuu,Molokai,HI,2026-06-30 12:45:01,PWR-BUCK,Buck Converter Module,Power,32,1.07,4.96,158.72,34.24,124.48,Pualani,Education,Purchase Order,474
+HI070-TX-0017,HI070,Kualapuu,Molokai,HI,2026-06-30 13:00:29,PWR-BUCK,Buck Converter Module,Power,22,1.09,4.84,106.48,23.98,82.50,Nalu,Maker/Hobbyist,Purchase Order,655
+HI070-TX-0018,HI070,Kualapuu,Molokai,HI,2026-06-30 08:08:32,PWR-BUCK,Buck Converter Module,Power,22,0.98,4.95,108.90,21.56,87.34,Lani,Tourism/Hospitality,Cash,15
+HI070-TX-0019,HI070,Kualapuu,Molokai,HI,2026-06-30 17:35:47,LED-RGB,RGB LED Strip,LEDs,1,5.04,13.76,13.76,5.04,8.72,Nalu,Tourism/Hospitality,Mobile Pay,548
+HI070-TX-0020,HI070,Kualapuu,Molokai,HI,2026-06-30 13:11:40,MOS-44N,IRFZ44N MOSFET,Semiconductors,28,0.59,2.43,68.04,16.52,51.52,Malia,Commercial,Debit Card,851
+HI070-TX-0021,HI070,Kualapuu,Molokai,HI,2026-06-30 16:33:39,LED-BLU,5mm Blue LED,LEDs,31,0.06,0.32,9.92,1.86,8.06,Akamu,Maker/Hobbyist,Mobile Pay,43
+HI070-TX-0022,HI070,Kualapuu,Molokai,HI,2026-06-30 11:38:54,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.48,6.67,33.35,7.40,25.95,Hana,Tourism/Hospitality,Cash,876
+HI070-TX-0023,HI070,Kualapuu,Molokai,HI,2026-06-30 13:13:31,USB-CBO,USB-C Breakout Board,Connectors,27,1.42,5.28,142.56,38.34,104.22,Ikaika,Government,Debit Card,180
+HI070-TX-0024,HI070,Kualapuu,Molokai,HI,2026-06-30 08:46:15,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.99,15.06,60.24,15.96,44.28,Koa,Retail,Debit Card,249
+HI070-TX-0025,HI070,Kualapuu,Molokai,HI,2026-06-30 13:46:30,USB-CBO,USB-C Breakout Board,Connectors,36,1.47,5.75,207.00,52.92,154.08,Keahi,Commercial,Cash,666
+HI070-TX-0026,HI070,Kualapuu,Molokai,HI,2026-06-30 12:14:52,PWR-5V2,5V 2A Power Supply,Power,2,3.73,10.74,21.48,7.46,14.02,Nalu,Education,Credit Card,202
+HI070-TX-0027,HI070,Kualapuu,Molokai,HI,2026-06-30 15:36:32,RES-001,1k Ohm Resistor,Resistors,20,0.03,0.12,2.40,0.60,1.80,Keahi,Education,Mobile Pay,201
+HI070-TX-0028,HI070,Kualapuu,Molokai,HI,2026-06-30 15:30:48,PWR-BUCK,Buck Converter Module,Power,9,1.02,5.11,45.99,9.18,36.81,Makana,Education,Cash,707
+HI070-TX-0029,HI070,Kualapuu,Molokai,HI,2026-06-30 08:09:34,CAP-010,10uF Capacitor,Capacitors,10,0.09,0.37,3.70,0.90,2.80,Noelani,Education,Debit Card,257
+HI070-TX-0030,HI070,Kualapuu,Molokai,HI,2026-06-30 16:44:01,REL-5V,5V Relay Module,Relays,19,0.93,5.73,108.87,17.67,91.20,Akamu,Commercial,Cash,671
+HI070-TX-0031,HI070,Kualapuu,Molokai,HI,2026-06-30 11:55:38,BAT-AAH,AA Battery Holder,Batteries,3,0.52,2.84,8.52,1.56,6.96,Noah,Education,Credit Card,800
+HI070-TX-0032,HI070,Kualapuu,Molokai,HI,2026-06-30 14:09:24,REL-5V,5V Relay Module,Relays,21,0.98,5.29,111.09,20.58,90.51,Pualani,Tourism/Hospitality,Cash,333
+HI070-TX-0033,HI070,Kualapuu,Molokai,HI,2026-06-30 17:01:15,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,29,0.04,0.20,5.80,1.16,4.64,Noelani,Maker/Hobbyist,ACH,575
+HI070-TX-0034,HI070,Kualapuu,Molokai,HI,2026-06-30 17:23:35,PWR-12V,12V 5A Power Supply,Power,7,9.31,26.50,185.50,65.17,120.33,Ailani,Marine,Cash,714
+HI070-TX-0035,HI070,Kualapuu,Molokai,HI,2026-06-30 12:26:55,PWR-BUCK,Buck Converter Module,Power,27,1.00,5.11,137.97,27.00,110.97,Lani,Maker/Hobbyist,ACH,207
+HI070-TX-0036,HI070,Kualapuu,Molokai,HI,2026-06-30 08:31:52,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.79,13.36,106.88,38.32,68.56,Kaleo,Retail,Debit Card,793
+HI070-TX-0037,HI070,Kualapuu,Molokai,HI,2026-06-30 10:27:46,TOOL-DMM,Digital Multimeter,Tools,2,8.60,26.88,53.76,17.20,36.56,Iolana,Marine,Purchase Order,229
+HI070-TX-0038,HI070,Kualapuu,Molokai,HI,2026-06-30 10:22:21,CON-JMP,Jumper Wire Set,Connectors,35,0.91,3.91,136.85,31.85,105.00,Kaleo,Maker/Hobbyist,Mobile Pay,791
+HI070-TX-0039,HI070,Kualapuu,Molokai,HI,2026-06-30 14:35:33,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.36,34.63,277.04,90.88,186.16,Noelani,Government,Purchase Order,186
+HI070-TX-0040,HI070,Kualapuu,Molokai,HI,2026-06-30 15:55:50,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,9.23,25.55,51.10,18.46,32.64,Malia,Marine,ACH,692
+HI070-TX-0041,HI070,Kualapuu,Molokai,HI,2026-06-30 08:11:25,PWR-12V,12V 5A Power Supply,Power,2,8.77,25.16,50.32,17.54,32.78,Nalu,Maker/Hobbyist,Cash,895
+HI070-TX-0042,HI070,Kualapuu,Molokai,HI,2026-06-30 13:39:49,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.22,13.32,79.92,25.32,54.60,Ailani,Retail,Mobile Pay,176
+HI070-TX-0043,HI070,Kualapuu,Molokai,HI,2026-06-30 17:10:27,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.18,31.84,222.88,71.26,151.62,Mika,Maker/Hobbyist,Mobile Pay,349
+HI070-TX-0044,HI070,Kualapuu,Molokai,HI,2026-06-30 17:16:09,ESP-32,ESP32 Dev Board,Microcontrollers,3,3.97,13.27,39.81,11.91,27.90,Iolana,Maker/Hobbyist,ACH,257
+HI070-TX-0045,HI070,Kualapuu,Molokai,HI,2026-06-30 10:41:50,TOOL-SOL,Soldering Iron Tips,Tools,1,1.88,8.03,8.03,1.88,6.15,Iolana,Education,Purchase Order,178
+HI070-TX-0046,HI070,Kualapuu,Molokai,HI,2026-06-30 09:05:00,RES-001,1k Ohm Resistor,Resistors,5,0.03,0.14,0.70,0.15,0.55,Koa,Maker/Hobbyist,Credit Card,70
+HI070-TX-0047,HI070,Kualapuu,Molokai,HI,2026-06-30 08:00:14,USB-CBO,USB-C Breakout Board,Connectors,9,1.38,5.12,46.08,12.42,33.66,Makana,Maker/Hobbyist,Debit Card,345
+HI070-TX-0048,HI070,Kualapuu,Molokai,HI,2026-06-30 09:15:18,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.99,14.59,116.72,31.92,84.80,Mika,Maker/Hobbyist,Debit Card,278
+HI070-TX-0049,HI070,Kualapuu,Molokai,HI,2026-06-30 15:38:27,SNS-ULT,Ultrasonic Distance Sensor,Sensors,10,1.26,5.35,53.50,12.60,40.90,Leilani,Commercial,Debit Card,676
+HI070-TX-0050,HI070,Kualapuu,Molokai,HI,2026-06-30 09:13:52,RES-220,220 Ohm Resistor,Resistors,35,0.03,0.14,4.90,1.05,3.85,Lani,Education,Purchase Order,896
+HI070-TX-0051,HI070,Kualapuu,Molokai,HI,2026-06-30 16:36:05,RES-001,1k Ohm Resistor,Resistors,26,0.03,0.13,3.38,0.78,2.60,Pualani,Commercial,Cash,370
+HI070-TX-0052,HI070,Kualapuu,Molokai,HI,2026-06-30 11:57:22,PWR-12V,12V 5A Power Supply,Power,3,9.28,24.67,74.01,27.84,46.17,Akamu,Education,Purchase Order,19
+HI070-TX-0053,HI070,Kualapuu,Molokai,HI,2026-06-30 13:22:44,SNS-DHT,DHT22 Temperature Sensor,Sensors,1,2.43,7.76,7.76,2.43,5.33,Koa,Education,Mobile Pay,477
+HI070-TX-0054,HI070,Kualapuu,Molokai,HI,2026-06-30 12:30:06,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,7,0.05,0.21,1.47,0.35,1.12,Nalu,Commercial,ACH,43
+HI070-TX-0055,HI070,Kualapuu,Molokai,HI,2026-06-30 16:40:40,TR-3904,2N3904 NPN Transistor,Semiconductors,24,0.06,0.23,5.52,1.44,4.08,Hana,Maker/Hobbyist,Mobile Pay,411
+HI070-TX-0056,HI070,Kualapuu,Molokai,HI,2026-06-30 15:22:12,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,4.05,13.54,27.08,8.10,18.98,Nalu,Tourism/Hospitality,Mobile Pay,647
+HI070-TX-0057,HI070,Kualapuu,Molokai,HI,2026-06-30 09:26:32,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.81,13.67,95.69,26.67,69.02,Makana,Tourism/Hospitality,Debit Card,14
+HI070-TX-0058,HI070,Kualapuu,Molokai,HI,2026-06-30 14:36:31,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,3.69,14.38,115.04,29.52,85.52,Kaleo,Marine,ACH,324
+HI070-TX-0059,HI070,Kualapuu,Molokai,HI,2026-06-30 16:34:51,TOOL-WIRE,Wire Stripper,Tools,6,4.89,14.37,86.22,29.34,56.88,Makana,Commercial,ACH,689
+HI070-TX-0060,HI070,Kualapuu,Molokai,HI,2026-06-30 09:10:57,TOOL-WIRE,Wire Stripper,Tools,4,5.11,15.04,60.16,20.44,39.72,Mika,Maker/Hobbyist,Credit Card,187
+HI070-TX-0061,HI070,Kualapuu,Molokai,HI,2026-06-30 14:52:24,SOL-CTRL,Solar Charge Controller,Solar Power,8,10.14,33.94,271.52,81.12,190.40,Pualani,Marine,Cash,311
+HI070-TX-0062,HI070,Kualapuu,Molokai,HI,2026-06-30 12:42:23,REL-5V,5V Relay Module,Relays,20,0.92,5.47,109.40,18.40,91.00,Pualani,Tourism/Hospitality,Debit Card,302
+HI070-TX-0063,HI070,Kualapuu,Molokai,HI,2026-06-30 14:02:08,RES-220,220 Ohm Resistor,Resistors,20,0.03,0.13,2.60,0.60,2.00,Makana,Retail,Purchase Order,250
+HI070-TX-0064,HI070,Kualapuu,Molokai,HI,2026-06-30 12:27:59,TOOL-SOL,Soldering Iron Tips,Tools,2,1.93,7.67,15.34,3.86,11.48,Pualani,Retail,Credit Card,583
+HI070-TX-0065,HI070,Kualapuu,Molokai,HI,2026-06-30 16:54:14,RES-001,1k Ohm Resistor,Resistors,1,0.03,0.13,0.13,0.03,0.10,Akamu,Marine,Mobile Pay,734
+HI070-TX-0066,HI070,Kualapuu,Molokai,HI,2026-06-30 09:47:02,SOL-CTRL,Solar Charge Controller,Solar Power,2,11.25,34.13,68.26,22.50,45.76,Noelani,Tourism/Hospitality,Cash,357
+HI070-TX-0067,HI070,Kualapuu,Molokai,HI,2026-06-30 12:28:45,ESP-32,ESP32 Dev Board,Microcontrollers,4,3.97,12.76,51.04,15.88,35.16,Alika,Maker/Hobbyist,Purchase Order,204
+HI070-TX-0068,HI070,Kualapuu,Molokai,HI,2026-06-30 13:25:38,PWR-12V,12V 5A Power Supply,Power,1,9.86,25.07,25.07,9.86,15.21,Keanu,Commercial,Purchase Order,289
+HI070-TX-0069,HI070,Kualapuu,Molokai,HI,2026-06-30 17:42:46,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.30,16.61,99.66,31.80,67.86,Makana,Retail,Purchase Order,366
+HI070-TX-0070,HI070,Kualapuu,Molokai,HI,2026-06-30 12:56:13,TOOL-DMM,Digital Multimeter,Tools,4,8.47,26.68,106.72,33.88,72.84,Pualani,Commercial,ACH,448
+HI070-TX-0071,HI070,Kualapuu,Molokai,HI,2026-06-30 14:15:13,PWR-12V,12V 5A Power Supply,Power,4,8.78,23.46,93.84,35.12,58.72,Hana,Government,Debit Card,574
+HI070-TX-0072,HI070,Kualapuu,Molokai,HI,2026-06-30 11:19:19,SOL-CTRL,Solar Charge Controller,Solar Power,1,10.95,30.72,30.72,10.95,19.77,Pualani,Marine,Credit Card,82
+HI070-TX-0073,HI070,Kualapuu,Molokai,HI,2026-06-30 10:48:56,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,9.43,25.95,51.90,18.86,33.04,Lani,Retail,Mobile Pay,656
+HI070-TX-0074,HI070,Kualapuu,Molokai,HI,2026-06-30 12:03:37,TR-3904,2N3904 NPN Transistor,Semiconductors,13,0.06,0.24,3.12,0.78,2.34,Lani,Commercial,Purchase Order,99

@@ -1,0 +1,86 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI098-TX-0001,HI098,Kauai Harbor,Kauai,HI,2026-06-30 17:22:23,TR-3904,2N3904 NPN Transistor,Semiconductors,26,0.06,0.25,6.50,1.56,4.94,Malia,Maker/Hobbyist,Purchase Order,84
+HI098-TX-0002,HI098,Kauai Harbor,Kauai,HI,2026-06-30 13:28:56,PWR-5V2,5V 2A Power Supply,Power,7,3.35,10.98,76.86,23.45,53.41,Pualani,Maker/Hobbyist,Mobile Pay,614
+HI098-TX-0003,HI098,Kauai Harbor,Kauai,HI,2026-06-30 13:05:33,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,9.13,28.52,171.12,54.78,116.34,Mika,Marine,Cash,768
+HI098-TX-0004,HI098,Kauai Harbor,Kauai,HI,2026-06-30 17:57:42,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.47,13.89,69.45,22.35,47.10,Malia,Marine,Purchase Order,221
+HI098-TX-0005,HI098,Kauai Harbor,Kauai,HI,2026-06-30 08:52:01,PWR-12V,12V 5A Power Supply,Power,4,9.96,24.74,98.96,39.84,59.12,Leilani,Commercial,Credit Card,176
+HI098-TX-0006,HI098,Kauai Harbor,Kauai,HI,2026-06-30 17:08:19,TOOL-DMM,Digital Multimeter,Tools,6,8.51,25.89,155.34,51.06,104.28,Nalu,Retail,Mobile Pay,272
+HI098-TX-0007,HI098,Kauai Harbor,Kauai,HI,2026-06-30 13:26:57,REL-5V,5V Relay Module,Relays,29,0.94,5.64,163.56,27.26,136.30,Malia,Marine,Mobile Pay,746
+HI098-TX-0008,HI098,Kauai Harbor,Kauai,HI,2026-06-30 08:45:50,SNS-PIR,PIR Motion Sensor,Sensors,7,1.51,6.05,42.35,10.57,31.78,Alika,Tourism/Hospitality,Credit Card,146
+HI098-TX-0009,HI098,Kauai Harbor,Kauai,HI,2026-06-30 12:33:13,CON-JMP,Jumper Wire Set,Connectors,21,0.95,3.66,76.86,19.95,56.91,Iolana,Maker/Hobbyist,Mobile Pay,451
+HI098-TX-0010,HI098,Kauai Harbor,Kauai,HI,2026-06-30 13:52:05,SOL-CTRL,Solar Charge Controller,Solar Power,8,10.83,31.43,251.44,86.64,164.80,Ailani,Education,Purchase Order,817
+HI098-TX-0011,HI098,Kauai Harbor,Kauai,HI,2026-06-30 13:57:48,CON-JMP,Jumper Wire Set,Connectors,6,0.97,3.86,23.16,5.82,17.34,Malia,Retail,ACH,674
+HI098-TX-0012,HI098,Kauai Harbor,Kauai,HI,2026-06-30 11:01:12,SNS-PIR,PIR Motion Sensor,Sensors,2,1.51,6.07,12.14,3.02,9.12,Hana,Tourism/Hospitality,Cash,508
+HI098-TX-0013,HI098,Kauai Harbor,Kauai,HI,2026-06-30 11:46:11,PWR-5V2,5V 2A Power Supply,Power,6,3.41,10.32,61.92,20.46,41.46,Alika,Education,Cash,466
+HI098-TX-0014,HI098,Kauai Harbor,Kauai,HI,2026-06-30 16:19:18,TOOL-DMM,Digital Multimeter,Tools,5,8.90,28.59,142.95,44.50,98.45,Malia,Tourism/Hospitality,Debit Card,407
+HI098-TX-0015,HI098,Kauai Harbor,Kauai,HI,2026-06-30 14:08:02,IC-555,NE555 Timer IC,Integrated Circuits,33,0.37,1.34,44.22,12.21,32.01,Noelani,Maker/Hobbyist,Debit Card,63
+HI098-TX-0016,HI098,Kauai Harbor,Kauai,HI,2026-06-30 09:27:25,PWR-12V,12V 5A Power Supply,Power,5,9.78,26.49,132.45,48.90,83.55,Lani,Government,Debit Card,650
+HI098-TX-0017,HI098,Kauai Harbor,Kauai,HI,2026-06-30 14:41:40,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,8.70,27.72,138.60,43.50,95.10,Keahi,Government,Purchase Order,221
+HI098-TX-0018,HI098,Kauai Harbor,Kauai,HI,2026-06-30 14:31:48,LED-RGB,RGB LED Strip,LEDs,6,5.00,14.30,85.80,30.00,55.80,Akamu,Government,Cash,389
+HI098-TX-0019,HI098,Kauai Harbor,Kauai,HI,2026-06-30 17:26:31,DIO-4007,1N4007 Diode,Semiconductors,1,0.04,0.19,0.19,0.04,0.15,Keahi,Retail,Purchase Order,264
+HI098-TX-0020,HI098,Kauai Harbor,Kauai,HI,2026-06-30 13:55:31,LED-RGB,RGB LED Strip,LEDs,4,4.73,14.75,59.00,18.92,40.08,Nalu,Maker/Hobbyist,ACH,74
+HI098-TX-0021,HI098,Kauai Harbor,Kauai,HI,2026-06-30 15:06:53,TOOL-DMM,Digital Multimeter,Tools,6,8.95,26.44,158.64,53.70,104.94,Hana,Marine,Cash,868
+HI098-TX-0022,HI098,Kauai Harbor,Kauai,HI,2026-06-30 09:30:15,PWR-12V,12V 5A Power Supply,Power,1,9.35,23.53,23.53,9.35,14.18,Lani,Commercial,Cash,288
+HI098-TX-0023,HI098,Kauai Harbor,Kauai,HI,2026-06-30 13:24:41,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.88,13.52,13.52,3.88,9.64,Lani,Education,Mobile Pay,344
+HI098-TX-0024,HI098,Kauai Harbor,Kauai,HI,2026-06-30 15:10:43,TOOL-SOL,Soldering Iron Tips,Tools,3,2.11,7.46,22.38,6.33,16.05,Koa,Government,Credit Card,123
+HI098-TX-0025,HI098,Kauai Harbor,Kauai,HI,2026-06-30 13:55:46,SNS-SOIL,Soil Moisture Sensor,Sensors,17,0.98,4.09,69.53,16.66,52.87,Kaleo,Tourism/Hospitality,Credit Card,702
+HI098-TX-0026,HI098,Kauai Harbor,Kauai,HI,2026-06-30 17:30:31,CON-JMP,Jumper Wire Set,Connectors,14,0.89,3.61,50.54,12.46,38.08,Leilani,Tourism/Hospitality,Mobile Pay,340
+HI098-TX-0027,HI098,Kauai Harbor,Kauai,HI,2026-06-30 16:30:31,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,34,0.04,0.19,6.46,1.36,5.10,Lani,Tourism/Hospitality,Mobile Pay,747
+HI098-TX-0028,HI098,Kauai Harbor,Kauai,HI,2026-06-30 10:06:05,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.88,13.69,95.83,27.16,68.67,Makana,Commercial,Cash,724
+HI098-TX-0029,HI098,Kauai Harbor,Kauai,HI,2026-06-30 08:20:15,SNS-PIR,PIR Motion Sensor,Sensors,1,1.45,6.01,6.01,1.45,4.56,Lani,Retail,Mobile Pay,596
+HI098-TX-0030,HI098,Kauai Harbor,Kauai,HI,2026-06-30 15:25:05,LED-RED,5mm Red LED,LEDs,40,0.05,0.29,11.60,2.00,9.60,Makana,Education,Purchase Order,546
+HI098-TX-0031,HI098,Kauai Harbor,Kauai,HI,2026-06-30 16:16:49,PWR-BUCK,Buck Converter Module,Power,19,1.04,4.80,91.20,19.76,71.44,Alika,Tourism/Hospitality,ACH,303
+HI098-TX-0032,HI098,Kauai Harbor,Kauai,HI,2026-06-30 11:25:57,TOOL-WIRE,Wire Stripper,Tools,1,4.86,15.16,15.16,4.86,10.30,Nalu,Commercial,Purchase Order,361
+HI098-TX-0033,HI098,Kauai Harbor,Kauai,HI,2026-06-30 09:57:18,LED-RED,5mm Red LED,LEDs,25,0.05,0.26,6.50,1.25,5.25,Noah,Commercial,Cash,98
+HI098-TX-0034,HI098,Kauai Harbor,Kauai,HI,2026-06-30 17:29:14,SNS-PIR,PIR Motion Sensor,Sensors,6,1.49,5.88,35.28,8.94,26.34,Mika,Maker/Hobbyist,ACH,228
+HI098-TX-0035,HI098,Kauai Harbor,Kauai,HI,2026-06-30 17:08:09,SOL-CTRL,Solar Charge Controller,Solar Power,7,11.17,30.88,216.16,78.19,137.97,Noah,Marine,ACH,793
+HI098-TX-0036,HI098,Kauai Harbor,Kauai,HI,2026-06-30 09:45:30,CON-JMP,Jumper Wire Set,Connectors,15,1.00,3.90,58.50,15.00,43.50,Makana,Marine,Cash,819
+HI098-TX-0037,HI098,Kauai Harbor,Kauai,HI,2026-06-30 08:35:33,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.76,14.50,43.50,11.28,32.22,Hana,Maker/Hobbyist,Cash,212
+HI098-TX-0038,HI098,Kauai Harbor,Kauai,HI,2026-06-30 15:02:55,PWR-5V2,5V 2A Power Supply,Power,7,3.63,10.41,72.87,25.41,47.46,Kaleo,Maker/Hobbyist,Purchase Order,79
+HI098-TX-0039,HI098,Kauai Harbor,Kauai,HI,2026-06-30 15:33:00,PWR-12V,12V 5A Power Supply,Power,7,10.02,24.16,169.12,70.14,98.98,Koa,Commercial,Debit Card,286
+HI098-TX-0040,HI098,Kauai Harbor,Kauai,HI,2026-06-30 11:28:24,TOOL-DMM,Digital Multimeter,Tools,5,8.92,26.32,131.60,44.60,87.00,Iolana,Education,Purchase Order,585
+HI098-TX-0041,HI098,Kauai Harbor,Kauai,HI,2026-06-30 17:03:48,BAT-AAH,AA Battery Holder,Batteries,6,0.52,2.67,16.02,3.12,12.90,Akamu,Marine,Credit Card,783
+HI098-TX-0042,HI098,Kauai Harbor,Kauai,HI,2026-06-30 09:33:14,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,8.64,26.67,106.68,34.56,72.12,Mika,Maker/Hobbyist,Mobile Pay,644
+HI098-TX-0043,HI098,Kauai Harbor,Kauai,HI,2026-06-30 15:15:17,IC-358,LM358 Op Amp,Integrated Circuits,24,0.29,1.24,29.76,6.96,22.80,Iolana,Tourism/Hospitality,ACH,853
+HI098-TX-0044,HI098,Kauai Harbor,Kauai,HI,2026-06-30 09:14:19,TOOL-SOL,Soldering Iron Tips,Tools,8,2.04,7.59,60.72,16.32,44.40,Ailani,Government,ACH,714
+HI098-TX-0045,HI098,Kauai Harbor,Kauai,HI,2026-06-30 10:49:34,SNS-DHT,DHT22 Temperature Sensor,Sensors,5,2.32,7.80,39.00,11.60,27.40,Koa,Retail,Credit Card,106
+HI098-TX-0046,HI098,Kauai Harbor,Kauai,HI,2026-06-30 14:58:03,PWR-5V2,5V 2A Power Supply,Power,2,3.52,11.00,22.00,7.04,14.96,Koa,Commercial,Credit Card,298
+HI098-TX-0047,HI098,Kauai Harbor,Kauai,HI,2026-06-30 14:12:19,IC-REG,7805 Voltage Regulator,Integrated Circuits,22,0.20,0.92,20.24,4.40,15.84,Mika,Education,Purchase Order,65
+HI098-TX-0048,HI098,Kauai Harbor,Kauai,HI,2026-06-30 12:28:39,CON-JMP,Jumper Wire Set,Connectors,23,0.93,3.69,84.87,21.39,63.48,Ailani,Education,Credit Card,525
+HI098-TX-0049,HI098,Kauai Harbor,Kauai,HI,2026-06-30 12:58:32,USB-CBO,USB-C Breakout Board,Connectors,1,1.47,5.72,5.72,1.47,4.25,Noelani,Commercial,Cash,679
+HI098-TX-0050,HI098,Kauai Harbor,Kauai,HI,2026-06-30 15:28:56,SOL-CTRL,Solar Charge Controller,Solar Power,1,11.00,30.95,30.95,11.00,19.95,Kaleo,Retail,Purchase Order,879
+HI098-TX-0051,HI098,Kauai Harbor,Kauai,HI,2026-06-30 08:52:37,PWR-BUCK,Buck Converter Module,Power,2,1.04,4.71,9.42,2.08,7.34,Kaleo,Marine,Credit Card,300
+HI098-TX-0052,HI098,Kauai Harbor,Kauai,HI,2026-06-30 13:00:24,SNS-ULT,Ultrasonic Distance Sensor,Sensors,3,1.23,5.45,16.35,3.69,12.66,Keahi,Education,ACH,643
+HI098-TX-0053,HI098,Kauai Harbor,Kauai,HI,2026-06-30 12:51:47,CAP-010,10uF Capacitor,Capacitors,4,0.09,0.38,1.52,0.36,1.16,Alika,Government,ACH,673
+HI098-TX-0054,HI098,Kauai Harbor,Kauai,HI,2026-06-30 12:40:23,SOL-CTRL,Solar Charge Controller,Solar Power,2,11.27,31.00,62.00,22.54,39.46,Hana,Commercial,Cash,202
+HI098-TX-0055,HI098,Kauai Harbor,Kauai,HI,2026-06-30 15:20:12,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,4.09,14.77,29.54,8.18,21.36,Keanu,Tourism/Hospitality,Purchase Order,735
+HI098-TX-0056,HI098,Kauai Harbor,Kauai,HI,2026-06-30 09:15:00,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.43,8.52,42.60,17.15,25.45,Makana,Retail,Purchase Order,232
+HI098-TX-0057,HI098,Kauai Harbor,Kauai,HI,2026-06-30 13:07:59,PWR-12V,12V 5A Power Supply,Power,4,9.70,24.24,96.96,38.80,58.16,Ikaika,Maker/Hobbyist,Debit Card,727
+HI098-TX-0058,HI098,Kauai Harbor,Kauai,HI,2026-06-30 12:58:17,PWR-BUCK,Buck Converter Module,Power,37,1.05,4.95,183.15,38.85,144.30,Ailani,Marine,Credit Card,181
+HI098-TX-0059,HI098,Kauai Harbor,Kauai,HI,2026-06-30 10:39:36,PICO-RP,Raspberry Pi Pico,Microcontrollers,3,3.21,8.75,26.25,9.63,16.62,Pualani,Government,Debit Card,735
+HI098-TX-0060,HI098,Kauai Harbor,Kauai,HI,2026-06-30 09:17:51,DIO-4007,1N4007 Diode,Semiconductors,18,0.04,0.21,3.78,0.72,3.06,Lani,Government,Cash,793
+HI098-TX-0061,HI098,Kauai Harbor,Kauai,HI,2026-06-30 12:32:30,MOS-44N,IRFZ44N MOSFET,Semiconductors,21,0.61,2.39,50.19,12.81,37.38,Akamu,Government,ACH,459
+HI098-TX-0062,HI098,Kauai Harbor,Kauai,HI,2026-06-30 08:15:06,PWR-5V2,5V 2A Power Supply,Power,1,3.78,10.75,10.75,3.78,6.97,Mika,Government,Cash,74
+HI098-TX-0063,HI098,Kauai Harbor,Kauai,HI,2026-06-30 16:15:03,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,9.35,28.39,170.34,56.10,114.24,Makana,Retail,Credit Card,554
+HI098-TX-0064,HI098,Kauai Harbor,Kauai,HI,2026-06-30 16:19:43,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.96,13.33,39.99,11.88,28.11,Koa,Education,Mobile Pay,650
+HI098-TX-0065,HI098,Kauai Harbor,Kauai,HI,2026-06-30 10:39:08,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.46,6.13,18.39,4.38,14.01,Hana,Tourism/Hospitality,Mobile Pay,827
+HI098-TX-0066,HI098,Kauai Harbor,Kauai,HI,2026-06-30 08:55:04,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,8.76,26.36,210.88,70.08,140.80,Noah,Marine,Mobile Pay,637
+HI098-TX-0067,HI098,Kauai Harbor,Kauai,HI,2026-06-30 16:12:17,PWR-5V2,5V 2A Power Supply,Power,1,3.37,11.04,11.04,3.37,7.67,Akamu,Maker/Hobbyist,Credit Card,141
+HI098-TX-0068,HI098,Kauai Harbor,Kauai,HI,2026-06-30 10:20:56,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.29,8.75,8.75,3.29,5.46,Mika,Government,Debit Card,582
+HI098-TX-0069,HI098,Kauai Harbor,Kauai,HI,2026-06-30 17:06:49,PWR-BUCK,Buck Converter Module,Power,35,0.99,5.05,176.75,34.65,142.10,Ikaika,Government,Debit Card,322
+HI098-TX-0070,HI098,Kauai Harbor,Kauai,HI,2026-06-30 09:31:15,PWR-5V2,5V 2A Power Supply,Power,6,3.49,10.29,61.74,20.94,40.80,Lani,Marine,Cash,134
+HI098-TX-0071,HI098,Kauai Harbor,Kauai,HI,2026-06-30 09:28:32,SOL-CTRL,Solar Charge Controller,Solar Power,3,10.41,31.04,93.12,31.23,61.89,Noah,Retail,Mobile Pay,4
+HI098-TX-0072,HI098,Kauai Harbor,Kauai,HI,2026-06-30 17:19:25,TOOL-SOL,Soldering Iron Tips,Tools,7,2.11,7.25,50.75,14.77,35.98,Koa,Retail,Debit Card,569
+HI098-TX-0073,HI098,Kauai Harbor,Kauai,HI,2026-06-30 10:32:04,TOOL-DMM,Digital Multimeter,Tools,5,9.41,25.99,129.95,47.05,82.90,Pualani,Marine,Mobile Pay,391
+HI098-TX-0074,HI098,Kauai Harbor,Kauai,HI,2026-06-30 10:28:37,CAP-100,100uF Capacitor,Capacitors,28,0.17,0.59,16.52,4.76,11.76,Kai,Retail,Cash,845
+HI098-TX-0075,HI098,Kauai Harbor,Kauai,HI,2026-06-30 08:48:54,PWR-BUCK,Buck Converter Module,Power,5,1.09,5.20,26.00,5.45,20.55,Koa,Education,Purchase Order,667
+HI098-TX-0076,HI098,Kauai Harbor,Kauai,HI,2026-06-30 16:23:13,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.87,14.30,100.10,34.09,66.01,Akamu,Government,Debit Card,85
+HI098-TX-0077,HI098,Kauai Harbor,Kauai,HI,2026-06-30 08:21:20,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.20,32.22,128.88,40.80,88.08,Makana,Government,Purchase Order,856
+HI098-TX-0078,HI098,Kauai Harbor,Kauai,HI,2026-06-30 15:23:02,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.52,32.68,228.76,73.64,155.12,Akamu,Education,ACH,499
+HI098-TX-0079,HI098,Kauai Harbor,Kauai,HI,2026-06-30 12:31:51,LED-RGB,RGB LED Strip,LEDs,1,4.66,14.57,14.57,4.66,9.91,Iolana,Commercial,Cash,816
+HI098-TX-0080,HI098,Kauai Harbor,Kauai,HI,2026-06-30 17:07:18,SNS-SOIL,Soil Moisture Sensor,Sensors,38,0.94,4.43,168.34,35.72,132.62,Kaleo,Commercial,ACH,541
+HI098-TX-0081,HI098,Kauai Harbor,Kauai,HI,2026-06-30 12:12:02,LED-BLU,5mm Blue LED,LEDs,4,0.07,0.33,1.32,0.28,1.04,Koa,Tourism/Hospitality,Purchase Order,516
+HI098-TX-0082,HI098,Kauai Harbor,Kauai,HI,2026-06-30 11:08:55,PWR-12V,12V 5A Power Supply,Power,4,9.74,25.03,100.12,38.96,61.16,Mika,Tourism/Hospitality,Mobile Pay,781
+HI098-TX-0083,HI098,Kauai Harbor,Kauai,HI,2026-06-30 09:42:24,PWR-BUCK,Buck Converter Module,Power,40,1.07,4.87,194.80,42.80,152.00,Alika,Education,Credit Card,800
+HI098-TX-0084,HI098,Kauai Harbor,Kauai,HI,2026-06-30 15:25:17,SOL-CTRL,Solar Charge Controller,Solar Power,4,10.93,31.58,126.32,43.72,82.60,Ailani,Education,Purchase Order,603
+HI098-TX-0085,HI098,Kauai Harbor,Kauai,HI,2026-06-30 09:32:08,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.64,14.90,59.60,14.56,45.04,Leilani,Education,Debit Card,125

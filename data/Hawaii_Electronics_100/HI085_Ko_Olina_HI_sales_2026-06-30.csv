@@ -1,0 +1,64 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI085-TX-0001,HI085,Ko Olina,Oahu,HI,2026-06-30 17:00:28,USB-CBO,USB-C Breakout Board,Connectors,40,1.39,5.15,206.00,55.60,150.40,Alika,Maker/Hobbyist,Debit Card,662
+HI085-TX-0002,HI085,Ko Olina,Oahu,HI,2026-06-30 14:03:10,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.13,9.19,45.95,15.65,30.30,Mika,Commercial,Mobile Pay,103
+HI085-TX-0003,HI085,Ko Olina,Oahu,HI,2026-06-30 15:23:14,IC-REG,7805 Voltage Regulator,Integrated Circuits,32,0.19,0.95,30.40,6.08,24.32,Ikaika,Tourism/Hospitality,Mobile Pay,280
+HI085-TX-0004,HI085,Ko Olina,Oahu,HI,2026-06-30 16:12:19,TR-3904,2N3904 NPN Transistor,Semiconductors,40,0.06,0.23,9.20,2.40,6.80,Noelani,Commercial,Cash,251
+HI085-TX-0005,HI085,Ko Olina,Oahu,HI,2026-06-30 15:29:29,CON-JMP,Jumper Wire Set,Connectors,18,0.89,3.86,69.48,16.02,53.46,Iolana,Commercial,Purchase Order,215
+HI085-TX-0006,HI085,Ko Olina,Oahu,HI,2026-06-30 08:26:59,TOOL-SOL,Soldering Iron Tips,Tools,1,1.91,7.56,7.56,1.91,5.65,Koa,Retail,Mobile Pay,200
+HI085-TX-0007,HI085,Ko Olina,Oahu,HI,2026-06-30 10:08:52,SOL-CTRL,Solar Charge Controller,Solar Power,5,10.44,32.49,162.45,52.20,110.25,Ikaika,Education,Debit Card,236
+HI085-TX-0008,HI085,Ko Olina,Oahu,HI,2026-06-30 14:18:31,USB-CBO,USB-C Breakout Board,Connectors,37,1.30,5.58,206.46,48.10,158.36,Mika,Marine,Purchase Order,448
+HI085-TX-0009,HI085,Ko Olina,Oahu,HI,2026-06-30 11:39:06,RES-001,1k Ohm Resistor,Resistors,24,0.03,0.14,3.36,0.72,2.64,Pualani,Education,Debit Card,531
+HI085-TX-0010,HI085,Ko Olina,Oahu,HI,2026-06-30 09:51:53,USB-CBO,USB-C Breakout Board,Connectors,15,1.34,5.41,81.15,20.10,61.05,Lani,Education,Debit Card,400
+HI085-TX-0011,HI085,Ko Olina,Oahu,HI,2026-06-30 08:43:57,IC-555,NE555 Timer IC,Integrated Circuits,34,0.37,1.31,44.54,12.58,31.96,Hana,Government,Cash,153
+HI085-TX-0012,HI085,Ko Olina,Oahu,HI,2026-06-30 11:27:38,CON-JMP,Jumper Wire Set,Connectors,13,0.93,3.71,48.23,12.09,36.14,Koa,Tourism/Hospitality,Credit Card,523
+HI085-TX-0013,HI085,Ko Olina,Oahu,HI,2026-06-30 17:06:40,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.61,14.97,59.88,18.44,41.44,Malia,Government,Mobile Pay,201
+HI085-TX-0014,HI085,Ko Olina,Oahu,HI,2026-06-30 10:10:28,LED-BLU,5mm Blue LED,LEDs,27,0.07,0.33,8.91,1.89,7.02,Noelani,Education,ACH,797
+HI085-TX-0015,HI085,Ko Olina,Oahu,HI,2026-06-30 12:45:09,LED-RED,5mm Red LED,LEDs,9,0.05,0.29,2.61,0.45,2.16,Nalu,Tourism/Hospitality,Mobile Pay,820
+HI085-TX-0016,HI085,Ko Olina,Oahu,HI,2026-06-30 13:13:42,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,5.00,13.74,68.70,25.00,43.70,Mika,Maker/Hobbyist,ACH,109
+HI085-TX-0017,HI085,Ko Olina,Oahu,HI,2026-06-30 10:59:15,CON-JMP,Jumper Wire Set,Connectors,32,0.91,3.82,122.24,29.12,93.12,Mika,Retail,Purchase Order,481
+HI085-TX-0018,HI085,Ko Olina,Oahu,HI,2026-06-30 15:25:41,IC-358,LM358 Op Amp,Integrated Circuits,16,0.29,1.15,18.40,4.64,13.76,Kai,Commercial,Mobile Pay,611
+HI085-TX-0019,HI085,Ko Olina,Oahu,HI,2026-06-30 15:13:07,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.97,14.22,56.88,19.88,37.00,Makana,Maker/Hobbyist,Cash,33
+HI085-TX-0020,HI085,Ko Olina,Oahu,HI,2026-06-30 09:13:37,TOOL-WIRE,Wire Stripper,Tools,5,4.69,15.48,77.40,23.45,53.95,Ikaika,Commercial,Purchase Order,657
+HI085-TX-0021,HI085,Ko Olina,Oahu,HI,2026-06-30 15:50:28,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.37,13.26,79.56,26.22,53.34,Malia,Maker/Hobbyist,Purchase Order,802
+HI085-TX-0022,HI085,Ko Olina,Oahu,HI,2026-06-30 16:01:15,LED-RED,5mm Red LED,LEDs,33,0.06,0.29,9.57,1.98,7.59,Noah,Maker/Hobbyist,Debit Card,510
+HI085-TX-0023,HI085,Ko Olina,Oahu,HI,2026-06-30 15:38:47,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.45,6.76,20.28,4.35,15.93,Ailani,Tourism/Hospitality,Credit Card,206
+HI085-TX-0024,HI085,Ko Olina,Oahu,HI,2026-06-30 13:49:49,IC-REG,7805 Voltage Regulator,Integrated Circuits,8,0.21,0.94,7.52,1.68,5.84,Nalu,Marine,Mobile Pay,105
+HI085-TX-0025,HI085,Ko Olina,Oahu,HI,2026-06-30 09:59:14,TOOL-WIRE,Wire Stripper,Tools,4,4.82,14.73,58.92,19.28,39.64,Lani,Marine,Mobile Pay,830
+HI085-TX-0026,HI085,Ko Olina,Oahu,HI,2026-06-30 08:44:50,TR-3904,2N3904 NPN Transistor,Semiconductors,27,0.05,0.25,6.75,1.35,5.40,Kai,Education,Debit Card,167
+HI085-TX-0027,HI085,Ko Olina,Oahu,HI,2026-06-30 08:14:07,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.76,13.87,13.87,4.76,9.11,Nalu,Tourism/Hospitality,Credit Card,379
+HI085-TX-0028,HI085,Ko Olina,Oahu,HI,2026-06-30 13:48:32,LED-RED,5mm Red LED,LEDs,21,0.06,0.28,5.88,1.26,4.62,Pualani,Commercial,Cash,554
+HI085-TX-0029,HI085,Ko Olina,Oahu,HI,2026-06-30 17:34:34,CON-JMP,Jumper Wire Set,Connectors,1,0.90,3.94,3.94,0.90,3.04,Noah,Tourism/Hospitality,Purchase Order,20
+HI085-TX-0030,HI085,Ko Olina,Oahu,HI,2026-06-30 17:21:12,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.48,13.60,68.00,22.40,45.60,Lani,Marine,Cash,2
+HI085-TX-0031,HI085,Ko Olina,Oahu,HI,2026-06-30 11:22:22,RES-220,220 Ohm Resistor,Resistors,11,0.03,0.13,1.43,0.33,1.10,Leilani,Government,Credit Card,34
+HI085-TX-0032,HI085,Ko Olina,Oahu,HI,2026-06-30 08:37:49,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.61,6.20,6.20,1.61,4.59,Leilani,Government,Cash,704
+HI085-TX-0033,HI085,Ko Olina,Oahu,HI,2026-06-30 11:09:40,TOOL-DMM,Digital Multimeter,Tools,8,8.78,26.51,212.08,70.24,141.84,Kaleo,Marine,Credit Card,113
+HI085-TX-0034,HI085,Ko Olina,Oahu,HI,2026-06-30 12:22:09,SNS-PIR,PIR Motion Sensor,Sensors,3,1.53,6.29,18.87,4.59,14.28,Ikaika,Commercial,Debit Card,868
+HI085-TX-0035,HI085,Ko Olina,Oahu,HI,2026-06-30 10:54:46,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,4.02,14.53,101.71,28.14,73.57,Kai,Tourism/Hospitality,ACH,442
+HI085-TX-0036,HI085,Ko Olina,Oahu,HI,2026-06-30 08:47:02,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.65,6.15,43.05,11.55,31.50,Hana,Government,Mobile Pay,814
+HI085-TX-0037,HI085,Ko Olina,Oahu,HI,2026-06-30 16:53:24,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.48,8.07,56.49,17.36,39.13,Keanu,Commercial,Debit Card,565
+HI085-TX-0038,HI085,Ko Olina,Oahu,HI,2026-06-30 09:04:09,RES-010,10k Ohm Resistor,Resistors,16,0.03,0.12,1.92,0.48,1.44,Kaleo,Retail,ACH,410
+HI085-TX-0039,HI085,Ko Olina,Oahu,HI,2026-06-30 11:58:11,IC-358,LM358 Op Amp,Integrated Circuits,13,0.31,1.16,15.08,4.03,11.05,Pualani,Tourism/Hospitality,Mobile Pay,417
+HI085-TX-0040,HI085,Ko Olina,Oahu,HI,2026-06-30 14:14:10,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.65,20.51,123.06,51.90,71.16,Kaleo,Maker/Hobbyist,Credit Card,742
+HI085-TX-0041,HI085,Ko Olina,Oahu,HI,2026-06-30 17:14:38,LED-RGB,RGB LED Strip,LEDs,1,4.77,13.86,13.86,4.77,9.09,Leilani,Maker/Hobbyist,Credit Card,193
+HI085-TX-0042,HI085,Ko Olina,Oahu,HI,2026-06-30 12:20:18,IC-358,LM358 Op Amp,Integrated Circuits,4,0.31,1.20,4.80,1.24,3.56,Noelani,Education,Cash,806
+HI085-TX-0043,HI085,Ko Olina,Oahu,HI,2026-06-30 12:49:54,CAP-010,10uF Capacitor,Capacitors,32,0.09,0.37,11.84,2.88,8.96,Alika,Retail,Debit Card,134
+HI085-TX-0044,HI085,Ko Olina,Oahu,HI,2026-06-30 14:06:46,IC-358,LM358 Op Amp,Integrated Circuits,38,0.31,1.25,47.50,11.78,35.72,Lani,Tourism/Hospitality,Debit Card,422
+HI085-TX-0045,HI085,Ko Olina,Oahu,HI,2026-06-30 08:37:56,SNS-SOIL,Soil Moisture Sensor,Sensors,23,0.98,4.23,97.29,22.54,74.75,Pualani,Government,Debit Card,830
+HI085-TX-0046,HI085,Ko Olina,Oahu,HI,2026-06-30 15:21:27,IC-REG,7805 Voltage Regulator,Integrated Circuits,22,0.19,0.88,19.36,4.18,15.18,Kaleo,Commercial,Purchase Order,733
+HI085-TX-0047,HI085,Ko Olina,Oahu,HI,2026-06-30 15:29:53,TR-3904,2N3904 NPN Transistor,Semiconductors,40,0.06,0.23,9.20,2.40,6.80,Ikaika,Marine,ACH,450
+HI085-TX-0048,HI085,Ko Olina,Oahu,HI,2026-06-30 15:29:07,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.37,12.80,25.60,8.74,16.86,Mika,Maker/Hobbyist,Debit Card,453
+HI085-TX-0049,HI085,Ko Olina,Oahu,HI,2026-06-30 13:17:00,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.51,6.94,48.58,10.57,38.01,Lani,Retail,ACH,173
+HI085-TX-0050,HI085,Ko Olina,Oahu,HI,2026-06-30 12:47:18,CON-JMP,Jumper Wire Set,Connectors,36,0.93,3.97,142.92,33.48,109.44,Pualani,Commercial,ACH,283
+HI085-TX-0051,HI085,Ko Olina,Oahu,HI,2026-06-30 14:19:06,BRD-830,Breadboard 830 Tie Points,Connectors,6,1.59,6.94,41.64,9.54,32.10,Akamu,Tourism/Hospitality,ACH,330
+HI085-TX-0052,HI085,Ko Olina,Oahu,HI,2026-06-30 10:26:59,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,4.06,14.48,101.36,28.42,72.94,Iolana,Retail,Credit Card,310
+HI085-TX-0053,HI085,Ko Olina,Oahu,HI,2026-06-30 17:36:58,RES-001,1k Ohm Resistor,Resistors,1,0.03,0.13,0.13,0.03,0.10,Ailani,Retail,Debit Card,596
+HI085-TX-0054,HI085,Ko Olina,Oahu,HI,2026-06-30 14:11:54,PWR-BUCK,Buck Converter Module,Power,8,1.01,4.79,38.32,8.08,30.24,Nalu,Retail,ACH,34
+HI085-TX-0055,HI085,Ko Olina,Oahu,HI,2026-06-30 14:33:06,BAT-LIPO,LiPo Battery Pack,Batteries,4,4.96,16.93,67.72,19.84,47.88,Nalu,Retail,Cash,154
+HI085-TX-0056,HI085,Ko Olina,Oahu,HI,2026-06-30 11:02:26,LED-RGB,RGB LED Strip,LEDs,1,4.71,14.52,14.52,4.71,9.81,Alika,Marine,ACH,750
+HI085-TX-0057,HI085,Ko Olina,Oahu,HI,2026-06-30 16:19:43,CON-JMP,Jumper Wire Set,Connectors,27,0.98,3.64,98.28,26.46,71.82,Makana,Commercial,Mobile Pay,839
+HI085-TX-0058,HI085,Ko Olina,Oahu,HI,2026-06-30 12:08:11,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.58,16.59,82.95,27.90,55.05,Alika,Commercial,Purchase Order,879
+HI085-TX-0059,HI085,Ko Olina,Oahu,HI,2026-06-30 13:03:28,SNS-DHT,DHT22 Temperature Sensor,Sensors,4,2.43,7.68,30.72,9.72,21.00,Pualani,Maker/Hobbyist,ACH,329
+HI085-TX-0060,HI085,Ko Olina,Oahu,HI,2026-06-30 16:34:51,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.89,14.92,59.68,15.56,44.12,Akamu,Commercial,ACH,860
+HI085-TX-0061,HI085,Ko Olina,Oahu,HI,2026-06-30 14:23:31,SNS-PIR,PIR Motion Sensor,Sensors,1,1.51,6.32,6.32,1.51,4.81,Hana,Commercial,Debit Card,861
+HI085-TX-0062,HI085,Ko Olina,Oahu,HI,2026-06-30 17:24:21,MAR-TIN,Tinned Marine Wire,Marine Electronics,1,8.82,28.03,28.03,8.82,19.21,Iolana,Tourism/Hospitality,Cash,673
+HI085-TX-0063,HI085,Ko Olina,Oahu,HI,2026-06-30 14:38:16,MOS-44N,IRFZ44N MOSFET,Semiconductors,23,0.58,2.60,59.80,13.34,46.46,Malia,Commercial,ACH,82

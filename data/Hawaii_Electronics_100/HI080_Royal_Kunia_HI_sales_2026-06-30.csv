@@ -1,0 +1,83 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI080-TX-0001,HI080,Royal Kunia,Oahu,HI,2026-06-30 09:35:54,USB-CBO,USB-C Breakout Board,Connectors,27,1.42,5.20,140.40,38.34,102.06,Leilani,Education,Purchase Order,514
+HI080-TX-0002,HI080,Royal Kunia,Oahu,HI,2026-06-30 16:12:21,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,3.85,14.15,28.30,7.70,20.60,Ikaika,Retail,Credit Card,752
+HI080-TX-0003,HI080,Royal Kunia,Oahu,HI,2026-06-30 10:58:34,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.60,6.89,34.45,8.00,26.45,Malia,Retail,Credit Card,634
+HI080-TX-0004,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:07:10,IC-555,NE555 Timer IC,Integrated Circuits,20,0.37,1.33,26.60,7.40,19.20,Noelani,Maker/Hobbyist,Debit Card,397
+HI080-TX-0005,HI080,Royal Kunia,Oahu,HI,2026-06-30 16:18:10,LED-RGB,RGB LED Strip,LEDs,8,5.02,13.39,107.12,40.16,66.96,Alika,Commercial,Credit Card,310
+HI080-TX-0006,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:49:18,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.07,13.85,55.40,16.28,39.12,Mika,Marine,Credit Card,491
+HI080-TX-0007,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:46:31,IC-358,LM358 Op Amp,Integrated Circuits,5,0.30,1.27,6.35,1.50,4.85,Ikaika,Marine,Purchase Order,173
+HI080-TX-0008,HI080,Royal Kunia,Oahu,HI,2026-06-30 17:12:23,LED-BLU,5mm Blue LED,LEDs,30,0.07,0.32,9.60,2.10,7.50,Noelani,Commercial,Mobile Pay,471
+HI080-TX-0009,HI080,Royal Kunia,Oahu,HI,2026-06-30 10:29:12,IC-358,LM358 Op Amp,Integrated Circuits,17,0.32,1.18,20.06,5.44,14.62,Iolana,Maker/Hobbyist,Cash,400
+HI080-TX-0010,HI080,Royal Kunia,Oahu,HI,2026-06-30 17:52:28,SNS-PIR,PIR Motion Sensor,Sensors,3,1.49,6.33,18.99,4.47,14.52,Mika,Tourism/Hospitality,Cash,380
+HI080-TX-0011,HI080,Royal Kunia,Oahu,HI,2026-06-30 08:10:33,ARD-NANO,Arduino Nano Compatible,Microcontrollers,1,4.74,15.03,15.03,4.74,10.29,Mika,Marine,Credit Card,281
+HI080-TX-0012,HI080,Royal Kunia,Oahu,HI,2026-06-30 09:07:14,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.33,13.82,27.64,8.66,18.98,Keahi,Maker/Hobbyist,Mobile Pay,35
+HI080-TX-0013,HI080,Royal Kunia,Oahu,HI,2026-06-30 17:05:54,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.47,8.52,34.08,13.88,20.20,Makana,Retail,Credit Card,605
+HI080-TX-0014,HI080,Royal Kunia,Oahu,HI,2026-06-30 17:34:44,TOOL-SOL,Soldering Iron Tips,Tools,5,2.11,8.02,40.10,10.55,29.55,Malia,Tourism/Hospitality,Mobile Pay,422
+HI080-TX-0015,HI080,Royal Kunia,Oahu,HI,2026-06-30 10:26:07,CAP-100,100uF Capacitor,Capacitors,9,0.16,0.63,5.67,1.44,4.23,Iolana,Retail,Purchase Order,51
+HI080-TX-0016,HI080,Royal Kunia,Oahu,HI,2026-06-30 08:27:55,SNS-DHT,DHT22 Temperature Sensor,Sensors,3,2.39,7.65,22.95,7.17,15.78,Iolana,Education,Cash,95
+HI080-TX-0017,HI080,Royal Kunia,Oahu,HI,2026-06-30 14:23:44,SNS-DHT,DHT22 Temperature Sensor,Sensors,6,2.64,7.32,43.92,15.84,28.08,Leilani,Tourism/Hospitality,Debit Card,416
+HI080-TX-0018,HI080,Royal Kunia,Oahu,HI,2026-06-30 13:04:41,RES-010,10k Ohm Resistor,Resistors,15,0.03,0.13,1.95,0.45,1.50,Keanu,Government,Credit Card,609
+HI080-TX-0019,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:55:25,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.27,13.21,26.42,8.54,17.88,Koa,Tourism/Hospitality,Cash,770
+HI080-TX-0020,HI080,Royal Kunia,Oahu,HI,2026-06-30 14:10:53,PWR-BUCK,Buck Converter Module,Power,40,1.10,4.80,192.00,44.00,148.00,Ikaika,Maker/Hobbyist,Purchase Order,382
+HI080-TX-0021,HI080,Royal Kunia,Oahu,HI,2026-06-30 08:41:11,PWR-BUCK,Buck Converter Module,Power,35,1.10,4.94,172.90,38.50,134.40,Noelani,Education,Cash,460
+HI080-TX-0022,HI080,Royal Kunia,Oahu,HI,2026-06-30 16:40:31,IC-358,LM358 Op Amp,Integrated Circuits,7,0.33,1.18,8.26,2.31,5.95,Koa,Retail,Mobile Pay,106
+HI080-TX-0023,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:47:16,ESP-32,ESP32 Dev Board,Microcontrollers,6,3.99,12.58,75.48,23.94,51.54,Hana,Maker/Hobbyist,ACH,391
+HI080-TX-0024,HI080,Royal Kunia,Oahu,HI,2026-06-30 10:48:47,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.52,14.80,103.60,31.64,71.96,Keahi,Government,Purchase Order,284
+HI080-TX-0025,HI080,Royal Kunia,Oahu,HI,2026-06-30 09:42:56,PWR-BUCK,Buck Converter Module,Power,16,1.06,5.17,82.72,16.96,65.76,Lani,Commercial,ACH,798
+HI080-TX-0026,HI080,Royal Kunia,Oahu,HI,2026-06-30 14:04:59,CON-JMP,Jumper Wire Set,Connectors,18,0.94,3.64,65.52,16.92,48.60,Leilani,Commercial,ACH,786
+HI080-TX-0027,HI080,Royal Kunia,Oahu,HI,2026-06-30 10:46:16,IC-555,NE555 Timer IC,Integrated Circuits,16,0.38,1.40,22.40,6.08,16.32,Koa,Tourism/Hospitality,Mobile Pay,800
+HI080-TX-0028,HI080,Royal Kunia,Oahu,HI,2026-06-30 15:52:34,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.64,6.32,18.96,4.92,14.04,Koa,Marine,ACH,117
+HI080-TX-0029,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:33:49,SNS-SOIL,Soil Moisture Sensor,Sensors,9,0.88,4.13,37.17,7.92,29.25,Koa,Commercial,ACH,52
+HI080-TX-0030,HI080,Royal Kunia,Oahu,HI,2026-06-30 15:10:14,ESP-32,ESP32 Dev Board,Microcontrollers,2,4.07,13.73,27.46,8.14,19.32,Ikaika,Marine,Debit Card,861
+HI080-TX-0031,HI080,Royal Kunia,Oahu,HI,2026-06-30 16:35:21,BAT-LIPO,LiPo Battery Pack,Batteries,1,5.11,16.73,16.73,5.11,11.62,Kaleo,Education,Credit Card,351
+HI080-TX-0032,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:06:59,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,24,0.05,0.20,4.80,1.20,3.60,Keanu,Government,Purchase Order,726
+HI080-TX-0033,HI080,Royal Kunia,Oahu,HI,2026-06-30 15:09:12,IC-REG,7805 Voltage Regulator,Integrated Circuits,11,0.19,0.97,10.67,2.09,8.58,Makana,Maker/Hobbyist,Purchase Order,281
+HI080-TX-0034,HI080,Royal Kunia,Oahu,HI,2026-06-30 17:29:47,CAP-100,100uF Capacitor,Capacitors,17,0.16,0.63,10.71,2.72,7.99,Noelani,Education,Credit Card,623
+HI080-TX-0035,HI080,Royal Kunia,Oahu,HI,2026-06-30 15:43:58,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,9.05,26.13,209.04,72.40,136.64,Iolana,Commercial,Credit Card,317
+HI080-TX-0036,HI080,Royal Kunia,Oahu,HI,2026-06-30 13:55:23,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.74,14.64,102.48,33.18,69.30,Nalu,Retail,Purchase Order,317
+HI080-TX-0037,HI080,Royal Kunia,Oahu,HI,2026-06-30 11:06:48,IC-555,NE555 Timer IC,Integrated Circuits,37,0.35,1.34,49.58,12.95,36.63,Alika,Tourism/Hospitality,Cash,886
+HI080-TX-0038,HI080,Royal Kunia,Oahu,HI,2026-06-30 10:42:14,MOS-44N,IRFZ44N MOSFET,Semiconductors,20,0.62,2.60,52.00,12.40,39.60,Iolana,Tourism/Hospitality,Mobile Pay,614
+HI080-TX-0039,HI080,Royal Kunia,Oahu,HI,2026-06-30 16:23:38,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.49,12.81,89.67,31.43,58.24,Koa,Marine,Debit Card,748
+HI080-TX-0040,HI080,Royal Kunia,Oahu,HI,2026-06-30 14:55:39,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.51,13.74,54.96,18.04,36.92,Pualani,Marine,Credit Card,565
+HI080-TX-0041,HI080,Royal Kunia,Oahu,HI,2026-06-30 13:40:39,BAT-LIPO,LiPo Battery Pack,Batteries,1,5.57,17.02,17.02,5.57,11.45,Pualani,Education,ACH,50
+HI080-TX-0042,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:18:17,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,9.02,28.63,114.52,36.08,78.44,Keanu,Marine,ACH,278
+HI080-TX-0043,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:47:39,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.16,13.31,53.24,16.64,36.60,Alika,Marine,ACH,128
+HI080-TX-0044,HI080,Royal Kunia,Oahu,HI,2026-06-30 14:41:42,REL-5V,5V Relay Module,Relays,24,0.88,5.09,122.16,21.12,101.04,Pualani,Marine,Purchase Order,26
+HI080-TX-0045,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:07:31,USB-CBO,USB-C Breakout Board,Connectors,28,1.39,5.79,162.12,38.92,123.20,Kai,Maker/Hobbyist,Purchase Order,53
+HI080-TX-0046,HI080,Royal Kunia,Oahu,HI,2026-06-30 08:01:06,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,3,0.04,0.20,0.60,0.12,0.48,Akamu,Tourism/Hospitality,Mobile Pay,118
+HI080-TX-0047,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:24:48,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.07,13.30,106.40,32.56,73.84,Mika,Government,Cash,593
+HI080-TX-0048,HI080,Royal Kunia,Oahu,HI,2026-06-30 10:11:50,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,8.39,21.47,21.47,8.39,13.08,Makana,Maker/Hobbyist,Cash,776
+HI080-TX-0049,HI080,Royal Kunia,Oahu,HI,2026-06-30 15:24:03,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.37,8.37,41.85,16.85,25.00,Pualani,Education,Purchase Order,28
+HI080-TX-0050,HI080,Royal Kunia,Oahu,HI,2026-06-30 13:03:00,PWR-5V2,5V 2A Power Supply,Power,5,3.38,10.49,52.45,16.90,35.55,Kaleo,Government,Cash,554
+HI080-TX-0051,HI080,Royal Kunia,Oahu,HI,2026-06-30 14:13:56,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.22,8.51,51.06,19.32,31.74,Iolana,Tourism/Hospitality,Debit Card,182
+HI080-TX-0052,HI080,Royal Kunia,Oahu,HI,2026-06-30 11:08:11,LED-RGB,RGB LED Strip,LEDs,5,4.84,13.33,66.65,24.20,42.45,Noelani,Tourism/Hospitality,Mobile Pay,549
+HI080-TX-0053,HI080,Royal Kunia,Oahu,HI,2026-06-30 16:07:00,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.60,6.22,6.22,1.60,4.62,Makana,Tourism/Hospitality,Purchase Order,881
+HI080-TX-0054,HI080,Royal Kunia,Oahu,HI,2026-06-30 09:54:29,PWR-5V2,5V 2A Power Supply,Power,1,3.50,10.74,10.74,3.50,7.24,Keahi,Education,Purchase Order,183
+HI080-TX-0055,HI080,Royal Kunia,Oahu,HI,2026-06-30 11:47:52,IC-555,NE555 Timer IC,Integrated Circuits,31,0.33,1.38,42.78,10.23,32.55,Malia,Retail,Mobile Pay,898
+HI080-TX-0056,HI080,Royal Kunia,Oahu,HI,2026-06-30 11:54:10,IC-REG,7805 Voltage Regulator,Integrated Circuits,1,0.20,0.90,0.90,0.20,0.70,Kaleo,Retail,Mobile Pay,384
+HI080-TX-0057,HI080,Royal Kunia,Oahu,HI,2026-06-30 13:30:38,ESP-32,ESP32 Dev Board,Microcontrollers,4,3.97,12.52,50.08,15.88,34.20,Keanu,Government,ACH,889
+HI080-TX-0058,HI080,Royal Kunia,Oahu,HI,2026-06-30 15:16:45,CON-JMP,Jumper Wire Set,Connectors,2,0.88,3.81,7.62,1.76,5.86,Lani,Tourism/Hospitality,Cash,578
+HI080-TX-0059,HI080,Royal Kunia,Oahu,HI,2026-06-30 13:26:50,IC-555,NE555 Timer IC,Integrated Circuits,5,0.33,1.42,7.10,1.65,5.45,Nalu,Government,Debit Card,496
+HI080-TX-0060,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:07:24,DIO-4007,1N4007 Diode,Semiconductors,13,0.05,0.20,2.60,0.65,1.95,Hana,Maker/Hobbyist,Credit Card,619
+HI080-TX-0061,HI080,Royal Kunia,Oahu,HI,2026-06-30 17:51:16,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.76,13.91,27.82,9.52,18.30,Makana,Retail,Credit Card,12
+HI080-TX-0062,HI080,Royal Kunia,Oahu,HI,2026-06-30 14:12:24,IC-358,LM358 Op Amp,Integrated Circuits,37,0.31,1.27,46.99,11.47,35.52,Iolana,Marine,Cash,524
+HI080-TX-0063,HI080,Royal Kunia,Oahu,HI,2026-06-30 09:18:28,IC-358,LM358 Op Amp,Integrated Circuits,38,0.30,1.20,45.60,11.40,34.20,Noelani,Government,Credit Card,137
+HI080-TX-0064,HI080,Royal Kunia,Oahu,HI,2026-06-30 11:53:09,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,8.96,26.57,159.42,53.76,105.66,Malia,Education,Cash,433
+HI080-TX-0065,HI080,Royal Kunia,Oahu,HI,2026-06-30 08:08:17,IC-555,NE555 Timer IC,Integrated Circuits,21,0.37,1.43,30.03,7.77,22.26,Kaleo,Commercial,Cash,347
+HI080-TX-0066,HI080,Royal Kunia,Oahu,HI,2026-06-30 16:11:23,CON-JMP,Jumper Wire Set,Connectors,8,0.98,3.75,30.00,7.84,22.16,Keahi,Retail,ACH,233
+HI080-TX-0067,HI080,Royal Kunia,Oahu,HI,2026-06-30 14:11:09,DIO-4007,1N4007 Diode,Semiconductors,14,0.05,0.21,2.94,0.70,2.24,Pualani,Government,Cash,9
+HI080-TX-0068,HI080,Royal Kunia,Oahu,HI,2026-06-30 11:44:30,CON-JMP,Jumper Wire Set,Connectors,30,0.89,3.76,112.80,26.70,86.10,Malia,Commercial,Purchase Order,640
+HI080-TX-0069,HI080,Royal Kunia,Oahu,HI,2026-06-30 12:18:05,USB-CBO,USB-C Breakout Board,Connectors,17,1.38,5.56,94.52,23.46,71.06,Keahi,Marine,Cash,286
+HI080-TX-0070,HI080,Royal Kunia,Oahu,HI,2026-06-30 10:35:40,LED-BLU,5mm Blue LED,LEDs,28,0.07,0.33,9.24,1.96,7.28,Akamu,Commercial,ACH,887
+HI080-TX-0071,HI080,Royal Kunia,Oahu,HI,2026-06-30 09:34:21,CON-JMP,Jumper Wire Set,Connectors,15,0.94,3.64,54.60,14.10,40.50,Keanu,Commercial,Credit Card,703
+HI080-TX-0072,HI080,Royal Kunia,Oahu,HI,2026-06-30 14:11:40,MOS-44N,IRFZ44N MOSFET,Semiconductors,25,0.60,2.33,58.25,15.00,43.25,Hana,Maker/Hobbyist,Debit Card,572
+HI080-TX-0073,HI080,Royal Kunia,Oahu,HI,2026-06-30 15:20:44,IC-REG,7805 Voltage Regulator,Integrated Circuits,6,0.19,0.88,5.28,1.14,4.14,Noah,Maker/Hobbyist,Debit Card,86
+HI080-TX-0074,HI080,Royal Kunia,Oahu,HI,2026-06-30 16:44:06,IC-358,LM358 Op Amp,Integrated Circuits,36,0.29,1.13,40.68,10.44,30.24,Keanu,Maker/Hobbyist,Purchase Order,337
+HI080-TX-0075,HI080,Royal Kunia,Oahu,HI,2026-06-30 09:14:00,IC-358,LM358 Op Amp,Integrated Circuits,18,0.29,1.25,22.50,5.22,17.28,Ailani,Tourism/Hospitality,Credit Card,360
+HI080-TX-0076,HI080,Royal Kunia,Oahu,HI,2026-06-30 11:36:37,TOOL-WIRE,Wire Stripper,Tools,5,4.81,15.70,78.50,24.05,54.45,Leilani,Retail,Mobile Pay,741
+HI080-TX-0077,HI080,Royal Kunia,Oahu,HI,2026-06-30 11:59:16,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.06,13.75,96.25,28.42,67.83,Makana,Marine,Credit Card,267
+HI080-TX-0078,HI080,Royal Kunia,Oahu,HI,2026-06-30 13:22:18,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.81,14.50,43.50,14.43,29.07,Koa,Marine,Purchase Order,494
+HI080-TX-0079,HI080,Royal Kunia,Oahu,HI,2026-06-30 16:38:14,REL-5V,5V Relay Module,Relays,22,0.89,5.30,116.60,19.58,97.02,Iolana,Government,ACH,192
+HI080-TX-0080,HI080,Royal Kunia,Oahu,HI,2026-06-30 13:53:22,SNS-PIR,PIR Motion Sensor,Sensors,4,1.51,5.62,22.48,6.04,16.44,Nalu,Marine,Purchase Order,711
+HI080-TX-0081,HI080,Royal Kunia,Oahu,HI,2026-06-30 14:20:40,TR-3904,2N3904 NPN Transistor,Semiconductors,1,0.05,0.23,0.23,0.05,0.18,Hana,Tourism/Hospitality,Cash,344
+HI080-TX-0082,HI080,Royal Kunia,Oahu,HI,2026-06-30 17:16:21,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.36,8.30,16.60,6.72,9.88,Ikaika,Tourism/Hospitality,ACH,881

@@ -1,0 +1,10 @@
+# Dev environment overrides (application-level, read by happyfeet_rag.config).
+# Infra-level env settings live in infra/config/dev.yaml.
+env: dev
+index_suffix: dev
+log_level: DEBUG
+# Smaller batches make it easy to watch ingestion in the notebook.
+ingest_batch_size: 100
+kms_enabled: false
+privatelink_enabled: false
+guardrail_strict: false

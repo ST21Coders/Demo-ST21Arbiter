@@ -1,0 +1,71 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI054-TX-0001,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 15:45:20,BAT-AAH,AA Battery Holder,Batteries,20,0.49,2.88,57.60,9.80,47.80,Koa,Retail,ACH,674
+HI054-TX-0002,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 17:52:46,PWR-12V,12V 5A Power Supply,Power,3,8.76,24.45,73.35,26.28,47.07,Hana,Retail,Mobile Pay,532
+HI054-TX-0003,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 16:05:37,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.28,33.54,201.24,61.68,139.56,Keahi,Marine,Cash,307
+HI054-TX-0004,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 16:45:08,IC-358,LM358 Op Amp,Integrated Circuits,30,0.31,1.24,37.20,9.30,27.90,Kai,Tourism/Hospitality,Credit Card,536
+HI054-TX-0005,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 08:22:43,TOOL-SOL,Soldering Iron Tips,Tools,5,1.87,7.42,37.10,9.35,27.75,Leilani,Government,ACH,381
+HI054-TX-0006,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 16:56:20,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.24,8.30,58.10,22.68,35.42,Noah,Retail,Cash,864
+HI054-TX-0007,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 13:52:47,TOOL-WIRE,Wire Stripper,Tools,4,5.10,15.39,61.56,20.40,41.16,Leilani,Commercial,Credit Card,543
+HI054-TX-0008,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 12:32:10,TOOL-SOL,Soldering Iron Tips,Tools,5,2.04,8.06,40.30,10.20,30.10,Iolana,Government,Purchase Order,244
+HI054-TX-0009,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 13:45:36,CAP-100,100uF Capacitor,Capacitors,22,0.17,0.59,12.98,3.74,9.24,Hana,Government,Cash,747
+HI054-TX-0010,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 15:15:03,IC-358,LM358 Op Amp,Integrated Circuits,27,0.30,1.16,31.32,8.10,23.22,Alika,Government,Debit Card,74
+HI054-TX-0011,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 17:37:35,SNS-SOIL,Soil Moisture Sensor,Sensors,38,0.98,4.49,170.62,37.24,133.38,Kai,Marine,Credit Card,691
+HI054-TX-0012,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 15:27:07,SNS-ULT,Ultrasonic Distance Sensor,Sensors,8,1.26,5.58,44.64,10.08,34.56,Ailani,Commercial,Mobile Pay,508
+HI054-TX-0013,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 12:42:59,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,9.53,27.21,190.47,66.71,123.76,Mika,Commercial,Purchase Order,719
+HI054-TX-0014,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 16:33:59,RES-220,220 Ohm Resistor,Resistors,27,0.03,0.14,3.78,0.81,2.97,Lani,Commercial,Purchase Order,251
+HI054-TX-0015,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 11:50:25,RES-010,10k Ohm Resistor,Resistors,13,0.03,0.14,1.82,0.39,1.43,Kaleo,Education,Purchase Order,317
+HI054-TX-0016,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 16:43:08,LED-BLU,5mm Blue LED,LEDs,40,0.07,0.32,12.80,2.80,10.00,Kaleo,Retail,Credit Card,618
+HI054-TX-0017,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 11:26:09,LED-RED,5mm Red LED,LEDs,21,0.06,0.26,5.46,1.26,4.20,Malia,Education,Credit Card,833
+HI054-TX-0018,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 08:51:06,MOS-44N,IRFZ44N MOSFET,Semiconductors,10,0.63,2.30,23.00,6.30,16.70,Hana,Commercial,ACH,837
+HI054-TX-0019,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 13:24:01,IC-REG,7805 Voltage Regulator,Integrated Circuits,11,0.19,0.96,10.56,2.09,8.47,Hana,Retail,Debit Card,187
+HI054-TX-0020,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 11:15:21,PWR-5V2,5V 2A Power Supply,Power,4,3.57,10.84,43.36,14.28,29.08,Kaleo,Tourism/Hospitality,ACH,549
+HI054-TX-0021,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 10:36:18,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.60,6.66,53.28,12.80,40.48,Mika,Commercial,Mobile Pay,211
+HI054-TX-0022,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 11:29:25,SNS-PIR,PIR Motion Sensor,Sensors,4,1.63,6.02,24.08,6.52,17.56,Mika,Commercial,Purchase Order,599
+HI054-TX-0023,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 16:01:54,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,35,0.05,0.20,7.00,1.75,5.25,Noelani,Commercial,Debit Card,372
+HI054-TX-0024,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 09:07:00,RES-220,220 Ohm Resistor,Resistors,26,0.03,0.14,3.64,0.78,2.86,Mika,Maker/Hobbyist,Mobile Pay,750
+HI054-TX-0025,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 17:30:03,LED-BLU,5mm Blue LED,LEDs,5,0.07,0.34,1.70,0.35,1.35,Koa,Retail,Purchase Order,625
+HI054-TX-0026,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 08:47:58,DIO-4007,1N4007 Diode,Semiconductors,33,0.05,0.21,6.93,1.65,5.28,Iolana,Tourism/Hospitality,Debit Card,842
+HI054-TX-0027,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 15:20:00,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.55,22.33,156.31,59.85,96.46,Leilani,Tourism/Hospitality,Credit Card,740
+HI054-TX-0028,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 13:12:42,PWR-5V2,5V 2A Power Supply,Power,2,3.68,10.62,21.24,7.36,13.88,Iolana,Education,Cash,503
+HI054-TX-0029,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 16:36:37,IC-358,LM358 Op Amp,Integrated Circuits,17,0.32,1.26,21.42,5.44,15.98,Akamu,Maker/Hobbyist,ACH,644
+HI054-TX-0030,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 09:23:41,LED-BLU,5mm Blue LED,LEDs,32,0.06,0.34,10.88,1.92,8.96,Ikaika,Education,Purchase Order,176
+HI054-TX-0031,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 11:26:18,TOOL-DMM,Digital Multimeter,Tools,6,8.55,28.83,172.98,51.30,121.68,Malia,Government,ACH,638
+HI054-TX-0032,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 09:45:09,PWR-5V2,5V 2A Power Supply,Power,4,3.83,11.08,44.32,15.32,29.00,Ailani,Government,ACH,440
+HI054-TX-0033,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 13:56:21,IC-555,NE555 Timer IC,Integrated Circuits,30,0.35,1.39,41.70,10.50,31.20,Malia,Retail,Debit Card,737
+HI054-TX-0034,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 16:54:36,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.30,17.15,102.90,31.80,71.10,Ailani,Tourism/Hospitality,Debit Card,288
+HI054-TX-0035,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 10:42:57,SNS-ULT,Ultrasonic Distance Sensor,Sensors,37,1.25,5.37,198.69,46.25,152.44,Makana,Commercial,Credit Card,241
+HI054-TX-0036,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 09:39:51,TOOL-WIRE,Wire Stripper,Tools,1,5.23,15.24,15.24,5.23,10.01,Ikaika,Maker/Hobbyist,Credit Card,581
+HI054-TX-0037,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 09:24:45,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.33,34.19,239.33,72.31,167.02,Makana,Tourism/Hospitality,Purchase Order,155
+HI054-TX-0038,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 11:35:16,SNS-DHT,DHT22 Temperature Sensor,Sensors,4,2.33,7.61,30.44,9.32,21.12,Koa,Education,Credit Card,267
+HI054-TX-0039,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 12:03:27,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.68,13.34,80.04,28.08,51.96,Noelani,Education,Mobile Pay,326
+HI054-TX-0040,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 15:18:18,LED-BLU,5mm Blue LED,LEDs,2,0.07,0.31,0.62,0.14,0.48,Kaleo,Tourism/Hospitality,Debit Card,843
+HI054-TX-0041,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 09:15:02,PWR-BUCK,Buck Converter Module,Power,36,1.08,5.20,187.20,38.88,148.32,Kaleo,Maker/Hobbyist,Purchase Order,32
+HI054-TX-0042,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 10:40:42,SNS-PIR,PIR Motion Sensor,Sensors,2,1.64,6.03,12.06,3.28,8.78,Keanu,Marine,ACH,171
+HI054-TX-0043,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 17:11:24,LED-RGB,RGB LED Strip,LEDs,1,4.73,13.88,13.88,4.73,9.15,Keahi,Marine,Mobile Pay,416
+HI054-TX-0044,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 16:23:56,SNS-PIR,PIR Motion Sensor,Sensors,3,1.62,5.62,16.86,4.86,12.00,Malia,Marine,Debit Card,772
+HI054-TX-0045,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 13:43:56,DIO-4007,1N4007 Diode,Semiconductors,23,0.05,0.18,4.14,1.15,2.99,Akamu,Marine,Credit Card,406
+HI054-TX-0046,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 14:54:39,RES-010,10k Ohm Resistor,Resistors,15,0.03,0.13,1.95,0.45,1.50,Kai,Marine,Mobile Pay,176
+HI054-TX-0047,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 12:05:11,SNS-PIR,PIR Motion Sensor,Sensors,6,1.64,5.93,35.58,9.84,25.74,Leilani,Education,Purchase Order,657
+HI054-TX-0048,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 12:15:18,TOOL-WIRE,Wire Stripper,Tools,7,4.71,15.16,106.12,32.97,73.15,Lani,Commercial,ACH,358
+HI054-TX-0049,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 12:47:03,IC-358,LM358 Op Amp,Integrated Circuits,38,0.31,1.20,45.60,11.78,33.82,Nalu,Commercial,Purchase Order,211
+HI054-TX-0050,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 10:05:18,RES-220,220 Ohm Resistor,Resistors,5,0.03,0.13,0.65,0.15,0.50,Koa,Commercial,ACH,188
+HI054-TX-0051,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 13:38:24,TOOL-WIRE,Wire Stripper,Tools,4,5.01,14.81,59.24,20.04,39.20,Iolana,Retail,Purchase Order,899
+HI054-TX-0052,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 11:46:01,BAT-AAH,AA Battery Holder,Batteries,18,0.52,2.84,51.12,9.36,41.76,Iolana,Education,ACH,865
+HI054-TX-0053,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 11:08:03,SNS-ULT,Ultrasonic Distance Sensor,Sensors,17,1.34,5.17,87.89,22.78,65.11,Noah,Education,Mobile Pay,634
+HI054-TX-0054,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 10:39:48,LED-BLU,5mm Blue LED,LEDs,40,0.06,0.32,12.80,2.40,10.40,Keanu,Education,Cash,652
+HI054-TX-0055,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 10:44:38,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.20,13.34,40.02,12.60,27.42,Noelani,Government,Credit Card,875
+HI054-TX-0056,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 09:25:41,CAP-010,10uF Capacitor,Capacitors,25,0.09,0.36,9.00,2.25,6.75,Malia,Retail,Credit Card,869
+HI054-TX-0057,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 12:38:48,BAT-AAH,AA Battery Holder,Batteries,30,0.51,2.63,78.90,15.30,63.60,Keanu,Education,Debit Card,319
+HI054-TX-0058,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 08:10:34,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.66,22.62,67.86,25.98,41.88,Iolana,Maker/Hobbyist,ACH,646
+HI054-TX-0059,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 17:38:00,CON-JMP,Jumper Wire Set,Connectors,14,0.88,3.92,54.88,12.32,42.56,Malia,Government,Credit Card,344
+HI054-TX-0060,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 13:43:06,SNS-ULT,Ultrasonic Distance Sensor,Sensors,21,1.21,5.21,109.41,25.41,84.00,Keanu,Tourism/Hospitality,Purchase Order,795
+HI054-TX-0061,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 14:28:12,PWR-12V,12V 5A Power Supply,Power,4,9.97,23.49,93.96,39.88,54.08,Leilani,Commercial,Debit Card,641
+HI054-TX-0062,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 09:53:08,SNS-SOIL,Soil Moisture Sensor,Sensors,16,0.90,4.38,70.08,14.40,55.68,Ikaika,Government,ACH,403
+HI054-TX-0063,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 17:51:04,PWR-BUCK,Buck Converter Module,Power,7,1.10,4.71,32.97,7.70,25.27,Hana,Tourism/Hospitality,ACH,612
+HI054-TX-0064,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 10:14:47,PWR-5V2,5V 2A Power Supply,Power,3,3.75,10.37,31.11,11.25,19.86,Akamu,Maker/Hobbyist,Cash,552
+HI054-TX-0065,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 09:01:19,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,7.77,22.67,22.67,7.77,14.90,Keanu,Tourism/Hospitality,Mobile Pay,336
+HI054-TX-0066,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 13:59:27,SNS-DHT,DHT22 Temperature Sensor,Sensors,3,2.42,7.85,23.55,7.26,16.29,Alika,Education,Credit Card,506
+HI054-TX-0067,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 11:43:33,SNS-ULT,Ultrasonic Distance Sensor,Sensors,21,1.24,5.31,111.51,26.04,85.47,Kai,Tourism/Hospitality,Cash,759
+HI054-TX-0068,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 08:43:32,BAT-AAH,AA Battery Holder,Batteries,35,0.47,2.61,91.35,16.45,74.90,Koa,Education,ACH,631
+HI054-TX-0069,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 16:19:20,REL-5V,5V Relay Module,Relays,38,0.99,5.25,199.50,37.62,161.88,Keahi,Government,Purchase Order,9
+HI054-TX-0070,HI054,Waikoloa,Hawaii Island,HI,2026-06-30 13:54:24,IC-555,NE555 Timer IC,Integrated Circuits,5,0.36,1.37,6.85,1.80,5.05,Ikaika,Retail,Debit Card,786

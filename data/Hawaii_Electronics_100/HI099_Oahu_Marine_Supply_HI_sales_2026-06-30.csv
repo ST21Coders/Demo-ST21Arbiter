@@ -1,0 +1,82 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI099-TX-0001,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 09:40:11,SOL-CTRL,Solar Charge Controller,Solar Power,2,10.51,34.49,68.98,21.02,47.96,Kaleo,Maker/Hobbyist,Purchase Order,586
+HI099-TX-0002,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 11:52:08,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,8.47,22.41,22.41,8.47,13.94,Akamu,Maker/Hobbyist,Debit Card,707
+HI099-TX-0003,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 17:13:59,PWR-12V,12V 5A Power Supply,Power,8,8.98,24.72,197.76,71.84,125.92,Noelani,Tourism/Hospitality,ACH,165
+HI099-TX-0004,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 13:38:01,RES-001,1k Ohm Resistor,Resistors,20,0.03,0.13,2.60,0.60,2.00,Koa,Education,Cash,561
+HI099-TX-0005,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:09:16,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.58,14.84,29.68,9.16,20.52,Noah,Education,Mobile Pay,426
+HI099-TX-0006,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 13:43:06,MOS-44N,IRFZ44N MOSFET,Semiconductors,31,0.64,2.42,75.02,19.84,55.18,Noelani,Tourism/Hospitality,Mobile Pay,166
+HI099-TX-0007,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:49:59,MAR-TIN,Tinned Marine Wire,Marine Electronics,3,9.52,26.67,80.01,28.56,51.45,Hana,Maker/Hobbyist,Credit Card,615
+HI099-TX-0008,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 10:22:43,CON-JMP,Jumper Wire Set,Connectors,14,0.96,3.80,53.20,13.44,39.76,Nalu,Retail,Purchase Order,403
+HI099-TX-0009,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 10:30:40,PWR-5V2,5V 2A Power Supply,Power,6,3.47,10.40,62.40,20.82,41.58,Makana,Retail,Debit Card,666
+HI099-TX-0010,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 11:47:22,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,9.24,27.65,221.20,73.92,147.28,Pualani,Maker/Hobbyist,Purchase Order,783
+HI099-TX-0011,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 10:25:55,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,8.93,28.13,56.26,17.86,38.40,Pualani,Commercial,Credit Card,1
+HI099-TX-0012,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 17:03:44,MAR-TIN,Tinned Marine Wire,Marine Electronics,3,8.81,28.97,86.91,26.43,60.48,Kai,Education,ACH,532
+HI099-TX-0013,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 09:55:10,PWR-5V2,5V 2A Power Supply,Power,3,3.72,11.52,34.56,11.16,23.40,Hana,Government,Debit Card,490
+HI099-TX-0014,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:25:36,PWR-BUCK,Buck Converter Module,Power,9,1.09,4.74,42.66,9.81,32.85,Kaleo,Tourism/Hospitality,Credit Card,682
+HI099-TX-0015,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 17:24:30,RES-010,10k Ohm Resistor,Resistors,16,0.03,0.14,2.24,0.48,1.76,Leilani,Government,ACH,804
+HI099-TX-0016,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 15:50:37,PWR-12V,12V 5A Power Supply,Power,1,8.86,25.60,25.60,8.86,16.74,Hana,Education,ACH,671
+HI099-TX-0017,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:58:25,IC-REG,7805 Voltage Regulator,Integrated Circuits,16,0.20,0.88,14.08,3.20,10.88,Keanu,Marine,Debit Card,36
+HI099-TX-0018,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 10:42:58,LED-BLU,5mm Blue LED,LEDs,14,0.07,0.32,4.48,0.98,3.50,Iolana,Retail,Mobile Pay,683
+HI099-TX-0019,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 15:02:04,IC-REG,7805 Voltage Regulator,Integrated Circuits,11,0.20,0.94,10.34,2.20,8.14,Ailani,Commercial,Mobile Pay,654
+HI099-TX-0020,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 10:51:05,IC-358,LM358 Op Amp,Integrated Circuits,4,0.32,1.15,4.60,1.28,3.32,Iolana,Tourism/Hospitality,Cash,546
+HI099-TX-0021,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 12:39:20,CAP-010,10uF Capacitor,Capacitors,12,0.09,0.40,4.80,1.08,3.72,Akamu,Retail,Debit Card,615
+HI099-TX-0022,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:17:35,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.64,14.06,56.24,14.56,41.68,Noah,Commercial,Credit Card,98
+HI099-TX-0023,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 12:33:35,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.51,6.57,45.99,10.57,35.42,Kai,Government,Cash,556
+HI099-TX-0024,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:54:25,PWR-12V,12V 5A Power Supply,Power,4,9.72,26.09,104.36,38.88,65.48,Koa,Education,ACH,77
+HI099-TX-0025,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 10:00:09,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,9.14,26.14,156.84,54.84,102.00,Noelani,Tourism/Hospitality,Purchase Order,270
+HI099-TX-0026,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 12:29:49,MOS-44N,IRFZ44N MOSFET,Semiconductors,20,0.63,2.58,51.60,12.60,39.00,Noah,Commercial,Mobile Pay,262
+HI099-TX-0027,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 13:59:36,IC-555,NE555 Timer IC,Integrated Circuits,8,0.33,1.41,11.28,2.64,8.64,Malia,Government,Credit Card,95
+HI099-TX-0028,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 10:14:12,PWR-BUCK,Buck Converter Module,Power,25,1.11,4.94,123.50,27.75,95.75,Hana,Retail,Purchase Order,661
+HI099-TX-0029,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 11:46:11,PWR-12V,12V 5A Power Supply,Power,6,9.51,25.11,150.66,57.06,93.60,Kaleo,Maker/Hobbyist,ACH,418
+HI099-TX-0030,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 13:50:46,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,9.06,28.66,171.96,54.36,117.60,Ailani,Marine,Mobile Pay,632
+HI099-TX-0031,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 12:03:58,BAT-LIPO,LiPo Battery Pack,Batteries,4,5.07,15.43,61.72,20.28,41.44,Kaleo,Retail,Mobile Pay,849
+HI099-TX-0032,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 15:17:57,PWR-BUCK,Buck Converter Module,Power,30,1.11,4.74,142.20,33.30,108.90,Keanu,Marine,Mobile Pay,568
+HI099-TX-0033,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 11:46:41,PWR-BUCK,Buck Converter Module,Power,24,0.99,4.88,117.12,23.76,93.36,Kai,Retail,Debit Card,721
+HI099-TX-0034,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 10:21:21,SOL-CTRL,Solar Charge Controller,Solar Power,5,10.30,33.87,169.35,51.50,117.85,Noelani,Retail,Credit Card,383
+HI099-TX-0035,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 11:06:24,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,8.54,26.52,185.64,59.78,125.86,Koa,Marine,Mobile Pay,278
+HI099-TX-0036,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:23:17,PWR-5V2,5V 2A Power Supply,Power,1,3.49,11.30,11.30,3.49,7.81,Koa,Commercial,ACH,589
+HI099-TX-0037,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 11:28:08,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,8.75,25.73,205.84,70.00,135.84,Lani,Marine,ACH,513
+HI099-TX-0038,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 09:05:57,PWR-BUCK,Buck Converter Module,Power,37,1.01,4.71,174.27,37.37,136.90,Koa,Maker/Hobbyist,Credit Card,576
+HI099-TX-0039,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 14:11:21,PWR-BUCK,Buck Converter Module,Power,8,1.01,4.98,39.84,8.08,31.76,Ailani,Tourism/Hospitality,Mobile Pay,735
+HI099-TX-0040,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 12:35:42,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.72,13.87,41.61,11.16,30.45,Nalu,Government,Debit Card,271
+HI099-TX-0041,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 08:29:14,SOL-CTRL,Solar Charge Controller,Solar Power,1,10.32,30.79,30.79,10.32,20.47,Malia,Maker/Hobbyist,Debit Card,819
+HI099-TX-0042,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 09:42:58,CON-JMP,Jumper Wire Set,Connectors,38,0.92,3.94,149.72,34.96,114.76,Iolana,Tourism/Hospitality,Cash,626
+HI099-TX-0043,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 11:51:55,SNS-SOIL,Soil Moisture Sensor,Sensors,16,0.91,4.16,66.56,14.56,52.00,Akamu,Retail,Credit Card,812
+HI099-TX-0044,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 09:07:59,SNS-PIR,PIR Motion Sensor,Sensors,5,1.50,5.65,28.25,7.50,20.75,Koa,Education,ACH,278
+HI099-TX-0045,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 17:41:25,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,9.59,27.07,189.49,67.13,122.36,Ikaika,Tourism/Hospitality,Credit Card,308
+HI099-TX-0046,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 12:38:45,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.64,14.18,56.72,14.56,42.16,Pualani,Maker/Hobbyist,Cash,16
+HI099-TX-0047,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 17:12:39,BAT-LIPO,LiPo Battery Pack,Batteries,8,5.44,16.15,129.20,43.52,85.68,Akamu,Commercial,ACH,265
+HI099-TX-0048,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 15:11:02,PWR-5V2,5V 2A Power Supply,Power,5,3.39,11.39,56.95,16.95,40.00,Lani,Education,Debit Card,634
+HI099-TX-0049,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 12:06:07,MAR-TIN,Tinned Marine Wire,Marine Electronics,1,8.87,27.93,27.93,8.87,19.06,Nalu,Education,Mobile Pay,510
+HI099-TX-0050,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 12:05:19,TOOL-SOL,Soldering Iron Tips,Tools,8,2.12,8.04,64.32,16.96,47.36,Iolana,Maker/Hobbyist,Mobile Pay,434
+HI099-TX-0051,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:36:31,DIO-4007,1N4007 Diode,Semiconductors,25,0.04,0.20,5.00,1.00,4.00,Makana,Maker/Hobbyist,Credit Card,545
+HI099-TX-0052,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 15:11:31,PWR-12V,12V 5A Power Supply,Power,8,9.46,25.23,201.84,75.68,126.16,Pualani,Government,Cash,88
+HI099-TX-0053,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 12:02:44,PWR-BUCK,Buck Converter Module,Power,31,1.11,5.12,158.72,34.41,124.31,Iolana,Maker/Hobbyist,Credit Card,736
+HI099-TX-0054,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 10:20:13,CAP-100,100uF Capacitor,Capacitors,21,0.16,0.59,12.39,3.36,9.03,Kaleo,Education,Debit Card,665
+HI099-TX-0055,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 09:32:14,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.50,30.89,185.34,63.00,122.34,Pualani,Marine,Purchase Order,345
+HI099-TX-0056,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:08:46,TOOL-DMM,Digital Multimeter,Tools,4,8.25,28.95,115.80,33.00,82.80,Koa,Marine,Debit Card,805
+HI099-TX-0057,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 14:46:42,PWR-12V,12V 5A Power Supply,Power,6,9.42,25.74,154.44,56.52,97.92,Alika,Tourism/Hospitality,ACH,812
+HI099-TX-0058,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 14:33:49,RES-220,220 Ohm Resistor,Resistors,2,0.03,0.13,0.26,0.06,0.20,Koa,Marine,Credit Card,195
+HI099-TX-0059,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 08:19:15,PWR-12V,12V 5A Power Supply,Power,6,8.82,24.89,149.34,52.92,96.42,Koa,Education,Credit Card,508
+HI099-TX-0060,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 14:11:58,SOL-CTRL,Solar Charge Controller,Solar Power,2,10.74,32.42,64.84,21.48,43.36,Leilani,Commercial,ACH,57
+HI099-TX-0061,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 09:34:28,IC-555,NE555 Timer IC,Integrated Circuits,11,0.33,1.45,15.95,3.63,12.32,Keanu,Maker/Hobbyist,Purchase Order,664
+HI099-TX-0062,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 13:21:50,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,19,0.05,0.19,3.61,0.95,2.66,Makana,Retail,Cash,807
+HI099-TX-0063,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 13:01:32,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.17,13.13,91.91,29.19,62.72,Pualani,Commercial,ACH,399
+HI099-TX-0064,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:35:29,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.74,13.67,13.67,3.74,9.93,Pualani,Maker/Hobbyist,Cash,853
+HI099-TX-0065,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 15:59:01,PWR-12V,12V 5A Power Supply,Power,5,9.10,23.56,117.80,45.50,72.30,Pualani,Marine,Mobile Pay,327
+HI099-TX-0066,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 09:01:46,IC-555,NE555 Timer IC,Integrated Circuits,10,0.35,1.32,13.20,3.50,9.70,Makana,Government,Debit Card,390
+HI099-TX-0067,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 11:24:06,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.87,13.82,13.82,3.87,9.95,Noah,Government,ACH,634
+HI099-TX-0068,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 08:42:30,SOL-CTRL,Solar Charge Controller,Solar Power,1,11.31,33.94,33.94,11.31,22.63,Kaleo,Government,Mobile Pay,630
+HI099-TX-0069,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 11:42:51,PWR-BUCK,Buck Converter Module,Power,26,1.11,4.87,126.62,28.86,97.76,Iolana,Marine,Debit Card,1
+HI099-TX-0070,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:17:56,IC-358,LM358 Op Amp,Integrated Circuits,15,0.32,1.15,17.25,4.80,12.45,Lani,Tourism/Hospitality,Purchase Order,166
+HI099-TX-0071,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 10:33:39,PWR-BUCK,Buck Converter Module,Power,7,1.06,5.13,35.91,7.42,28.49,Noelani,Maker/Hobbyist,Mobile Pay,161
+HI099-TX-0072,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 08:19:16,PWR-5V2,5V 2A Power Supply,Power,4,3.68,11.31,45.24,14.72,30.52,Nalu,Tourism/Hospitality,Credit Card,852
+HI099-TX-0073,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 12:06:06,SOL-CTRL,Solar Charge Controller,Solar Power,5,11.14,32.48,162.40,55.70,106.70,Akamu,Commercial,Credit Card,389
+HI099-TX-0074,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 08:33:24,RES-010,10k Ohm Resistor,Resistors,7,0.03,0.13,0.91,0.21,0.70,Makana,Education,Purchase Order,128
+HI099-TX-0075,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 08:23:35,SNS-ULT,Ultrasonic Distance Sensor,Sensors,18,1.24,5.55,99.90,22.32,77.58,Keahi,Retail,Purchase Order,113
+HI099-TX-0076,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:03:16,PWR-5V2,5V 2A Power Supply,Power,6,3.82,11.23,67.38,22.92,44.46,Alika,Maker/Hobbyist,Debit Card,560
+HI099-TX-0077,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 08:53:25,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,8.79,26.50,159.00,52.74,106.26,Malia,Commercial,Purchase Order,752
+HI099-TX-0078,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 11:27:25,PWR-12V,12V 5A Power Supply,Power,7,9.94,23.47,164.29,69.58,94.71,Lani,Government,Mobile Pay,378
+HI099-TX-0079,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 16:55:52,SNS-ULT,Ultrasonic Distance Sensor,Sensors,15,1.36,5.72,85.80,20.40,65.40,Alika,Retail,Purchase Order,409
+HI099-TX-0080,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 15:52:13,TOOL-SOL,Soldering Iron Tips,Tools,3,1.89,8.04,24.12,5.67,18.45,Makana,Education,Cash,559
+HI099-TX-0081,HI099,Oahu Marine Supply,Oahu,HI,2026-06-30 10:33:59,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,3.82,13.63,81.78,22.92,58.86,Ailani,Maker/Hobbyist,Mobile Pay,358

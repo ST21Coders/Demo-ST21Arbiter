@@ -1,0 +1,66 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI057-TX-0001,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 09:36:58,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,18,0.05,0.20,3.60,0.90,2.70,Mika,Commercial,Purchase Order,347
+HI057-TX-0002,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 08:51:08,RES-001,1k Ohm Resistor,Resistors,21,0.03,0.14,2.94,0.63,2.31,Kai,Marine,Cash,784
+HI057-TX-0003,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 11:06:25,TOOL-SOL,Soldering Iron Tips,Tools,1,2.07,7.14,7.14,2.07,5.07,Alika,Marine,Cash,412
+HI057-TX-0004,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 08:52:55,TOOL-SOL,Soldering Iron Tips,Tools,1,1.87,7.22,7.22,1.87,5.35,Malia,Marine,Credit Card,676
+HI057-TX-0005,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 13:55:04,SNS-SOIL,Soil Moisture Sensor,Sensors,38,0.96,4.29,163.02,36.48,126.54,Makana,Retail,Credit Card,285
+HI057-TX-0006,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 16:02:41,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,4.02,14.55,116.40,32.16,84.24,Kaleo,Government,ACH,626
+HI057-TX-0007,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 10:25:18,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.27,13.00,78.00,25.62,52.38,Noelani,Marine,Credit Card,315
+HI057-TX-0008,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 12:12:44,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.80,13.82,82.92,28.80,54.12,Keanu,Retail,Credit Card,49
+HI057-TX-0009,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 17:34:20,LED-BLU,5mm Blue LED,LEDs,34,0.06,0.31,10.54,2.04,8.50,Keahi,Maker/Hobbyist,Debit Card,302
+HI057-TX-0010,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 16:02:15,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,3.85,14.11,28.22,7.70,20.52,Makana,Government,Debit Card,295
+HI057-TX-0011,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 16:27:40,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,9.70,26.47,211.76,77.60,134.16,Leilani,Retail,Credit Card,433
+HI057-TX-0012,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 09:48:30,DIO-4007,1N4007 Diode,Semiconductors,1,0.04,0.19,0.19,0.04,0.15,Nalu,Maker/Hobbyist,Purchase Order,568
+HI057-TX-0013,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 08:11:17,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.40,7.45,52.15,16.80,35.35,Pualani,Commercial,Mobile Pay,723
+HI057-TX-0014,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 17:18:29,SNS-ULT,Ultrasonic Distance Sensor,Sensors,28,1.32,5.40,151.20,36.96,114.24,Noah,Maker/Hobbyist,ACH,73
+HI057-TX-0015,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 17:49:10,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.48,7.79,62.32,19.84,42.48,Alika,Education,ACH,585
+HI057-TX-0016,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 17:32:53,CON-JMP,Jumper Wire Set,Connectors,16,0.97,3.57,57.12,15.52,41.60,Makana,Maker/Hobbyist,Credit Card,703
+HI057-TX-0017,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 13:43:55,BAT-LIPO,LiPo Battery Pack,Batteries,4,5.63,16.72,66.88,22.52,44.36,Koa,Commercial,Debit Card,547
+HI057-TX-0018,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 13:29:34,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.24,12.59,50.36,16.96,33.40,Lani,Maker/Hobbyist,Mobile Pay,774
+HI057-TX-0019,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 10:32:47,USB-CBO,USB-C Breakout Board,Connectors,40,1.33,5.24,209.60,53.20,156.40,Ikaika,Government,Debit Card,369
+HI057-TX-0020,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 09:13:48,LED-BLU,5mm Blue LED,LEDs,11,0.06,0.31,3.41,0.66,2.75,Malia,Maker/Hobbyist,Debit Card,530
+HI057-TX-0021,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 12:19:14,SNS-PIR,PIR Motion Sensor,Sensors,4,1.64,6.01,24.04,6.56,17.48,Malia,Government,ACH,321
+HI057-TX-0022,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 11:25:56,PWR-BUCK,Buck Converter Module,Power,23,1.03,4.63,106.49,23.69,82.80,Akamu,Commercial,Purchase Order,313
+HI057-TX-0023,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 17:30:34,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.62,22.58,90.32,34.48,55.84,Alika,Commercial,Mobile Pay,583
+HI057-TX-0024,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 13:47:15,SOL-CTRL,Solar Charge Controller,Solar Power,2,10.76,30.74,61.48,21.52,39.96,Iolana,Commercial,Purchase Order,630
+HI057-TX-0025,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 12:14:52,PWR-12V,12V 5A Power Supply,Power,4,8.84,25.01,100.04,35.36,64.68,Alika,Government,Debit Card,274
+HI057-TX-0026,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 14:25:52,PWR-BUCK,Buck Converter Module,Power,39,0.98,4.99,194.61,38.22,156.39,Nalu,Commercial,Purchase Order,425
+HI057-TX-0027,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 09:24:11,SNS-SOIL,Soil Moisture Sensor,Sensors,40,1.00,4.29,171.60,40.00,131.60,Ailani,Education,ACH,575
+HI057-TX-0028,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 08:15:37,TOOL-WIRE,Wire Stripper,Tools,1,5.25,14.58,14.58,5.25,9.33,Alika,Maker/Hobbyist,Cash,401
+HI057-TX-0029,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 17:19:36,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.86,30.88,216.16,76.02,140.14,Iolana,Education,Debit Card,279
+HI057-TX-0030,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 10:55:47,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,31,0.04,0.19,5.89,1.24,4.65,Mika,Government,ACH,164
+HI057-TX-0031,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 13:38:35,IC-REG,7805 Voltage Regulator,Integrated Circuits,37,0.19,0.96,35.52,7.03,28.49,Nalu,Marine,Debit Card,889
+HI057-TX-0032,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 14:03:53,PWR-BUCK,Buck Converter Module,Power,16,1.09,5.00,80.00,17.44,62.56,Makana,Government,Credit Card,899
+HI057-TX-0033,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 12:38:44,RES-220,220 Ohm Resistor,Resistors,3,0.03,0.14,0.42,0.09,0.33,Noah,Tourism/Hospitality,Debit Card,607
+HI057-TX-0034,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 16:52:14,RES-220,220 Ohm Resistor,Resistors,26,0.03,0.13,3.38,0.78,2.60,Mika,Retail,ACH,543
+HI057-TX-0035,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 15:12:09,USB-CBO,USB-C Breakout Board,Connectors,39,1.46,5.46,212.94,56.94,156.00,Malia,Retail,Debit Card,672
+HI057-TX-0036,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 17:09:29,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.79,13.91,83.46,28.74,54.72,Keanu,Tourism/Hospitality,Debit Card,268
+HI057-TX-0037,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 13:44:49,PWR-5V2,5V 2A Power Supply,Power,3,3.82,10.55,31.65,11.46,20.19,Ikaika,Government,Purchase Order,673
+HI057-TX-0038,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 16:38:54,PWR-5V2,5V 2A Power Supply,Power,6,3.37,10.54,63.24,20.22,43.02,Nalu,Commercial,Purchase Order,169
+HI057-TX-0039,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 16:49:52,RES-220,220 Ohm Resistor,Resistors,10,0.03,0.13,1.30,0.30,1.00,Kaleo,Education,Purchase Order,872
+HI057-TX-0040,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 11:16:23,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,7.89,21.19,148.33,55.23,93.10,Leilani,Tourism/Hospitality,Mobile Pay,548
+HI057-TX-0041,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 16:02:19,RES-220,220 Ohm Resistor,Resistors,20,0.03,0.12,2.40,0.60,1.80,Noah,Marine,Mobile Pay,281
+HI057-TX-0042,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 13:12:45,IC-358,LM358 Op Amp,Integrated Circuits,7,0.32,1.25,8.75,2.24,6.51,Mika,Retail,Debit Card,754
+HI057-TX-0043,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 14:40:19,PWR-12V,12V 5A Power Supply,Power,5,9.35,23.52,117.60,46.75,70.85,Hana,Commercial,Cash,804
+HI057-TX-0044,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 10:43:15,PWR-5V2,5V 2A Power Supply,Power,1,3.42,10.94,10.94,3.42,7.52,Pualani,Education,Cash,882
+HI057-TX-0045,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 13:15:35,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.49,13.78,68.90,22.45,46.45,Mika,Government,Purchase Order,32
+HI057-TX-0046,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 11:15:35,CAP-010,10uF Capacitor,Capacitors,26,0.08,0.36,9.36,2.08,7.28,Keahi,Education,Mobile Pay,751
+HI057-TX-0047,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 13:09:45,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,6,0.04,0.19,1.14,0.24,0.90,Alika,Government,Purchase Order,705
+HI057-TX-0048,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 08:31:54,PWR-BUCK,Buck Converter Module,Power,38,1.07,4.90,186.20,40.66,145.54,Nalu,Education,Debit Card,689
+HI057-TX-0049,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 11:57:21,TR-3904,2N3904 NPN Transistor,Semiconductors,19,0.05,0.24,4.56,0.95,3.61,Lani,Education,Cash,482
+HI057-TX-0050,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 10:40:22,SOL-CTRL,Solar Charge Controller,Solar Power,8,10.57,33.51,268.08,84.56,183.52,Noelani,Retail,Credit Card,865
+HI057-TX-0051,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 12:08:05,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.75,23.04,161.28,61.25,100.03,Noah,Maker/Hobbyist,Purchase Order,510
+HI057-TX-0052,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 16:31:32,TOOL-SOL,Soldering Iron Tips,Tools,2,2.06,7.31,14.62,4.12,10.50,Noah,Marine,Mobile Pay,343
+HI057-TX-0053,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 08:19:18,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.53,6.69,20.07,4.59,15.48,Lani,Retail,Mobile Pay,62
+HI057-TX-0054,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 12:52:06,LED-RGB,RGB LED Strip,LEDs,7,4.80,13.30,93.10,33.60,59.50,Keanu,Marine,Purchase Order,690
+HI057-TX-0055,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 14:59:51,PWR-12V,12V 5A Power Supply,Power,4,9.32,26.45,105.80,37.28,68.52,Ailani,Marine,Purchase Order,455
+HI057-TX-0056,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 11:31:51,IC-REG,7805 Voltage Regulator,Integrated Circuits,28,0.20,0.96,26.88,5.60,21.28,Pualani,Maker/Hobbyist,Purchase Order,644
+HI057-TX-0057,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 10:11:15,ARD-UNO,Arduino Uno Compatible,Microcontrollers,4,8.29,20.49,81.96,33.16,48.80,Mika,Retail,Cash,121
+HI057-TX-0058,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 12:05:24,CAP-010,10uF Capacitor,Capacitors,16,0.09,0.36,5.76,1.44,4.32,Kaleo,Marine,Purchase Order,703
+HI057-TX-0059,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 15:48:10,CAP-100,100uF Capacitor,Capacitors,31,0.17,0.58,17.98,5.27,12.71,Ikaika,Government,Cash,710
+HI057-TX-0060,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 17:15:08,PWR-12V,12V 5A Power Supply,Power,8,9.47,24.60,196.80,75.76,121.04,Nalu,Tourism/Hospitality,Cash,171
+HI057-TX-0061,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 11:07:29,SNS-ULT,Ultrasonic Distance Sensor,Sensors,25,1.32,5.11,127.75,33.00,94.75,Alika,Retail,Cash,486
+HI057-TX-0062,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 17:24:23,RES-001,1k Ohm Resistor,Resistors,23,0.03,0.14,3.22,0.69,2.53,Akamu,Education,Purchase Order,355
+HI057-TX-0063,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 14:51:57,PWR-5V2,5V 2A Power Supply,Power,6,3.43,10.48,62.88,20.58,42.30,Ailani,Government,Credit Card,848
+HI057-TX-0064,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 09:03:11,SNS-SOIL,Soil Moisture Sensor,Sensors,3,0.95,4.59,13.77,2.85,10.92,Ikaika,Maker/Hobbyist,Credit Card,304
+HI057-TX-0065,HI057,Kealakekua,Hawaii Island,HI,2026-06-30 14:53:47,PWR-BUCK,Buck Converter Module,Power,13,1.01,4.72,61.36,13.13,48.23,Kaleo,Retail,Cash,895

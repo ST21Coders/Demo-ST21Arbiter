@@ -1,0 +1,71 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI093-TX-0001,HI093,Lanai Resort,Lanai,HI,2026-06-30 15:10:09,SOL-CTRL,Solar Charge Controller,Solar Power,8,10.54,30.60,244.80,84.32,160.48,Ailani,Government,Mobile Pay,66
+HI093-TX-0002,HI093,Lanai Resort,Lanai,HI,2026-06-30 12:37:00,IC-555,NE555 Timer IC,Integrated Circuits,23,0.37,1.43,32.89,8.51,24.38,Kai,Commercial,Credit Card,388
+HI093-TX-0003,HI093,Lanai Resort,Lanai,HI,2026-06-30 17:33:43,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.98,13.95,41.85,11.94,29.91,Nalu,Marine,ACH,735
+HI093-TX-0004,HI093,Lanai Resort,Lanai,HI,2026-06-30 09:01:57,PWR-12V,12V 5A Power Supply,Power,3,9.20,25.03,75.09,27.60,47.49,Alika,Commercial,Debit Card,800
+HI093-TX-0005,HI093,Lanai Resort,Lanai,HI,2026-06-30 11:23:38,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.99,14.42,100.94,27.93,73.01,Hana,Government,Credit Card,890
+HI093-TX-0006,HI093,Lanai Resort,Lanai,HI,2026-06-30 10:16:32,PWR-BUCK,Buck Converter Module,Power,28,1.06,5.12,143.36,29.68,113.68,Alika,Marine,ACH,152
+HI093-TX-0007,HI093,Lanai Resort,Lanai,HI,2026-06-30 09:04:01,REL-5V,5V Relay Module,Relays,25,0.89,5.24,131.00,22.25,108.75,Ailani,Maker/Hobbyist,Credit Card,697
+HI093-TX-0008,HI093,Lanai Resort,Lanai,HI,2026-06-30 16:19:17,PWR-BUCK,Buck Converter Module,Power,3,1.04,4.94,14.82,3.12,11.70,Kaleo,Education,Cash,490
+HI093-TX-0009,HI093,Lanai Resort,Lanai,HI,2026-06-30 14:06:44,CAP-010,10uF Capacitor,Capacitors,31,0.09,0.39,12.09,2.79,9.30,Hana,Government,Mobile Pay,169
+HI093-TX-0010,HI093,Lanai Resort,Lanai,HI,2026-06-30 12:08:08,DIO-4007,1N4007 Diode,Semiconductors,40,0.04,0.19,7.60,1.60,6.00,Noah,Marine,Cash,783
+HI093-TX-0011,HI093,Lanai Resort,Lanai,HI,2026-06-30 08:56:04,DIO-4007,1N4007 Diode,Semiconductors,39,0.05,0.20,7.80,1.95,5.85,Keahi,Tourism/Hospitality,Mobile Pay,231
+HI093-TX-0012,HI093,Lanai Resort,Lanai,HI,2026-06-30 14:42:07,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,3.98,14.41,28.82,7.96,20.86,Makana,Maker/Hobbyist,Mobile Pay,310
+HI093-TX-0013,HI093,Lanai Resort,Lanai,HI,2026-06-30 10:28:07,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.69,21.11,63.33,26.07,37.26,Kaleo,Retail,Mobile Pay,233
+HI093-TX-0014,HI093,Lanai Resort,Lanai,HI,2026-06-30 13:19:47,IC-REG,7805 Voltage Regulator,Integrated Circuits,36,0.21,0.89,32.04,7.56,24.48,Noelani,Tourism/Hospitality,Cash,897
+HI093-TX-0015,HI093,Lanai Resort,Lanai,HI,2026-06-30 10:34:04,PWR-BUCK,Buck Converter Module,Power,12,1.03,4.84,58.08,12.36,45.72,Malia,Maker/Hobbyist,Mobile Pay,276
+HI093-TX-0016,HI093,Lanai Resort,Lanai,HI,2026-06-30 08:52:53,SOL-CTRL,Solar Charge Controller,Solar Power,6,10.18,34.53,207.18,61.08,146.10,Makana,Education,Cash,615
+HI093-TX-0017,HI093,Lanai Resort,Lanai,HI,2026-06-30 08:41:45,LED-RED,5mm Red LED,LEDs,6,0.05,0.27,1.62,0.30,1.32,Iolana,Commercial,Credit Card,520
+HI093-TX-0018,HI093,Lanai Resort,Lanai,HI,2026-06-30 10:49:02,TOOL-WIRE,Wire Stripper,Tools,3,4.65,15.60,46.80,13.95,32.85,Keahi,Maker/Hobbyist,Credit Card,200
+HI093-TX-0019,HI093,Lanai Resort,Lanai,HI,2026-06-30 16:26:27,PWR-12V,12V 5A Power Supply,Power,8,9.96,25.15,201.20,79.68,121.52,Koa,Government,Debit Card,53
+HI093-TX-0020,HI093,Lanai Resort,Lanai,HI,2026-06-30 08:04:47,USB-CBO,USB-C Breakout Board,Connectors,32,1.31,5.58,178.56,41.92,136.64,Noah,Tourism/Hospitality,ACH,71
+HI093-TX-0021,HI093,Lanai Resort,Lanai,HI,2026-06-30 09:17:19,ESP-32,ESP32 Dev Board,Microcontrollers,8,3.97,13.25,106.00,31.76,74.24,Kai,Education,Mobile Pay,494
+HI093-TX-0022,HI093,Lanai Resort,Lanai,HI,2026-06-30 08:20:22,TR-3904,2N3904 NPN Transistor,Semiconductors,1,0.05,0.25,0.25,0.05,0.20,Ikaika,Retail,Cash,214
+HI093-TX-0023,HI093,Lanai Resort,Lanai,HI,2026-06-30 17:43:21,PWR-5V2,5V 2A Power Supply,Power,4,3.76,11.35,45.40,15.04,30.36,Alika,Tourism/Hospitality,ACH,439
+HI093-TX-0024,HI093,Lanai Resort,Lanai,HI,2026-06-30 15:24:47,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.07,8.90,8.90,3.07,5.83,Pualani,Commercial,Cash,101
+HI093-TX-0025,HI093,Lanai Resort,Lanai,HI,2026-06-30 15:34:45,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.88,14.40,86.40,29.28,57.12,Keanu,Education,Debit Card,273
+HI093-TX-0026,HI093,Lanai Resort,Lanai,HI,2026-06-30 11:39:03,PWR-5V2,5V 2A Power Supply,Power,3,3.83,11.01,33.03,11.49,21.54,Noah,Marine,Credit Card,41
+HI093-TX-0027,HI093,Lanai Resort,Lanai,HI,2026-06-30 08:47:41,IC-358,LM358 Op Amp,Integrated Circuits,3,0.32,1.21,3.63,0.96,2.67,Akamu,Government,Credit Card,579
+HI093-TX-0028,HI093,Lanai Resort,Lanai,HI,2026-06-30 08:30:45,TOOL-SOL,Soldering Iron Tips,Tools,8,2.09,7.35,58.80,16.72,42.08,Alika,Retail,Debit Card,529
+HI093-TX-0029,HI093,Lanai Resort,Lanai,HI,2026-06-30 17:14:30,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.13,13.32,53.28,16.52,36.76,Makana,Marine,Debit Card,128
+HI093-TX-0030,HI093,Lanai Resort,Lanai,HI,2026-06-30 11:30:11,PWR-5V2,5V 2A Power Supply,Power,5,3.78,11.26,56.30,18.90,37.40,Ailani,Commercial,Credit Card,477
+HI093-TX-0031,HI093,Lanai Resort,Lanai,HI,2026-06-30 09:47:41,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.22,22.99,45.98,16.44,29.54,Akamu,Education,Credit Card,264
+HI093-TX-0032,HI093,Lanai Resort,Lanai,HI,2026-06-30 12:41:09,TR-3904,2N3904 NPN Transistor,Semiconductors,9,0.05,0.23,2.07,0.45,1.62,Mika,Marine,Cash,189
+HI093-TX-0033,HI093,Lanai Resort,Lanai,HI,2026-06-30 08:10:30,LED-RED,5mm Red LED,LEDs,33,0.05,0.29,9.57,1.65,7.92,Ikaika,Commercial,Mobile Pay,716
+HI093-TX-0034,HI093,Lanai Resort,Lanai,HI,2026-06-30 16:16:20,TOOL-DMM,Digital Multimeter,Tools,3,8.77,28.78,86.34,26.31,60.03,Koa,Government,Debit Card,772
+HI093-TX-0035,HI093,Lanai Resort,Lanai,HI,2026-06-30 17:55:31,IC-555,NE555 Timer IC,Integrated Circuits,32,0.38,1.29,41.28,12.16,29.12,Nalu,Government,Credit Card,71
+HI093-TX-0036,HI093,Lanai Resort,Lanai,HI,2026-06-30 11:01:33,SOL-CTRL,Solar Charge Controller,Solar Power,8,11.28,31.12,248.96,90.24,158.72,Lani,Government,Purchase Order,303
+HI093-TX-0037,HI093,Lanai Resort,Lanai,HI,2026-06-30 09:04:57,TOOL-DMM,Digital Multimeter,Tools,4,9.09,25.72,102.88,36.36,66.52,Akamu,Government,Cash,764
+HI093-TX-0038,HI093,Lanai Resort,Lanai,HI,2026-06-30 15:13:15,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,5.01,14.79,44.37,15.03,29.34,Keahi,Government,ACH,842
+HI093-TX-0039,HI093,Lanai Resort,Lanai,HI,2026-06-30 08:32:43,LED-RGB,RGB LED Strip,LEDs,2,4.74,14.26,28.52,9.48,19.04,Ailani,Marine,Cash,741
+HI093-TX-0040,HI093,Lanai Resort,Lanai,HI,2026-06-30 13:29:00,RES-010,10k Ohm Resistor,Resistors,4,0.03,0.12,0.48,0.12,0.36,Noelani,Education,Debit Card,148
+HI093-TX-0041,HI093,Lanai Resort,Lanai,HI,2026-06-30 12:39:28,MAR-ANT,Marine Antenna Connector,Marine Electronics,8,4.13,14.87,118.96,33.04,85.92,Koa,Maker/Hobbyist,ACH,329
+HI093-TX-0042,HI093,Lanai Resort,Lanai,HI,2026-06-30 16:33:55,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,8.39,22.39,22.39,8.39,14.00,Koa,Maker/Hobbyist,Credit Card,524
+HI093-TX-0043,HI093,Lanai Resort,Lanai,HI,2026-06-30 10:29:09,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.57,6.85,20.55,4.71,15.84,Iolana,Commercial,Cash,494
+HI093-TX-0044,HI093,Lanai Resort,Lanai,HI,2026-06-30 17:54:43,SOL-CTRL,Solar Charge Controller,Solar Power,6,11.02,34.22,205.32,66.12,139.20,Makana,Retail,Credit Card,886
+HI093-TX-0045,HI093,Lanai Resort,Lanai,HI,2026-06-30 13:44:21,MOS-44N,IRFZ44N MOSFET,Semiconductors,39,0.58,2.41,93.99,22.62,71.37,Koa,Government,Credit Card,405
+HI093-TX-0046,HI093,Lanai Resort,Lanai,HI,2026-06-30 10:59:25,RES-220,220 Ohm Resistor,Resistors,14,0.03,0.13,1.82,0.42,1.40,Koa,Maker/Hobbyist,Purchase Order,793
+HI093-TX-0047,HI093,Lanai Resort,Lanai,HI,2026-06-30 16:53:28,MAR-ANT,Marine Antenna Connector,Marine Electronics,1,3.94,13.33,13.33,3.94,9.39,Hana,Government,Mobile Pay,539
+HI093-TX-0048,HI093,Lanai Resort,Lanai,HI,2026-06-30 12:03:07,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,9.30,28.12,168.72,55.80,112.92,Makana,Tourism/Hospitality,Mobile Pay,344
+HI093-TX-0049,HI093,Lanai Resort,Lanai,HI,2026-06-30 08:02:25,IC-REG,7805 Voltage Regulator,Integrated Circuits,26,0.19,0.91,23.66,4.94,18.72,Iolana,Tourism/Hospitality,Cash,324
+HI093-TX-0050,HI093,Lanai Resort,Lanai,HI,2026-06-30 11:20:48,PWR-BUCK,Buck Converter Module,Power,18,1.04,4.86,87.48,18.72,68.76,Alika,Education,Debit Card,450
+HI093-TX-0051,HI093,Lanai Resort,Lanai,HI,2026-06-30 17:33:50,REL-5V,5V Relay Module,Relays,31,0.89,5.67,175.77,27.59,148.18,Lani,Commercial,Mobile Pay,828
+HI093-TX-0052,HI093,Lanai Resort,Lanai,HI,2026-06-30 14:37:24,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.97,14.48,43.44,11.91,31.53,Ailani,Retail,Credit Card,120
+HI093-TX-0053,HI093,Lanai Resort,Lanai,HI,2026-06-30 14:44:54,SOL-CTRL,Solar Charge Controller,Solar Power,7,10.05,31.89,223.23,70.35,152.88,Nalu,Maker/Hobbyist,Credit Card,262
+HI093-TX-0054,HI093,Lanai Resort,Lanai,HI,2026-06-30 12:36:34,PWR-12V,12V 5A Power Supply,Power,1,9.44,24.02,24.02,9.44,14.58,Kai,Retail,Debit Card,702
+HI093-TX-0055,HI093,Lanai Resort,Lanai,HI,2026-06-30 10:50:24,PWR-12V,12V 5A Power Supply,Power,3,9.14,26.27,78.81,27.42,51.39,Lani,Maker/Hobbyist,ACH,751
+HI093-TX-0056,HI093,Lanai Resort,Lanai,HI,2026-06-30 17:12:47,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,8.61,27.91,139.55,43.05,96.50,Keahi,Marine,Debit Card,634
+HI093-TX-0057,HI093,Lanai Resort,Lanai,HI,2026-06-30 17:26:39,IC-358,LM358 Op Amp,Integrated Circuits,35,0.31,1.19,41.65,10.85,30.80,Keanu,Education,Debit Card,634
+HI093-TX-0058,HI093,Lanai Resort,Lanai,HI,2026-06-30 17:53:43,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,7.74,20.45,122.70,46.44,76.26,Iolana,Retail,Cash,363
+HI093-TX-0059,HI093,Lanai Resort,Lanai,HI,2026-06-30 13:37:14,TOOL-DMM,Digital Multimeter,Tools,4,8.75,27.18,108.72,35.00,73.72,Lani,Tourism/Hospitality,Cash,70
+HI093-TX-0060,HI093,Lanai Resort,Lanai,HI,2026-06-30 17:56:47,PWR-BUCK,Buck Converter Module,Power,20,1.04,5.15,103.00,20.80,82.20,Hana,Marine,Mobile Pay,472
+HI093-TX-0061,HI093,Lanai Resort,Lanai,HI,2026-06-30 12:32:34,RES-010,10k Ohm Resistor,Resistors,13,0.03,0.13,1.69,0.39,1.30,Kai,Tourism/Hospitality,Purchase Order,276
+HI093-TX-0062,HI093,Lanai Resort,Lanai,HI,2026-06-30 10:25:59,SNS-SOIL,Soil Moisture Sensor,Sensors,38,0.94,4.48,170.24,35.72,134.52,Hana,Commercial,ACH,319
+HI093-TX-0063,HI093,Lanai Resort,Lanai,HI,2026-06-30 13:52:05,PWR-12V,12V 5A Power Supply,Power,7,9.76,26.53,185.71,68.32,117.39,Ailani,Education,Cash,457
+HI093-TX-0064,HI093,Lanai Resort,Lanai,HI,2026-06-30 09:16:49,USB-CBO,USB-C Breakout Board,Connectors,4,1.37,5.56,22.24,5.48,16.76,Noah,Maker/Hobbyist,Debit Card,870
+HI093-TX-0065,HI093,Lanai Resort,Lanai,HI,2026-06-30 12:56:44,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.99,13.70,41.10,11.97,29.13,Nalu,Education,Credit Card,553
+HI093-TX-0066,HI093,Lanai Resort,Lanai,HI,2026-06-30 13:20:28,RES-001,1k Ohm Resistor,Resistors,19,0.03,0.13,2.47,0.57,1.90,Pualani,Retail,Purchase Order,556
+HI093-TX-0067,HI093,Lanai Resort,Lanai,HI,2026-06-30 10:35:11,PWR-5V2,5V 2A Power Supply,Power,5,3.53,10.36,51.80,17.65,34.15,Makana,Education,Credit Card,730
+HI093-TX-0068,HI093,Lanai Resort,Lanai,HI,2026-06-30 17:59:06,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,3.79,13.46,53.84,15.16,38.68,Keahi,Maker/Hobbyist,ACH,92
+HI093-TX-0069,HI093,Lanai Resort,Lanai,HI,2026-06-30 14:24:56,MAR-TIN,Tinned Marine Wire,Marine Electronics,3,9.05,27.02,81.06,27.15,53.91,Kaleo,Maker/Hobbyist,ACH,635
+HI093-TX-0070,HI093,Lanai Resort,Lanai,HI,2026-06-30 09:49:56,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.13,8.16,57.12,21.91,35.21,Ailani,Maker/Hobbyist,Mobile Pay,824

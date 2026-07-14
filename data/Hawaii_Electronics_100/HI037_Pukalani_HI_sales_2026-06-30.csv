@@ -1,0 +1,72 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI037-TX-0001,HI037,Pukalani,Maui,HI,2026-06-30 14:00:47,TOOL-DMM,Digital Multimeter,Tools,1,8.85,28.66,28.66,8.85,19.81,Noelani,Education,Credit Card,91
+HI037-TX-0002,HI037,Pukalani,Maui,HI,2026-06-30 16:01:33,PWR-BUCK,Buck Converter Module,Power,34,1.08,5.01,170.34,36.72,133.62,Ailani,Retail,Mobile Pay,99
+HI037-TX-0003,HI037,Pukalani,Maui,HI,2026-06-30 12:07:10,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,8.47,21.45,21.45,8.47,12.98,Ailani,Commercial,Purchase Order,6
+HI037-TX-0004,HI037,Pukalani,Maui,HI,2026-06-30 15:53:13,LED-RED,5mm Red LED,LEDs,40,0.06,0.28,11.20,2.40,8.80,Keahi,Tourism/Hospitality,Credit Card,119
+HI037-TX-0005,HI037,Pukalani,Maui,HI,2026-06-30 14:08:49,LED-BLU,5mm Blue LED,LEDs,5,0.06,0.33,1.65,0.30,1.35,Nalu,Commercial,Purchase Order,388
+HI037-TX-0006,HI037,Pukalani,Maui,HI,2026-06-30 17:54:37,CAP-010,10uF Capacitor,Capacitors,8,0.09,0.39,3.12,0.72,2.40,Alika,Marine,Credit Card,582
+HI037-TX-0007,HI037,Pukalani,Maui,HI,2026-06-30 17:36:22,LED-RED,5mm Red LED,LEDs,18,0.06,0.28,5.04,1.08,3.96,Keahi,Maker/Hobbyist,Debit Card,345
+HI037-TX-0008,HI037,Pukalani,Maui,HI,2026-06-30 15:56:41,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,8.65,22.00,176.00,69.20,106.80,Koa,Retail,Debit Card,293
+HI037-TX-0009,HI037,Pukalani,Maui,HI,2026-06-30 17:15:41,TOOL-WIRE,Wire Stripper,Tools,4,5.24,15.81,63.24,20.96,42.28,Noah,Government,Cash,376
+HI037-TX-0010,HI037,Pukalani,Maui,HI,2026-06-30 12:46:00,DIO-4007,1N4007 Diode,Semiconductors,27,0.05,0.19,5.13,1.35,3.78,Lani,Tourism/Hospitality,Mobile Pay,726
+HI037-TX-0011,HI037,Pukalani,Maui,HI,2026-06-30 15:10:06,LED-RED,5mm Red LED,LEDs,3,0.06,0.28,0.84,0.18,0.66,Alika,Commercial,Mobile Pay,266
+HI037-TX-0012,HI037,Pukalani,Maui,HI,2026-06-30 13:56:11,SOL-CTRL,Solar Charge Controller,Solar Power,2,11.48,32.89,65.78,22.96,42.82,Keanu,Government,Cash,434
+HI037-TX-0013,HI037,Pukalani,Maui,HI,2026-06-30 10:54:32,SNS-ULT,Ultrasonic Distance Sensor,Sensors,3,1.33,5.75,17.25,3.99,13.26,Mika,Tourism/Hospitality,Purchase Order,55
+HI037-TX-0014,HI037,Pukalani,Maui,HI,2026-06-30 09:55:21,LED-RED,5mm Red LED,LEDs,15,0.05,0.26,3.90,0.75,3.15,Alika,Marine,Cash,29
+HI037-TX-0015,HI037,Pukalani,Maui,HI,2026-06-30 10:00:25,BAT-AAH,AA Battery Holder,Batteries,2,0.50,2.72,5.44,1.00,4.44,Nalu,Retail,Purchase Order,68
+HI037-TX-0016,HI037,Pukalani,Maui,HI,2026-06-30 12:02:39,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,22,0.04,0.20,4.40,0.88,3.52,Pualani,Maker/Hobbyist,Credit Card,367
+HI037-TX-0017,HI037,Pukalani,Maui,HI,2026-06-30 10:05:53,PWR-5V2,5V 2A Power Supply,Power,6,3.72,11.08,66.48,22.32,44.16,Akamu,Government,Purchase Order,647
+HI037-TX-0018,HI037,Pukalani,Maui,HI,2026-06-30 13:21:16,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.45,6.89,55.12,11.60,43.52,Hana,Commercial,Credit Card,752
+HI037-TX-0019,HI037,Pukalani,Maui,HI,2026-06-30 16:51:57,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.66,22.63,113.15,43.30,69.85,Malia,Maker/Hobbyist,Credit Card,585
+HI037-TX-0020,HI037,Pukalani,Maui,HI,2026-06-30 17:31:11,LED-BLU,5mm Blue LED,LEDs,14,0.06,0.31,4.34,0.84,3.50,Kai,Maker/Hobbyist,ACH,641
+HI037-TX-0021,HI037,Pukalani,Maui,HI,2026-06-30 11:49:01,RES-010,10k Ohm Resistor,Resistors,18,0.03,0.12,2.16,0.54,1.62,Hana,Commercial,Cash,322
+HI037-TX-0022,HI037,Pukalani,Maui,HI,2026-06-30 17:18:15,IC-REG,7805 Voltage Regulator,Integrated Circuits,1,0.19,0.87,0.87,0.19,0.68,Keanu,Maker/Hobbyist,Credit Card,481
+HI037-TX-0023,HI037,Pukalani,Maui,HI,2026-06-30 10:12:35,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,22,0.04,0.20,4.40,0.88,3.52,Malia,Marine,ACH,670
+HI037-TX-0024,HI037,Pukalani,Maui,HI,2026-06-30 13:32:13,BAT-AAH,AA Battery Holder,Batteries,36,0.50,2.72,97.92,18.00,79.92,Ailani,Maker/Hobbyist,ACH,355
+HI037-TX-0025,HI037,Pukalani,Maui,HI,2026-06-30 09:51:06,TOOL-WIRE,Wire Stripper,Tools,7,5.19,14.93,104.51,36.33,68.18,Keahi,Marine,Debit Card,248
+HI037-TX-0026,HI037,Pukalani,Maui,HI,2026-06-30 13:08:02,RES-001,1k Ohm Resistor,Resistors,40,0.03,0.13,5.20,1.20,4.00,Noelani,Marine,Debit Card,223
+HI037-TX-0027,HI037,Pukalani,Maui,HI,2026-06-30 17:58:57,MOS-44N,IRFZ44N MOSFET,Semiconductors,34,0.63,2.54,86.36,21.42,64.94,Koa,Tourism/Hospitality,Credit Card,47
+HI037-TX-0028,HI037,Pukalani,Maui,HI,2026-06-30 12:36:42,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.95,14.18,28.36,9.90,18.46,Iolana,Government,Mobile Pay,359
+HI037-TX-0029,HI037,Pukalani,Maui,HI,2026-06-30 15:06:42,IC-358,LM358 Op Amp,Integrated Circuits,28,0.30,1.15,32.20,8.40,23.80,Akamu,Retail,Credit Card,602
+HI037-TX-0030,HI037,Pukalani,Maui,HI,2026-06-30 09:34:32,CAP-010,10uF Capacitor,Capacitors,24,0.09,0.38,9.12,2.16,6.96,Nalu,Government,Mobile Pay,489
+HI037-TX-0031,HI037,Pukalani,Maui,HI,2026-06-30 14:47:26,LED-RED,5mm Red LED,LEDs,31,0.05,0.26,8.06,1.55,6.51,Keahi,Maker/Hobbyist,Cash,766
+HI037-TX-0032,HI037,Pukalani,Maui,HI,2026-06-30 16:40:41,RES-220,220 Ohm Resistor,Resistors,20,0.03,0.13,2.60,0.60,2.00,Lani,Marine,Purchase Order,207
+HI037-TX-0033,HI037,Pukalani,Maui,HI,2026-06-30 08:25:09,IC-358,LM358 Op Amp,Integrated Circuits,3,0.30,1.18,3.54,0.90,2.64,Akamu,Commercial,Mobile Pay,545
+HI037-TX-0034,HI037,Pukalani,Maui,HI,2026-06-30 15:06:33,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.50,12.85,89.95,31.50,58.45,Makana,Maker/Hobbyist,ACH,349
+HI037-TX-0035,HI037,Pukalani,Maui,HI,2026-06-30 16:44:56,LED-BLU,5mm Blue LED,LEDs,35,0.06,0.33,11.55,2.10,9.45,Keahi,Tourism/Hospitality,ACH,653
+HI037-TX-0036,HI037,Pukalani,Maui,HI,2026-06-30 15:16:54,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.91,14.40,100.80,27.37,73.43,Hana,Marine,Cash,161
+HI037-TX-0037,HI037,Pukalani,Maui,HI,2026-06-30 11:33:59,IC-358,LM358 Op Amp,Integrated Circuits,6,0.29,1.24,7.44,1.74,5.70,Lani,Education,ACH,67
+HI037-TX-0038,HI037,Pukalani,Maui,HI,2026-06-30 10:41:26,BAT-AAH,AA Battery Holder,Batteries,12,0.51,2.78,33.36,6.12,27.24,Pualani,Education,Mobile Pay,502
+HI037-TX-0039,HI037,Pukalani,Maui,HI,2026-06-30 11:42:30,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.49,6.25,6.25,1.49,4.76,Alika,Government,Debit Card,712
+HI037-TX-0040,HI037,Pukalani,Maui,HI,2026-06-30 12:17:12,BAT-AAH,AA Battery Holder,Batteries,28,0.51,2.59,72.52,14.28,58.24,Noah,Maker/Hobbyist,Debit Card,214
+HI037-TX-0041,HI037,Pukalani,Maui,HI,2026-06-30 14:50:14,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,15,0.04,0.19,2.85,0.60,2.25,Kaleo,Tourism/Hospitality,ACH,718
+HI037-TX-0042,HI037,Pukalani,Maui,HI,2026-06-30 10:04:09,SNS-ULT,Ultrasonic Distance Sensor,Sensors,9,1.24,5.40,48.60,11.16,37.44,Noelani,Retail,Cash,51
+HI037-TX-0043,HI037,Pukalani,Maui,HI,2026-06-30 09:05:33,MAR-TIN,Tinned Marine Wire,Marine Electronics,6,8.52,28.89,173.34,51.12,122.22,Alika,Commercial,Cash,40
+HI037-TX-0044,HI037,Pukalani,Maui,HI,2026-06-30 11:27:35,LED-BLU,5mm Blue LED,LEDs,2,0.07,0.32,0.64,0.14,0.50,Leilani,Marine,Mobile Pay,308
+HI037-TX-0045,HI037,Pukalani,Maui,HI,2026-06-30 11:45:16,RES-010,10k Ohm Resistor,Resistors,2,0.03,0.13,0.26,0.06,0.20,Pualani,Commercial,Credit Card,796
+HI037-TX-0046,HI037,Pukalani,Maui,HI,2026-06-30 14:03:18,PWR-BUCK,Buck Converter Module,Power,30,1.03,4.90,147.00,30.90,116.10,Makana,Tourism/Hospitality,Cash,99
+HI037-TX-0047,HI037,Pukalani,Maui,HI,2026-06-30 10:28:10,SNS-ULT,Ultrasonic Distance Sensor,Sensors,12,1.35,5.36,64.32,16.20,48.12,Ailani,Tourism/Hospitality,ACH,760
+HI037-TX-0048,HI037,Pukalani,Maui,HI,2026-06-30 08:40:32,PWR-5V2,5V 2A Power Supply,Power,3,3.37,10.59,31.77,10.11,21.66,Iolana,Tourism/Hospitality,Cash,345
+HI037-TX-0049,HI037,Pukalani,Maui,HI,2026-06-30 15:23:02,SNS-ULT,Ultrasonic Distance Sensor,Sensors,33,1.24,5.69,187.77,40.92,146.85,Nalu,Retail,Credit Card,734
+HI037-TX-0050,HI037,Pukalani,Maui,HI,2026-06-30 16:03:41,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.54,13.59,108.72,36.32,72.40,Ailani,Marine,Credit Card,717
+HI037-TX-0051,HI037,Pukalani,Maui,HI,2026-06-30 08:42:56,LED-BLU,5mm Blue LED,LEDs,27,0.06,0.32,8.64,1.62,7.02,Noah,Education,Cash,218
+HI037-TX-0052,HI037,Pukalani,Maui,HI,2026-06-30 10:55:34,CAP-100,100uF Capacitor,Capacitors,34,0.17,0.62,21.08,5.78,15.30,Ikaika,Education,Cash,312
+HI037-TX-0053,HI037,Pukalani,Maui,HI,2026-06-30 11:41:54,CAP-010,10uF Capacitor,Capacitors,29,0.09,0.40,11.60,2.61,8.99,Nalu,Commercial,Cash,156
+HI037-TX-0054,HI037,Pukalani,Maui,HI,2026-06-30 08:53:46,PWR-12V,12V 5A Power Supply,Power,6,9.41,26.26,157.56,56.46,101.10,Noah,Government,ACH,547
+HI037-TX-0055,HI037,Pukalani,Maui,HI,2026-06-30 11:45:13,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.06,8.36,33.44,12.24,21.20,Mika,Education,Credit Card,184
+HI037-TX-0056,HI037,Pukalani,Maui,HI,2026-06-30 14:11:15,MAR-ANT,Marine Antenna Connector,Marine Electronics,7,3.85,14.33,100.31,26.95,73.36,Noah,Tourism/Hospitality,Debit Card,680
+HI037-TX-0057,HI037,Pukalani,Maui,HI,2026-06-30 08:28:43,TOOL-WIRE,Wire Stripper,Tools,3,4.88,14.78,44.34,14.64,29.70,Mika,Education,Cash,445
+HI037-TX-0058,HI037,Pukalani,Maui,HI,2026-06-30 09:27:28,IC-REG,7805 Voltage Regulator,Integrated Circuits,33,0.19,0.88,29.04,6.27,22.77,Lani,Tourism/Hospitality,Mobile Pay,886
+HI037-TX-0059,HI037,Pukalani,Maui,HI,2026-06-30 15:33:59,SNS-SOIL,Soil Moisture Sensor,Sensors,1,0.91,4.20,4.20,0.91,3.29,Koa,Education,Cash,27
+HI037-TX-0060,HI037,Pukalani,Maui,HI,2026-06-30 12:16:15,CAP-100,100uF Capacitor,Capacitors,13,0.16,0.61,7.93,2.08,5.85,Ailani,Education,Debit Card,461
+HI037-TX-0061,HI037,Pukalani,Maui,HI,2026-06-30 09:34:18,SNS-ULT,Ultrasonic Distance Sensor,Sensors,18,1.29,5.73,103.14,23.22,79.92,Keahi,Education,Cash,806
+HI037-TX-0062,HI037,Pukalani,Maui,HI,2026-06-30 14:21:59,BRD-830,Breadboard 830 Tie Points,Connectors,6,1.48,6.81,40.86,8.88,31.98,Iolana,Marine,Credit Card,121
+HI037-TX-0063,HI037,Pukalani,Maui,HI,2026-06-30 17:56:47,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,7.92,20.61,20.61,7.92,12.69,Lani,Government,Debit Card,536
+HI037-TX-0064,HI037,Pukalani,Maui,HI,2026-06-30 16:36:51,BAT-AAH,AA Battery Holder,Batteries,12,0.48,2.64,31.68,5.76,25.92,Lani,Commercial,Cash,79
+HI037-TX-0065,HI037,Pukalani,Maui,HI,2026-06-30 15:35:39,TOOL-SOL,Soldering Iron Tips,Tools,8,1.94,7.13,57.04,15.52,41.52,Keanu,Commercial,ACH,348
+HI037-TX-0066,HI037,Pukalani,Maui,HI,2026-06-30 16:35:51,PWR-5V2,5V 2A Power Supply,Power,4,3.39,11.29,45.16,13.56,31.60,Keahi,Tourism/Hospitality,Debit Card,296
+HI037-TX-0067,HI037,Pukalani,Maui,HI,2026-06-30 10:04:34,SNS-ULT,Ultrasonic Distance Sensor,Sensors,2,1.20,5.58,11.16,2.40,8.76,Pualani,Maker/Hobbyist,ACH,503
+HI037-TX-0068,HI037,Pukalani,Maui,HI,2026-06-30 12:44:29,CAP-100,100uF Capacitor,Capacitors,31,0.16,0.60,18.60,4.96,13.64,Keahi,Government,Mobile Pay,821
+HI037-TX-0069,HI037,Pukalani,Maui,HI,2026-06-30 14:37:50,PWR-5V2,5V 2A Power Supply,Power,1,3.61,10.78,10.78,3.61,7.17,Hana,Education,ACH,381
+HI037-TX-0070,HI037,Pukalani,Maui,HI,2026-06-30 16:19:05,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.63,6.58,46.06,11.41,34.65,Alika,Maker/Hobbyist,Mobile Pay,898
+HI037-TX-0071,HI037,Pukalani,Maui,HI,2026-06-30 09:12:01,DIO-4007,1N4007 Diode,Semiconductors,34,0.04,0.20,6.80,1.36,5.44,Makana,Education,Debit Card,864

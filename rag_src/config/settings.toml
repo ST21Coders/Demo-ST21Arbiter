@@ -1,0 +1,83 @@
+# =============================================================================
+# Arbiter Sales RAG — single source of truth for models, region, indexes, chunking.
+#
+# THE MODEL-SWAP RULE:
+#   To change the generation LLM, edit `generation_model_id` below (one line).
+#   Every notebook cell and every agent tool reads it through arbiter_rag.config.
+#   Env vars override any value here (see config/.env.example).
+#   Default is Amazon Nova 2 Lite ONLY for now (first-party, no Marketplace sub).
+# =============================================================================
+
+[aws]
+region = "us-east-1"           # must have BOTH Bedrock and S3 Vectors available
+# Leave account blank locally; CI/CDK injects it per environment.
+account = ""
+# Safety guard: if set, preflight FAILS unless the resolved AWS account matches this id.
+# Blank = no account guard. Set it (or export ARBITER_EXPECTED_ACCOUNT_ID) to pin one,
+# e.g. the ARBITER dev account 669810405473.
+expected_account_id = ""
+
+[models]
+# --- Generation LLM (swap this to change the whole system) --------------------
+# Amazon Nova 2 Lite is the ARBITER default (first-party; no AWS Marketplace
+# subscription required). Any Bedrock text model that supports the Converse API
+# works here (Claude, Llama, etc.) — just change this one string (Claude ids need
+# the "us." geo inference-profile prefix + an accepted Marketplace subscription).
+generation_model_id = "us.amazon.nova-2-lite-v1:0"
+generation_max_tokens = 1024
+generation_temperature = 0.2
+
+# --- Embeddings (must be identical for ingest AND query) ----------------------
+embedding_model_id = "amazon.titan-embed-text-v2:0"
+embedding_dim = 1024           # Titan v2 supports 1024 (default), 512, 256. IMMUTABLE once an index is created.
+
+# --- Reranking (optional; set enabled=false to skip) --------------------------
+[rerank]
+# Off by default: the deployed AgentCore role does not grant bedrock:Rerank, and
+# rerank adds latency. Flip to true (and add the IAM) once you want to A/B it.
+enabled = false
+# Amazon Rerank or Cohere Rerank on Bedrock. Swap freely.
+rerank_model_id = "amazon.rerank-v1:0"
+candidates_k = 20              # retrieve this many, then rerank down to top_k
+top_k = 5
+
+[retrieval]
+top_k = 5                      # chunks passed to the LLM after (optional) rerank
+
+[chunking]
+# Defaults for the FIXED-SIZE strategy. Semantic strategy uses paragraph/section
+# boundaries and ignores these sizes. `chunking_version` is stamped into every
+# chunk_id and metadata record so re-ingests are idempotent and deletable.
+strategy = "semantic"          # "fixed" | "semantic" | "recursive"
+max_chars = 1200               # ~300 tokens; a safe prose default
+overlap_chars = 200            # 10-20% overlap
+chunking_version = "v1"
+
+[vectors]
+# S3 Vectors bucket + index names (defaults for the notebook sandbox). The env
+# suffix (dev/test/prod) is appended by Settings.vector_bucket_name for the
+# notebook. The ingest script and the deployed agent instead pass EXPLICIT names
+# (SALES_VECTOR_BUCKET / SALES_VECTOR_INDEX env) so notebook and production run
+# the same code against whichever index you point them at.
+vector_bucket = "st21arbiter-sales-vectors"
+hr_index = "hr-policies"
+sales_index = "sales-facts"
+distance_metric = "cosine"     # IMMUTABLE once an index is created
+
+[sales_sql]
+# Structured-sales Athena tool (hybrid path). Reuses ARBITER's existing read-only
+# structured workgroup + Glue database; the Hawaii sales table is `hawaii_sales`.
+# glue_table is used raw by generate_sql/validate_sql (the SQL allowlist), so it
+# must equal the real Athena table name. database/workgroup are passed explicitly
+# to run_query() by callers (the env-suffix name properties don't match ARBITER's
+# dash-prefixed resource names).
+glue_database = "dev_st21arbiter_poc_structured"
+glue_table = "hawaii_sales"
+athena_workgroup = "dev-st21arbiter-poc-wg"
+athena_output_prefix = ""   # leave empty: the workgroup enforces its own result location
+max_scanned_bytes = 1073741824                             # 1 GiB scan cap per query
+
+[guardrails]
+enabled = false                # set true after you create a Bedrock Guardrail
+guardrail_id = ""
+guardrail_version = "DRAFT"

@@ -1,0 +1,64 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI028-TX-0001,HI028,Hickam,Oahu,HI,2026-06-30 13:46:58,IC-358,LM358 Op Amp,Integrated Circuits,32,0.30,1.27,40.64,9.60,31.04,Keahi,Government,Debit Card,225
+HI028-TX-0002,HI028,Hickam,Oahu,HI,2026-06-30 14:20:25,USB-CBO,USB-C Breakout Board,Connectors,34,1.34,5.47,185.98,45.56,140.42,Koa,Retail,Debit Card,143
+HI028-TX-0003,HI028,Hickam,Oahu,HI,2026-06-30 15:07:37,LED-BLU,5mm Blue LED,LEDs,7,0.07,0.32,2.24,0.49,1.75,Leilani,Education,Mobile Pay,617
+HI028-TX-0004,HI028,Hickam,Oahu,HI,2026-06-30 14:33:56,IC-358,LM358 Op Amp,Integrated Circuits,37,0.29,1.20,44.40,10.73,33.67,Ailani,Education,Debit Card,256
+HI028-TX-0005,HI028,Hickam,Oahu,HI,2026-06-30 16:14:33,SNS-PIR,PIR Motion Sensor,Sensors,3,1.49,6.32,18.96,4.47,14.49,Noelani,Education,Debit Card,361
+HI028-TX-0006,HI028,Hickam,Oahu,HI,2026-06-30 13:47:01,SNS-DHT,DHT22 Temperature Sensor,Sensors,4,2.53,7.17,28.68,10.12,18.56,Kai,Retail,Cash,728
+HI028-TX-0007,HI028,Hickam,Oahu,HI,2026-06-30 08:08:04,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.46,13.17,65.85,22.30,43.55,Lani,Education,ACH,344
+HI028-TX-0008,HI028,Hickam,Oahu,HI,2026-06-30 16:02:10,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.49,6.55,13.10,2.98,10.12,Koa,Maker/Hobbyist,Mobile Pay,73
+HI028-TX-0009,HI028,Hickam,Oahu,HI,2026-06-30 12:46:56,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.83,14.01,98.07,33.81,64.26,Keanu,Commercial,Mobile Pay,571
+HI028-TX-0010,HI028,Hickam,Oahu,HI,2026-06-30 15:09:04,SNS-PIR,PIR Motion Sensor,Sensors,4,1.49,5.78,23.12,5.96,17.16,Alika,Tourism/Hospitality,Purchase Order,591
+HI028-TX-0011,HI028,Hickam,Oahu,HI,2026-06-30 08:28:19,IC-555,NE555 Timer IC,Integrated Circuits,34,0.35,1.34,45.56,11.90,33.66,Akamu,Retail,Mobile Pay,442
+HI028-TX-0012,HI028,Hickam,Oahu,HI,2026-06-30 11:10:39,SNS-PIR,PIR Motion Sensor,Sensors,8,1.48,6.12,48.96,11.84,37.12,Hana,Maker/Hobbyist,Debit Card,63
+HI028-TX-0013,HI028,Hickam,Oahu,HI,2026-06-30 15:40:04,DIO-4007,1N4007 Diode,Semiconductors,8,0.04,0.19,1.52,0.32,1.20,Pualani,Retail,Cash,413
+HI028-TX-0014,HI028,Hickam,Oahu,HI,2026-06-30 15:43:45,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.52,6.41,32.05,7.60,24.45,Koa,Marine,Purchase Order,475
+HI028-TX-0015,HI028,Hickam,Oahu,HI,2026-06-30 13:30:25,RES-001,1k Ohm Resistor,Resistors,14,0.03,0.13,1.82,0.42,1.40,Leilani,Commercial,ACH,329
+HI028-TX-0016,HI028,Hickam,Oahu,HI,2026-06-30 13:24:34,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.40,8.22,49.32,20.40,28.92,Hana,Maker/Hobbyist,Cash,861
+HI028-TX-0017,HI028,Hickam,Oahu,HI,2026-06-30 11:57:36,CAP-010,10uF Capacitor,Capacitors,31,0.08,0.39,12.09,2.48,9.61,Noah,Marine,Debit Card,362
+HI028-TX-0018,HI028,Hickam,Oahu,HI,2026-06-30 15:21:13,RES-010,10k Ohm Resistor,Resistors,26,0.03,0.13,3.38,0.78,2.60,Keahi,Maker/Hobbyist,Mobile Pay,39
+HI028-TX-0019,HI028,Hickam,Oahu,HI,2026-06-30 16:11:00,BAT-AAH,AA Battery Holder,Batteries,36,0.52,2.82,101.52,18.72,82.80,Nalu,Tourism/Hospitality,Debit Card,225
+HI028-TX-0020,HI028,Hickam,Oahu,HI,2026-06-30 08:50:07,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.67,13.93,55.72,18.68,37.04,Hana,Marine,Debit Card,154
+HI028-TX-0021,HI028,Hickam,Oahu,HI,2026-06-30 14:44:23,LED-RED,5mm Red LED,LEDs,5,0.06,0.29,1.45,0.30,1.15,Lani,Commercial,ACH,662
+HI028-TX-0022,HI028,Hickam,Oahu,HI,2026-06-30 12:43:26,LED-BLU,5mm Blue LED,LEDs,8,0.07,0.32,2.56,0.56,2.00,Kaleo,Retail,Cash,270
+HI028-TX-0023,HI028,Hickam,Oahu,HI,2026-06-30 16:39:56,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.63,6.82,20.46,4.89,15.57,Noelani,Education,Credit Card,823
+HI028-TX-0024,HI028,Hickam,Oahu,HI,2026-06-30 14:26:19,SOL-CTRL,Solar Charge Controller,Solar Power,2,11.45,31.81,63.62,22.90,40.72,Kaleo,Education,Debit Card,201
+HI028-TX-0025,HI028,Hickam,Oahu,HI,2026-06-30 12:07:21,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.14,21.32,42.64,16.28,26.36,Lani,Maker/Hobbyist,Mobile Pay,493
+HI028-TX-0026,HI028,Hickam,Oahu,HI,2026-06-30 13:22:36,SOL-CTRL,Solar Charge Controller,Solar Power,4,11.21,31.74,126.96,44.84,82.12,Kai,Tourism/Hospitality,Mobile Pay,265
+HI028-TX-0027,HI028,Hickam,Oahu,HI,2026-06-30 09:24:17,CON-JMP,Jumper Wire Set,Connectors,29,0.95,3.61,104.69,27.55,77.14,Iolana,Commercial,Debit Card,362
+HI028-TX-0028,HI028,Hickam,Oahu,HI,2026-06-30 12:19:14,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.37,8.69,43.45,16.85,26.60,Keahi,Government,Credit Card,557
+HI028-TX-0029,HI028,Hickam,Oahu,HI,2026-06-30 10:21:07,ARD-UNO,Arduino Uno Compatible,Microcontrollers,6,8.05,23.01,138.06,48.30,89.76,Ikaika,Education,ACH,366
+HI028-TX-0030,HI028,Hickam,Oahu,HI,2026-06-30 16:54:50,ESP-32,ESP32 Dev Board,Microcontrollers,6,4.04,13.58,81.48,24.24,57.24,Malia,Tourism/Hospitality,Debit Card,328
+HI028-TX-0031,HI028,Hickam,Oahu,HI,2026-06-30 08:45:41,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.47,16.51,33.02,10.94,22.08,Makana,Government,Credit Card,526
+HI028-TX-0032,HI028,Hickam,Oahu,HI,2026-06-30 14:51:03,IC-555,NE555 Timer IC,Integrated Circuits,39,0.36,1.31,51.09,14.04,37.05,Kai,Marine,Purchase Order,654
+HI028-TX-0033,HI028,Hickam,Oahu,HI,2026-06-30 16:03:36,BAT-AAH,AA Battery Holder,Batteries,14,0.50,2.74,38.36,7.00,31.36,Mika,Government,Debit Card,729
+HI028-TX-0034,HI028,Hickam,Oahu,HI,2026-06-30 10:40:44,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.12,8.30,16.60,6.24,10.36,Leilani,Maker/Hobbyist,Purchase Order,390
+HI028-TX-0035,HI028,Hickam,Oahu,HI,2026-06-30 13:43:07,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.20,15.91,79.55,26.00,53.55,Ailani,Maker/Hobbyist,Mobile Pay,451
+HI028-TX-0036,HI028,Hickam,Oahu,HI,2026-06-30 12:32:13,RES-220,220 Ohm Resistor,Resistors,6,0.03,0.13,0.78,0.18,0.60,Pualani,Education,Cash,775
+HI028-TX-0037,HI028,Hickam,Oahu,HI,2026-06-30 08:27:01,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.88,13.48,67.40,24.40,43.00,Koa,Commercial,Debit Card,365
+HI028-TX-0038,HI028,Hickam,Oahu,HI,2026-06-30 10:20:03,IC-358,LM358 Op Amp,Integrated Circuits,35,0.29,1.18,41.30,10.15,31.15,Akamu,Commercial,ACH,525
+HI028-TX-0039,HI028,Hickam,Oahu,HI,2026-06-30 17:28:23,CON-JMP,Jumper Wire Set,Connectors,12,1.00,4.00,48.00,12.00,36.00,Noelani,Tourism/Hospitality,Debit Card,734
+HI028-TX-0040,HI028,Hickam,Oahu,HI,2026-06-30 12:43:35,MOS-44N,IRFZ44N MOSFET,Semiconductors,30,0.64,2.31,69.30,19.20,50.10,Keanu,Retail,Mobile Pay,471
+HI028-TX-0041,HI028,Hickam,Oahu,HI,2026-06-30 09:11:18,RES-220,220 Ohm Resistor,Resistors,24,0.03,0.13,3.12,0.72,2.40,Alika,Retail,Purchase Order,660
+HI028-TX-0042,HI028,Hickam,Oahu,HI,2026-06-30 13:50:02,IC-358,LM358 Op Amp,Integrated Circuits,10,0.32,1.18,11.80,3.20,8.60,Akamu,Government,Cash,73
+HI028-TX-0043,HI028,Hickam,Oahu,HI,2026-06-30 15:58:55,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.37,21.67,43.34,16.74,26.60,Hana,Commercial,Debit Card,607
+HI028-TX-0044,HI028,Hickam,Oahu,HI,2026-06-30 08:03:04,IC-555,NE555 Timer IC,Integrated Circuits,38,0.34,1.40,53.20,12.92,40.28,Makana,Government,Cash,379
+HI028-TX-0045,HI028,Hickam,Oahu,HI,2026-06-30 11:21:11,USB-CBO,USB-C Breakout Board,Connectors,26,1.45,5.10,132.60,37.70,94.90,Keanu,Government,Mobile Pay,893
+HI028-TX-0046,HI028,Hickam,Oahu,HI,2026-06-30 17:16:23,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.61,6.53,52.24,12.88,39.36,Iolana,Marine,Credit Card,585
+HI028-TX-0047,HI028,Hickam,Oahu,HI,2026-06-30 16:22:31,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.41,13.29,106.32,35.28,71.04,Pualani,Marine,Debit Card,71
+HI028-TX-0048,HI028,Hickam,Oahu,HI,2026-06-30 11:01:35,ARD-NANO,Arduino Nano Compatible,Microcontrollers,4,4.44,14.64,58.56,17.76,40.80,Noah,Marine,Credit Card,497
+HI028-TX-0049,HI028,Hickam,Oahu,HI,2026-06-30 11:58:02,USB-CBO,USB-C Breakout Board,Connectors,34,1.42,5.78,196.52,48.28,148.24,Lani,Marine,Mobile Pay,145
+HI028-TX-0050,HI028,Hickam,Oahu,HI,2026-06-30 09:05:48,CON-JMP,Jumper Wire Set,Connectors,20,0.89,3.81,76.20,17.80,58.40,Iolana,Education,Cash,752
+HI028-TX-0051,HI028,Hickam,Oahu,HI,2026-06-30 14:40:01,SNS-PIR,PIR Motion Sensor,Sensors,5,1.54,6.03,30.15,7.70,22.45,Hana,Maker/Hobbyist,Purchase Order,753
+HI028-TX-0052,HI028,Hickam,Oahu,HI,2026-06-30 15:00:32,USB-CBO,USB-C Breakout Board,Connectors,17,1.47,5.21,88.57,24.99,63.58,Lani,Government,Mobile Pay,722
+HI028-TX-0053,HI028,Hickam,Oahu,HI,2026-06-30 10:26:21,RES-010,10k Ohm Resistor,Resistors,26,0.03,0.14,3.64,0.78,2.86,Akamu,Commercial,Mobile Pay,13
+HI028-TX-0054,HI028,Hickam,Oahu,HI,2026-06-30 10:05:58,MOS-44N,IRFZ44N MOSFET,Semiconductors,26,0.65,2.33,60.58,16.90,43.68,Makana,Education,ACH,465
+HI028-TX-0055,HI028,Hickam,Oahu,HI,2026-06-30 12:54:27,TOOL-WIRE,Wire Stripper,Tools,1,5.07,15.83,15.83,5.07,10.76,Kai,Tourism/Hospitality,Debit Card,471
+HI028-TX-0056,HI028,Hickam,Oahu,HI,2026-06-30 17:55:58,REL-5V,5V Relay Module,Relays,7,0.94,5.36,37.52,6.58,30.94,Iolana,Government,Credit Card,18
+HI028-TX-0057,HI028,Hickam,Oahu,HI,2026-06-30 16:21:42,CON-JMP,Jumper Wire Set,Connectors,36,0.94,3.92,141.12,33.84,107.28,Ailani,Commercial,Debit Card,299
+HI028-TX-0058,HI028,Hickam,Oahu,HI,2026-06-30 17:13:52,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.84,14.11,42.33,14.52,27.81,Koa,Government,ACH,32
+HI028-TX-0059,HI028,Hickam,Oahu,HI,2026-06-30 15:50:59,TOOL-DMM,Digital Multimeter,Tools,7,9.24,25.77,180.39,64.68,115.71,Koa,Government,Purchase Order,564
+HI028-TX-0060,HI028,Hickam,Oahu,HI,2026-06-30 08:19:43,LED-RGB,RGB LED Strip,LEDs,3,5.12,14.61,43.83,15.36,28.47,Makana,Marine,Mobile Pay,498
+HI028-TX-0061,HI028,Hickam,Oahu,HI,2026-06-30 17:49:44,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.45,6.69,26.76,5.80,20.96,Kai,Education,Credit Card,871
+HI028-TX-0062,HI028,Hickam,Oahu,HI,2026-06-30 17:15:51,MOS-44N,IRFZ44N MOSFET,Semiconductors,9,0.58,2.44,21.96,5.22,16.74,Alika,Tourism/Hospitality,Mobile Pay,645
+HI028-TX-0063,HI028,Hickam,Oahu,HI,2026-06-30 08:42:07,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.00,12.32,86.24,28.00,58.24,Mika,Commercial,Debit Card,789

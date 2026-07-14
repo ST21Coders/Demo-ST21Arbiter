@@ -1,0 +1,67 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI030-TX-0001,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 16:17:40,TR-3904,2N3904 NPN Transistor,Semiconductors,26,0.06,0.24,6.24,1.56,4.68,Hana,Education,Credit Card,256
+HI030-TX-0002,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 13:12:08,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.39,21.91,109.55,41.95,67.60,Leilani,Marine,Cash,600
+HI030-TX-0003,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 09:37:07,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.39,12.81,12.81,4.39,8.42,Ikaika,Retail,Cash,501
+HI030-TX-0004,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 14:50:39,PWR-12V,12V 5A Power Supply,Power,5,9.47,25.53,127.65,47.35,80.30,Ikaika,Maker/Hobbyist,Credit Card,142
+HI030-TX-0005,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 09:18:18,USB-CBO,USB-C Breakout Board,Connectors,38,1.46,5.30,201.40,55.48,145.92,Mika,Tourism/Hospitality,Credit Card,67
+HI030-TX-0006,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 16:40:44,RES-220,220 Ohm Resistor,Resistors,22,0.03,0.13,2.86,0.66,2.20,Nalu,Marine,Cash,863
+HI030-TX-0007,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 13:33:43,SNS-ULT,Ultrasonic Distance Sensor,Sensors,34,1.23,5.63,191.42,41.82,149.60,Kaleo,Marine,Debit Card,81
+HI030-TX-0008,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 13:23:17,ARD-NANO,Arduino Nano Compatible,Microcontrollers,5,4.76,14.81,74.05,23.80,50.25,Keahi,Maker/Hobbyist,Purchase Order,380
+HI030-TX-0009,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 14:10:45,SNS-DHT,DHT22 Temperature Sensor,Sensors,7,2.32,7.81,54.67,16.24,38.43,Keahi,Commercial,ACH,130
+HI030-TX-0010,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 13:52:35,SNS-ULT,Ultrasonic Distance Sensor,Sensors,30,1.34,5.42,162.60,40.20,122.40,Hana,Education,Debit Card,413
+HI030-TX-0011,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 11:59:57,RES-001,1k Ohm Resistor,Resistors,27,0.03,0.13,3.51,0.81,2.70,Kaleo,Maker/Hobbyist,Mobile Pay,371
+HI030-TX-0012,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 15:50:12,PICO-RP,Raspberry Pi Pico,Microcontrollers,5,3.06,8.48,42.40,15.30,27.10,Mika,Maker/Hobbyist,Purchase Order,497
+HI030-TX-0013,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 15:43:19,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.56,6.84,27.36,6.24,21.12,Lani,Education,ACH,88
+HI030-TX-0014,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 16:14:58,BAT-AAH,AA Battery Holder,Batteries,13,0.50,2.54,33.02,6.50,26.52,Leilani,Maker/Hobbyist,Debit Card,450
+HI030-TX-0015,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 15:11:49,TOOL-DMM,Digital Multimeter,Tools,6,9.18,26.05,156.30,55.08,101.22,Noah,Government,Cash,729
+HI030-TX-0016,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 12:49:19,SOL-CTRL,Solar Charge Controller,Solar Power,3,11.11,34.33,102.99,33.33,69.66,Leilani,Education,Debit Card,233
+HI030-TX-0017,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 12:51:02,BAT-LIPO,LiPo Battery Pack,Batteries,8,5.41,15.71,125.68,43.28,82.40,Noelani,Maker/Hobbyist,Debit Card,611
+HI030-TX-0018,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 16:13:25,CON-JMP,Jumper Wire Set,Connectors,28,0.89,4.00,112.00,24.92,87.08,Malia,Education,Credit Card,205
+HI030-TX-0019,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 12:07:55,TOOL-SOL,Soldering Iron Tips,Tools,3,1.92,7.88,23.64,5.76,17.88,Keahi,Tourism/Hospitality,Purchase Order,92
+HI030-TX-0020,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 12:09:41,IC-358,LM358 Op Amp,Integrated Circuits,40,0.29,1.19,47.60,11.60,36.00,Lani,Marine,Cash,425
+HI030-TX-0021,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 08:20:01,CON-JMP,Jumper Wire Set,Connectors,3,0.91,3.58,10.74,2.73,8.01,Leilani,Retail,Debit Card,72
+HI030-TX-0022,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 09:17:19,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.49,13.59,95.13,31.43,63.70,Hana,Retail,Debit Card,163
+HI030-TX-0023,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 16:34:59,TR-3904,2N3904 NPN Transistor,Semiconductors,34,0.06,0.24,8.16,2.04,6.12,Makana,Commercial,Debit Card,559
+HI030-TX-0024,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 12:27:21,BAT-AAH,AA Battery Holder,Batteries,12,0.52,2.84,34.08,6.24,27.84,Noelani,Retail,Purchase Order,500
+HI030-TX-0025,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 17:44:27,RES-010,10k Ohm Resistor,Resistors,37,0.03,0.14,5.18,1.11,4.07,Keanu,Marine,Purchase Order,670
+HI030-TX-0026,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 15:48:21,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.16,8.86,8.86,3.16,5.70,Kai,Marine,Mobile Pay,405
+HI030-TX-0027,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 15:25:33,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.11,21.42,42.84,16.22,26.62,Kaleo,Maker/Hobbyist,Credit Card,424
+HI030-TX-0028,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 10:03:06,IC-REG,7805 Voltage Regulator,Integrated Circuits,19,0.20,0.97,18.43,3.80,14.63,Noah,Tourism/Hospitality,Purchase Order,32
+HI030-TX-0029,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 17:40:57,IC-REG,7805 Voltage Regulator,Integrated Circuits,35,0.20,0.96,33.60,7.00,26.60,Kai,Retail,Mobile Pay,440
+HI030-TX-0030,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 16:00:57,ESP-32,ESP32 Dev Board,Microcontrollers,7,4.35,12.96,90.72,30.45,60.27,Kaleo,Education,Purchase Order,863
+HI030-TX-0031,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 14:41:20,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.60,6.39,12.78,3.20,9.58,Leilani,Maker/Hobbyist,Debit Card,457
+HI030-TX-0032,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 10:32:27,BRD-830,Breadboard 830 Tie Points,Connectors,3,1.59,6.26,18.78,4.77,14.01,Makana,Government,Mobile Pay,672
+HI030-TX-0033,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 12:47:47,RES-001,1k Ohm Resistor,Resistors,24,0.03,0.13,3.12,0.72,2.40,Mika,Maker/Hobbyist,ACH,672
+HI030-TX-0034,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 17:48:21,PWR-BUCK,Buck Converter Module,Power,14,1.10,5.20,72.80,15.40,57.40,Leilani,Education,Credit Card,703
+HI030-TX-0035,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 08:31:34,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.23,13.10,104.80,33.84,70.96,Leilani,Government,ACH,852
+HI030-TX-0036,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 13:30:21,CON-JMP,Jumper Wire Set,Connectors,40,0.92,3.78,151.20,36.80,114.40,Ailani,Commercial,Credit Card,529
+HI030-TX-0037,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 08:46:52,MAR-ANT,Marine Antenna Connector,Marine Electronics,2,3.76,13.36,26.72,7.52,19.20,Iolana,Tourism/Hospitality,Debit Card,175
+HI030-TX-0038,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 12:29:09,PWR-5V2,5V 2A Power Supply,Power,3,3.45,11.47,34.41,10.35,24.06,Kaleo,Retail,Purchase Order,363
+HI030-TX-0039,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 16:38:57,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,8.30,22.38,67.14,24.90,42.24,Ailani,Retail,Credit Card,151
+HI030-TX-0040,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 16:31:21,IC-555,NE555 Timer IC,Integrated Circuits,12,0.38,1.32,15.84,4.56,11.28,Iolana,Maker/Hobbyist,Cash,560
+HI030-TX-0041,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 08:00:37,IC-REG,7805 Voltage Regulator,Integrated Circuits,40,0.19,0.87,34.80,7.60,27.20,Ikaika,Maker/Hobbyist,Credit Card,155
+HI030-TX-0042,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 11:32:36,IC-358,LM358 Op Amp,Integrated Circuits,24,0.30,1.23,29.52,7.20,22.32,Lani,Marine,Credit Card,141
+HI030-TX-0043,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 08:44:38,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.28,13.54,13.54,4.28,9.26,Noelani,Education,Cash,461
+HI030-TX-0044,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 12:50:53,TOOL-SOL,Soldering Iron Tips,Tools,7,1.98,7.75,54.25,13.86,40.39,Alika,Tourism/Hospitality,Cash,713
+HI030-TX-0045,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 13:51:22,TR-3904,2N3904 NPN Transistor,Semiconductors,31,0.06,0.25,7.75,1.86,5.89,Hana,Commercial,Debit Card,367
+HI030-TX-0046,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 14:19:42,IC-REG,7805 Voltage Regulator,Integrated Circuits,40,0.20,0.87,34.80,8.00,26.80,Mika,Retail,Purchase Order,116
+HI030-TX-0047,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 10:43:16,PWR-5V2,5V 2A Power Supply,Power,3,3.43,10.79,32.37,10.29,22.08,Iolana,Government,Debit Card,14
+HI030-TX-0048,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 15:37:25,RES-010,10k Ohm Resistor,Resistors,26,0.03,0.12,3.12,0.78,2.34,Keanu,Tourism/Hospitality,ACH,19
+HI030-TX-0049,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 15:14:51,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,9.61,28.67,229.36,76.88,152.48,Kaleo,Education,Purchase Order,20
+HI030-TX-0050,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 10:48:43,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.56,13.52,81.12,27.36,53.76,Noah,Marine,Debit Card,853
+HI030-TX-0051,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 08:31:29,IC-555,NE555 Timer IC,Integrated Circuits,25,0.35,1.41,35.25,8.75,26.50,Alika,Maker/Hobbyist,Credit Card,381
+HI030-TX-0052,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 11:53:04,REL-5V,5V Relay Module,Relays,31,0.95,5.25,162.75,29.45,133.30,Keanu,Commercial,ACH,181
+HI030-TX-0053,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 11:34:34,TR-3904,2N3904 NPN Transistor,Semiconductors,25,0.06,0.25,6.25,1.50,4.75,Akamu,Commercial,ACH,764
+HI030-TX-0054,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 11:28:06,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,8.89,27.24,217.92,71.12,146.80,Ailani,Marine,Mobile Pay,290
+HI030-TX-0055,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 09:50:31,IC-555,NE555 Timer IC,Integrated Circuits,40,0.35,1.42,56.80,14.00,42.80,Alika,Retail,ACH,76
+HI030-TX-0056,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 10:25:44,CAP-100,100uF Capacitor,Capacitors,37,0.16,0.63,23.31,5.92,17.39,Alika,Marine,ACH,698
+HI030-TX-0057,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 08:03:52,USB-CBO,USB-C Breakout Board,Connectors,36,1.29,5.60,201.60,46.44,155.16,Mika,Government,Purchase Order,413
+HI030-TX-0058,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 14:13:43,LED-BLU,5mm Blue LED,LEDs,39,0.07,0.34,13.26,2.73,10.53,Kai,Commercial,Debit Card,727
+HI030-TX-0059,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 16:04:13,PWR-5V2,5V 2A Power Supply,Power,6,3.82,11.19,67.14,22.92,44.22,Keanu,Maker/Hobbyist,ACH,542
+HI030-TX-0060,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 15:16:39,TOOL-SOL,Soldering Iron Tips,Tools,8,2.03,7.98,63.84,16.24,47.60,Nalu,Maker/Hobbyist,Credit Card,813
+HI030-TX-0061,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 12:37:14,TOOL-DMM,Digital Multimeter,Tools,2,8.36,28.36,56.72,16.72,40.00,Iolana,Tourism/Hospitality,Cash,49
+HI030-TX-0062,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 10:01:58,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.50,21.12,42.24,17.00,25.24,Lani,Maker/Hobbyist,Cash,427
+HI030-TX-0063,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 11:00:10,DIO-4007,1N4007 Diode,Semiconductors,33,0.05,0.18,5.94,1.65,4.29,Pualani,Marine,ACH,14
+HI030-TX-0064,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 11:30:25,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.41,12.80,102.40,35.28,67.12,Kai,Retail,Cash,57
+HI030-TX-0065,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 10:43:01,PWR-12V,12V 5A Power Supply,Power,7,9.13,26.31,184.17,63.91,120.26,Iolana,Tourism/Hospitality,Debit Card,27
+HI030-TX-0066,HI030,Downtown Honolulu,Oahu,HI,2026-06-30 16:22:35,USB-CBO,USB-C Breakout Board,Connectors,3,1.36,5.50,16.50,4.08,12.42,Keahi,Education,ACH,64

@@ -1,0 +1,70 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI017-TX-0001,HI017,Moanalua,Oahu,HI,2026-06-30 10:04:22,IC-REG,7805 Voltage Regulator,Integrated Circuits,5,0.20,0.98,4.90,1.00,3.90,Alika,Marine,Purchase Order,668
+HI017-TX-0002,HI017,Moanalua,Oahu,HI,2026-06-30 15:14:00,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.84,22.11,154.77,61.88,92.89,Noah,Education,ACH,188
+HI017-TX-0003,HI017,Moanalua,Oahu,HI,2026-06-30 17:52:37,ESP-32,ESP32 Dev Board,Microcontrollers,4,4.34,13.33,53.32,17.36,35.96,Keanu,Education,Mobile Pay,480
+HI017-TX-0004,HI017,Moanalua,Oahu,HI,2026-06-30 10:54:19,MAR-TIN,Tinned Marine Wire,Marine Electronics,1,8.73,28.53,28.53,8.73,19.80,Makana,Maker/Hobbyist,Credit Card,349
+HI017-TX-0005,HI017,Moanalua,Oahu,HI,2026-06-30 13:56:01,REL-5V,5V Relay Module,Relays,35,0.94,5.77,201.95,32.90,169.05,Alika,Maker/Hobbyist,Cash,66
+HI017-TX-0006,HI017,Moanalua,Oahu,HI,2026-06-30 18:00:11,MOS-44N,IRFZ44N MOSFET,Semiconductors,3,0.65,2.45,7.35,1.95,5.40,Leilani,Retail,Cash,56
+HI017-TX-0007,HI017,Moanalua,Oahu,HI,2026-06-30 09:41:54,DIO-4007,1N4007 Diode,Semiconductors,38,0.04,0.20,7.60,1.52,6.08,Kaleo,Commercial,Purchase Order,647
+HI017-TX-0008,HI017,Moanalua,Oahu,HI,2026-06-30 11:18:48,RES-010,10k Ohm Resistor,Resistors,15,0.03,0.13,1.95,0.45,1.50,Kai,Tourism/Hospitality,Debit Card,223
+HI017-TX-0009,HI017,Moanalua,Oahu,HI,2026-06-30 11:45:51,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.51,6.61,52.88,12.08,40.80,Makana,Tourism/Hospitality,ACH,322
+HI017-TX-0010,HI017,Moanalua,Oahu,HI,2026-06-30 12:15:10,LED-RGB,RGB LED Strip,LEDs,6,5.09,13.80,82.80,30.54,52.26,Akamu,Education,Cash,788
+HI017-TX-0011,HI017,Moanalua,Oahu,HI,2026-06-30 08:31:17,CAP-100,100uF Capacitor,Capacitors,27,0.18,0.59,15.93,4.86,11.07,Keahi,Maker/Hobbyist,Purchase Order,46
+HI017-TX-0012,HI017,Moanalua,Oahu,HI,2026-06-30 17:34:20,IC-555,NE555 Timer IC,Integrated Circuits,20,0.34,1.28,25.60,6.80,18.80,Lani,Marine,ACH,401
+HI017-TX-0013,HI017,Moanalua,Oahu,HI,2026-06-30 11:35:30,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.84,13.85,110.80,38.72,72.08,Alika,Commercial,ACH,127
+HI017-TX-0014,HI017,Moanalua,Oahu,HI,2026-06-30 10:43:09,RES-010,10k Ohm Resistor,Resistors,32,0.03,0.14,4.48,0.96,3.52,Mika,Marine,Credit Card,832
+HI017-TX-0015,HI017,Moanalua,Oahu,HI,2026-06-30 14:49:20,RES-001,1k Ohm Resistor,Resistors,37,0.03,0.14,5.18,1.11,4.07,Nalu,Commercial,Cash,842
+HI017-TX-0016,HI017,Moanalua,Oahu,HI,2026-06-30 09:35:11,IC-555,NE555 Timer IC,Integrated Circuits,1,0.38,1.36,1.36,0.38,0.98,Ikaika,Tourism/Hospitality,Debit Card,354
+HI017-TX-0017,HI017,Moanalua,Oahu,HI,2026-06-30 12:41:43,PWR-12V,12V 5A Power Supply,Power,6,9.05,24.16,144.96,54.30,90.66,Iolana,Commercial,Debit Card,411
+HI017-TX-0018,HI017,Moanalua,Oahu,HI,2026-06-30 15:43:11,IC-555,NE555 Timer IC,Integrated Circuits,12,0.36,1.42,17.04,4.32,12.72,Malia,Retail,Cash,99
+HI017-TX-0019,HI017,Moanalua,Oahu,HI,2026-06-30 13:38:40,USB-CBO,USB-C Breakout Board,Connectors,17,1.40,5.39,91.63,23.80,67.83,Nalu,Education,Cash,620
+HI017-TX-0020,HI017,Moanalua,Oahu,HI,2026-06-30 15:28:53,IC-REG,7805 Voltage Regulator,Integrated Circuits,14,0.21,0.96,13.44,2.94,10.50,Malia,Government,Credit Card,832
+HI017-TX-0021,HI017,Moanalua,Oahu,HI,2026-06-30 16:32:09,IC-REG,7805 Voltage Regulator,Integrated Circuits,8,0.21,0.88,7.04,1.68,5.36,Nalu,Maker/Hobbyist,Debit Card,722
+HI017-TX-0022,HI017,Moanalua,Oahu,HI,2026-06-30 12:04:18,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.45,8.36,58.52,24.15,34.37,Leilani,Tourism/Hospitality,ACH,455
+HI017-TX-0023,HI017,Moanalua,Oahu,HI,2026-06-30 10:09:00,CAP-010,10uF Capacitor,Capacitors,3,0.08,0.40,1.20,0.24,0.96,Ailani,Commercial,Purchase Order,467
+HI017-TX-0024,HI017,Moanalua,Oahu,HI,2026-06-30 16:07:04,CON-JMP,Jumper Wire Set,Connectors,22,0.97,3.90,85.80,21.34,64.46,Leilani,Retail,Mobile Pay,304
+HI017-TX-0025,HI017,Moanalua,Oahu,HI,2026-06-30 09:07:52,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.77,13.44,26.88,9.54,17.34,Iolana,Retail,Debit Card,313
+HI017-TX-0026,HI017,Moanalua,Oahu,HI,2026-06-30 14:47:07,SNS-ULT,Ultrasonic Distance Sensor,Sensors,19,1.27,5.73,108.87,24.13,84.74,Mika,Retail,Cash,684
+HI017-TX-0027,HI017,Moanalua,Oahu,HI,2026-06-30 11:16:23,LED-RED,5mm Red LED,LEDs,25,0.06,0.28,7.00,1.50,5.50,Kai,Retail,Cash,391
+HI017-TX-0028,HI017,Moanalua,Oahu,HI,2026-06-30 12:54:37,LED-RGB,RGB LED Strip,LEDs,5,4.73,14.52,72.60,23.65,48.95,Alika,Government,Debit Card,803
+HI017-TX-0029,HI017,Moanalua,Oahu,HI,2026-06-30 11:30:38,LED-RED,5mm Red LED,LEDs,20,0.06,0.27,5.40,1.20,4.20,Alika,Commercial,Credit Card,826
+HI017-TX-0030,HI017,Moanalua,Oahu,HI,2026-06-30 09:53:06,USB-CBO,USB-C Breakout Board,Connectors,30,1.29,5.68,170.40,38.70,131.70,Ailani,Government,Mobile Pay,213
+HI017-TX-0031,HI017,Moanalua,Oahu,HI,2026-06-30 08:04:41,TR-3904,2N3904 NPN Transistor,Semiconductors,28,0.05,0.25,7.00,1.40,5.60,Alika,Government,ACH,806
+HI017-TX-0032,HI017,Moanalua,Oahu,HI,2026-06-30 12:27:10,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.01,23.14,115.70,40.05,75.65,Iolana,Commercial,Debit Card,420
+HI017-TX-0033,HI017,Moanalua,Oahu,HI,2026-06-30 15:47:19,PWR-12V,12V 5A Power Supply,Power,7,9.85,24.15,169.05,68.95,100.10,Akamu,Marine,Debit Card,725
+HI017-TX-0034,HI017,Moanalua,Oahu,HI,2026-06-30 10:09:34,PWR-BUCK,Buck Converter Module,Power,27,1.11,4.99,134.73,29.97,104.76,Pualani,Government,Cash,298
+HI017-TX-0035,HI017,Moanalua,Oahu,HI,2026-06-30 08:52:37,PWR-5V2,5V 2A Power Supply,Power,6,3.80,11.14,66.84,22.80,44.04,Lani,Commercial,Purchase Order,394
+HI017-TX-0036,HI017,Moanalua,Oahu,HI,2026-06-30 13:52:29,RES-010,10k Ohm Resistor,Resistors,24,0.03,0.13,3.12,0.72,2.40,Akamu,Tourism/Hospitality,Mobile Pay,407
+HI017-TX-0037,HI017,Moanalua,Oahu,HI,2026-06-30 16:24:47,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,24,0.05,0.21,5.04,1.20,3.84,Ailani,Retail,Credit Card,566
+HI017-TX-0038,HI017,Moanalua,Oahu,HI,2026-06-30 17:49:55,USB-CBO,USB-C Breakout Board,Connectors,4,1.40,5.37,21.48,5.60,15.88,Ikaika,Education,Credit Card,624
+HI017-TX-0039,HI017,Moanalua,Oahu,HI,2026-06-30 12:23:15,IC-REG,7805 Voltage Regulator,Integrated Circuits,27,0.20,0.98,26.46,5.40,21.06,Leilani,Retail,Credit Card,77
+HI017-TX-0040,HI017,Moanalua,Oahu,HI,2026-06-30 17:27:22,USB-CBO,USB-C Breakout Board,Connectors,13,1.37,5.17,67.21,17.81,49.40,Malia,Government,Mobile Pay,427
+HI017-TX-0041,HI017,Moanalua,Oahu,HI,2026-06-30 16:00:13,SNS-SOIL,Soil Moisture Sensor,Sensors,6,0.92,4.25,25.50,5.52,19.98,Noelani,Government,Credit Card,70
+HI017-TX-0042,HI017,Moanalua,Oahu,HI,2026-06-30 15:09:16,TR-3904,2N3904 NPN Transistor,Semiconductors,15,0.06,0.25,3.75,0.90,2.85,Akamu,Marine,Purchase Order,803
+HI017-TX-0043,HI017,Moanalua,Oahu,HI,2026-06-30 10:59:22,TOOL-WIRE,Wire Stripper,Tools,3,4.75,15.93,47.79,14.25,33.54,Ailani,Retail,Cash,575
+HI017-TX-0044,HI017,Moanalua,Oahu,HI,2026-06-30 15:32:26,TOOL-WIRE,Wire Stripper,Tools,1,5.30,15.41,15.41,5.30,10.11,Keanu,Maker/Hobbyist,Credit Card,433
+HI017-TX-0045,HI017,Moanalua,Oahu,HI,2026-06-30 13:32:06,IC-555,NE555 Timer IC,Integrated Circuits,32,0.36,1.44,46.08,11.52,34.56,Ailani,Maker/Hobbyist,Credit Card,139
+HI017-TX-0046,HI017,Moanalua,Oahu,HI,2026-06-30 11:29:11,SNS-SOIL,Soil Moisture Sensor,Sensors,16,0.96,4.46,71.36,15.36,56.00,Malia,Commercial,Credit Card,724
+HI017-TX-0047,HI017,Moanalua,Oahu,HI,2026-06-30 10:21:27,SNS-ULT,Ultrasonic Distance Sensor,Sensors,36,1.22,5.59,201.24,43.92,157.32,Nalu,Marine,ACH,305
+HI017-TX-0048,HI017,Moanalua,Oahu,HI,2026-06-30 10:19:18,PWR-5V2,5V 2A Power Supply,Power,7,3.76,11.36,79.52,26.32,53.20,Malia,Tourism/Hospitality,Credit Card,414
+HI017-TX-0049,HI017,Moanalua,Oahu,HI,2026-06-30 14:14:01,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.54,22.79,113.95,42.70,71.25,Hana,Education,ACH,288
+HI017-TX-0050,HI017,Moanalua,Oahu,HI,2026-06-30 10:13:56,ARD-UNO,Arduino Uno Compatible,Microcontrollers,5,8.20,22.71,113.55,41.00,72.55,Alika,Tourism/Hospitality,Mobile Pay,742
+HI017-TX-0051,HI017,Moanalua,Oahu,HI,2026-06-30 17:09:11,TR-3904,2N3904 NPN Transistor,Semiconductors,38,0.05,0.23,8.74,1.90,6.84,Noah,Commercial,Credit Card,648
+HI017-TX-0052,HI017,Moanalua,Oahu,HI,2026-06-30 13:00:55,IC-REG,7805 Voltage Regulator,Integrated Circuits,26,0.20,0.89,23.14,5.20,17.94,Koa,Tourism/Hospitality,Mobile Pay,295
+HI017-TX-0053,HI017,Moanalua,Oahu,HI,2026-06-30 12:03:56,SNS-PIR,PIR Motion Sensor,Sensors,7,1.54,6.03,42.21,10.78,31.43,Kaleo,Commercial,Debit Card,817
+HI017-TX-0054,HI017,Moanalua,Oahu,HI,2026-06-30 15:34:39,TOOL-SOL,Soldering Iron Tips,Tools,2,1.87,7.23,14.46,3.74,10.72,Mika,Marine,Credit Card,682
+HI017-TX-0055,HI017,Moanalua,Oahu,HI,2026-06-30 08:02:57,CON-JMP,Jumper Wire Set,Connectors,16,0.98,3.69,59.04,15.68,43.36,Koa,Marine,ACH,444
+HI017-TX-0056,HI017,Moanalua,Oahu,HI,2026-06-30 12:34:36,RES-010,10k Ohm Resistor,Resistors,6,0.03,0.13,0.78,0.18,0.60,Pualani,Education,Credit Card,822
+HI017-TX-0057,HI017,Moanalua,Oahu,HI,2026-06-30 14:48:00,CAP-100,100uF Capacitor,Capacitors,26,0.17,0.57,14.82,4.42,10.40,Keahi,Tourism/Hospitality,Purchase Order,118
+HI017-TX-0058,HI017,Moanalua,Oahu,HI,2026-06-30 15:35:38,PWR-5V2,5V 2A Power Supply,Power,7,3.61,11.36,79.52,25.27,54.25,Mika,Marine,Cash,600
+HI017-TX-0059,HI017,Moanalua,Oahu,HI,2026-06-30 08:42:42,IC-555,NE555 Timer IC,Integrated Circuits,24,0.35,1.38,33.12,8.40,24.72,Koa,Commercial,Cash,285
+HI017-TX-0060,HI017,Moanalua,Oahu,HI,2026-06-30 09:27:32,CON-JMP,Jumper Wire Set,Connectors,32,0.93,3.77,120.64,29.76,90.88,Pualani,Retail,ACH,228
+HI017-TX-0061,HI017,Moanalua,Oahu,HI,2026-06-30 09:39:33,CON-JMP,Jumper Wire Set,Connectors,3,0.98,3.96,11.88,2.94,8.94,Pualani,Retail,Mobile Pay,506
+HI017-TX-0062,HI017,Moanalua,Oahu,HI,2026-06-30 16:18:05,MOS-44N,IRFZ44N MOSFET,Semiconductors,3,0.63,2.39,7.17,1.89,5.28,Hana,Tourism/Hospitality,Credit Card,165
+HI017-TX-0063,HI017,Moanalua,Oahu,HI,2026-06-30 17:45:21,RES-001,1k Ohm Resistor,Resistors,26,0.03,0.14,3.64,0.78,2.86,Keanu,Tourism/Hospitality,Credit Card,53
+HI017-TX-0064,HI017,Moanalua,Oahu,HI,2026-06-30 10:39:08,SNS-DHT,DHT22 Temperature Sensor,Sensors,3,2.33,7.91,23.73,6.99,16.74,Lani,Tourism/Hospitality,Cash,851
+HI017-TX-0065,HI017,Moanalua,Oahu,HI,2026-06-30 09:21:52,USB-CBO,USB-C Breakout Board,Connectors,12,1.39,5.14,61.68,16.68,45.00,Malia,Government,ACH,329
+HI017-TX-0066,HI017,Moanalua,Oahu,HI,2026-06-30 10:04:28,DIO-4007,1N4007 Diode,Semiconductors,1,0.04,0.19,0.19,0.04,0.15,Pualani,Marine,Mobile Pay,874
+HI017-TX-0067,HI017,Moanalua,Oahu,HI,2026-06-30 08:37:05,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.45,6.32,44.24,10.15,34.09,Mika,Marine,Purchase Order,603
+HI017-TX-0068,HI017,Moanalua,Oahu,HI,2026-06-30 16:54:24,TR-3904,2N3904 NPN Transistor,Semiconductors,30,0.06,0.24,7.20,1.80,5.40,Keahi,Marine,Cash,43
+HI017-TX-0069,HI017,Moanalua,Oahu,HI,2026-06-30 15:49:34,IC-555,NE555 Timer IC,Integrated Circuits,17,0.34,1.43,24.31,5.78,18.53,Leilani,Government,Purchase Order,645

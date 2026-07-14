@@ -53,7 +53,7 @@ TTL_DAYS = 90
 
 _VALID_PERSONAS = ("ciso", "soc", "grc", "employee")
 _VALID_AGENTS = ("master", "sharepoint", "awsconfig", "zscaler",
-                 "paloalto", "jira", "structured", "servicenow")
+                 "paloalto", "jira", "structured", "servicenow", "sales", "hr")
 
 # Lazy table handle — avoids a boto3 client construction when the env var is
 # unset (e.g. an agent running before deploy_agents.py has been re-run).

@@ -1,0 +1,57 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI065-TX-0001,HI065,Kalaheo,Kauai,HI,2026-06-30 17:09:13,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,7,0.04,0.20,1.40,0.28,1.12,Mika,Tourism/Hospitality,Cash,792
+HI065-TX-0002,HI065,Kalaheo,Kauai,HI,2026-06-30 14:07:43,SNS-ULT,Ultrasonic Distance Sensor,Sensors,17,1.23,5.61,95.37,20.91,74.46,Akamu,Marine,ACH,158
+HI065-TX-0003,HI065,Kalaheo,Kauai,HI,2026-06-30 11:17:22,PWR-BUCK,Buck Converter Module,Power,26,1.10,4.61,119.86,28.60,91.26,Makana,Tourism/Hospitality,Purchase Order,712
+HI065-TX-0004,HI065,Kalaheo,Kauai,HI,2026-06-30 10:11:47,PWR-12V,12V 5A Power Supply,Power,4,9.27,23.74,94.96,37.08,57.88,Nalu,Maker/Hobbyist,Mobile Pay,302
+HI065-TX-0005,HI065,Kalaheo,Kauai,HI,2026-06-30 17:52:50,LED-BLU,5mm Blue LED,LEDs,34,0.07,0.34,11.56,2.38,9.18,Malia,Tourism/Hospitality,ACH,653
+HI065-TX-0006,HI065,Kalaheo,Kauai,HI,2026-06-30 16:06:44,CON-JMP,Jumper Wire Set,Connectors,19,0.90,3.96,75.24,17.10,58.14,Nalu,Commercial,Mobile Pay,681
+HI065-TX-0007,HI065,Kalaheo,Kauai,HI,2026-06-30 14:44:11,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.56,17.29,34.58,11.12,23.46,Pualani,Commercial,Mobile Pay,13
+HI065-TX-0008,HI065,Kalaheo,Kauai,HI,2026-06-30 12:13:42,PWR-12V,12V 5A Power Supply,Power,3,9.72,25.31,75.93,29.16,46.77,Ailani,Government,Debit Card,496
+HI065-TX-0009,HI065,Kalaheo,Kauai,HI,2026-06-30 13:40:23,TR-3904,2N3904 NPN Transistor,Semiconductors,34,0.06,0.23,7.82,2.04,5.78,Alika,Marine,Cash,839
+HI065-TX-0010,HI065,Kalaheo,Kauai,HI,2026-06-30 08:58:22,TOOL-DMM,Digital Multimeter,Tools,6,9.35,25.87,155.22,56.10,99.12,Akamu,Marine,Debit Card,322
+HI065-TX-0011,HI065,Kalaheo,Kauai,HI,2026-06-30 12:54:33,DIO-4007,1N4007 Diode,Semiconductors,18,0.04,0.21,3.78,0.72,3.06,Pualani,Tourism/Hospitality,Purchase Order,731
+HI065-TX-0012,HI065,Kalaheo,Kauai,HI,2026-06-30 13:19:28,CAP-010,10uF Capacitor,Capacitors,34,0.09,0.37,12.58,3.06,9.52,Kai,Tourism/Hospitality,Purchase Order,204
+HI065-TX-0013,HI065,Kalaheo,Kauai,HI,2026-06-30 13:43:22,MAR-ANT,Marine Antenna Connector,Marine Electronics,4,4.10,13.92,55.68,16.40,39.28,Hana,Maker/Hobbyist,Purchase Order,899
+HI065-TX-0014,HI065,Kalaheo,Kauai,HI,2026-06-30 13:14:40,PWR-BUCK,Buck Converter Module,Power,15,1.03,5.02,75.30,15.45,59.85,Ailani,Tourism/Hospitality,Purchase Order,697
+HI065-TX-0015,HI065,Kalaheo,Kauai,HI,2026-06-30 10:04:36,LED-RED,5mm Red LED,LEDs,37,0.05,0.27,9.99,1.85,8.14,Ikaika,Tourism/Hospitality,ACH,124
+HI065-TX-0016,HI065,Kalaheo,Kauai,HI,2026-06-30 12:00:31,DIO-4007,1N4007 Diode,Semiconductors,20,0.04,0.20,4.00,0.80,3.20,Ikaika,Commercial,ACH,773
+HI065-TX-0017,HI065,Kalaheo,Kauai,HI,2026-06-30 10:26:13,PWR-12V,12V 5A Power Supply,Power,3,9.43,24.62,73.86,28.29,45.57,Ikaika,Retail,Debit Card,570
+HI065-TX-0018,HI065,Kalaheo,Kauai,HI,2026-06-30 15:36:57,PWR-BUCK,Buck Converter Module,Power,27,1.12,4.92,132.84,30.24,102.60,Kai,Maker/Hobbyist,Purchase Order,426
+HI065-TX-0019,HI065,Kalaheo,Kauai,HI,2026-06-30 13:41:04,TOOL-DMM,Digital Multimeter,Tools,2,8.96,26.34,52.68,17.92,34.76,Ailani,Education,Cash,564
+HI065-TX-0020,HI065,Kalaheo,Kauai,HI,2026-06-30 14:33:12,IC-REG,7805 Voltage Regulator,Integrated Circuits,5,0.21,0.89,4.45,1.05,3.40,Malia,Commercial,Mobile Pay,131
+HI065-TX-0021,HI065,Kalaheo,Kauai,HI,2026-06-30 08:23:38,TOOL-WIRE,Wire Stripper,Tools,7,5.31,16.18,113.26,37.17,76.09,Alika,Retail,Credit Card,74
+HI065-TX-0022,HI065,Kalaheo,Kauai,HI,2026-06-30 15:43:30,TOOL-SOL,Soldering Iron Tips,Tools,1,2.11,7.52,7.52,2.11,5.41,Akamu,Marine,ACH,742
+HI065-TX-0023,HI065,Kalaheo,Kauai,HI,2026-06-30 16:01:33,PWR-BUCK,Buck Converter Module,Power,3,1.04,4.77,14.31,3.12,11.19,Nalu,Government,Cash,436
+HI065-TX-0024,HI065,Kalaheo,Kauai,HI,2026-06-30 13:05:37,MAR-TIN,Tinned Marine Wire,Marine Electronics,3,9.09,26.91,80.73,27.27,53.46,Ikaika,Retail,Purchase Order,684
+HI065-TX-0025,HI065,Kalaheo,Kauai,HI,2026-06-30 10:50:29,CAP-100,100uF Capacitor,Capacitors,22,0.18,0.58,12.76,3.96,8.80,Keanu,Marine,Debit Card,79
+HI065-TX-0026,HI065,Kalaheo,Kauai,HI,2026-06-30 12:32:16,SOL-CTRL,Solar Charge Controller,Solar Power,3,11.27,31.72,95.16,33.81,61.35,Mika,Maker/Hobbyist,Credit Card,136
+HI065-TX-0027,HI065,Kalaheo,Kauai,HI,2026-06-30 16:38:37,SOL-CTRL,Solar Charge Controller,Solar Power,6,11.15,32.67,196.02,66.90,129.12,Hana,Education,ACH,814
+HI065-TX-0028,HI065,Kalaheo,Kauai,HI,2026-06-30 13:57:31,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.50,6.13,42.91,10.50,32.41,Kaleo,Maker/Hobbyist,Credit Card,487
+HI065-TX-0029,HI065,Kalaheo,Kauai,HI,2026-06-30 13:14:00,PWR-BUCK,Buck Converter Module,Power,4,1.04,4.88,19.52,4.16,15.36,Iolana,Retail,Cash,215
+HI065-TX-0030,HI065,Kalaheo,Kauai,HI,2026-06-30 15:16:38,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.40,8.70,8.70,3.40,5.30,Iolana,Marine,Credit Card,142
+HI065-TX-0031,HI065,Kalaheo,Kauai,HI,2026-06-30 12:06:15,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.21,16.57,33.14,10.42,22.72,Koa,Marine,Mobile Pay,881
+HI065-TX-0032,HI065,Kalaheo,Kauai,HI,2026-06-30 09:20:01,SNS-ULT,Ultrasonic Distance Sensor,Sensors,22,1.28,5.27,115.94,28.16,87.78,Leilani,Government,ACH,582
+HI065-TX-0033,HI065,Kalaheo,Kauai,HI,2026-06-30 13:06:01,MAR-TIN,Tinned Marine Wire,Marine Electronics,4,9.24,25.50,102.00,36.96,65.04,Alika,Government,Credit Card,463
+HI065-TX-0034,HI065,Kalaheo,Kauai,HI,2026-06-30 11:05:33,SNS-DHT,DHT22 Temperature Sensor,Sensors,6,2.34,7.84,47.04,14.04,33.00,Noah,Government,Credit Card,320
+HI065-TX-0035,HI065,Kalaheo,Kauai,HI,2026-06-30 17:35:08,SNS-SOIL,Soil Moisture Sensor,Sensors,3,0.98,4.16,12.48,2.94,9.54,Kaleo,Commercial,Mobile Pay,579
+HI065-TX-0036,HI065,Kalaheo,Kauai,HI,2026-06-30 10:01:46,MAR-TIN,Tinned Marine Wire,Marine Electronics,1,9.20,28.77,28.77,9.20,19.57,Keahi,Government,Debit Card,605
+HI065-TX-0037,HI065,Kalaheo,Kauai,HI,2026-06-30 13:25:07,PWR-5V2,5V 2A Power Supply,Power,4,3.37,11.57,46.28,13.48,32.80,Keanu,Maker/Hobbyist,Cash,216
+HI065-TX-0038,HI065,Kalaheo,Kauai,HI,2026-06-30 15:09:46,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,9.19,27.80,139.00,45.95,93.05,Makana,Maker/Hobbyist,Debit Card,258
+HI065-TX-0039,HI065,Kalaheo,Kauai,HI,2026-06-30 15:26:50,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.38,8.34,33.36,13.52,19.84,Makana,Tourism/Hospitality,ACH,561
+HI065-TX-0040,HI065,Kalaheo,Kauai,HI,2026-06-30 17:23:49,PWR-12V,12V 5A Power Supply,Power,2,9.26,25.18,50.36,18.52,31.84,Lani,Marine,Cash,896
+HI065-TX-0041,HI065,Kalaheo,Kauai,HI,2026-06-30 16:37:56,PWR-5V2,5V 2A Power Supply,Power,6,3.39,10.72,64.32,20.34,43.98,Malia,Retail,Mobile Pay,438
+HI065-TX-0042,HI065,Kalaheo,Kauai,HI,2026-06-30 16:27:01,PWR-BUCK,Buck Converter Module,Power,14,0.99,4.73,66.22,13.86,52.36,Noah,Maker/Hobbyist,Credit Card,418
+HI065-TX-0043,HI065,Kalaheo,Kauai,HI,2026-06-30 11:24:09,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.23,8.31,16.62,6.46,10.16,Iolana,Government,Purchase Order,139
+HI065-TX-0044,HI065,Kalaheo,Kauai,HI,2026-06-30 09:29:42,CAP-100,100uF Capacitor,Capacitors,11,0.17,0.56,6.16,1.87,4.29,Malia,Marine,Cash,651
+HI065-TX-0045,HI065,Kalaheo,Kauai,HI,2026-06-30 17:19:16,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,9.16,28.89,202.23,64.12,138.11,Malia,Maker/Hobbyist,Credit Card,296
+HI065-TX-0046,HI065,Kalaheo,Kauai,HI,2026-06-30 09:18:27,PWR-5V2,5V 2A Power Supply,Power,4,3.49,10.45,41.80,13.96,27.84,Hana,Commercial,ACH,760
+HI065-TX-0047,HI065,Kalaheo,Kauai,HI,2026-06-30 16:28:16,SNS-SOIL,Soil Moisture Sensor,Sensors,25,0.88,4.36,109.00,22.00,87.00,Nalu,Maker/Hobbyist,Cash,276
+HI065-TX-0048,HI065,Kalaheo,Kauai,HI,2026-06-30 17:12:34,PWR-12V,12V 5A Power Supply,Power,4,9.61,23.97,95.88,38.44,57.44,Pualani,Government,Mobile Pay,498
+HI065-TX-0049,HI065,Kalaheo,Kauai,HI,2026-06-30 13:58:40,DIO-4007,1N4007 Diode,Semiconductors,21,0.04,0.19,3.99,0.84,3.15,Akamu,Government,ACH,279
+HI065-TX-0050,HI065,Kalaheo,Kauai,HI,2026-06-30 10:43:47,BAT-LIPO,LiPo Battery Pack,Batteries,3,5.55,16.40,49.20,16.65,32.55,Noelani,Retail,Purchase Order,192
+HI065-TX-0051,HI065,Kalaheo,Kauai,HI,2026-06-30 09:03:53,REL-5V,5V Relay Module,Relays,12,0.90,5.32,63.84,10.80,53.04,Ikaika,Marine,Debit Card,511
+HI065-TX-0052,HI065,Kalaheo,Kauai,HI,2026-06-30 11:33:18,PICO-RP,Raspberry Pi Pico,Microcontrollers,6,3.37,8.84,53.04,20.22,32.82,Lani,Tourism/Hospitality,Cash,759
+HI065-TX-0053,HI065,Kalaheo,Kauai,HI,2026-06-30 14:49:31,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,9.56,28.19,197.33,66.92,130.41,Leilani,Government,Credit Card,235
+HI065-TX-0054,HI065,Kalaheo,Kauai,HI,2026-06-30 16:40:13,PWR-5V2,5V 2A Power Supply,Power,4,3.73,10.50,42.00,14.92,27.08,Nalu,Maker/Hobbyist,Purchase Order,556
+HI065-TX-0055,HI065,Kalaheo,Kauai,HI,2026-06-30 15:19:42,RES-220,220 Ohm Resistor,Resistors,22,0.03,0.13,2.86,0.66,2.20,Keanu,Tourism/Hospitality,Mobile Pay,855
+HI065-TX-0056,HI065,Kalaheo,Kauai,HI,2026-06-30 11:36:52,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.13,13.80,69.00,20.65,48.35,Leilani,Education,Credit Card,150

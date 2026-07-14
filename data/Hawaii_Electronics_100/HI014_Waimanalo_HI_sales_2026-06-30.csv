@@ -1,0 +1,90 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI014-TX-0001,HI014,Waimanalo,Oahu,HI,2026-06-30 09:56:57,IC-555,NE555 Timer IC,Integrated Circuits,5,0.34,1.39,6.95,1.70,5.25,Alika,Commercial,Debit Card,750
+HI014-TX-0002,HI014,Waimanalo,Oahu,HI,2026-06-30 17:32:49,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.60,14.78,44.34,13.80,30.54,Ailani,Marine,ACH,272
+HI014-TX-0003,HI014,Waimanalo,Oahu,HI,2026-06-30 17:52:08,IC-555,NE555 Timer IC,Integrated Circuits,38,0.36,1.34,50.92,13.68,37.24,Alika,Tourism/Hospitality,ACH,664
+HI014-TX-0004,HI014,Waimanalo,Oahu,HI,2026-06-30 10:43:01,LED-BLU,5mm Blue LED,LEDs,5,0.06,0.35,1.75,0.30,1.45,Makana,Marine,Purchase Order,1
+HI014-TX-0005,HI014,Waimanalo,Oahu,HI,2026-06-30 17:59:42,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.12,8.51,59.57,21.84,37.73,Noelani,Maker/Hobbyist,Cash,652
+HI014-TX-0006,HI014,Waimanalo,Oahu,HI,2026-06-30 11:50:32,USB-CBO,USB-C Breakout Board,Connectors,36,1.33,5.28,190.08,47.88,142.20,Kaleo,Government,Cash,558
+HI014-TX-0007,HI014,Waimanalo,Oahu,HI,2026-06-30 14:04:33,ESP-32,ESP32 Dev Board,Microcontrollers,3,4.43,12.28,36.84,13.29,23.55,Keanu,Retail,Credit Card,490
+HI014-TX-0008,HI014,Waimanalo,Oahu,HI,2026-06-30 09:44:21,LED-RED,5mm Red LED,LEDs,9,0.06,0.29,2.61,0.54,2.07,Lani,Marine,Credit Card,438
+HI014-TX-0009,HI014,Waimanalo,Oahu,HI,2026-06-30 08:38:21,REL-5V,5V Relay Module,Relays,23,0.95,5.31,122.13,21.85,100.28,Leilani,Maker/Hobbyist,Purchase Order,222
+HI014-TX-0010,HI014,Waimanalo,Oahu,HI,2026-06-30 12:59:50,USB-CBO,USB-C Breakout Board,Connectors,32,1.46,5.60,179.20,46.72,132.48,Iolana,Maker/Hobbyist,Credit Card,585
+HI014-TX-0011,HI014,Waimanalo,Oahu,HI,2026-06-30 14:33:48,SNS-DHT,DHT22 Temperature Sensor,Sensors,8,2.33,8.04,64.32,18.64,45.68,Kai,Marine,Debit Card,211
+HI014-TX-0012,HI014,Waimanalo,Oahu,HI,2026-06-30 13:28:52,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,8.81,22.40,22.40,8.81,13.59,Makana,Commercial,Cash,271
+HI014-TX-0013,HI014,Waimanalo,Oahu,HI,2026-06-30 14:35:48,MOS-44N,IRFZ44N MOSFET,Semiconductors,33,0.63,2.34,77.22,20.79,56.43,Ailani,Maker/Hobbyist,Debit Card,276
+HI014-TX-0014,HI014,Waimanalo,Oahu,HI,2026-06-30 09:16:17,USB-CBO,USB-C Breakout Board,Connectors,22,1.45,5.66,124.52,31.90,92.62,Koa,Marine,Mobile Pay,449
+HI014-TX-0015,HI014,Waimanalo,Oahu,HI,2026-06-30 15:28:11,IC-358,LM358 Op Amp,Integrated Circuits,28,0.29,1.16,32.48,8.12,24.36,Leilani,Government,Credit Card,152
+HI014-TX-0016,HI014,Waimanalo,Oahu,HI,2026-06-30 14:17:38,PICO-RP,Raspberry Pi Pico,Microcontrollers,8,3.22,8.44,67.52,25.76,41.76,Lani,Maker/Hobbyist,Credit Card,332
+HI014-TX-0017,HI014,Waimanalo,Oahu,HI,2026-06-30 12:50:46,ARD-UNO,Arduino Uno Compatible,Microcontrollers,3,7.75,21.78,65.34,23.25,42.09,Malia,Education,Mobile Pay,614
+HI014-TX-0018,HI014,Waimanalo,Oahu,HI,2026-06-30 10:55:29,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,4,0.05,0.19,0.76,0.20,0.56,Koa,Retail,ACH,665
+HI014-TX-0019,HI014,Waimanalo,Oahu,HI,2026-06-30 08:09:59,ARD-UNO,Arduino Uno Compatible,Microcontrollers,8,8.15,20.67,165.36,65.20,100.16,Lani,Tourism/Hospitality,ACH,302
+HI014-TX-0020,HI014,Waimanalo,Oahu,HI,2026-06-30 12:14:37,IC-358,LM358 Op Amp,Integrated Circuits,30,0.32,1.14,34.20,9.60,24.60,Nalu,Maker/Hobbyist,Mobile Pay,775
+HI014-TX-0021,HI014,Waimanalo,Oahu,HI,2026-06-30 13:25:07,TOOL-DMM,Digital Multimeter,Tools,4,8.49,28.23,112.92,33.96,78.96,Noelani,Commercial,ACH,372
+HI014-TX-0022,HI014,Waimanalo,Oahu,HI,2026-06-30 10:19:07,PWR-BUCK,Buck Converter Module,Power,11,1.08,4.95,54.45,11.88,42.57,Alika,Marine,Mobile Pay,705
+HI014-TX-0023,HI014,Waimanalo,Oahu,HI,2026-06-30 12:04:34,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.59,6.83,34.15,7.95,26.20,Hana,Government,Mobile Pay,39
+HI014-TX-0024,HI014,Waimanalo,Oahu,HI,2026-06-30 17:53:56,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,8.74,21.65,21.65,8.74,12.91,Iolana,Commercial,Debit Card,153
+HI014-TX-0025,HI014,Waimanalo,Oahu,HI,2026-06-30 08:19:55,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.12,8.52,34.08,12.48,21.60,Iolana,Tourism/Hospitality,Cash,704
+HI014-TX-0026,HI014,Waimanalo,Oahu,HI,2026-06-30 11:47:39,CON-JMP,Jumper Wire Set,Connectors,12,0.90,3.88,46.56,10.80,35.76,Alika,Marine,Mobile Pay,450
+HI014-TX-0027,HI014,Waimanalo,Oahu,HI,2026-06-30 13:44:01,CAP-100,100uF Capacitor,Capacitors,37,0.16,0.61,22.57,5.92,16.65,Kaleo,Marine,Mobile Pay,486
+HI014-TX-0028,HI014,Waimanalo,Oahu,HI,2026-06-30 10:00:25,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,5.00,13.35,93.45,35.00,58.45,Nalu,Retail,Credit Card,184
+HI014-TX-0029,HI014,Waimanalo,Oahu,HI,2026-06-30 13:24:59,TOOL-DMM,Digital Multimeter,Tools,1,8.96,25.64,25.64,8.96,16.68,Koa,Tourism/Hospitality,Mobile Pay,787
+HI014-TX-0030,HI014,Waimanalo,Oahu,HI,2026-06-30 08:25:42,TOOL-WIRE,Wire Stripper,Tools,2,5.25,15.31,30.62,10.50,20.12,Iolana,Commercial,Cash,680
+HI014-TX-0031,HI014,Waimanalo,Oahu,HI,2026-06-30 13:49:38,TR-3904,2N3904 NPN Transistor,Semiconductors,18,0.06,0.25,4.50,1.08,3.42,Mika,Commercial,Mobile Pay,27
+HI014-TX-0032,HI014,Waimanalo,Oahu,HI,2026-06-30 17:17:30,ARD-NANO,Arduino Nano Compatible,Microcontrollers,6,4.60,13.87,83.22,27.60,55.62,Hana,Education,Mobile Pay,851
+HI014-TX-0033,HI014,Waimanalo,Oahu,HI,2026-06-30 11:47:41,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.59,6.26,12.52,3.18,9.34,Ikaika,Maker/Hobbyist,Cash,420
+HI014-TX-0034,HI014,Waimanalo,Oahu,HI,2026-06-30 11:27:36,BAT-LIPO,LiPo Battery Pack,Batteries,7,5.21,16.13,112.91,36.47,76.44,Nalu,Commercial,Purchase Order,234
+HI014-TX-0035,HI014,Waimanalo,Oahu,HI,2026-06-30 17:41:07,SNS-PIR,PIR Motion Sensor,Sensors,5,1.45,6.07,30.35,7.25,23.10,Ikaika,Education,ACH,524
+HI014-TX-0036,HI014,Waimanalo,Oahu,HI,2026-06-30 13:02:13,CON-JMP,Jumper Wire Set,Connectors,23,0.90,4.03,92.69,20.70,71.99,Ailani,Maker/Hobbyist,Cash,167
+HI014-TX-0037,HI014,Waimanalo,Oahu,HI,2026-06-30 15:22:24,IC-358,LM358 Op Amp,Integrated Circuits,6,0.31,1.20,7.20,1.86,5.34,Leilani,Marine,Purchase Order,490
+HI014-TX-0038,HI014,Waimanalo,Oahu,HI,2026-06-30 10:24:14,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.66,13.65,109.20,37.28,71.92,Ailani,Maker/Hobbyist,ACH,252
+HI014-TX-0039,HI014,Waimanalo,Oahu,HI,2026-06-30 14:25:17,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,1,0.04,0.19,0.19,0.04,0.15,Kaleo,Retail,Credit Card,418
+HI014-TX-0040,HI014,Waimanalo,Oahu,HI,2026-06-30 15:19:22,TOOL-WIRE,Wire Stripper,Tools,6,5.01,14.67,88.02,30.06,57.96,Makana,Maker/Hobbyist,Purchase Order,347
+HI014-TX-0041,HI014,Waimanalo,Oahu,HI,2026-06-30 10:16:54,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.48,12.58,12.58,4.48,8.10,Noah,Maker/Hobbyist,Debit Card,272
+HI014-TX-0042,HI014,Waimanalo,Oahu,HI,2026-06-30 10:31:34,MAR-TIN,Tinned Marine Wire,Marine Electronics,7,8.54,26.68,186.76,59.78,126.98,Pualani,Education,Mobile Pay,604
+HI014-TX-0043,HI014,Waimanalo,Oahu,HI,2026-06-30 12:09:30,TOOL-WIRE,Wire Stripper,Tools,7,4.93,14.55,101.85,34.51,67.34,Alika,Maker/Hobbyist,Purchase Order,867
+HI014-TX-0044,HI014,Waimanalo,Oahu,HI,2026-06-30 13:13:46,IC-555,NE555 Timer IC,Integrated Circuits,15,0.34,1.38,20.70,5.10,15.60,Mika,Marine,Debit Card,455
+HI014-TX-0045,HI014,Waimanalo,Oahu,HI,2026-06-30 10:33:18,IC-358,LM358 Op Amp,Integrated Circuits,36,0.30,1.21,43.56,10.80,32.76,Akamu,Tourism/Hospitality,Purchase Order,651
+HI014-TX-0046,HI014,Waimanalo,Oahu,HI,2026-06-30 10:07:13,BAT-LIPO,LiPo Battery Pack,Batteries,8,5.41,15.91,127.28,43.28,84.00,Noah,Tourism/Hospitality,Credit Card,482
+HI014-TX-0047,HI014,Waimanalo,Oahu,HI,2026-06-30 12:30:58,SOL-CTRL,Solar Charge Controller,Solar Power,7,11.15,32.16,225.12,78.05,147.07,Iolana,Retail,Credit Card,812
+HI014-TX-0048,HI014,Waimanalo,Oahu,HI,2026-06-30 12:04:18,IC-358,LM358 Op Amp,Integrated Circuits,32,0.32,1.23,39.36,10.24,29.12,Lani,Retail,Cash,874
+HI014-TX-0049,HI014,Waimanalo,Oahu,HI,2026-06-30 13:38:26,SNS-SOIL,Soil Moisture Sensor,Sensors,27,0.99,4.62,124.74,26.73,98.01,Koa,Education,Credit Card,270
+HI014-TX-0050,HI014,Waimanalo,Oahu,HI,2026-06-30 12:20:25,MAR-TIN,Tinned Marine Wire,Marine Electronics,1,9.47,26.35,26.35,9.47,16.88,Leilani,Education,Cash,770
+HI014-TX-0051,HI014,Waimanalo,Oahu,HI,2026-06-30 17:19:28,IC-REG,7805 Voltage Regulator,Integrated Circuits,37,0.19,0.92,34.04,7.03,27.01,Leilani,Commercial,Purchase Order,269
+HI014-TX-0052,HI014,Waimanalo,Oahu,HI,2026-06-30 10:58:36,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.44,13.75,96.25,31.08,65.17,Noah,Commercial,Mobile Pay,563
+HI014-TX-0053,HI014,Waimanalo,Oahu,HI,2026-06-30 14:41:29,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.20,8.45,16.90,6.40,10.50,Makana,Retail,Debit Card,261
+HI014-TX-0054,HI014,Waimanalo,Oahu,HI,2026-06-30 12:34:21,IC-REG,7805 Voltage Regulator,Integrated Circuits,10,0.20,0.96,9.60,2.00,7.60,Iolana,Commercial,ACH,846
+HI014-TX-0055,HI014,Waimanalo,Oahu,HI,2026-06-30 08:36:11,TOOL-WIRE,Wire Stripper,Tools,4,5.28,15.30,61.20,21.12,40.08,Ikaika,Government,Purchase Order,712
+HI014-TX-0056,HI014,Waimanalo,Oahu,HI,2026-06-30 12:18:29,USB-CBO,USB-C Breakout Board,Connectors,20,1.43,5.14,102.80,28.60,74.20,Kaleo,Tourism/Hospitality,Credit Card,582
+HI014-TX-0057,HI014,Waimanalo,Oahu,HI,2026-06-30 11:25:40,ESP-32,ESP32 Dev Board,Microcontrollers,1,4.45,13.39,13.39,4.45,8.94,Ikaika,Maker/Hobbyist,Debit Card,641
+HI014-TX-0058,HI014,Waimanalo,Oahu,HI,2026-06-30 09:00:55,DIO-4007,1N4007 Diode,Semiconductors,26,0.05,0.19,4.94,1.30,3.64,Noah,Tourism/Hospitality,Debit Card,362
+HI014-TX-0059,HI014,Waimanalo,Oahu,HI,2026-06-30 10:42:12,RES-001,1k Ohm Resistor,Resistors,29,0.03,0.13,3.77,0.87,2.90,Kai,Marine,ACH,686
+HI014-TX-0060,HI014,Waimanalo,Oahu,HI,2026-06-30 14:34:52,IC-REG,7805 Voltage Regulator,Integrated Circuits,37,0.20,0.93,34.41,7.40,27.01,Noelani,Maker/Hobbyist,Purchase Order,469
+HI014-TX-0061,HI014,Waimanalo,Oahu,HI,2026-06-30 16:50:43,IC-555,NE555 Timer IC,Integrated Circuits,7,0.37,1.40,9.80,2.59,7.21,Makana,Education,Purchase Order,790
+HI014-TX-0062,HI014,Waimanalo,Oahu,HI,2026-06-30 16:31:02,BAT-LIPO,LiPo Battery Pack,Batteries,5,5.04,16.32,81.60,25.20,56.40,Hana,Retail,Purchase Order,179
+HI014-TX-0063,HI014,Waimanalo,Oahu,HI,2026-06-30 17:36:08,DIO-4007,1N4007 Diode,Semiconductors,27,0.04,0.19,5.13,1.08,4.05,Nalu,Commercial,Cash,274
+HI014-TX-0064,HI014,Waimanalo,Oahu,HI,2026-06-30 10:26:18,SNS-DHT,DHT22 Temperature Sensor,Sensors,4,2.50,7.32,29.28,10.00,19.28,Iolana,Retail,ACH,272
+HI014-TX-0065,HI014,Waimanalo,Oahu,HI,2026-06-30 13:42:48,BRD-830,Breadboard 830 Tie Points,Connectors,5,1.45,6.84,34.20,7.25,26.95,Ikaika,Education,ACH,44
+HI014-TX-0066,HI014,Waimanalo,Oahu,HI,2026-06-30 11:25:35,USB-CBO,USB-C Breakout Board,Connectors,26,1.31,5.43,141.18,34.06,107.12,Akamu,Retail,Credit Card,44
+HI014-TX-0067,HI014,Waimanalo,Oahu,HI,2026-06-30 17:00:59,PICO-RP,Raspberry Pi Pico,Microcontrollers,4,3.17,9.02,36.08,12.68,23.40,Leilani,Maker/Hobbyist,Credit Card,637
+HI014-TX-0068,HI014,Waimanalo,Oahu,HI,2026-06-30 11:01:11,ARD-UNO,Arduino Uno Compatible,Microcontrollers,7,8.80,21.08,147.56,61.60,85.96,Koa,Tourism/Hospitality,Debit Card,642
+HI014-TX-0069,HI014,Waimanalo,Oahu,HI,2026-06-30 16:32:40,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.57,6.70,53.60,12.56,41.04,Pualani,Commercial,ACH,17
+HI014-TX-0070,HI014,Waimanalo,Oahu,HI,2026-06-30 15:53:42,IC-REG,7805 Voltage Regulator,Integrated Circuits,11,0.19,0.98,10.78,2.09,8.69,Makana,Maker/Hobbyist,Mobile Pay,28
+HI014-TX-0071,HI014,Waimanalo,Oahu,HI,2026-06-30 11:14:31,BAT-AAH,AA Battery Holder,Batteries,15,0.51,2.74,41.10,7.65,33.45,Akamu,Retail,Credit Card,200
+HI014-TX-0072,HI014,Waimanalo,Oahu,HI,2026-06-30 10:06:07,IC-REG,7805 Voltage Regulator,Integrated Circuits,13,0.20,0.94,12.22,2.60,9.62,Akamu,Education,ACH,146
+HI014-TX-0073,HI014,Waimanalo,Oahu,HI,2026-06-30 08:03:23,IC-358,LM358 Op Amp,Integrated Circuits,16,0.30,1.24,19.84,4.80,15.04,Mika,Government,ACH,751
+HI014-TX-0074,HI014,Waimanalo,Oahu,HI,2026-06-30 16:56:44,LED-RED,5mm Red LED,LEDs,25,0.06,0.28,7.00,1.50,5.50,Noah,Tourism/Hospitality,Debit Card,743
+HI014-TX-0075,HI014,Waimanalo,Oahu,HI,2026-06-30 11:51:05,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.26,13.51,108.08,34.08,74.00,Leilani,Education,Purchase Order,607
+HI014-TX-0076,HI014,Waimanalo,Oahu,HI,2026-06-30 17:25:21,CON-JMP,Jumper Wire Set,Connectors,32,0.92,3.83,122.56,29.44,93.12,Akamu,Maker/Hobbyist,Credit Card,802
+HI014-TX-0077,HI014,Waimanalo,Oahu,HI,2026-06-30 10:24:01,ARD-NANO,Arduino Nano Compatible,Microcontrollers,8,4.58,15.06,120.48,36.64,83.84,Kai,Commercial,Credit Card,655
+HI014-TX-0078,HI014,Waimanalo,Oahu,HI,2026-06-30 12:33:35,IC-555,NE555 Timer IC,Integrated Circuits,30,0.34,1.44,43.20,10.20,33.00,Alika,Marine,Credit Card,713
+HI014-TX-0079,HI014,Waimanalo,Oahu,HI,2026-06-30 12:47:50,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,9.60,28.09,224.72,76.80,147.92,Mika,Tourism/Hospitality,Debit Card,474
+HI014-TX-0080,HI014,Waimanalo,Oahu,HI,2026-06-30 08:16:54,CON-JMP,Jumper Wire Set,Connectors,27,0.88,3.61,97.47,23.76,73.71,Mika,Education,Debit Card,888
+HI014-TX-0081,HI014,Waimanalo,Oahu,HI,2026-06-30 11:16:54,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,27,0.05,0.20,5.40,1.35,4.05,Alika,Commercial,Mobile Pay,844
+HI014-TX-0082,HI014,Waimanalo,Oahu,HI,2026-06-30 14:56:17,IC-555,NE555 Timer IC,Integrated Circuits,20,0.36,1.41,28.20,7.20,21.00,Hana,Tourism/Hospitality,Purchase Order,90
+HI014-TX-0083,HI014,Waimanalo,Oahu,HI,2026-06-30 16:59:50,PWR-12V,12V 5A Power Supply,Power,4,8.93,24.44,97.76,35.72,62.04,Mika,Commercial,Credit Card,866
+HI014-TX-0084,HI014,Waimanalo,Oahu,HI,2026-06-30 16:23:45,IC-358,LM358 Op Amp,Integrated Circuits,21,0.30,1.26,26.46,6.30,20.16,Kaleo,Tourism/Hospitality,Mobile Pay,205
+HI014-TX-0085,HI014,Waimanalo,Oahu,HI,2026-06-30 12:35:42,CAP-010,10uF Capacitor,Capacitors,28,0.08,0.37,10.36,2.24,8.12,Koa,Tourism/Hospitality,Credit Card,23
+HI014-TX-0086,HI014,Waimanalo,Oahu,HI,2026-06-30 17:37:32,LED-RGB,RGB LED Strip,LEDs,5,4.69,13.82,69.10,23.45,45.65,Ailani,Marine,Cash,130
+HI014-TX-0087,HI014,Waimanalo,Oahu,HI,2026-06-30 09:55:32,BAT-AAH,AA Battery Holder,Batteries,13,0.52,2.68,34.84,6.76,28.08,Nalu,Tourism/Hospitality,Mobile Pay,785
+HI014-TX-0088,HI014,Waimanalo,Oahu,HI,2026-06-30 08:19:16,ARD-NANO,Arduino Nano Compatible,Microcontrollers,2,4.72,14.05,28.10,9.44,18.66,Kaleo,Marine,Mobile Pay,54
+HI014-TX-0089,HI014,Waimanalo,Oahu,HI,2026-06-30 14:23:09,USB-CBO,USB-C Breakout Board,Connectors,33,1.42,5.33,175.89,46.86,129.03,Noelani,Marine,Debit Card,102

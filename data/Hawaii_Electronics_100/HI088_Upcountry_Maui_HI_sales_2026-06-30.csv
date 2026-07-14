@@ -1,0 +1,78 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI088-TX-0001,HI088,Upcountry Maui,Maui,HI,2026-06-30 08:55:40,LED-RGB,RGB LED Strip,LEDs,8,5.19,13.76,110.08,41.52,68.56,Leilani,Maker/Hobbyist,Mobile Pay,576
+HI088-TX-0002,HI088,Upcountry Maui,Maui,HI,2026-06-30 14:44:23,PWR-BUCK,Buck Converter Module,Power,30,0.99,5.13,153.90,29.70,124.20,Kaleo,Education,Credit Card,19
+HI088-TX-0003,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:50:37,LED-RGB,RGB LED Strip,LEDs,7,4.84,13.39,93.73,33.88,59.85,Koa,Tourism/Hospitality,Credit Card,322
+HI088-TX-0004,HI088,Upcountry Maui,Maui,HI,2026-06-30 14:36:36,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,37,0.04,0.21,7.77,1.48,6.29,Noelani,Government,Mobile Pay,327
+HI088-TX-0005,HI088,Upcountry Maui,Maui,HI,2026-06-30 11:51:07,IC-358,LM358 Op Amp,Integrated Circuits,40,0.29,1.19,47.60,11.60,36.00,Lani,Retail,ACH,86
+HI088-TX-0006,HI088,Upcountry Maui,Maui,HI,2026-06-30 08:56:36,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.11,8.77,17.54,6.22,11.32,Noah,Marine,Mobile Pay,297
+HI088-TX-0007,HI088,Upcountry Maui,Maui,HI,2026-06-30 16:22:29,SNS-ULT,Ultrasonic Distance Sensor,Sensors,15,1.19,5.52,82.80,17.85,64.95,Leilani,Maker/Hobbyist,Credit Card,102
+HI088-TX-0008,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:36:42,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,9.05,28.66,143.30,45.25,98.05,Keahi,Government,Mobile Pay,101
+HI088-TX-0009,HI088,Upcountry Maui,Maui,HI,2026-06-30 12:13:59,RES-010,10k Ohm Resistor,Resistors,23,0.03,0.14,3.22,0.69,2.53,Makana,Maker/Hobbyist,ACH,512
+HI088-TX-0010,HI088,Upcountry Maui,Maui,HI,2026-06-30 13:59:44,LED-RGB,RGB LED Strip,LEDs,1,4.93,14.06,14.06,4.93,9.13,Kai,Commercial,Cash,284
+HI088-TX-0011,HI088,Upcountry Maui,Maui,HI,2026-06-30 16:23:52,LED-RGB,RGB LED Strip,LEDs,6,5.27,14.82,88.92,31.62,57.30,Malia,Education,Credit Card,696
+HI088-TX-0012,HI088,Upcountry Maui,Maui,HI,2026-06-30 14:52:23,PWR-5V2,5V 2A Power Supply,Power,4,3.59,11.54,46.16,14.36,31.80,Noelani,Commercial,Purchase Order,856
+HI088-TX-0013,HI088,Upcountry Maui,Maui,HI,2026-06-30 08:32:01,TOOL-SOL,Soldering Iron Tips,Tools,7,1.87,7.35,51.45,13.09,38.36,Mika,Retail,Credit Card,762
+HI088-TX-0014,HI088,Upcountry Maui,Maui,HI,2026-06-30 17:40:38,TOOL-DMM,Digital Multimeter,Tools,4,8.94,28.49,113.96,35.76,78.20,Ikaika,Retail,Mobile Pay,694
+HI088-TX-0015,HI088,Upcountry Maui,Maui,HI,2026-06-30 08:21:37,PWR-BUCK,Buck Converter Module,Power,6,1.09,4.78,28.68,6.54,22.14,Nalu,Maker/Hobbyist,ACH,251
+HI088-TX-0016,HI088,Upcountry Maui,Maui,HI,2026-06-30 16:52:59,LED-RGB,RGB LED Strip,LEDs,1,4.88,13.39,13.39,4.88,8.51,Koa,Government,Mobile Pay,824
+HI088-TX-0017,HI088,Upcountry Maui,Maui,HI,2026-06-30 16:47:59,PWR-5V2,5V 2A Power Supply,Power,4,3.55,11.58,46.32,14.20,32.12,Lani,Retail,Purchase Order,19
+HI088-TX-0018,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:05:02,TOOL-WIRE,Wire Stripper,Tools,7,4.78,14.65,102.55,33.46,69.09,Makana,Tourism/Hospitality,Debit Card,395
+HI088-TX-0019,HI088,Upcountry Maui,Maui,HI,2026-06-30 08:19:03,SNS-SOIL,Soil Moisture Sensor,Sensors,6,0.97,4.51,27.06,5.82,21.24,Lani,Maker/Hobbyist,Cash,733
+HI088-TX-0020,HI088,Upcountry Maui,Maui,HI,2026-06-30 17:03:13,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.30,15.36,92.16,31.80,60.36,Lani,Education,Mobile Pay,474
+HI088-TX-0021,HI088,Upcountry Maui,Maui,HI,2026-06-30 17:25:20,CAP-100,100uF Capacitor,Capacitors,40,0.17,0.56,22.40,6.80,15.60,Keahi,Tourism/Hospitality,Cash,805
+HI088-TX-0022,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:43:15,PWR-12V,12V 5A Power Supply,Power,8,9.12,26.56,212.48,72.96,139.52,Nalu,Education,Credit Card,523
+HI088-TX-0023,HI088,Upcountry Maui,Maui,HI,2026-06-30 17:39:29,PWR-BUCK,Buck Converter Module,Power,10,1.05,5.06,50.60,10.50,40.10,Malia,Commercial,Cash,838
+HI088-TX-0024,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:01:31,BAT-AAH,AA Battery Holder,Batteries,21,0.52,2.67,56.07,10.92,45.15,Mika,Tourism/Hospitality,Cash,189
+HI088-TX-0025,HI088,Upcountry Maui,Maui,HI,2026-06-30 14:20:29,LED-RGB,RGB LED Strip,LEDs,3,4.64,14.23,42.69,13.92,28.77,Ailani,Marine,Cash,893
+HI088-TX-0026,HI088,Upcountry Maui,Maui,HI,2026-06-30 17:43:49,SNS-PIR,PIR Motion Sensor,Sensors,7,1.58,6.05,42.35,11.06,31.29,Leilani,Maker/Hobbyist,Credit Card,705
+HI088-TX-0027,HI088,Upcountry Maui,Maui,HI,2026-06-30 16:14:49,PWR-BUCK,Buck Converter Module,Power,18,1.05,4.80,86.40,18.90,67.50,Pualani,Commercial,Debit Card,665
+HI088-TX-0028,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:47:59,BAT-AAH,AA Battery Holder,Batteries,22,0.51,2.84,62.48,11.22,51.26,Koa,Tourism/Hospitality,ACH,875
+HI088-TX-0029,HI088,Upcountry Maui,Maui,HI,2026-06-30 13:35:24,RES-001,1k Ohm Resistor,Resistors,1,0.03,0.12,0.12,0.03,0.09,Hana,Government,ACH,244
+HI088-TX-0030,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:58:50,MAR-TIN,Tinned Marine Wire,Marine Electronics,8,9.07,28.20,225.60,72.56,153.04,Kaleo,Commercial,Mobile Pay,185
+HI088-TX-0031,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:54:02,DIO-4007,1N4007 Diode,Semiconductors,1,0.05,0.20,0.20,0.05,0.15,Kaleo,Education,Purchase Order,518
+HI088-TX-0032,HI088,Upcountry Maui,Maui,HI,2026-06-30 14:33:36,LED-RGB,RGB LED Strip,LEDs,6,4.67,14.75,88.50,28.02,60.48,Pualani,Government,Debit Card,756
+HI088-TX-0033,HI088,Upcountry Maui,Maui,HI,2026-06-30 12:03:22,USB-CBO,USB-C Breakout Board,Connectors,18,1.31,5.64,101.52,23.58,77.94,Kaleo,Maker/Hobbyist,ACH,854
+HI088-TX-0034,HI088,Upcountry Maui,Maui,HI,2026-06-30 14:53:52,LED-BLU,5mm Blue LED,LEDs,34,0.07,0.32,10.88,2.38,8.50,Koa,Marine,Cash,113
+HI088-TX-0035,HI088,Upcountry Maui,Maui,HI,2026-06-30 16:24:18,MAR-TIN,Tinned Marine Wire,Marine Electronics,2,9.04,26.37,52.74,18.08,34.66,Ailani,Education,ACH,722
+HI088-TX-0036,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:00:26,PWR-12V,12V 5A Power Supply,Power,6,9.45,25.14,150.84,56.70,94.14,Kai,Commercial,Purchase Order,294
+HI088-TX-0037,HI088,Upcountry Maui,Maui,HI,2026-06-30 17:48:18,LED-BLU,5mm Blue LED,LEDs,15,0.06,0.32,4.80,0.90,3.90,Alika,Tourism/Hospitality,Cash,518
+HI088-TX-0038,HI088,Upcountry Maui,Maui,HI,2026-06-30 10:48:56,PICO-RP,Raspberry Pi Pico,Microcontrollers,2,3.13,8.85,17.70,6.26,11.44,Malia,Marine,Purchase Order,736
+HI088-TX-0039,HI088,Upcountry Maui,Maui,HI,2026-06-30 12:08:24,CAP-100,100uF Capacitor,Capacitors,31,0.16,0.62,19.22,4.96,14.26,Noelani,Education,Purchase Order,712
+HI088-TX-0040,HI088,Upcountry Maui,Maui,HI,2026-06-30 10:44:57,PWR-12V,12V 5A Power Supply,Power,6,9.09,24.96,149.76,54.54,95.22,Koa,Retail,Purchase Order,671
+HI088-TX-0041,HI088,Upcountry Maui,Maui,HI,2026-06-30 16:48:42,LED-RED,5mm Red LED,LEDs,7,0.06,0.28,1.96,0.42,1.54,Kaleo,Tourism/Hospitality,ACH,509
+HI088-TX-0042,HI088,Upcountry Maui,Maui,HI,2026-06-30 15:20:13,LED-RED,5mm Red LED,LEDs,8,0.06,0.29,2.32,0.48,1.84,Hana,Education,Debit Card,472
+HI088-TX-0043,HI088,Upcountry Maui,Maui,HI,2026-06-30 10:52:36,BAT-AAH,AA Battery Holder,Batteries,26,0.52,2.60,67.60,13.52,54.08,Noah,Government,Cash,460
+HI088-TX-0044,HI088,Upcountry Maui,Maui,HI,2026-06-30 11:09:27,BAT-AAH,AA Battery Holder,Batteries,30,0.49,2.81,84.30,14.70,69.60,Keanu,Commercial,Purchase Order,425
+HI088-TX-0045,HI088,Upcountry Maui,Maui,HI,2026-06-30 12:14:02,LED-BLU,5mm Blue LED,LEDs,36,0.06,0.35,12.60,2.16,10.44,Leilani,Education,Purchase Order,533
+HI088-TX-0046,HI088,Upcountry Maui,Maui,HI,2026-06-30 08:36:06,LED-RED,5mm Red LED,LEDs,22,0.06,0.29,6.38,1.32,5.06,Iolana,Maker/Hobbyist,Purchase Order,308
+HI088-TX-0047,HI088,Upcountry Maui,Maui,HI,2026-06-30 13:15:23,SNS-SOIL,Soil Moisture Sensor,Sensors,40,0.92,4.61,184.40,36.80,147.60,Nalu,Tourism/Hospitality,Debit Card,323
+HI088-TX-0048,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:15:54,IC-REG,7805 Voltage Regulator,Integrated Circuits,10,0.19,0.92,9.20,1.90,7.30,Ailani,Commercial,Debit Card,813
+HI088-TX-0049,HI088,Upcountry Maui,Maui,HI,2026-06-30 12:29:42,TOOL-DMM,Digital Multimeter,Tools,8,8.94,25.51,204.08,71.52,132.56,Alika,Retail,Mobile Pay,477
+HI088-TX-0050,HI088,Upcountry Maui,Maui,HI,2026-06-30 11:17:15,BRD-830,Breadboard 830 Tie Points,Connectors,2,1.63,6.50,13.00,3.26,9.74,Keahi,Commercial,ACH,455
+HI088-TX-0051,HI088,Upcountry Maui,Maui,HI,2026-06-30 15:12:27,TOOL-WIRE,Wire Stripper,Tools,4,4.82,15.94,63.76,19.28,44.48,Malia,Retail,Purchase Order,382
+HI088-TX-0052,HI088,Upcountry Maui,Maui,HI,2026-06-30 17:09:18,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,33,0.05,0.18,5.94,1.65,4.29,Hana,Education,Mobile Pay,468
+HI088-TX-0053,HI088,Upcountry Maui,Maui,HI,2026-06-30 08:42:18,SNS-SOIL,Soil Moisture Sensor,Sensors,27,0.97,4.37,117.99,26.19,91.80,Kaleo,Marine,ACH,258
+HI088-TX-0054,HI088,Upcountry Maui,Maui,HI,2026-06-30 11:05:49,SNS-DHT,DHT22 Temperature Sensor,Sensors,2,2.65,7.69,15.38,5.30,10.08,Kaleo,Tourism/Hospitality,Cash,143
+HI088-TX-0055,HI088,Upcountry Maui,Maui,HI,2026-06-30 10:50:37,PICO-RP,Raspberry Pi Pico,Microcontrollers,7,3.31,8.99,62.93,23.17,39.76,Ikaika,Government,Credit Card,54
+HI088-TX-0056,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:23:02,RES-220,220 Ohm Resistor,Resistors,8,0.03,0.13,1.04,0.24,0.80,Ailani,Retail,Debit Card,570
+HI088-TX-0057,HI088,Upcountry Maui,Maui,HI,2026-06-30 10:50:20,LED-RGB,RGB LED Strip,LEDs,6,5.21,13.73,82.38,31.26,51.12,Hana,Maker/Hobbyist,ACH,620
+HI088-TX-0058,HI088,Upcountry Maui,Maui,HI,2026-06-30 17:53:18,PWR-12V,12V 5A Power Supply,Power,7,9.90,24.63,172.41,69.30,103.11,Malia,Tourism/Hospitality,Purchase Order,689
+HI088-TX-0059,HI088,Upcountry Maui,Maui,HI,2026-06-30 15:59:38,PWR-5V2,5V 2A Power Supply,Power,5,3.72,10.38,51.90,18.60,33.30,Pualani,Maker/Hobbyist,Cash,292
+HI088-TX-0060,HI088,Upcountry Maui,Maui,HI,2026-06-30 15:39:22,TOOL-DMM,Digital Multimeter,Tools,4,9.03,26.71,106.84,36.12,70.72,Koa,Commercial,Purchase Order,791
+HI088-TX-0061,HI088,Upcountry Maui,Maui,HI,2026-06-30 16:06:11,PWR-5V2,5V 2A Power Supply,Power,2,3.60,11.38,22.76,7.20,15.56,Makana,Tourism/Hospitality,ACH,249
+HI088-TX-0062,HI088,Upcountry Maui,Maui,HI,2026-06-30 11:46:38,LED-RGB,RGB LED Strip,LEDs,7,5.24,13.97,97.79,36.68,61.11,Makana,Maker/Hobbyist,Purchase Order,651
+HI088-TX-0063,HI088,Upcountry Maui,Maui,HI,2026-06-30 16:44:32,LED-RGB,RGB LED Strip,LEDs,6,4.94,14.25,85.50,29.64,55.86,Akamu,Tourism/Hospitality,ACH,100
+HI088-TX-0064,HI088,Upcountry Maui,Maui,HI,2026-06-30 14:09:43,CAP-010,10uF Capacitor,Capacitors,29,0.08,0.41,11.89,2.32,9.57,Noelani,Maker/Hobbyist,Credit Card,529
+HI088-TX-0065,HI088,Upcountry Maui,Maui,HI,2026-06-30 17:45:58,PWR-BUCK,Buck Converter Module,Power,40,1.11,5.17,206.80,44.40,162.40,Hana,Government,Debit Card,797
+HI088-TX-0066,HI088,Upcountry Maui,Maui,HI,2026-06-30 15:51:35,TOOL-SOL,Soldering Iron Tips,Tools,5,1.95,7.56,37.80,9.75,28.05,Hana,Education,Mobile Pay,455
+HI088-TX-0067,HI088,Upcountry Maui,Maui,HI,2026-06-30 11:07:01,BRD-830,Breadboard 830 Tie Points,Connectors,8,1.55,6.67,53.36,12.40,40.96,Leilani,Commercial,Credit Card,318
+HI088-TX-0068,HI088,Upcountry Maui,Maui,HI,2026-06-30 14:00:51,PWR-BUCK,Buck Converter Module,Power,23,1.09,5.13,117.99,25.07,92.92,Mika,Commercial,ACH,479
+HI088-TX-0069,HI088,Upcountry Maui,Maui,HI,2026-06-30 12:25:56,BAT-LIPO,LiPo Battery Pack,Batteries,7,5.45,15.71,109.97,38.15,71.82,Iolana,Education,ACH,146
+HI088-TX-0070,HI088,Upcountry Maui,Maui,HI,2026-06-30 15:04:33,ESP-32,ESP32 Dev Board,Microcontrollers,5,4.34,12.50,62.50,21.70,40.80,Alika,Maker/Hobbyist,Debit Card,23
+HI088-TX-0071,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:29:20,LED-BLU,5mm Blue LED,LEDs,24,0.07,0.33,7.92,1.68,6.24,Pualani,Education,Purchase Order,328
+HI088-TX-0072,HI088,Upcountry Maui,Maui,HI,2026-06-30 09:47:18,PWR-BUCK,Buck Converter Module,Power,6,1.06,4.65,27.90,6.36,21.54,Kaleo,Marine,Debit Card,174
+HI088-TX-0073,HI088,Upcountry Maui,Maui,HI,2026-06-30 16:16:48,ESP-32,ESP32 Dev Board,Microcontrollers,8,4.06,13.62,108.96,32.48,76.48,Ikaika,Government,Credit Card,402
+HI088-TX-0074,HI088,Upcountry Maui,Maui,HI,2026-06-30 10:26:53,PWR-12V,12V 5A Power Supply,Power,7,9.36,24.18,169.26,65.52,103.74,Noelani,Tourism/Hospitality,Mobile Pay,457
+HI088-TX-0075,HI088,Upcountry Maui,Maui,HI,2026-06-30 16:02:55,BAT-LIPO,LiPo Battery Pack,Batteries,2,5.52,16.39,32.78,11.04,21.74,Noah,Marine,Debit Card,363
+HI088-TX-0076,HI088,Upcountry Maui,Maui,HI,2026-06-30 11:17:52,PWR-12V,12V 5A Power Supply,Power,2,9.69,23.96,47.92,19.38,28.54,Makana,Marine,Mobile Pay,749
+HI088-TX-0077,HI088,Upcountry Maui,Maui,HI,2026-06-30 13:36:41,SNS-DHT,DHT22 Temperature Sensor,Sensors,3,2.51,7.54,22.62,7.53,15.09,Nalu,Commercial,Cash,843

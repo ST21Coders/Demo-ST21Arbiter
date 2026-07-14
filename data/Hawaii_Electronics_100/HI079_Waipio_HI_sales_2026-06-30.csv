@@ -1,0 +1,52 @@
+transaction_id,branch_id,city,island,state,timestamp,sku,product_description,category,quantity,unit_cost,unit_price,revenue,cost,gross_margin,salesperson,customer_type,payment_method,inventory_remaining
+HI079-TX-0001,HI079,Waipio,Oahu,HI,2026-06-30 08:03:18,CAP-010,10uF Capacitor,Capacitors,38,0.09,0.39,14.82,3.42,11.40,Alika,Retail,Debit Card,140
+HI079-TX-0002,HI079,Waipio,Oahu,HI,2026-06-30 09:26:14,ARD-NANO,Arduino Nano Compatible,Microcontrollers,7,4.80,14.32,100.24,33.60,66.64,Keanu,Commercial,Debit Card,52
+HI079-TX-0003,HI079,Waipio,Oahu,HI,2026-06-30 11:11:43,PWR-12V,12V 5A Power Supply,Power,8,8.81,23.76,190.08,70.48,119.60,Keahi,Maker/Hobbyist,Cash,660
+HI079-TX-0004,HI079,Waipio,Oahu,HI,2026-06-30 15:34:52,RES-220,220 Ohm Resistor,Resistors,37,0.03,0.12,4.44,1.11,3.33,Malia,Retail,Mobile Pay,57
+HI079-TX-0005,HI079,Waipio,Oahu,HI,2026-06-30 16:12:16,PWR-5V2,5V 2A Power Supply,Power,5,3.65,10.50,52.50,18.25,34.25,Kai,Tourism/Hospitality,ACH,274
+HI079-TX-0006,HI079,Waipio,Oahu,HI,2026-06-30 17:56:20,CON-JMP,Jumper Wire Set,Connectors,9,0.95,3.92,35.28,8.55,26.73,Noah,Marine,Debit Card,400
+HI079-TX-0007,HI079,Waipio,Oahu,HI,2026-06-30 14:57:19,BRD-830,Breadboard 830 Tie Points,Connectors,7,1.48,6.27,43.89,10.36,33.53,Iolana,Commercial,Credit Card,859
+HI079-TX-0008,HI079,Waipio,Oahu,HI,2026-06-30 16:25:05,IC-REG,7805 Voltage Regulator,Integrated Circuits,26,0.21,0.97,25.22,5.46,19.76,Lani,Retail,Mobile Pay,883
+HI079-TX-0009,HI079,Waipio,Oahu,HI,2026-06-30 12:17:30,TR-3904,2N3904 NPN Transistor,Semiconductors,27,0.06,0.24,6.48,1.62,4.86,Kai,Marine,Mobile Pay,663
+HI079-TX-0010,HI079,Waipio,Oahu,HI,2026-06-30 11:48:11,BRD-830,Breadboard 830 Tie Points,Connectors,6,1.46,6.39,38.34,8.76,29.58,Hana,Education,Purchase Order,763
+HI079-TX-0011,HI079,Waipio,Oahu,HI,2026-06-30 08:33:03,IC-REG,7805 Voltage Regulator,Integrated Circuits,8,0.20,0.95,7.60,1.60,6.00,Koa,Marine,Purchase Order,439
+HI079-TX-0012,HI079,Waipio,Oahu,HI,2026-06-30 13:24:16,PWR-BUCK,Buck Converter Module,Power,31,0.99,4.76,147.56,30.69,116.87,Lani,Tourism/Hospitality,Mobile Pay,456
+HI079-TX-0013,HI079,Waipio,Oahu,HI,2026-06-30 14:37:21,CAP-CER,0.1uF Ceramic Capacitor,Capacitors,13,0.04,0.20,2.60,0.52,2.08,Ikaika,Tourism/Hospitality,Credit Card,307
+HI079-TX-0014,HI079,Waipio,Oahu,HI,2026-06-30 12:51:21,BAT-LIPO,LiPo Battery Pack,Batteries,6,5.28,17.08,102.48,31.68,70.80,Mika,Retail,Cash,801
+HI079-TX-0015,HI079,Waipio,Oahu,HI,2026-06-30 11:21:41,IC-REG,7805 Voltage Regulator,Integrated Circuits,7,0.19,0.89,6.23,1.33,4.90,Akamu,Commercial,Debit Card,813
+HI079-TX-0016,HI079,Waipio,Oahu,HI,2026-06-30 17:37:43,USB-CBO,USB-C Breakout Board,Connectors,3,1.31,5.59,16.77,3.93,12.84,Alika,Commercial,Credit Card,60
+HI079-TX-0017,HI079,Waipio,Oahu,HI,2026-06-30 16:00:26,LED-RGB,RGB LED Strip,LEDs,3,4.69,14.34,43.02,14.07,28.95,Malia,Marine,Credit Card,363
+HI079-TX-0018,HI079,Waipio,Oahu,HI,2026-06-30 15:34:03,USB-CBO,USB-C Breakout Board,Connectors,32,1.30,5.45,174.40,41.60,132.80,Noelani,Education,Cash,709
+HI079-TX-0019,HI079,Waipio,Oahu,HI,2026-06-30 10:45:07,LED-BLU,5mm Blue LED,LEDs,10,0.07,0.34,3.40,0.70,2.70,Keahi,Tourism/Hospitality,Cash,153
+HI079-TX-0020,HI079,Waipio,Oahu,HI,2026-06-30 14:15:59,MAR-ANT,Marine Antenna Connector,Marine Electronics,6,3.75,13.62,81.72,22.50,59.22,Kaleo,Retail,Credit Card,696
+HI079-TX-0021,HI079,Waipio,Oahu,HI,2026-06-30 14:36:44,PWR-BUCK,Buck Converter Module,Power,33,1.07,4.85,160.05,35.31,124.74,Noah,Commercial,Cash,844
+HI079-TX-0022,HI079,Waipio,Oahu,HI,2026-06-30 17:06:53,BRD-830,Breadboard 830 Tie Points,Connectors,1,1.64,6.59,6.59,1.64,4.95,Keahi,Commercial,Mobile Pay,707
+HI079-TX-0023,HI079,Waipio,Oahu,HI,2026-06-30 16:52:24,IC-REG,7805 Voltage Regulator,Integrated Circuits,16,0.19,0.93,14.88,3.04,11.84,Keahi,Government,Purchase Order,332
+HI079-TX-0024,HI079,Waipio,Oahu,HI,2026-06-30 17:43:55,RES-010,10k Ohm Resistor,Resistors,4,0.03,0.13,0.52,0.12,0.40,Kai,Education,Cash,258
+HI079-TX-0025,HI079,Waipio,Oahu,HI,2026-06-30 15:18:49,BRD-830,Breadboard 830 Tie Points,Connectors,4,1.46,6.52,26.08,5.84,20.24,Malia,Retail,Cash,577
+HI079-TX-0026,HI079,Waipio,Oahu,HI,2026-06-30 10:02:38,IC-358,LM358 Op Amp,Integrated Circuits,32,0.32,1.27,40.64,10.24,30.40,Koa,Commercial,Purchase Order,717
+HI079-TX-0027,HI079,Waipio,Oahu,HI,2026-06-30 16:34:30,IC-358,LM358 Op Amp,Integrated Circuits,8,0.30,1.21,9.68,2.40,7.28,Noelani,Retail,Debit Card,361
+HI079-TX-0028,HI079,Waipio,Oahu,HI,2026-06-30 15:34:34,SNS-PIR,PIR Motion Sensor,Sensors,2,1.63,5.74,11.48,3.26,8.22,Koa,Government,ACH,44
+HI079-TX-0029,HI079,Waipio,Oahu,HI,2026-06-30 16:17:58,MAR-TIN,Tinned Marine Wire,Marine Electronics,5,9.62,28.44,142.20,48.10,94.10,Makana,Marine,Cash,342
+HI079-TX-0030,HI079,Waipio,Oahu,HI,2026-06-30 12:05:05,LED-RGB,RGB LED Strip,LEDs,7,4.85,14.33,100.31,33.95,66.36,Keahi,Maker/Hobbyist,Credit Card,431
+HI079-TX-0031,HI079,Waipio,Oahu,HI,2026-06-30 09:00:25,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.28,8.29,8.29,3.28,5.01,Noelani,Commercial,Purchase Order,819
+HI079-TX-0032,HI079,Waipio,Oahu,HI,2026-06-30 16:42:45,USB-CBO,USB-C Breakout Board,Connectors,29,1.35,5.34,154.86,39.15,115.71,Leilani,Commercial,Cash,502
+HI079-TX-0033,HI079,Waipio,Oahu,HI,2026-06-30 09:56:48,SNS-ULT,Ultrasonic Distance Sensor,Sensors,35,1.31,5.68,198.80,45.85,152.95,Kai,Retail,Debit Card,846
+HI079-TX-0034,HI079,Waipio,Oahu,HI,2026-06-30 10:50:51,IC-358,LM358 Op Amp,Integrated Circuits,30,0.31,1.19,35.70,9.30,26.40,Lani,Commercial,Mobile Pay,549
+HI079-TX-0035,HI079,Waipio,Oahu,HI,2026-06-30 15:08:51,ARD-NANO,Arduino Nano Compatible,Microcontrollers,3,4.39,14.98,44.94,13.17,31.77,Ikaika,Retail,Mobile Pay,388
+HI079-TX-0036,HI079,Waipio,Oahu,HI,2026-06-30 09:22:24,ARD-UNO,Arduino Uno Compatible,Microcontrollers,1,8.32,20.99,20.99,8.32,12.67,Pualani,Education,Cash,567
+HI079-TX-0037,HI079,Waipio,Oahu,HI,2026-06-30 10:16:56,PICO-RP,Raspberry Pi Pico,Microcontrollers,1,3.21,8.43,8.43,3.21,5.22,Nalu,Retail,Credit Card,656
+HI079-TX-0038,HI079,Waipio,Oahu,HI,2026-06-30 09:18:33,PWR-BUCK,Buck Converter Module,Power,9,1.09,5.13,46.17,9.81,36.36,Nalu,Maker/Hobbyist,Credit Card,679
+HI079-TX-0039,HI079,Waipio,Oahu,HI,2026-06-30 15:28:24,PWR-5V2,5V 2A Power Supply,Power,2,3.67,10.81,21.62,7.34,14.28,Akamu,Government,Mobile Pay,301
+HI079-TX-0040,HI079,Waipio,Oahu,HI,2026-06-30 08:35:57,ARD-UNO,Arduino Uno Compatible,Microcontrollers,2,8.31,21.52,43.04,16.62,26.42,Alika,Tourism/Hospitality,Purchase Order,669
+HI079-TX-0041,HI079,Waipio,Oahu,HI,2026-06-30 09:59:34,TOOL-DMM,Digital Multimeter,Tools,7,9.24,26.25,183.75,64.68,119.07,Kaleo,Retail,Debit Card,601
+HI079-TX-0042,HI079,Waipio,Oahu,HI,2026-06-30 12:21:14,SNS-SOIL,Soil Moisture Sensor,Sensors,9,0.93,4.18,37.62,8.37,29.25,Alika,Tourism/Hospitality,Cash,890
+HI079-TX-0043,HI079,Waipio,Oahu,HI,2026-06-30 10:44:34,RES-220,220 Ohm Resistor,Resistors,8,0.03,0.13,1.04,0.24,0.80,Ailani,Maker/Hobbyist,Debit Card,349
+HI079-TX-0044,HI079,Waipio,Oahu,HI,2026-06-30 11:03:01,PWR-BUCK,Buck Converter Module,Power,5,1.09,5.14,25.70,5.45,20.25,Nalu,Maker/Hobbyist,Cash,305
+HI079-TX-0045,HI079,Waipio,Oahu,HI,2026-06-30 15:45:32,LED-RGB,RGB LED Strip,LEDs,7,4.79,13.43,94.01,33.53,60.48,Akamu,Government,Cash,410
+HI079-TX-0046,HI079,Waipio,Oahu,HI,2026-06-30 17:35:57,BAT-AAH,AA Battery Holder,Batteries,1,0.53,2.58,2.58,0.53,2.05,Noelani,Maker/Hobbyist,Credit Card,829
+HI079-TX-0047,HI079,Waipio,Oahu,HI,2026-06-30 13:53:28,CAP-010,10uF Capacitor,Capacitors,34,0.09,0.37,12.58,3.06,9.52,Keahi,Government,Mobile Pay,514
+HI079-TX-0048,HI079,Waipio,Oahu,HI,2026-06-30 16:49:08,CON-JMP,Jumper Wire Set,Connectors,39,0.90,3.71,144.69,35.10,109.59,Malia,Government,Cash,523
+HI079-TX-0049,HI079,Waipio,Oahu,HI,2026-06-30 09:34:49,USB-CBO,USB-C Breakout Board,Connectors,30,1.40,5.38,161.40,42.00,119.40,Mika,Tourism/Hospitality,ACH,233
+HI079-TX-0050,HI079,Waipio,Oahu,HI,2026-06-30 09:47:14,RES-001,1k Ohm Resistor,Resistors,11,0.03,0.13,1.43,0.33,1.10,Iolana,Government,Purchase Order,777
+HI079-TX-0051,HI079,Waipio,Oahu,HI,2026-06-30 15:37:06,MAR-ANT,Marine Antenna Connector,Marine Electronics,3,3.99,14.77,44.31,11.97,32.34,Koa,Government,Mobile Pay,844
