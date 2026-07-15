@@ -15,14 +15,6 @@ import {
 } from '../hooks/useApi'
 import { formatDistanceToNow } from 'date-fns'
 
-// ── Static source / KB reference (kept from previous build) ─────────────────
-
-const SOURCES = [
-  { id: 'sharepoint', name: 'SharePoint',  icon: FileText, description: 'Policy documents, standards, procedures',          s3Prefix: 's3://dev-st21arbiter-poc-raw/sharepoint/',  docCount: 12, formats: ['DOCX', 'PDF', 'MD'], color: { bg: '#eef2ff', icon: '#4f46e5', border: '#c7d2fe' } },
-  { id: 'zscaler',    name: 'Zscaler ZIA', icon: Server,   description: 'URL categorization rules, policy enforcement',       s3Prefix: 's3://dev-st21arbiter-poc-raw/zscaler/',     docCount: 3,  formats: ['JSON'],            color: { bg: '#f0f9ff', icon: '#0284c7', border: '#bae6fd' } },
-  { id: 'awsconfig',  name: 'AWS Config',  icon: Database, description: 'Security groups, S3 bucket configs, IAM snapshots', s3Prefix: 's3://dev-st21arbiter-poc-raw/aws-config/',  docCount: 8,  formats: ['JSON'],            color: { bg: '#fff7ed', icon: '#ea580c', border: '#fed7aa' } },
-]
-
 const GROUPS_STORAGE_KEY = 'arbiter.dataGrouping.v2.savedGroups'
 const PROJECTS_STORAGE_KEY = 'arbiter.dataGrouping.v2.projects'
 const PIPELINE_PROJECT_NAME = 'Discovery'
@@ -767,7 +759,7 @@ function UploadDropzone({
         <textarea
           value={newGroupPurpose}
           onChange={event => setNewGroupPurpose(event.target.value)}
-          placeholder="Briefly describe what this group contains and what the user wants to learn from it."
+          placeholder="Optional: briefly describe what this group contains and what the user wants to learn from it (improves answer quality)."
           rows={2}
           className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
         />
@@ -901,45 +893,6 @@ function UploadRow({ upload }) {
   )
 }
 
-// ── Source card (existing — kept as informational reference) ────────────────
-
-function SourceCard({ source }) {
-  const Icon = source.icon
-  return (
-    <div className="rounded-xl p-4 bg-white"
-         style={{ border: `1px solid ${source.color.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-               style={{ background: source.color.bg }}>
-            <Icon size={16} style={{ color: source.color.icon }} />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900 text-sm">{source.name}</p>
-            <p className="text-xs text-slate-500">{source.description}</p>
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <p className="text-slate-400 mb-0.5">S3 Prefix</p>
-          <p className="font-mono text-slate-600 truncate text-[11px]" title={source.s3Prefix}>{source.s3Prefix}</p>
-        </div>
-        <div>
-          <p className="text-slate-400 mb-0.5">Documents</p>
-          <p className="text-slate-700">{source.docCount} files ({source.formats.join(', ')})</p>
-        </div>
-        <div className="col-span-2">
-          <p className="text-slate-400 mb-0.5">Status</p>
-          <span className="flex items-center gap-1 text-emerald-700">
-            <CheckCircle size={11} /> SYNCED · auto-detect ENABLED
-          </span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ── Two-path flow explainer (static — shown beneath the dropzone) ───────────
 // Drives off the same STEP_DEFS / STEP_DEFS_STRUCTURED used by UploadRow, so the
 // explainer can't drift from how an upload actually progresses. Purely cosmetic:
@@ -957,18 +910,26 @@ const PATH_DEFS = [
   {
     id: 'docusearch',
     title: 'DocuSearch',
-    subtitle: 'pdf/docx/txt/json → S3 Vectors · Use this for semantic search from s3 vector',
+    subtitle: 'pdf/docx/txt/json → S3 Vectors · semantic search from s3 vector',
     steps: STEP_DEFS_VECTOR,
     Icon: Boxes,
     accent: { bg: '#f5f3ff', icon: '#7c3aed', border: '#ddd6fe' },
   },
   {
-    id: 'structured',
-    title: 'Structured Analytics',
-    subtitle: 'csv/excel/parquet → Glue + S3 Vectors · Use this for Semantic + Analytics search from s3 vector',
-    steps: STEP_DEFS_ANALYTICS,
+    id: 'structured_sql',
+    title: 'Structured Analytics — SQL',
+    subtitle: 'CSV only → Glue / Athena SQL · analytics without S3 Vectors',
+    steps: STEP_DEFS_STRUCTURED,
     Icon: Database,
     accent: { bg: '#fff7ed', icon: '#ea580c', border: '#fed7aa' },
+  },
+  {
+    id: 'structured_vector',
+    title: 'Structured Analytics — Semantic + SQL',
+    subtitle: 'Structured + Vector + Glue → Glue + S3 Vectors · Semantic + Analytics search from s3 vector',
+    steps: STEP_DEFS_ANALYTICS,
+    Icon: Boxes,
+    accent: { bg: '#f0fdfa', icon: '#0d9488', border: '#99f6e4' },
   },
 ]
 
@@ -1516,7 +1477,7 @@ export default function DataPipeline() {
   const currentProject = currentProjectTarget()
   const currentProjectReady = Boolean(currentProject?.id && currentProject?.name)
   const filteredGroupOptions = groupOptions.filter(group => (group.projectId || PIPELINE_PROJECT_ID) === currentProject?.id)
-  const groupTargetReady = currentProjectReady && (creatingNewGroup ? Boolean(groupNameFromInput(newGroupName)) && Boolean(newGroupPurpose.trim()) : Boolean(selectedGroupId)) && Boolean(groupFileMix)
+  const groupTargetReady = currentProjectReady && (creatingNewGroup ? Boolean(groupNameFromInput(newGroupName)) : Boolean(selectedGroupId)) && Boolean(groupFileMix)
   const currentSelectedGroupName = selectedGroupName()
   const currentPublishKey = currentProject?.id && currentSelectedGroupName ? projectKey(currentProject.id, currentSelectedGroupName) : ''
   const currentPublishStatus = currentPublishKey ? groupPublishStatus[currentPublishKey] : null
@@ -1709,35 +1670,6 @@ export default function DataPipeline() {
         </div>
       )}
 
-      {/* Source connectors — informational */}
-      <div>
-        <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-3">Data Sources (S3-backed · auto-detect enabled)</p>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {SOURCES.map(src => (
-            <SourceCard key={src.id} source={src} />
-          ))}
-        </div>
-      </div>
-
-      {/* KB info */}
-      <div className="rounded-xl p-4 bg-white border border-slate-200"
-           style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
-        <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-3">Bedrock Knowledge Base</p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-          {[
-            { label: 'KB ID',            value: import.meta.env.VITE_KB_ID || '2ADHACW6LB',                                            mono: true },
-            { label: 'Embedding Model',  value: 'Titan Embed Text v2',                                                                  mono: false },
-            { label: 'Chunk Size',       value: '512 tokens (20% overlap)',                                                             mono: false },
-            { label: 'Vector Store',     value: 'OpenSearch Serverless',                                                                mono: false },
-          ].map(item => (
-            <div key={item.label}
-                 className="rounded-lg p-3 bg-slate-50 border border-slate-200">
-              <p className="text-slate-400 mb-1">{item.label}</p>
-              <p className={`text-slate-700 ${item.mono ? 'font-mono text-[11px]' : ''}`}>{item.value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
