@@ -97,16 +97,25 @@ def validate_sql(sql: str, allowed_table: str) -> str:
     return cleaned
 
 
-def generate_sql(question: str, settings: Settings | None = None) -> str:
-    """Ask the LLM to translate a question into a single Athena SQL SELECT."""
+def generate_sql(question: str, settings: Settings | None = None, *, schema: str | None = None) -> str:
+    """Ask the LLM to translate a question into a single Athena SQL SELECT.
+
+    `schema` overrides the frozen `hawaii_sales` `TABLE_SCHEMA` with a caller-supplied schema
+    block (e.g. the real Glue columns of an arbitrary group table). When omitted, the default
+    Hawaii schema is used so the existing sales route is unchanged (notebook == production).
+    """
     settings = settings or get_settings()
     system = (
         "You are a careful analytics engineer. Translate the user's question into ONE "
         "read-only Presto/Trino SQL SELECT statement for Amazon Athena. Use ONLY the table "
-        "and columns provided. Return SQL ONLY — no prose, no markdown fences, no semicolon. "
-        "Always add a sensible LIMIT (<= 100) unless the question asks for a single aggregate."
+        "and columns provided. When a column lists its distinct values (e.g. `-- values: …`), "
+        "filter using one of those EXACT stored values — map the user's wording to the closest "
+        "listed value (e.g. a state named in full → its 2-letter code if that is what is listed) "
+        "and do not invent a literal that is not present. Return SQL ONLY — no prose, no markdown "
+        "fences, no semicolon. Always add a sensible LIMIT (<= 100) unless the question asks for a "
+        "single aggregate."
     )
-    schema = TABLE_SCHEMA.format(table=settings.glue_table)
+    schema = schema or TABLE_SCHEMA.format(table=settings.glue_table)
     prompt = f"{schema}\n\nQuestion: {question}\n\nSQL:"
     raw = generate(prompt, system=system, settings=settings).text
     # Strip accidental markdown fences.

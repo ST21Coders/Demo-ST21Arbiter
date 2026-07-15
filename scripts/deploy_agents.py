@@ -155,6 +155,10 @@ AGENTS = [
         # settings.toml). Semantic path → S3 Vectors sales-facts index. SQL path → the
         # existing structured Glue DB + read-only workgroup (already IAM-granted); the
         # Hawaii sales table is `hawaii_sales`.
+        # These are DEFAULTS only: api_handler forwards vector_bucket/vector_index/glue_database/
+        # glue_table per request for a selected "Structured + Vector + Glue" data group, so one
+        # sales runtime serves any group's analytics-vectors index + Glue table (query-only IAM
+        # for -analytics-vectors granted in 09-agentcore).
         "env_overrides": {
             "SALES_VECTOR_BUCKET": f"{PREFIX}-sales-vectors",
             "SALES_VECTOR_INDEX": "sales-facts",
@@ -179,6 +183,9 @@ AGENTS = [
         # The agent builds an arbiter_rag Settings from these env vars (never settings.toml).
         # HYBRID path → S3 Vectors semantic + BM25 lexical fused via RRF (the BM25 index is
         # rebuilt at cold start from the same vectors; no extra infra, query-only s3vectors IAM).
+        # These are DEFAULTS only: api_handler forwards vector_bucket/vector_index per request for
+        # a selected "Unstructured + Vector" (DocuSearch) group, so one hr runtime serves any
+        # group's docs-vectors index (query-only IAM for -docs-vectors granted in 09-agentcore).
         "env_overrides": {
             "HR_VECTOR_BUCKET": f"{PREFIX}-hr-vectors",
             "HR_VECTOR_INDEX": "hr-policies",

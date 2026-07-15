@@ -367,6 +367,67 @@ def handler(event, context):
 
 
 # ──────────────────────────── /chat ─────────────────────────────
+def _resolve_group_vector_route(project_id: str, group_canonical: str) -> dict[str, Any] | None:
+    """Latest SUCCEEDED ingest job for a group → {target, vector_bucket, vector_index, job_type}.
+
+    Lets one reusable agent serve any group's S3 Vectors index. Returns None when the group has
+    no completed vector-ingest job (caller keeps structured/master). Precedence
+    structured_analytics > docusearch (stable sort), newest-within-type.
+    """
+    if not (data_jobs_table and project_id and group_canonical):
+        return None
+    try:
+        resp = data_jobs_table.query(
+            IndexName="by-project",
+            KeyConditionExpression=Key("project_id").eq(project_id),
+            ScanIndexForward=False,  # newest first
+            Limit=50,
+        )
+        rows = resp.get("Items", [])
+    except Exception:
+        logger.exception("data-jobs vector route lookup failed")
+        return None
+    candidates = [
+        r for r in rows
+        if r.get("status") == "SUCCEEDED"
+        and (r.get("vector_index") or "")
+        and _canonical_structured_group_name(str(r.get("group_name") or "")) == group_canonical
+    ]
+    if not candidates:
+        return None
+    precedence = {"structured_analytics": 0, "docusearch": 1}
+    candidates.sort(key=lambda r: precedence.get(r.get("job_type"), 9))  # stable → newest wins in type
+    row = candidates[0]
+    target = {"structured_analytics": "sales", "docusearch": "hr"}.get(row.get("job_type"))
+    if not target:
+        return None
+    return {
+        "target": target,
+        "job_type": row.get("job_type"),
+        "vector_bucket": str(row.get("vector_bucket") or ""),
+        "vector_index": str(row.get("vector_index") or ""),
+    }
+
+
+def _group_glue_table(project_id: str, group_canonical: str) -> str:
+    """Primary structured Glue table for a group from its project.json metadata ('' if none)."""
+    meta = _load_data_grouping_metadata(PROCESSED_BUCKET, f"projects/{project_id}/metadata/project.json")
+    if not meta:
+        return ""
+    for group in meta.get("groups", []):
+        if not isinstance(group, dict):
+            continue
+        if _canonical_structured_group_name(str(group.get("name") or "")) != group_canonical:
+            continue
+        hint = group.get("structuredTableHint")
+        if isinstance(hint, str) and hint:
+            return hint
+        hints = group.get("structuredTableHints") or []
+        if hints:
+            return str(hints[0])
+    return ""
+
+
 def _handle_chat(event):
     try:
         body = json.loads(event.get("body") or "{}")
@@ -387,6 +448,27 @@ def _handle_chat(event):
     target = (body.get("target") or "master").strip().lower()
     if selected_data_group or _looks_like_structured_inventory_prompt(prompt):
         target = "structured"
+    # Content-type routing (backend-authoritative): a selected group with a SUCCEEDED
+    # vector-ingest job is served by the capability-matched reusable agent pointed at THAT
+    # group's index — docusearch→hr, structured_analytics→sales (+ its Glue table). No vector
+    # job (or sales without a resolvable table) → keep structured (CSV/Glue). Overrides the UI target.
+    route_vector_bucket = route_vector_index = route_glue_db = route_glue_table = ""
+    if selected_data_group and selected_data_project_id:
+        _route = _resolve_group_vector_route(selected_data_project_id, selected_data_group)
+        if _route and _route["target"] == "hr":
+            target = "hr"
+            route_vector_bucket = _route["vector_bucket"]
+            route_vector_index = _route["vector_index"]
+        elif _route and _route["target"] == "sales":
+            # Always route to sales with the group's vector index (semantic search must work);
+            # the Glue table is best-effort — SQL aggregation only when it's resolvable.
+            target = "sales"
+            route_vector_bucket = _route["vector_bucket"]
+            route_vector_index = _route["vector_index"]
+            _table = _group_glue_table(selected_data_project_id, selected_data_group)
+            if _table:
+                route_glue_db = GLUE_DATABASE
+                route_glue_table = _table
     runtime_arn = SPECIALIST_RUNTIME_ARNS.get(target) or MASTER_AGENT_RUNTIME_ARN
     if not runtime_arn:
         return _err(503, f"Runtime ARN for '{target}' not configured (run scripts/deploy_agents.py)")
@@ -437,17 +519,28 @@ def _handle_chat(event):
         elif selected_context_lines:
             runtime_prompt = "\n".join([*selected_context_lines, "", prompt])
 
+    agent_payload = {
+        "prompt": runtime_prompt,
+        "session_id": session_id,
+        "actor_id": actor_id,
+        "chat_type": chat_type,
+        "persona": persona,
+        "user_email": user_email,
+    }
+    # Per-request resource target for the reusable hr/sales agents (only when routed to a group's
+    # vector index). Absent → the agent uses its built-in HR/Hawaii-sales defaults.
+    if route_vector_bucket:
+        agent_payload["vector_bucket"] = route_vector_bucket
+    if route_vector_index:
+        agent_payload["vector_index"] = route_vector_index
+    if route_glue_db:
+        agent_payload["glue_database"] = route_glue_db
+    if route_glue_table:
+        agent_payload["glue_table"] = route_glue_table
     try:
         resp = agentcore.invoke_agent_runtime(
             agentRuntimeArn=runtime_arn,
-            payload=json.dumps({
-                "prompt": runtime_prompt,
-                "session_id": session_id,
-                "actor_id": actor_id,
-                "chat_type": chat_type,
-                "persona": persona,
-                "user_email": user_email,
-            }).encode("utf-8"),
+            payload=json.dumps(agent_payload).encode("utf-8"),
             contentType="application/json",
             accept="application/json",
         )
