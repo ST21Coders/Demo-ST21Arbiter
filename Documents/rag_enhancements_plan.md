@@ -109,13 +109,15 @@ Because points 3–8 are labeled "future requirements," the deliverable is split
 - **Vector targets:** one env-scoped bucket per modality — `dev-<project>-docs-vectors` / `dev-<project>-analytics-vectors` — with a per-group/dataset index the worker creates on first run. **Glue** catalog for Structured Analytics stays with the existing `/data-grouping/materialize` flow; this route adds the semantic/vector half + job tracking. **BM25 sidecar deferred** — the HR agent's cold-start rebuild already works; a query agent over user corpora is Phase 3/4.
 - **Deploy:** `sam` needs Docker running; `deploy.sh` builds the image + auto-manages its ECR repo. Live run not exercised this session (no Docker/AWS build).
 
-### Phase 3 — UI Group Contents + processing paths (points 3, 4, 6, 6-bis)
-- Add `Unstructured+Vector` and `Structured+Vector+Glue` to `GROUP_FILE_MIX_OPTIONS` ([DataPipeline.jsx:28](../ui/src/pages/DataPipeline.jsx#L28)).
-- Add `PATH_DEFS` entries: **DocuSearch** ("Use this for semantic search from s3 vector") and rename **Structured Exports → Structured Analytics** ("Use this for Semantic + Analytics search from s3 vector"). **Leave Policy Documents (KB) untouched** (6-bis). Route paths off the group-content choice, not just the `.csv` extension.
+### Phase 3 — UI Group Contents + processing paths (points 3, 4, 6, 6-bis) — ✅ IMPLEMENTED
+- Added `Unstructured+Vector` (→ `docusearch`) and `Structured+Vector+Glue` (→ `structured_analytics`) to `GROUP_FILE_MIX_OPTIONS`; new `VECTOR_INGEST_JOB_TYPE`/`ingestJobTypeForMix()` map ([DataPipeline.jsx](../ui/src/pages/DataPipeline.jsx)).
+- Added `PATH_DEFS` cards: **DocuSearch** (subtitle "…Use this for semantic search from s3 vector") + new `STEP_DEFS_VECTOR`; renamed **Structured Exports → Structured Analytics** (subtitle "…Use this for Semantic + Analytics search from s3 vector") + new `STEP_DEFS_ANALYTICS`. **Policy Documents card untouched** (6-bis). Upload `accept` now includes `.xlsx/.xls/.parquet`.
 
-### Phase 4 — UI bulk upload + submit-as-job + Jobs subpage (points 5, 6, 7, 8)
-- Reuse `presignUpload`/`uploadToPresignedUrl` (point 8); add a **200-file cap** + batched concurrency; upload into the group prefix `projects/<projectId>/<groupName>/`.
-- Submit → `POST /data-pipeline/ingest`; poll job; toast + surface on the new **Data Jobs** subpage (point 7). Re-ingest = same endpoint (deterministic chunk keys already idempotent — 5e/6f).
+### Phase 4 — UI bulk upload + submit-as-job + Jobs subpage (points 5, 6, 7, 8) — ✅ IMPLEMENTED
+- Reuses `presignUpload`/`uploadToPresignedUrl` (point 8); added a **200-file cap** (`MAX_UPLOAD_FILES`) with an inline notice in `UploadDropzone`.
+- New **"Submit vector ingestion"** action (shown for vector-mix groups) → `triggerDataIngest` → `POST /data-pipeline/ingest`; status banner links to the Jobs page; button re-labels to **"Re-ingest to S3 Vectors"** (5e/6f). Vector-mix publishes pass `syncKnowledgeBase:false` (they index into S3 Vectors, not the KB). Ingest reads exactly what publish wrote — both use the same `_s3_segment(projectId)/_s3_segment(groupName)` → `projects/<projectId>/<group>/` prefix.
+- New **Data Jobs** subpage ([DataJobs.jsx](../ui/src/pages/DataJobs.jsx), point 7) polls `GET /data-jobs` (self-scheduling 5s active / 30s idle). API helpers `triggerDataIngest`/`listDataJobs`/`getDataJob` in [useApi.js](../ui/src/hooks/useApi.js) route via the Function URL (no API GW resource wiring). Wired: route [App.jsx](../ui/src/App.jsx), RBAC `'/data-jobs':'pipeline'` [PersonaContext.jsx](../ui/src/contexts/PersonaContext.jsx), nav+title [Sidebar.jsx](../ui/src/components/Sidebar.jsx).
+- **Verified:** `npm run build` clean (2532 modules); vitest 229/236 (the 7 fails are a pre-existing broken `useApi.bulkDelete` fetch-mock, reproduced on committed `useApi.js`). Live run needs the Phase 2 backend deployed (`GET /data-jobs` returns data only after `13-data-ingest` is up).
 
 ---
 

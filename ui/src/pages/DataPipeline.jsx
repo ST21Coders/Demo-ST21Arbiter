@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   CheckCircle, Clock, RefreshCw, Database, FileText, Server, Loader2, Activity,
-  Upload, AlertTriangle,
+  Upload, AlertTriangle, Boxes, Sparkles,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import {
   getUploadStatus,
   listDataGroupingProjects,
   listScanRuns,
   materializeDataGroupingProject,
   presignUpload,
+  triggerDataIngest,
   uploadToPresignedUrl,
 } from '../hooks/useApi'
 import { formatDistanceToNow } from 'date-fns'
@@ -30,7 +32,25 @@ const GROUP_FILE_MIX_OPTIONS = [
   { id: 'text_only', label: 'Text only', description: 'Notes, docs, facts' },
   { id: 'csv_text', label: 'CSV + text', description: 'Tables plus context' },
   { id: 'csv_text_media', label: 'CSV + text + images/docs', description: 'Tables plus evidence files' },
+  { id: 'unstructured_vector', label: 'Unstructured + Vector', description: 'pdf/docx/txt/json → S3 Vectors (DocuSearch)' },
+  { id: 'structured_vector_glue', label: 'Structured + Vector + Glue', description: 'csv/excel/parquet → Glue + S3 Vectors (Structured Analytics)' },
 ]
+
+// Group-content mixes that feed the async S3-Vectors ingest worker (Phase 2
+// backend). Each maps to a POST /data-pipeline/ingest jobType. Groups NOT in
+// this map keep the existing KB/Glue publish behavior untouched (incl. Policy
+// Documents — point 6-bis).
+const VECTOR_INGEST_JOB_TYPE = {
+  unstructured_vector: 'docusearch',
+  structured_vector_glue: 'structured_analytics',
+}
+
+function ingestJobTypeForMix(fileMix) {
+  return VECTOR_INGEST_JOB_TYPE[fileMix] || null
+}
+
+// Max files accepted per group upload batch (points 5b / 6c).
+const MAX_UPLOAD_FILES = 200
 const GROUP_KEY_FILE_SAMPLE_LIMIT = 40
 const GROUP_KEY_CHANGE_SAMPLE_LIMIT = 12
 
@@ -450,6 +470,23 @@ const STEP_DEFS_STRUCTURED = [
   { key: 'catalog',   label: 'Catalog',   desc: 'Glue crawler refresh started — Athena-queryable'    },
 ]
 
+// DocuSearch (Unstructured + Vector): files published into the group folder →
+// async data-ingest worker chunks/embeds (Titan) → S3 Vectors. No KB, no scan.
+const STEP_DEFS_VECTOR = [
+  { key: 'raw',    label: 'Upload',    desc: 'Files uploaded + published into the group folder' },
+  { key: 'embed',  label: 'Embed',     desc: 'Worker chunks text and embeds with Titan v2'      },
+  { key: 'vector', label: 'S3 Vectors',desc: 'Indexed to the docs-vectors bucket — semantic search ready' },
+]
+
+// Structured Analytics (Structured + Vector + Glue): Glue catalog (via publish)
+// for Athena SQL, plus the async worker embeds row facts → S3 Vectors.
+const STEP_DEFS_ANALYTICS = [
+  { key: 'raw',     label: 'Upload',     desc: 'Tabular files uploaded + published into the group folder' },
+  { key: 'catalog', label: 'Glue',       desc: 'Glue catalog refreshed — Athena SQL queryable'            },
+  { key: 'embed',   label: 'Embed',      desc: 'Worker serializes rows to facts and embeds with Titan v2' },
+  { key: 'vector',  label: 'S3 Vectors', desc: 'Indexed to the analytics-vectors bucket — semantic search ready' },
+]
+
 function isStructuredUpload(u) {
   return (u.filename || '').toLowerCase().endsWith('.csv')
 }
@@ -639,12 +676,20 @@ function UploadDropzone({
   groupOptions,
 }) {
   const [dragging, setDragging] = useState(false)
+  const [capNotice, setCapNotice] = useState('')
   const inputRef = useRef(null)
   const canBrowse = !disabled
 
   function handleFiles(files) {
     if (!files || !files.length) return
-    Array.from(files).forEach((f, index) => onFile(f, { resetNewGroup: creatingNewGroup && index === 0 }))
+    let list = Array.from(files)
+    if (list.length > MAX_UPLOAD_FILES) {
+      setCapNotice(`Selected ${list.length} files; only the first ${MAX_UPLOAD_FILES} will be uploaded (per-batch limit).`)
+      list = list.slice(0, MAX_UPLOAD_FILES)
+    } else {
+      setCapNotice('')
+    }
+    list.forEach((f, index) => onFile(f, { resetNewGroup: creatingNewGroup && index === 0 }))
   }
 
   return (
@@ -739,13 +784,19 @@ function UploadDropzone({
             ? GROUP_FILE_MIX_OPTIONS.find(option => option.id === groupFileMix)?.description
             : 'Choose the group content mix before selecting files'}
         </p>
+        <p className="text-[10px] text-slate-400">Up to {MAX_UPLOAD_FILES} files per batch.</p>
       </div>
+      {capNotice && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-700">
+          <AlertTriangle size={12} /> {capNotice}
+        </p>
+      )}
       <input
         ref={inputRef}
         type="file"
         multiple
         disabled={disabled}
-        accept=".md,.pdf,.docx,.json,.txt,.csv,.png,.jpg,.jpeg,.webp,.tif,.tiff"
+        accept=".md,.pdf,.docx,.json,.txt,.csv,.xlsx,.xls,.parquet,.png,.jpg,.jpeg,.webp,.tif,.tiff"
         className="hidden"
         onChange={e => handleFiles(e.target.files)}
       />
@@ -904,16 +955,24 @@ const PATH_DEFS = [
     accent: { bg: '#eef2ff', icon: '#4f46e5', border: '#c7d2fe' },
   },
   {
+    id: 'docusearch',
+    title: 'DocuSearch',
+    subtitle: 'pdf/docx/txt/json → S3 Vectors · Use this for semantic search from s3 vector',
+    steps: STEP_DEFS_VECTOR,
+    Icon: Boxes,
+    accent: { bg: '#f5f3ff', icon: '#7c3aed', border: '#ddd6fe' },
+  },
+  {
     id: 'structured',
-    title: 'Structured Exports',
-    subtitle: '.csv → Glue / Athena catalog',
-    steps: STEP_DEFS_STRUCTURED,
+    title: 'Structured Analytics',
+    subtitle: 'csv/excel/parquet → Glue + S3 Vectors · Use this for Semantic + Analytics search from s3 vector',
+    steps: STEP_DEFS_ANALYTICS,
     Icon: Database,
     accent: { bg: '#fff7ed', icon: '#ea580c', border: '#fed7aa' },
   },
 ]
 
-const STEP_ICON = { raw: Upload, processed: Server, kb: Database, catalog: Database, scan: CheckCircle }
+const STEP_ICON = { raw: Upload, processed: Server, kb: Database, catalog: Database, scan: CheckCircle, embed: Sparkles, vector: Boxes }
 
 function PathCard({ path }) {
   const HeaderIcon = path.Icon
@@ -982,6 +1041,9 @@ export default function DataPipeline() {
   const [groupFileMix, setGroupFileMix] = useState('')
   const [groupPublishStatus, setGroupPublishStatus] = useState({})
   const groupPublishInFlightRef = useRef(new Set())
+  // Async S3-Vectors ingestion status per group (DocuSearch / Structured Analytics).
+  const [ingestStatus, setIngestStatus] = useState({})
+  const ingestInFlightRef = useRef(new Set())
 
   // Per-upload state machine. We update via a single setState that maps over
   // the existing array, so concurrent polls + new uploads don't race each other.
@@ -1276,6 +1338,9 @@ export default function DataPipeline() {
           files,
         }],
         move: false,
+        // Vector-ingest groups (DocuSearch / Structured Analytics) index into S3
+        // Vectors via the async worker, not the Bedrock KB — skip KB sync for them.
+        syncKnowledgeBase: !ingestJobTypeForMix(groupFileMix),
       })
       const materializedGroup = (result?.metadata?.groups || []).find(group => group?.name === groupName)
       const factSources = materializedGroup?.structuredFacts?.counts?.factSources || 0
@@ -1334,6 +1399,52 @@ export default function DataPipeline() {
           ? { ...upload, groupMaterializing: false }
           : upload
       )))
+    }
+  }
+
+  // Submit an async S3-Vectors ingestion job for a vector-mix group (DocuSearch
+  // or Structured Analytics). The group's files must already be published into
+  // projects/<projectId>/<group>/ — the worker reads that prefix. Re-clicking
+  // re-ingests (idempotent: deterministic chunk keys re-key in place).
+  async function submitIngestion(groupName) {
+    const projectTarget = currentProjectTarget()
+    const jobType = ingestJobTypeForMix(groupFileMix)
+    if (!projectTarget || !groupName || !jobType) return
+    const publishKey = projectKey(projectTarget.id, groupName)
+    if (ingestInFlightRef.current.has(publishKey)) return
+    ingestInFlightRef.current.add(publishKey)
+    setIngestStatus(prev => ({
+      ...prev,
+      [publishKey]: {
+        projectName: projectTarget.name, groupName, jobType,
+        state: 'submitting', message: `Submitting ${jobType} ingestion for ${groupName}…`,
+      },
+    }))
+    try {
+      const res = await triggerDataIngest({
+        jobType,
+        projectId: projectTarget.id,
+        projectName: projectTarget.name,
+        groupName,
+      })
+      setIngestStatus(prev => ({
+        ...prev,
+        [publishKey]: {
+          projectName: projectTarget.name, groupName, jobType,
+          state: 'submitted', jobId: res?.job_id, vectorIndex: res?.vector_index,
+          message: `Ingestion job ${res?.job_id || ''} queued → S3 Vectors index “${res?.vector_index || ''}”. Track it on the Data Jobs page.`,
+        },
+      }))
+    } catch (err) {
+      setIngestStatus(prev => ({
+        ...prev,
+        [publishKey]: {
+          projectName: projectTarget.name, groupName, jobType,
+          state: 'failed', message: err.message || 'ingestion submit failed',
+        },
+      }))
+    } finally {
+      ingestInFlightRef.current.delete(publishKey)
     }
   }
 
@@ -1422,13 +1533,21 @@ export default function DataPipeline() {
     currentGroupReadyUploads.length === currentGroupUploads.length
     && !currentGroupFailedUploads.length
   )
+  // Vector-ingest (DocuSearch / Structured Analytics) submit gating.
+  const currentIngestJobType = ingestJobTypeForMix(groupFileMix)
+  const currentIngestStatus = currentPublishKey ? ingestStatus[currentPublishKey] : null
+  const currentGroupPublished = ['published', 'needs_attention'].includes(currentPublishStatus?.state)
+  const currentExistingGroupSelected = !creatingNewGroup && Boolean(selectedGroupId)
+  const canSubmitIngest = Boolean(currentSelectedGroupName)
+    && Boolean(currentIngestJobType)
+    && (currentGroupPublished || currentExistingGroupSelected)
 
   return (
     <div className="p-6 space-y-6 page-container">
       <div>
         <h1 className="text-lg font-bold text-slate-900 tracking-tight">Data Pipeline</h1>
         <p className="text-xs text-slate-500 mt-0.5">
-          Policy docs (.pdf/.docx/.txt/.md/.json) → KB ingestion → scan. Structured exports (.csv) → Glue catalog (then Run AI Scan). Processed in ~30-60s.
+          Policy docs → KB ingestion → scan. DocuSearch (pdf/docx/txt/json) + Structured Analytics (csv/excel/parquet) → S3 Vectors semantic search (track jobs on <Link to="/data-jobs" className="font-semibold text-indigo-600 hover:underline">Data Jobs</Link>). Processed in ~30-60s.
         </p>
       </div>
 
@@ -1469,19 +1588,39 @@ export default function DataPipeline() {
                 </span>
               ) : null}
             </span>
-            <button
-              type="button"
-              onClick={() => materializeGroup(currentSelectedGroupName)}
-              disabled={!currentSelectedGroupName || !currentLiveBatchReady || currentPublishStatus?.state === 'checking' || currentPublishStatus?.state === 'publishing'}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-            >
-              {currentPublishStatus?.state === 'checking' || currentPublishStatus?.state === 'publishing' ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <Upload size={13} />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => materializeGroup(currentSelectedGroupName)}
+                disabled={!currentSelectedGroupName || !currentLiveBatchReady || currentPublishStatus?.state === 'checking' || currentPublishStatus?.state === 'publishing'}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                {currentPublishStatus?.state === 'checking' || currentPublishStatus?.state === 'publishing' ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Upload size={13} />
+                )}
+                Publish selected group
+              </button>
+              {currentIngestJobType && (
+                <button
+                  type="button"
+                  onClick={() => submitIngestion(currentSelectedGroupName)}
+                  disabled={!canSubmitIngest || currentIngestStatus?.state === 'submitting'}
+                  title={canSubmitIngest
+                    ? 'Chunk, embed, and index this group into S3 Vectors'
+                    : 'Publish the group first, then submit vector ingestion'}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 hover:bg-violet-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  {currentIngestStatus?.state === 'submitting' ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Boxes size={13} />
+                  )}
+                  {currentIngestStatus?.state === 'submitted' ? 'Re-ingest to S3 Vectors' : 'Submit vector ingestion'}
+                </button>
               )}
-              Publish selected group
-            </button>
+            </div>
           </div>
         ) : (
           <span>
@@ -1515,6 +1654,39 @@ export default function DataPipeline() {
                 <span className="font-semibold">{status.projectName ? `${status.projectName} / ` : ''}{status.groupName || statusKey}</span>
                 <span>{status.message}</span>
                 {status.kbSyncMessage ? <span>KB sync {status.kbSyncMessage}</span> : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {Object.keys(ingestStatus).length > 0 && (
+        <div className="space-y-2">
+          {Object.entries(ingestStatus).map(([statusKey, status]) => (
+            <div
+              key={statusKey}
+              className={`rounded-xl border px-4 py-3 text-xs ${
+                status.state === 'failed'
+                  ? 'border-red-200 bg-red-50 text-red-700'
+                : status.state === 'submitted'
+                  ? 'border-violet-200 bg-violet-50 text-violet-800'
+                  : 'border-slate-200 bg-slate-50 text-slate-600'
+              }`}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                {status.state === 'submitting' ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : status.state === 'failed' ? (
+                  <AlertTriangle size={13} />
+                ) : (
+                  <Boxes size={13} />
+                )}
+                <span className="font-semibold">{status.projectName ? `${status.projectName} / ` : ''}{status.groupName || statusKey}</span>
+                <span>{status.message}</span>
+                {status.state === 'submitted' && (
+                  <Link to="/data-jobs" className="font-semibold text-violet-700 underline underline-offset-2 hover:text-violet-900">
+                    View Data Jobs →
+                  </Link>
+                )}
               </div>
             </div>
           ))}

@@ -908,6 +908,57 @@ export async function listDataGroupingProjects() {
   return apiFetch('/data-grouping/projects')
 }
 
+// ── Data-ingest jobs (async S3-Vectors worker; Phase 2 backend) ──────────────
+// DocuSearch (unstructured) + Structured Analytics (tabular) submit an async
+// ingest job that chunks/embeds a published group folder into S3 Vectors. These
+// route through the Lambda Function URL (CHAT_URL) like the other data-grouping
+// ops so no API Gateway resource wiring is needed. The api_handler pre-writes a
+// QUEUED data-jobs row and fire-and-forget invokes the worker, which flips the
+// row RUNNING → SUCCEEDED/FAILED. jobType: 'docusearch' | 'structured_analytics'.
+export async function triggerDataIngest({ jobType, projectId, projectName, groupName, datasetId, grain }) {
+  if (USE_MOCK) {
+    await sleep(400)
+    return { job_id: `job-mock-${Date.now()}`, status: 'QUEUED', vector_index: `${projectId || 'p'}-${groupName || 'g'}`.toLowerCase() }
+  }
+  return functionUrlFetch('/data-pipeline/ingest', {
+    method: 'POST',
+    body: JSON.stringify({ jobType, projectId, projectName, groupName, datasetId, grain }),
+  })
+}
+
+// List recent data-ingest jobs (newest first). Optional projectId scopes via GSI.
+export async function listDataJobs(projectId) {
+  if (USE_MOCK) {
+    await sleep(150)
+    const now = Date.now()
+    return {
+      data_jobs: [
+        {
+          job_id: 'job-mock-docusearch', created_at: new Date(now - 120_000).toISOString(),
+          status: 'SUCCEEDED', job_type: 'docusearch', project_id: 'discovery',
+          group_name: 'Vendor_Policies', vector_index: 'discovery-vendor-policies',
+          result: { files: 12, documents: 12, chunks: 96, vectors: 96 },
+        },
+        {
+          job_id: 'job-mock-structured', created_at: new Date(now - 45_000).toISOString(),
+          status: 'RUNNING', job_type: 'structured_analytics', project_id: 'discovery',
+          group_name: 'Sales_Q2', vector_index: 'discovery-sales-q2',
+        },
+      ],
+    }
+  }
+  const qs = projectId ? `?${new URLSearchParams({ projectId }).toString()}` : ''
+  return functionUrlFetch(`/data-jobs${qs}`)
+}
+
+export async function getDataJob(jobId) {
+  if (USE_MOCK) {
+    await sleep(150)
+    return { job_id: jobId, status: 'SUCCEEDED', job_type: 'docusearch', result: { files: 3, vectors: 24 } }
+  }
+  return functionUrlFetch(`/data-jobs/${encodeURIComponent(jobId)}`)
+}
+
 export async function startDataGroupingCrawler() {
   if (USE_MOCK) {
     await sleep(300)
