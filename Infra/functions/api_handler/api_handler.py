@@ -469,7 +469,18 @@ def _handle_chat(event):
             if _table:
                 route_glue_db = GLUE_DATABASE
                 route_glue_table = _table
-    runtime_arn = SPECIALIST_RUNTIME_ARNS.get(target) or MASTER_AGENT_RUNTIME_ARN
+    # Resolve the target to a runtime ARN. Distinguish two blank-ARN cases:
+    #   • unknown target → fall back to the master orchestrator (backward compat).
+    #   • known specialist whose ARN is blank → fail loudly. A 06-api SAM redeploy
+    #     blanks this Lambda's *_RUNTIME_ARN env; silently answering as the master
+    #     then reads as "the <target> agent is broken / not responding". Surface it
+    #     so the operator re-runs deploy_agents.py instead of chasing a phantom bug.
+    runtime_arn = SPECIALIST_RUNTIME_ARNS.get(target)
+    if runtime_arn is None:                                   # unknown target
+        runtime_arn = MASTER_AGENT_RUNTIME_ARN
+    elif not runtime_arn and target != "master":             # known specialist, ARN not patched
+        return _err(503, f"Runtime ARN for '{target}' not configured — re-run "
+                         f"scripts/deploy_agents.py to re-patch the specialist ARNs")
     if not runtime_arn:
         return _err(503, f"Runtime ARN for '{target}' not configured (run scripts/deploy_agents.py)")
 
