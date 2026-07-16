@@ -23,6 +23,7 @@ import json
 import logging
 import os
 import re
+from datetime import timedelta
 from typing import Any
 
 import boto3
@@ -31,6 +32,7 @@ from mcp import StdioServerParameters, stdio_client
 from strands import Agent
 from strands.models.bedrock import BedrockModel
 from strands.tools.mcp import MCPClient
+from strands.types.exceptions import MCPClientInitializationError
 
 from _shared.token_usage import record_from_agent_result
 
@@ -42,6 +44,15 @@ MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-2-lite-v1:0")
 JIRA_SECRET_ID = os.environ.get("JIRA_SECRET_ID", "")
 GUARDRAIL_ID = os.environ.get("GUARDRAIL_ID")
 GUARDRAIL_VERSION = os.environ.get("GUARDRAIL_VERSION", "DRAFT")
+
+# Bound the mcp-atlassian stdio subprocess. The runtime is VPC-attached (PrivateSubnet2
+# → NAT → *.atlassian.net); if that egress is blocked or the MCP handshake stalls, an
+# unbounded start()/list_tools would hang until the AgentCore runtime's own timeout,
+# which looks like "not responding". startup_timeout caps the subprocess spawn + MCP
+# init; MCP_TOOL_TIMEOUT caps a single deterministic Jira/Confluence tool call. Both are
+# env-overridable so ops can tune without a code change (strands MCPClient default is 30s).
+MCP_STARTUP_TIMEOUT = int(os.environ.get("MCP_STARTUP_TIMEOUT", "25"))
+MCP_TOOL_TIMEOUT = timedelta(seconds=int(os.environ.get("MCP_TOOL_TIMEOUT_SECONDS", "45")))
 
 # Tier-0 least-privilege scoping for the mcp-atlassian server (set via runtime
 # env in deploy_agents.py so they're declarative). Passed straight through to
@@ -136,7 +147,7 @@ def _build_mcp_client(creds: dict[str, str]) -> MCPClient:
         command="mcp-atlassian",
         args=["--transport", "stdio"],
         env=subprocess_env,
-    )))
+    )), startup_timeout=MCP_STARTUP_TIMEOUT)
 
 
 def _model_kwargs() -> dict[str, Any]:
@@ -193,6 +204,7 @@ def _create_issue(payload: dict[str, Any], creds: dict[str, str]) -> dict[str, A
                     "issue_type": issue_type,
                     "description": description,
                 },
+                read_timeout_seconds=MCP_TOOL_TIMEOUT,
             )
     except Exception as e:
         log.exception("JIRA create_issue failed")
@@ -235,6 +247,7 @@ def _get_transitions(jira_mcp, tools, issue_key: str) -> list[dict[str, str]]:
         result = jira_mcp.call_tool_sync(
             tool_use_id="arbiter-get-transitions", name=get_tool,
             arguments={"issue_key": issue_key},
+            read_timeout_seconds=MCP_TOOL_TIMEOUT,
         )
     except Exception:
         log.exception("get_transitions call failed for %s", issue_key)
@@ -263,7 +276,8 @@ def _post_comment(jira_mcp, tools, issue_key: str, body: str) -> tuple[bool, str
     comment_tool = _resolve_tool(tools, "comment", "add", default="jira_add_comment")
     result = jira_mcp.call_tool_sync(
         tool_use_id="arbiter-comment", name=comment_tool,
-        arguments={"issue_key": issue_key, "body": body})
+        arguments={"issue_key": issue_key, "body": body},
+        read_timeout_seconds=MCP_TOOL_TIMEOUT)
     if result.get("status") == "error":
         return False, _tool_result_text(result) or "JIRA comment tool returned an error"
     return True, _tool_result_text(result)
@@ -303,7 +317,8 @@ def _transition_issue(payload: dict[str, Any], creds: dict[str, str]) -> dict[st
             trans_tool = _resolve_tool(tools, "transition", "issue", default="jira_transition_issue")
             result = jira_mcp.call_tool_sync(
                 tool_use_id="arbiter-transition", name=trans_tool,
-                arguments={"issue_key": issue_key, "transition_id": chosen["id"]})
+                arguments={"issue_key": issue_key, "transition_id": chosen["id"]},
+                read_timeout_seconds=MCP_TOOL_TIMEOUT)
             if result.get("status") == "error":
                 return {"error": _tool_result_text(result) or "JIRA transition tool returned an error"}
             # Comment is posted as a SEPARATE call (the transition and comment
@@ -381,6 +396,15 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
                 tools=tools,
             )
             agent_result = agent(prompt)
+    except MCPClientInitializationError as e:
+        # Startup/handshake exceeded MCP_STARTUP_TIMEOUT — almost always VPC egress to
+        # *.atlassian.net being blocked, or the mcp-atlassian entrypoint stalling. Surface
+        # a fast, actionable message instead of letting the runtime time out silently.
+        log.exception("JIRA MCP init/timeout")
+        return {"result": f"(JIRA timeout/connectivity: could not initialize the Atlassian "
+                          f"MCP server within {MCP_STARTUP_TIMEOUT}s — check VPC egress to "
+                          f"*.atlassian.net and the API token. {e})",
+                "error": "mcp_init_timeout"}
     except Exception as e:
         log.exception("JIRA MCP invocation failed")
         return {"result": f"(JIRA error: {type(e).__name__}: {e})"}
