@@ -1,7 +1,6 @@
 """ARBITER HR Specialist — runs on Bedrock AgentCore Runtime.
 
-A semantic RAG agent over the Kai Components HR policy corpus (a fictional Hawaiian
-electronics-components retailer): leave, benefits, compensation, conduct, payroll, perks.
+A semantic HR Agent answers about leave, benefits, compensation, conduct, payroll, perks.
 
 Unlike the other specialists (which use a Strands tool-loop), the HR agent answers via the
 shared arbiter_rag **streaming Converse** path — `retrieval.answer(..., stream=on_delta)`:
@@ -26,6 +25,9 @@ Environment variables:
   HR_VECTOR_INDEX      S3 Vectors index name (default hr-policies)
   RETRIEVAL_TOP_K      passages to retrieve (default 4)
   RERANK_ENABLED       "true" to enable Bedrock rerank (needs bedrock:Rerank IAM; default off)
+  HYBRID_ENABLED       "true" (default) to fuse S3 Vectors semantic + BM25 lexical via RRF
+  BM25_TOP_K           BM25 candidates fused with the vector hits (default 10)
+  RRF_K                Reciprocal Rank Fusion constant (default 60)
   GUARDRAIL_ID / GUARDRAIL_VERSION   optional Bedrock guardrail (applied to input + output)
 """
 from __future__ import annotations
@@ -38,7 +40,7 @@ from typing import Any
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 from _shared.token_usage import record_usage
-from arbiter_rag import retrieval
+from arbiter_rag import lexical, retrieval, vectors
 from arbiter_rag.config import Settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -52,6 +54,14 @@ HR_VECTOR_BUCKET = os.environ.get("HR_VECTOR_BUCKET", "")
 HR_VECTOR_INDEX = os.environ.get("HR_VECTOR_INDEX", "hr-policies")
 RETRIEVAL_TOP_K = int(os.environ.get("RETRIEVAL_TOP_K", "4"))
 RERANK_ENABLED = os.environ.get("RERANK_ENABLED", "false").lower() == "true"
+# Hybrid (semantic + BM25 lexical) retrieval — requirement 1c/1d. On by default; the BM25
+# index is rebuilt once per container from the same S3 Vectors chunk texts (no extra infra).
+HYBRID_ENABLED = os.environ.get("HYBRID_ENABLED", "true").lower() == "true"
+BM25_TOP_K = int(os.environ.get("BM25_TOP_K", "10"))
+RRF_K = int(os.environ.get("RRF_K", "60"))
+# Above this many vectors, skip the cold-start BM25 rebuild and serve vector-only — bounds
+# first-query latency + memory when this agent is retargeted at a large DocuSearch index.
+BM25_MAX_RECORDS = int(os.environ.get("BM25_MAX_RECORDS", "20000"))
 GUARDRAIL_ID = os.environ.get("GUARDRAIL_ID")
 GUARDRAIL_VERSION = os.environ.get("GUARDRAIL_VERSION", "DRAFT")
 
@@ -63,6 +73,14 @@ uses a passage, cite its number in square brackets, e.g. [1]. Quote the specific
 rule. If the passages do not contain the answer, say so plainly and suggest which policy or
 HR contact to check — never invent a number, date, or entitlement. Be concise. These
 policies are fictional sample data for a demo."""
+
+# Used when the agent is retargeted per-request at a user-selected DocuSearch group instead of
+# the built-in HR corpus — same grounded/cited answer style, no Kai-Components HR framing.
+NEUTRAL_HR_SYSTEM = """You are a document analyst for ARBITER answering questions about a
+user-selected document group. Answer ONLY from the numbered context passages provided. After
+each sentence that uses a passage, cite its number in square brackets, e.g. [1]. Quote the
+specific figure or wording. If the passages do not contain the answer, say so plainly — never
+invent a fact, number, or date. Be concise."""
 
 app = BedrockAgentCoreApp()
 
@@ -110,6 +128,28 @@ def _settings() -> Settings:
     )
 
 
+@lru_cache(maxsize=8)
+def _bm25(bucket: str, index: str) -> Any:
+    """Build a BM25 lexical index for (bucket, index), cached per distinct index so one warm
+    container can serve many DocuSearch groups.
+
+    Requirement 1c/1d: keyword search that merges with semantic hits. S3 Vectors has no native
+    lexical index, so we scan the same vectors (chunk_text metadata) and build an in-memory BM25
+    index — no extra store, consistent with what was ingested. Returns None past BM25_MAX_RECORDS
+    (→ vector-only) to bound cold-start latency/memory on large corpora.
+    """
+    vx = vectors.make_client(REGION)
+    records = []
+    for rec in vectors.iter_all_records(vx, bucket, index):
+        records.append(rec)
+        if len(records) > BM25_MAX_RECORDS:
+            log.info("HR specialist: %s/%s over BM25 cap (%d); serving vector-only",
+                     bucket, index, BM25_MAX_RECORDS)
+            return None
+    log.info("HR specialist: built BM25 index over %d vectors for %s/%s", len(records), bucket, index)
+    return lexical.build_index(records)
+
+
 def _format_sources(citations: list[dict[str, Any]]) -> str:
     """Compact source list appended under the (already inline-cited) answer text."""
     parts = []
@@ -126,8 +166,15 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     prompt = payload.get("prompt") or payload.get("input") or ""
     if not prompt:
         return {"error": "Missing 'prompt'"}
-    if not HR_VECTOR_BUCKET:
-        return {"result": "(HR_VECTOR_BUCKET not configured)"}
+    # Per-request target: api_handler forwards vector_bucket/index for a selected DocuSearch
+    # group; absent → the built-in HR corpus. One warm container serves any group's index.
+    req_bucket = (payload.get("vector_bucket") or "").strip()
+    req_index = (payload.get("vector_index") or "").strip()
+    custom = bool(req_bucket or req_index)
+    vector_bucket = req_bucket or HR_VECTOR_BUCKET
+    vector_index = req_index or HR_VECTOR_INDEX
+    if not vector_bucket:
+        return {"result": "(HR vector bucket not configured)"}
     # Attribution forwarded by master_orchestrator/_invoke_runtime. Defaults keep direct
     # invocations (curl, tests) from crashing the record path.
     actor_id = (payload.get("actor_id") or "anonymous")[:128]
@@ -135,7 +182,8 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     session_id = (payload.get("session_id") or "adhoc")[:128]
     chat_type = (payload.get("chat_type") or "analyst")[:16]
     user_email = (payload.get("user_email") or "")[:200]
-    log.info("HR specialist: persona=%s session=%s prompt=%s", persona, session_id, prompt[:200])
+    log.info("HR specialist: persona=%s session=%s target=%s/%s prompt=%s",
+             persona, session_id, vector_bucket, vector_index, prompt[:200])
 
     S = _settings()
     # Feature (a): collect streamed text deltas as the answer forms. In the runtime we
@@ -145,10 +193,20 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     def on_delta(piece: str) -> None:
         streamed["chars"] += len(piece)
 
+    # Build the BM25 lexical index for hybrid retrieval (falls back to vector-only if the
+    # scan fails, so a lexical hiccup never takes the chat down).
+    lex = None
+    if HYBRID_ENABLED:
+        try:
+            lex = _bm25(vector_bucket, vector_index)
+        except Exception:  # noqa: BLE001
+            log.exception("BM25 build failed; falling back to vector-only retrieval")
+
     try:
         ans = retrieval.answer(
-            prompt, HR_VECTOR_INDEX, S, bucket=HR_VECTOR_BUCKET,
-            system=HR_SYSTEM, stream=on_delta,
+            prompt, vector_index, S, bucket=vector_bucket,
+            system=NEUTRAL_HR_SYSTEM if custom else HR_SYSTEM, stream=on_delta,
+            lexical=lex, rrf_k=RRF_K, lexical_top_k=BM25_TOP_K,
         )
     except Exception as e:  # noqa: BLE001 — never crash the chat
         log.exception("HR answer failed")

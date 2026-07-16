@@ -17,7 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 # Ingest-time only (loaders/serialization/HR-corpus generation). The query path is
 # boto3-only. pypdf reads the HR policy PDFs; reportlab generates them (data_generators/).
-data = ["pandas>=2.0", "pyarrow>=14.0", "openpyxl>=3.1", "pypdf>=4.0", "reportlab>=4.0"]
+data = ["pandas>=2.0", "pyarrow>=14.0", "openpyxl>=3.1", "pypdf>=4.0", "python-docx>=1.1", "reportlab>=4.0"]
 notebook = ["jupyter>=1.0", "ipykernel>=6.0", "matplotlib>=3.7", "pandas>=2.0", "nbconvert>=7.0"]
 dev = ["ruff>=0.6", "pytest>=8.0"]
 

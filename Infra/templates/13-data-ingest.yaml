@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ARBITER data-ingest worker — async S3 folder -> chunk/serialize -> embed (Titan) ->
+  S3 Vectors, backing the DocuSearch (unstructured) + Structured Analytics (tabular) UI
+  paths. Container-image Lambda (heavy ingest deps + the arbiter_rag library). api_handler
+  pre-writes a QUEUED data-jobs row and async-invokes this worker (InvocationType=Event),
+  which flips the row RUNNING -> SUCCEEDED/FAILED — the same pattern as 11-scanner.
+
+  This stack owns the ONLY s3vectors WRITE grant in the account (PutVectors / CreateIndex /
+  CreateVectorBucket); the specialist agents remain query-only.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  ProjectName:
+    Type: String
+    Default: st21arbiter-poc
+
+Globals:
+  Function:
+    # No Runtime/Handler here — this stack's only function is PackageType: Image,
+    # for which SAM forbids Runtime/Handler/Layers (they come from the Dockerfile).
+    Tracing: Active
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        PROJECT_NAME: !Ref ProjectName
+
+Resources:
+  # ──────────────────────────── IAM role ───────────────────────
+  DataIngestRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-data-ingest-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: DataIngestLogs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+        # The ONLY s3vectors WRITE grant in the account. Scoped to the two worker-owned
+        # vector buckets (+ their indexes); the query-only agents never write.
+        - PolicyName: DataIngestS3Vectors
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3vectors:CreateVectorBucket
+                  - s3vectors:GetVectorBucket
+                  - s3vectors:CreateIndex
+                  - s3vectors:GetIndex
+                  - s3vectors:ListVectors
+                  - s3vectors:PutVectors
+                  - s3vectors:GetVectors
+                  - s3vectors:QueryVectors
+                  - s3vectors:DeleteVectors
+                Resource:
+                  - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-docs-vectors"
+                  - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-docs-vectors/index/*"
+                  - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-analytics-vectors"
+                  - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-analytics-vectors/index/*"
+        - PolicyName: DataIngestBedrockEmbed
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                Resource:
+                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v2:0"
+        # Read the uploaded source files from raw + processed (group folders).
+        - PolicyName: DataIngestSourceRead
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub
+                    - "arn:aws:s3:::${B}"
+                    - B: {Fn::ImportValue: !Sub "${Environment}-${ProjectName}-RawBucketName"}
+                  - !Sub
+                    - "arn:aws:s3:::${B}/*"
+                    - B: {Fn::ImportValue: !Sub "${Environment}-${ProjectName}-RawBucketName"}
+                  - !Sub
+                    - "arn:aws:s3:::${B}"
+                    - B: {Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketName"}
+                  - !Sub
+                    - "arn:aws:s3:::${B}/*"
+                    - B: {Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketName"}
+        - PolicyName: DataIngestJobsDdb
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                Resource:
+                  - !Sub
+                    - "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${T}"
+                    - T: {Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataJobsTableName"}
+                  - !Sub
+                    - "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${T}/index/*"
+                    - T: {Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataJobsTableName"}
+        - PolicyName: DataIngestKms
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey*
+                Resource:
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DynamoDBKeyArn"
+
+  # ──────────────────────────── Worker Lambda (image) ──────────
+  DataIngestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${Environment}-${ProjectName}-data-ingest"
+      PackageType: Image
+      Role: !GetAtt DataIngestRole.Arn
+      Timeout: 900
+      MemorySize: 2048
+      EphemeralStorage:
+        Size: 4096          # /tmp headroom for up to 200 downloaded source files
+      Environment:
+        Variables:
+          DATA_JOBS_TABLE:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataJobsTableName"
+          EMBEDDING_MODEL_ID: amazon.titan-embed-text-v2:0
+          EMBEDDING_DIM: "1024"
+          CHUNK_STRATEGY: semantic
+          CHUNKING_VERSION: v1
+          DISTANCE_METRIC: cosine
+      VpcConfig:
+        SubnetIds:
+          - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-PrivateSubnet1Id"
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-LambdaSGId"
+      Tags:
+        Name: !Sub "${Environment}-${ProjectName}-data-ingest"
+    Metadata:
+      Dockerfile: Infra/functions/data_ingest/Dockerfile
+      DockerContext: ../../          # repo root, relative to Infra/templates/
+      DockerTag: latest
+
+  DataIngestLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Environment}-${ProjectName}-data-ingest"
+      RetentionInDays: 30
+
+Outputs:
+  DataIngestLambdaArn:
+    Value: !GetAtt DataIngestFunction.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-DataIngestLambdaArn"
+  DataIngestLambdaName:
+    Value: !Ref DataIngestFunction
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-DataIngestLambdaName"

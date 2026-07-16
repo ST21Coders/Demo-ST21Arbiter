@@ -11,7 +11,58 @@ import CreateTicketButton from '../components/CreateTicketButton'
 import ClearChatsButton from '../components/ClearChatsButton'
 import { detectProblem } from '../detectProblem'
 import { CHAT_URL, AGENT_MODELS, modelLabel } from '../config'
-import { sendChat, createJiraTicket } from '../hooks/useApi'
+import { sendChat, createJiraTicket, listDataGroupingProjects } from '../hooks/useApi'
+
+// Optional data-group scope for the Analyst chat. When the analyst picks a group, we send
+// data_group + data_project_id and api_handler routes THIS question to that group's data
+// agent (sales/hr over the group's S3 Vectors index + Glue table) instead of the master
+// orchestrator — same backend routing MCPChat already uses. No group selected → master.
+const DEFAULT_DATA_PROJECT_ID = 'discovery'
+// Same localStorage key the Data Pipeline / MCPChat use — groups created during an upload
+// in THIS browser live here even before the remote /data-grouping/projects list catches up.
+const DATA_GROUPING_GROUPS_KEY = 'arbiter.dataGrouping.v2.savedGroups'
+
+function projectOptionsFromGroups(groups = []) {
+  const byId = new Map()
+  groups.forEach(g => {
+    const id = g.projectId || DEFAULT_DATA_PROJECT_ID
+    if (!byId.has(id)) byId.set(id, { id, name: g.projectName || id })
+  })
+  return [...byId.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)))
+}
+
+// Locally-saved groups (mirrors MCPChat's readLocalDataGroupingGroups so the Analyst page
+// shows the same options). Routing only needs groupName + projectId (both stored here).
+function readLocalDataGroupingGroups() {
+  if (typeof window === 'undefined') return []
+  try {
+    const saved = JSON.parse(localStorage.getItem(DATA_GROUPING_GROUPS_KEY) || '[]')
+    if (!Array.isArray(saved)) return []
+    return saved.filter(g => g?.name).map(g => {
+      const projectId = g.projectId || DEFAULT_DATA_PROJECT_ID
+      return {
+        id: `local::${projectId}::${g.id || g.name}`,
+        projectId,
+        projectName: g.projectName || 'Discovery',
+        groupName: g.name,
+        local: true,
+      }
+    })
+  } catch {
+    return []
+  }
+}
+
+// Merge remote + local groups, deduped by project + normalized group name (remote wins).
+function mergeDataGroups(remote = [], local = []) {
+  const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+  const byKey = new Map()
+  ;[...local, ...remote].forEach(g => {
+    if (!g?.groupName) return
+    byKey.set(`${g.projectId || DEFAULT_DATA_PROJECT_ID}::${norm(g.groupName)}`, g)
+  })
+  return [...byKey.values()]
+}
 
 // CR statuses that count as "ticket resolved" → trigger auto-archive of the
 // originating chat. APPROVED is intentionally excluded: an approved CR is still
@@ -505,8 +556,39 @@ export default function AnalystView() {
   // on next visit.
   const [sessionTickets, setSessionTickets] = useState(loadSessionTicketMap)
 
+  // Optional data-group scope (see the note by DEFAULT_DATA_PROJECT_ID above).
+  const [dataGroups, setDataGroups] = useState([])
+  const [selectedDataProjectId, setSelectedDataProjectId] = useState('')
+  const [selectedDataGroupId, setSelectedDataGroupId] = useState('')
+  const dataProjectOptions = projectOptionsFromGroups(dataGroups)
+  const filteredDataGroups = selectedDataProjectId
+    ? dataGroups.filter(g => (g.projectId || DEFAULT_DATA_PROJECT_ID) === selectedDataProjectId)
+    : dataGroups
+  const selectedDataGroup = dataGroups.find(g => g.id === selectedDataGroupId) || null
+
   useEffect(() => { loadFindings(); loadCRs() }, [loadFindings, loadCRs])
   useEffect(() => { listSessions() }, [listSessions])
+
+  // Load data groups so the analyst can scope a question to one. Show locally-saved groups
+  // immediately (survives a slow/empty remote list), then merge the remote catalogue.
+  useEffect(() => {
+    let cancelled = false
+    const local = readLocalDataGroupingGroups()
+    if (local.length) setDataGroups(local)
+    listDataGroupingProjects()
+      .then(data => {
+        if (cancelled) return
+        const remote = (data.groups || []).map(g => ({
+          ...g,
+          id: g.id || `${g.projectId || DEFAULT_DATA_PROJECT_ID}::${g.groupName}`,
+          projectId: g.projectId || DEFAULT_DATA_PROJECT_ID,
+          projectName: g.projectName || 'Discovery',
+        }))
+        setDataGroups(mergeDataGroups(remote, local))
+      })
+      .catch(() => { if (!cancelled) setDataGroups(local) })
+    return () => { cancelled = true }
+  }, [])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, thinking])
 
   // Poll CRs every 30s so we notice when a known linked CR reaches a terminal
@@ -627,6 +709,11 @@ export default function AnalystView() {
           prompt: q,
           session_id: sessionIdRef.current,
           chat_type: 'analyst',
+          // When a data group is selected, the backend routes to that group's data agent.
+          data_group: selectedDataGroup ? selectedDataGroup.groupName : '',
+          data_project_id: selectedDataGroup ? selectedDataGroup.projectId : '',
+          data_project_name: selectedDataGroup ? selectedDataGroup.projectName : '',
+          data_group_id: selectedDataGroup ? selectedDataGroup.id : '',
         })
         responseText = data.reply || ''
         actions = data.actions || []
@@ -826,22 +913,52 @@ export default function AnalystView() {
         </div>
 
         {/* Input */}
-        <div className="px-5 py-3 border-t border-slate-200 flex gap-2 flex-shrink-0 bg-white">
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKey}
-            rows={2}
-            placeholder="Ask about a policy change, system impact, approval needs, or regulatory risk…"
-            className="input flex-1 resize-none text-sm"
-          />
-          <button
-            onClick={() => send()}
-            disabled={!input.trim() || thinking}
-            className="btn-primary self-end px-3"
-          >
-            {thinking ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-          </button>
+        <div className="border-t border-slate-200 flex-shrink-0 bg-white">
+          {/* Optional data-group scope. Pick a group to route THIS question to its data
+              agent (sales/hr over the group's dataset); leave unset for policy/compliance. */}
+          <div className="px-5 pt-2 flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-slate-500">Data group <span className="text-slate-400">(optional)</span>:</span>
+            <select
+              value={selectedDataProjectId}
+              onChange={e => { setSelectedDataProjectId(e.target.value); setSelectedDataGroupId('') }}
+              className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs outline-none focus:border-indigo-400"
+            >
+              <option value="">All projects</option>
+              {dataProjectOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <select
+              value={selectedDataGroupId}
+              onChange={e => setSelectedDataGroupId(e.target.value)}
+              className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs outline-none focus:border-indigo-400"
+            >
+              <option value="">{filteredDataGroups.length ? 'No group — policy/compliance (master)' : 'No data groups found'}</option>
+              {filteredDataGroups.map(g => <option key={g.id} value={g.id}>{g.projectName} / {g.groupName}</option>)}
+            </select>
+            {selectedDataGroup && (
+              <span className="flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                <CheckCircle size={10} /> routing to {selectedDataGroup.groupName} data
+              </span>
+            )}
+          </div>
+          <div className="px-5 py-3 flex gap-2">
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKey}
+              rows={2}
+              placeholder={selectedDataGroup
+                ? `Ask about the ${selectedDataGroup.groupName} dataset — totals, rankings, or a descriptive question…`
+                : 'Ask about a policy change, system impact, approval needs, or regulatory risk…'}
+              className="input flex-1 resize-none text-sm"
+            />
+            <button
+              onClick={() => send()}
+              disabled={!input.trim() || thinking}
+              className="btn-primary self-end px-3"
+            >
+              {thinking ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            </button>
+          </div>
         </div>
       </div>
 

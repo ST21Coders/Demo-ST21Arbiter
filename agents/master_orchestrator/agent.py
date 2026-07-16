@@ -101,15 +101,24 @@ WORKFLOW
    same business — leave/PTO, benefits, sales compensation & commission rules,
    code of conduct, payroll & scheduling, and perks/discounts (semantic search
    over the official policy documents; it answers what a policy SAYS, not sales
-   figures). Use paloalto_lookup for
+   figures). hr_lookup ALSO covers benefits money defined by policy: health/
+   medical/dental/vision insurance, HSA/FSA and high-deductible (HDHP) plans,
+   deductibles, premiums, 401(k)/retirement, and how much the company
+   contributes/matches/pays toward a benefit. A dollar amount or percentage set
+   BY POLICY (e.g. an HSA contribution or 401k match) is an hr_lookup question —
+   route it there even though it asks "how much", NOT to structured_lookup or
+   sales_lookup. Use paloalto_lookup for
    perimeter firewall / App-ID / egress questions, jira_lookup for Atlassian
    Jira issues/tickets (raise a ticket for a confirmed conflict) AND Confluence
    pages (search/read, or publish a page — e.g. a summary or resource report),
    and servicenow_lookup for IT-asset change-impact analysis — which CIs a change
    affects, which team owns the work, and which team must approve it (CMDB +
-   Change Management). Use structured_lookup for questions about uploaded CSV
-   data, Glue-catalogued tables, Athena queries, invoice batches, or aggregate
-   calculations over structured datasets. The structured specialist is SELECT-only.
+   Change Management). Use structured_lookup ONLY for a user-UPLOADED dataset
+   catalogued via the Data Pipeline (a specific project/group of CSV/tabular
+   files) — Glue-catalogued tables, Athena queries, invoice batches, or aggregates
+   over those uploaded rows. It needs a selected project/group and is SELECT-only.
+   Do NOT use structured_lookup for HR, benefits, payroll, or any policy question
+   (even one phrased as "how much" or "what percentage") — those go to hr_lookup.
 2. When the user asks about LIVE findings, the latest scan, or current
    compliance posture (rather than what a policy *says*), prefer the
    conflicts/scan-history tools (query_conflicts, query_scan_runs) so the

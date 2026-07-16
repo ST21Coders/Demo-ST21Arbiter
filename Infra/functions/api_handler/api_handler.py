@@ -99,6 +99,7 @@ SESSIONS_TABLE = os.environ.get("SESSIONS_TABLE", "")
 CONFLICTS_TABLE = os.environ.get("CONFLICTS_TABLE", "")
 CONFLICTS_TABLE_V2 = os.environ.get("CONFLICTS_TABLE_V2", "")
 SCAN_RUNS_TABLE = os.environ.get("SCAN_RUNS_TABLE", "")
+DATA_JOBS_TABLE = os.environ.get("DATA_JOBS_TABLE", "")
 CHANGE_REQUESTS_TABLE = os.environ.get("CHANGE_REQUESTS_TABLE", "")
 AUDIT_TABLE = os.environ.get("AUDIT_TABLE", "")
 TOKEN_USAGE_TABLE = os.environ.get("TOKEN_USAGE_TABLE", "")
@@ -120,6 +121,11 @@ REPORT_URL_EXPIRES_SECONDS = int(os.environ.get("REPORT_URL_EXPIRES_SECONDS", "8
 ORG_NAME = os.environ.get("ORG_NAME", "Meridian Insurance Group")
 S3_KMS_KEY_ARN = os.environ.get("S3_KMS_KEY_ARN", "").strip()
 SCANNER_LAMBDA_NAME = os.environ.get("SCANNER_LAMBDA_NAME", "").strip()
+# Async data-ingest worker (13-data-ingest.yaml). Deterministic name so a circular
+# 06-api <-> 13-data-ingest dependency is avoided (mirrors SCANNER_LAMBDA_NAME).
+DATA_INGEST_LAMBDA_NAME = os.environ.get("DATA_INGEST_LAMBDA_NAME", "").strip()
+ENV = os.environ.get("ENVIRONMENT", "dev")
+PROJECT = os.environ.get("PROJECT_NAME", "st21arbiter-poc")
 MCP_ENDPOINTS = [u.strip() for u in os.environ.get("MCP_ENDPOINTS", "").split(",") if u.strip()]
 UPLOAD_URL_EXPIRES_SECONDS = int(os.environ.get("UPLOAD_URL_EXPIRES_SECONDS", "900"))
 UPLOAD_PREFIX = "users/"            # per-user folder root inside each bucket
@@ -150,6 +156,7 @@ sessions_table = ddb.Table(SESSIONS_TABLE) if SESSIONS_TABLE else None
 conflicts_table = ddb.Table(CONFLICTS_TABLE) if CONFLICTS_TABLE else None
 conflicts_v2_table = ddb.Table(CONFLICTS_TABLE_V2) if CONFLICTS_TABLE_V2 else None
 scan_runs_table = ddb.Table(SCAN_RUNS_TABLE) if SCAN_RUNS_TABLE else None
+data_jobs_table = ddb.Table(DATA_JOBS_TABLE) if DATA_JOBS_TABLE else None
 crs_table = ddb.Table(CHANGE_REQUESTS_TABLE) if CHANGE_REQUESTS_TABLE else None
 audit_table = ddb.Table(AUDIT_TABLE) if AUDIT_TABLE else None
 token_usage_table = ddb.Table(TOKEN_USAGE_TABLE) if TOKEN_USAGE_TABLE else None
@@ -311,6 +318,17 @@ def handler(event, context):
         scan_run_id = _path_param(event, "scan_run_id", path, "/scan-runs/")
         return _handle_get_scan_run(event, scan_run_id)
 
+    # ── Data-ingest jobs (DocuSearch / Structured Analytics) ─────
+    if path == "/data-pipeline/ingest" and method == "POST":
+        return _handle_data_ingest_trigger(event)
+
+    if path == "/data-jobs" and method == "GET":
+        return _handle_list_data_jobs(event)
+
+    if path.startswith("/data-jobs/") and method == "GET":
+        job_id = _path_param(event, "job_id", path, "/data-jobs/")
+        return _handle_get_data_job(event, job_id)
+
     if path.startswith("/findings/") and method == "GET":
         conflict_id = _path_param(event, "conflict_id", path, "/findings/")
         return _handle_get_finding(event, conflict_id)
@@ -349,6 +367,67 @@ def handler(event, context):
 
 
 # ──────────────────────────── /chat ─────────────────────────────
+def _resolve_group_vector_route(project_id: str, group_canonical: str) -> dict[str, Any] | None:
+    """Latest SUCCEEDED ingest job for a group → {target, vector_bucket, vector_index, job_type}.
+
+    Lets one reusable agent serve any group's S3 Vectors index. Returns None when the group has
+    no completed vector-ingest job (caller keeps structured/master). Precedence
+    structured_analytics > docusearch (stable sort), newest-within-type.
+    """
+    if not (data_jobs_table and project_id and group_canonical):
+        return None
+    try:
+        resp = data_jobs_table.query(
+            IndexName="by-project",
+            KeyConditionExpression=Key("project_id").eq(project_id),
+            ScanIndexForward=False,  # newest first
+            Limit=50,
+        )
+        rows = resp.get("Items", [])
+    except Exception:
+        logger.exception("data-jobs vector route lookup failed")
+        return None
+    candidates = [
+        r for r in rows
+        if r.get("status") == "SUCCEEDED"
+        and (r.get("vector_index") or "")
+        and _canonical_structured_group_name(str(r.get("group_name") or "")) == group_canonical
+    ]
+    if not candidates:
+        return None
+    precedence = {"structured_analytics": 0, "docusearch": 1}
+    candidates.sort(key=lambda r: precedence.get(r.get("job_type"), 9))  # stable → newest wins in type
+    row = candidates[0]
+    target = {"structured_analytics": "sales", "docusearch": "hr"}.get(row.get("job_type"))
+    if not target:
+        return None
+    return {
+        "target": target,
+        "job_type": row.get("job_type"),
+        "vector_bucket": str(row.get("vector_bucket") or ""),
+        "vector_index": str(row.get("vector_index") or ""),
+    }
+
+
+def _group_glue_table(project_id: str, group_canonical: str) -> str:
+    """Primary structured Glue table for a group from its project.json metadata ('' if none)."""
+    meta = _load_data_grouping_metadata(PROCESSED_BUCKET, f"projects/{project_id}/metadata/project.json")
+    if not meta:
+        return ""
+    for group in meta.get("groups", []):
+        if not isinstance(group, dict):
+            continue
+        if _canonical_structured_group_name(str(group.get("name") or "")) != group_canonical:
+            continue
+        hint = group.get("structuredTableHint")
+        if isinstance(hint, str) and hint:
+            return hint
+        hints = group.get("structuredTableHints") or []
+        if hints:
+            return str(hints[0])
+    return ""
+
+
 def _handle_chat(event):
     try:
         body = json.loads(event.get("body") or "{}")
@@ -369,6 +448,27 @@ def _handle_chat(event):
     target = (body.get("target") or "master").strip().lower()
     if selected_data_group or _looks_like_structured_inventory_prompt(prompt):
         target = "structured"
+    # Content-type routing (backend-authoritative): a selected group with a SUCCEEDED
+    # vector-ingest job is served by the capability-matched reusable agent pointed at THAT
+    # group's index — docusearch→hr, structured_analytics→sales (+ its Glue table). No vector
+    # job (or sales without a resolvable table) → keep structured (CSV/Glue). Overrides the UI target.
+    route_vector_bucket = route_vector_index = route_glue_db = route_glue_table = ""
+    if selected_data_group and selected_data_project_id:
+        _route = _resolve_group_vector_route(selected_data_project_id, selected_data_group)
+        if _route and _route["target"] == "hr":
+            target = "hr"
+            route_vector_bucket = _route["vector_bucket"]
+            route_vector_index = _route["vector_index"]
+        elif _route and _route["target"] == "sales":
+            # Always route to sales with the group's vector index (semantic search must work);
+            # the Glue table is best-effort — SQL aggregation only when it's resolvable.
+            target = "sales"
+            route_vector_bucket = _route["vector_bucket"]
+            route_vector_index = _route["vector_index"]
+            _table = _group_glue_table(selected_data_project_id, selected_data_group)
+            if _table:
+                route_glue_db = GLUE_DATABASE
+                route_glue_table = _table
     runtime_arn = SPECIALIST_RUNTIME_ARNS.get(target) or MASTER_AGENT_RUNTIME_ARN
     if not runtime_arn:
         return _err(503, f"Runtime ARN for '{target}' not configured (run scripts/deploy_agents.py)")
@@ -419,17 +519,28 @@ def _handle_chat(event):
         elif selected_context_lines:
             runtime_prompt = "\n".join([*selected_context_lines, "", prompt])
 
+    agent_payload = {
+        "prompt": runtime_prompt,
+        "session_id": session_id,
+        "actor_id": actor_id,
+        "chat_type": chat_type,
+        "persona": persona,
+        "user_email": user_email,
+    }
+    # Per-request resource target for the reusable hr/sales agents (only when routed to a group's
+    # vector index). Absent → the agent uses its built-in HR/Hawaii-sales defaults.
+    if route_vector_bucket:
+        agent_payload["vector_bucket"] = route_vector_bucket
+    if route_vector_index:
+        agent_payload["vector_index"] = route_vector_index
+    if route_glue_db:
+        agent_payload["glue_database"] = route_glue_db
+    if route_glue_table:
+        agent_payload["glue_table"] = route_glue_table
     try:
         resp = agentcore.invoke_agent_runtime(
             agentRuntimeArn=runtime_arn,
-            payload=json.dumps({
-                "prompt": runtime_prompt,
-                "session_id": session_id,
-                "actor_id": actor_id,
-                "chat_type": chat_type,
-                "persona": persona,
-                "user_email": user_email,
-            }).encode("utf-8"),
+            payload=json.dumps(agent_payload).encode("utf-8"),
             contentType="application/json",
             accept="application/json",
         )
@@ -4500,6 +4611,135 @@ def _handle_get_scan_run(event, scan_run_id: str):
         return _err(502, f"{type(e).__name__}: {e}")
     if not items:
         return _err(404, f"scan_run {scan_run_id} not found")
+    return _ok(items[0])
+
+
+# ──────────────────────────── /data-pipeline/ingest ─────────────
+_INGEST_JOB_TYPES = {"docusearch", "structured_analytics"}
+
+
+def _vector_index_name(value: str, default: str = "index") -> str:
+    """S3 Vectors index name: lowercase, alphanumeric + hyphen, 3-63 chars."""
+    slug = re.sub(r"[^a-z0-9]+", "-", (value or "").lower()).strip("-")[:63] or default
+    return slug if len(slug) >= 3 else (slug + "-idx")[:63]
+
+
+def _handle_data_ingest_trigger(event):
+    """Pre-write a QUEUED data-jobs row and async-invoke the data-ingest worker.
+
+    Mirrors _handle_scan_trigger: the row exists before we return so the UI's first
+    GET /data-jobs/{id} never 404s while the worker cold-starts. The worker flips the
+    row RUNNING -> SUCCEEDED/FAILED. Vector target = one env-scoped bucket per modality
+    (docs-vectors / analytics-vectors) with a per-group/dataset index the worker creates.
+    The Glue catalog half of Structured Analytics is handled by the existing
+    /data-grouping/materialize flow; this route adds the semantic (vector) index + tracking.
+    """
+    if not data_jobs_table:
+        return _err(500, "DATA_JOBS_TABLE not configured")
+    actor_id = _caller_user_id(event) or "anonymous"
+    try:
+        body = json.loads(event.get("body") or "{}")
+    except json.JSONDecodeError:
+        return _err(400, "Invalid JSON body")
+
+    job_type = (body.get("jobType") or "docusearch").strip().lower()
+    if job_type not in _INGEST_JOB_TYPES:
+        return _err(400, f"jobType must be one of {sorted(_INGEST_JOB_TYPES)}")
+    group_name = (body.get("groupName") or "").strip()
+    if not group_name:
+        return _err(400, "groupName is required")
+    if not PROCESSED_BUCKET:
+        return _err(500, "PROCESSED_BUCKET not configured")
+
+    project_id = _s3_segment(body.get("projectId") or body.get("projectName"), "project")
+    group_seg = _s3_segment(group_name, "group")
+    source_prefix = (body.get("sourcePrefix") or f"projects/{project_id}/{group_seg}/").strip()
+    dataset_id = _s3_segment(body.get("datasetId") or f"{project_id}-{group_seg}", "dataset")
+    grain = body.get("grain") if isinstance(body.get("grain"), list) else None
+
+    if job_type == "structured_analytics":
+        vector_bucket = f"{ENV}-{PROJECT}-analytics-vectors"
+        vector_index = _vector_index_name(dataset_id, "dataset")
+    else:
+        vector_bucket = f"{ENV}-{PROJECT}-docs-vectors"
+        vector_index = _vector_index_name(f"{project_id}-{group_seg}", "docs")
+
+    now_utc = datetime.now(timezone.utc)
+    job_id = f"job-{now_utc.strftime('%Y-%m-%dT%H:%M:%SZ')}-{actor_id[:8]}"
+    created_at = now_utc.isoformat()
+    item = {
+        "job_id": job_id, "created_at": created_at, "status": "QUEUED",
+        "job_type": job_type, "project_id": project_id, "group_name": group_name,
+        "source_bucket": PROCESSED_BUCKET, "source_prefix": source_prefix,
+        "vector_bucket": vector_bucket, "vector_index": vector_index,
+        "dataset_id": dataset_id, "triggered_by": actor_id,
+    }
+    try:
+        data_jobs_table.put_item(Item=item)
+    except Exception:
+        logger.exception("data-jobs QUEUED pre-write failed (continuing)")
+
+    if not DATA_INGEST_LAMBDA_NAME:
+        return _err(503, "DATA_INGEST_LAMBDA_NAME not configured (deploy 13-data-ingest.yaml)")
+    payload = {
+        "job_id": job_id, "created_at": created_at, "job_type": job_type,
+        "source_bucket": PROCESSED_BUCKET, "source_prefix": source_prefix,
+        "vector_bucket": vector_bucket, "vector_index": vector_index,
+        "dataset_id": dataset_id, "grain": grain,
+    }
+    try:
+        lambda_client.invoke(
+            FunctionName=DATA_INGEST_LAMBDA_NAME,
+            InvocationType="Event",
+            Payload=json.dumps(payload).encode("utf-8"),
+        )
+    except Exception as e:
+        logger.exception("data-ingest Lambda invoke failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    return _ok({"job_id": job_id, "status": "QUEUED", "vector_index": vector_index})
+
+
+def _handle_list_data_jobs(event):
+    """Recent data-ingest jobs, newest first. Optional ?projectId= scopes via the GSI."""
+    if not data_jobs_table:
+        return _err(500, "DATA_JOBS_TABLE not configured")
+    params = event.get("queryStringParameters") or {}
+    project_id = (params.get("projectId") or "").strip()
+    try:
+        if project_id:
+            resp = data_jobs_table.query(
+                IndexName="by-project",
+                KeyConditionExpression=Key("project_id").eq(project_id),
+                ScanIndexForward=False,
+                Limit=25,
+            )
+            items = resp.get("Items", [])
+        else:
+            items = data_jobs_table.scan(Limit=100).get("Items", [])
+            items.sort(key=lambda r: r.get("created_at") or "", reverse=True)
+    except Exception as e:
+        logger.exception("data-jobs list failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    return _ok({"data_jobs": items[:25]})
+
+
+def _handle_get_data_job(event, job_id: str):
+    if not data_jobs_table:
+        return _err(500, "DATA_JOBS_TABLE not configured")
+    if not job_id:
+        return _err(400, "Missing job_id")
+    try:
+        resp = data_jobs_table.query(
+            KeyConditionExpression=Key("job_id").eq(job_id),
+            ScanIndexForward=False,
+            Limit=1,
+        )
+        items = resp.get("Items", [])
+    except Exception as e:
+        logger.exception("data-jobs GetItem failed")
+        return _err(502, f"{type(e).__name__}: {e}")
+    if not items:
+        return _err(404, f"data job {job_id} not found")
     return _ok(items[0])
 
 

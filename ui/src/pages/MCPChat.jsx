@@ -17,6 +17,13 @@ import { downloadChatPdf } from '../utils/pdfReport'
    target sent to POST /chat (api_handler resolves it → runtime ARN). Live
    status comes from useAgentStatus() (GET /agent-status). */
 
+// Cards that can be scoped to a Data Group. Selecting a group sends data_group +
+// data_project_id; api_handler then routes to the right agent by the group's ingest
+// job (docusearch→hr, structured_analytics→sales) — the card is just a starting point.
+// With no group selected, sales/hr answer from their built-in demo corpora.
+const DATA_GROUP_SERVERS = new Set(['structured', 'sales', 'hr'])
+const isDataGroupServer = (id) => DATA_GROUP_SERVERS.has(id)
+
 const MCP_SERVERS = [
   {
     id: 'sharepoint',
@@ -72,7 +79,7 @@ const MCP_SERVERS = [
     id: 'sales',
     name: 'Sales Specialist',
     host: 'agentcore · sales_specialist',
-    description: 'Hybrid RAG for the Hawaiian-electronics retail business: semantic search over the sales-facts vector index for descriptive questions, plus validated read-only Athena SQL for exact aggregates (totals, top-N, rankings).',
+    description: 'Hybrid RAG for an electronics retail business: semantic search over the sales-facts vector index for descriptive questions, plus validated read-only Athena SQL for exact aggregates (totals, top-N, rankings).',
     tools: [
       { name: 'search_sales_facts', desc: 'Semantic search over the S3 Vectors sales-facts index (fuzzy questions)' },
       { name: 'query_sales_sql', desc: 'Text-to-SQL (read-only Athena) for totals, counts, top-N, trends' },
@@ -82,7 +89,7 @@ const MCP_SERVERS = [
     id: 'hr',
     name: 'HR Specialist',
     host: 'agentcore · hr_specialist',
-    description: 'Semantic RAG over the Kai Components HR policy documents (a fictional Hawaiian-electronics retailer): leave/PTO, benefits, sales compensation, conduct, payroll, and perks. Answers what a policy says and cites the source.',
+    description: 'Semantic RAG over HR policy documents (a fictional Hawaiian-electronics retailer): leave/PTO, benefits, sales compensation, conduct, payroll, and perks. Answers what a policy says and cites the source.',
     tools: [
       { name: 'search_hr_policies', desc: 'Semantic search over the S3 Vectors hr-policies index, optionally scoped by policy category' },
     ],
@@ -149,8 +156,8 @@ function ServerListItem({ server, selected, onSelect }) {
     <button
       onClick={() => onSelect(server)}
       className={`w-full text-left px-3 py-3 rounded-lg border transition-all ${selected?.id === server.id
-          ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
-          : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+        ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
         }`}
     >
       <div className="flex items-center gap-2 mb-1">
@@ -368,12 +375,12 @@ function readLocalDataGroupingGroups() {
 
 function mergeDataGroupOptions(primary = [], fallback = []) {
   const byProjectGroup = new Map()
-  ;[...fallback, ...primary].forEach(group => {
-    if (!group?.groupName) return
-    const projectId = group.projectId || 'unknown-project'
-    const groupName = normalizeGroupMention(group.groupName)
-    byProjectGroup.set(`${projectId}::${groupName}`, group)
-  })
+    ;[...fallback, ...primary].forEach(group => {
+      if (!group?.groupName) return
+      const projectId = group.projectId || 'unknown-project'
+      const groupName = normalizeGroupMention(group.groupName)
+      byProjectGroup.set(`${projectId}::${groupName}`, group)
+    })
   return [...byProjectGroup.values()].sort((a, b) => String(a.label || '').localeCompare(String(b.label || '')))
 }
 
@@ -596,7 +603,7 @@ export default function MCPChat() {
   }, [listSessions])
 
   useEffect(() => {
-    if (selectedServer.id !== 'structured') return
+    if (!isDataGroupServer(selectedServer.id)) return
     let cancelled = false
     const localGroups = readLocalDataGroupingGroups()
     setDataGroups(localGroups)
@@ -766,32 +773,32 @@ export default function MCPChat() {
         ? buildStructuredScopedPrompt(q, selectedDataGroup)
         : selectedServer.id === 'structured' && selectedDataProjectId
           ? [
-              'Resolved project context from the UI selector.',
-              `Project: ${dataProjectOptions.find(project => project.id === selectedDataProjectId)?.name || selectedDataProjectId} (${selectedDataProjectId})`,
-              'Group: not selected',
-              '',
-              `User request:\n${q}`,
-            ].join('\n')
+            'Resolved project context from the UI selector.',
+            `Project: ${dataProjectOptions.find(project => project.id === selectedDataProjectId)?.name || selectedDataProjectId} (${selectedDataProjectId})`,
+            'Group: not selected',
+            '',
+            `User request:\n${q}`,
+          ].join('\n')
           : q
       const { reply } = await sendChat({
         prompt: scopedPrompt,
         session_id: sid,
         chat_type: 'mcp',
         target: selectedServer.id,
-        data_group: selectedServer.id === 'structured' && selectedDataGroup
+        data_group: isDataGroupServer(selectedServer.id) && selectedDataGroup
           ? selectedDataGroup.groupName
           : '',
-        data_project_id: selectedServer.id === 'structured' && selectedDataGroup
+        data_project_id: isDataGroupServer(selectedServer.id) && selectedDataGroup
           ? selectedDataGroup.projectId
           : selectedServer.id === 'structured'
             ? selectedDataProjectId
             : '',
-        data_project_name: selectedServer.id === 'structured' && selectedDataGroup
+        data_project_name: isDataGroupServer(selectedServer.id) && selectedDataGroup
           ? selectedDataGroup.projectName
           : selectedServer.id === 'structured'
             ? dataProjectOptions.find(project => project.id === selectedDataProjectId)?.name || ''
             : '',
-        data_group_id: selectedServer.id === 'structured' && selectedDataGroup
+        data_group_id: isDataGroupServer(selectedServer.id) && selectedDataGroup
           ? selectedDataGroup.id
           : '',
       })
@@ -921,7 +928,7 @@ export default function MCPChat() {
               <MessageSquare size={9} /> History: {activeSessionTitle}
             </span>
           )}
-          {selectedServer.id === 'structured' && selectedDataGroup && (
+          {isDataGroupServer(selectedServer.id) && selectedDataGroup && (
             <span className="flex max-w-[320px] items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700">
               <Database size={9} /> <span className="truncate">{selectedDataGroup.label}</span>
             </span>
@@ -1009,13 +1016,13 @@ export default function MCPChat() {
               const label = typeof s === 'string' ? s : s.label
               const prompt = typeof s === 'string' ? s : s.prompt
               return (
-              <button
-                key={label}
-                onClick={() => send(prompt)}
-                className="text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                {label}
-              </button>
+                <button
+                  key={label}
+                  onClick={() => send(prompt)}
+                  className="text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  {label}
+                </button>
               )
             })}
           </div>
@@ -1024,7 +1031,7 @@ export default function MCPChat() {
         {/* Input */}
         <div className="p-4 border-t border-slate-200 bg-white">
           <div className="flex gap-2">
-            {selectedServer.id === 'structured' && (
+            {isDataGroupServer(selectedServer.id) && (
               <>
                 <label className="relative flex min-w-[190px] max-w-[260px] flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                   <Database size={14} className="shrink-0 text-indigo-600" />

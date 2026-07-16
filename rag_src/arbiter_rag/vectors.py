@@ -228,6 +228,31 @@ def delete_keys(client: Any, bucket: str, index_name: str, keys: list[str]) -> i
     return deleted
 
 
+def iter_all_records(client: Any, bucket: str, index_name: str, page_size: int = 500):
+    """Yield every vector's {key, metadata} in the index (paginated list_vectors).
+
+    Used to rebuild the BM25 lexical index at agent cold start from the same chunk texts
+    stored as metadata (chunk_text/fact_text). Requires s3vectors:ListVectors. For large
+    indexes prefer a persisted BM25 sidecar (roadmap) over scanning on every cold start.
+    """
+    token: str | None = None
+    while True:
+        kwargs: dict[str, Any] = {
+            "vectorBucketName": bucket,
+            "indexName": index_name,
+            "maxResults": page_size,
+            "returnMetadata": True,
+        }
+        if token:
+            kwargs["nextToken"] = token
+        resp = client.list_vectors(**kwargs)
+        for v in resp.get("vectors", []):
+            yield {"key": v["key"], "metadata": v.get("metadata", {})}
+        token = resp.get("nextToken")
+        if not token:
+            break
+
+
 def list_keys_for_doc(client: Any, bucket: str, index_name: str, doc_id: str) -> list[str]:
     """Scan the index and return all vector keys whose metadata doc_id matches."""
     keys: list[str] = []

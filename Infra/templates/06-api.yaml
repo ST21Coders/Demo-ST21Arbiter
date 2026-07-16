@@ -376,6 +376,10 @@ Resources:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ConflictsTableV2Name"
           SCAN_RUNS_TABLE:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ScanRunsTableName"
+          # Data-ingest jobs (DocuSearch / Structured Analytics). Row store polled by
+          # GET /data-jobs; POST /data-pipeline/ingest async-invokes the worker below.
+          DATA_JOBS_TABLE:
+            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataJobsTableName"
           # Token Tracking (CISO-only Governance tab). Read by GET /token-usage
           # and GET /token-usage/summary in api_handler.py; written by the four
           # AgentCore Runtimes directly via boto3 (see agents/_shared/token_usage.py).
@@ -393,6 +397,8 @@ Resources:
           # Deterministic name from CFN parameters — no cross-stack import needed.
           # 02-security has already granted lambda:InvokeFunction on this exact name.
           SCANNER_LAMBDA_NAME: !Sub "${Environment}-${ProjectName}-scanner"
+          # data-ingest worker (13-data-ingest.yaml); same deterministic-name pattern.
+          DATA_INGEST_LAMBDA_NAME: !Sub "${Environment}-${ProjectName}-data-ingest"
           ALLOWED_ORIGIN: !Ref AllowedOrigin
           # Filled in by deploy_agents.py after AgentCore runtimes are up.
           MASTER_AGENT_RUNTIME_ARN: ""

@@ -70,12 +70,19 @@ If the prompt starts with resolved project/group context, use the supplied table
 hints directly. Do not call list_projects again for that request.
 
 When the user gives a friendly or partial dataset name such as "daily sales zone 1",
-first use list_projects to identify the owning project and table hints. If needed,
-call list_glue_tables to find the exact table name. Then use run_athena_query with
-a single SELECT statement to fetch evidence. Never issue anything but SELECT. Use
-no more than one catalog lookup and one Athena query before answering unless the
-user has already selected one project. Return concise findings naming the project,
-table, and rows. Do not fabricate rows.
+first use list_projects to identify the owning project and table hints. Then use
+run_athena_query with a single SELECT statement to fetch evidence. Never issue
+anything but SELECT. Return concise findings naming the project, table, and rows.
+Do not fabricate rows.
+
+CRITICAL — never invent a table name. Only query a table whose exact name you have
+seen in the resolved project/group table hints, in list_projects output, or in
+list_glue_tables output. Before the FIRST run_athena_query for a request, unless a
+table hint was already supplied in the resolved context, you MUST call
+list_glue_tables to confirm the real table name — do not guess names like
+"sales_data", "sales", or "<topic>_data". If list_glue_tables (or the hints) return
+no table matching the request, say plainly that no matching dataset is catalogued and
+suggest the user pick a project/group — do NOT run a query against a guessed name.
 """
 
 app = BedrockAgentCoreApp()

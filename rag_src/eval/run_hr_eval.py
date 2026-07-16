@@ -26,7 +26,7 @@ import re
 from pathlib import Path
 
 import arbiter_rag  # noqa: F401  (import-smoke; also fails fast if the package isn't installed)
-from arbiter_rag import chunking, evaluation, loaders
+from arbiter_rag import chunking, evaluation, lexical, loaders
 from arbiter_rag.config import DATA_ROOT, RAG_ROOT, Settings
 
 GOLDEN = RAG_ROOT / "eval" / "golden" / "hr_qa.jsonl"
@@ -35,6 +35,7 @@ POLICY_DIR = DATA_ROOT / "Hawaii_HR_Policies"
 TOP_K = int(os.environ.get("EVAL_TOP_K", "4"))
 CHUNK_STRATEGY = os.environ.get("EVAL_CHUNK_STRATEGY", "semantic")
 CHUNK_VERSION = os.environ.get("EVAL_CHUNK_VERSION", "v1")
+RRF_K = int(os.environ.get("EVAL_RRF_K", "60"))
 
 
 def load_cases() -> list[dict]:
@@ -74,6 +75,34 @@ def _lexical_topk(question: str, chunks: list, k: int) -> list[str]:
     return out
 
 
+def _bm25_index(chunks: list):
+    """Real BM25 (arbiter_rag.lexical) over the chunk corpus — the deployed lexical half."""
+    records = [{"key": c.id, "text": c.text, "metadata": {"doc_id": c.doc_id}} for c in chunks]
+    return lexical.build_index(records)
+
+
+def _dedup_doc_ids(hits, k: int) -> list[str]:
+    """Chunk-level hits → ordered, de-duplicated top-k doc_ids."""
+    seen, out = set(), []
+    for h in hits:
+        d = h.metadata.get("doc_id", "")
+        if d and d not in seen:
+            seen.add(d)
+            out.append(d)
+        if len(out) >= k:
+            break
+    return out
+
+
+def _rrf_doc_ids(list_a: list[str], list_b: list[str], k: int, rrf_k: int = RRF_K) -> list[str]:
+    """Fuse two ranked doc_id lists with Reciprocal Rank Fusion → top-k doc_ids."""
+    score: dict[str, float] = {}
+    for ranked in (list_a, list_b):
+        for rank, d in enumerate(ranked):
+            score[d] = score.get(d, 0.0) + 1.0 / (rrf_k + rank + 1)
+    return sorted(score, key=lambda d: score[d], reverse=True)[:k]
+
+
 def _settings_from_env() -> Settings:
     ENV = os.environ.get("ENVIRONMENT", "dev")
     PROJECT = os.environ.get("PROJECT", "st21arbiter-poc")
@@ -106,6 +135,13 @@ def run_offline(cases: list[dict]) -> dict:
             "relevant_ids": c["relevant_doc_ids"], "top_distance": None} for c in cases]
     report_r = evaluation.aggregate_retrieval(per, TOP_K)
 
+    # Real BM25 (the deployed lexical half) — no AWS needed, so it exercises the shipped
+    # arbiter_rag.lexical code the hybrid agent uses.
+    bm25 = _bm25_index(chunks)
+    per_bm25 = [{"retrieved_ids": _dedup_doc_ids(bm25.search(c["question"], k=TOP_K * 4), TOP_K),
+                 "relevant_ids": c["relevant_doc_ids"], "top_distance": None} for c in cases]
+    report_bm25 = evaluation.aggregate_retrieval(per_bm25, TOP_K)
+
     report = {
         "type": "hr_offline", "n_cases": len(cases), "n_docs": len(corpus_ids),
         "n_chunks": len(chunks), "top_k": TOP_K, "chunk_strategy": CHUNK_STRATEGY,
@@ -113,41 +149,68 @@ def run_offline(cases: list[dict]) -> dict:
         "lexical_hit_rate": round(report_r.hit_rate, 3),
         "lexical_recall_at_k": round(report_r.recall_at_k, 3),
         "lexical_mrr": round(report_r.mrr, 3),
+        "bm25_hit_rate": round(report_bm25.hit_rate, 3),
+        "bm25_recall_at_k": round(report_bm25.recall_at_k, 3),
+        "bm25_mrr": round(report_bm25.mrr, 3),
     }
     print(f"OFFLINE HR eval: {len(cases)} cases, {len(corpus_ids)} docs, {len(chunks)} chunks")
     print(f"  corpus covers relevant : {report['corpus_covers_relevant']}"
           + (f"  MISSING: {missing}" if missing else ""))
-    print(f"  lexical hit-rate@{TOP_K}    : {report['lexical_hit_rate']:.3f}  (a floor for the live retriever)")
-    print(f"  lexical recall@{TOP_K}      : {report['lexical_recall_at_k']:.3f}   mrr: {report['lexical_mrr']:.3f}")
+    print(f"  lexical(floor) hit@{TOP_K}  : {report['lexical_hit_rate']:.3f}"
+          f"  recall@{TOP_K}: {report['lexical_recall_at_k']:.3f}  mrr: {report['lexical_mrr']:.3f}")
+    print(f"  bm25 (shipped) hit@{TOP_K}  : {report['bm25_hit_rate']:.3f}"
+          f"  recall@{TOP_K}: {report['bm25_recall_at_k']:.3f}  mrr: {report['bm25_mrr']:.3f}")
     return report
 
 
 def run_live(cases: list[dict]) -> dict:
-    """AWS: real recall@k / hit-rate / MRR over the S3 Vectors hr-policies index."""
+    """AWS: compare vector-only / BM25-only / hybrid(RRF) recall@k over the live index.
+
+    Vector search hits S3 Vectors; the BM25 index is rebuilt from the same chunk corpus (the
+    exact cold-start path the deployed hybrid agent uses). Reporting all three side by side is
+    the "evals for improvements" signal — hybrid should match or beat vector-only, and win on
+    keyword/code-heavy questions.
+    """
     from arbiter_rag import embeddings, vectors  # lazy (need creds)
     S = _settings_from_env()
     rt = embeddings.make_runtime_client(S.region)
     vx = vectors.make_client(S.region)
+    bm25 = _bm25_index(_load_chunks())
+    over_k = TOP_K * 4  # over-fetch candidates from each retriever before fusing/truncating
 
-    per = []
+    per_v, per_b, per_h = [], [], []
     for c in cases:
         q_vec = embeddings.embed_text(c["question"], S, rt)
-        hits = vectors.query(vx, S.vector_bucket, S.hr_index, q_vec, top_k=TOP_K)
-        retrieved = [h.metadata.get("doc_id", "") for h in hits]
-        per.append({"retrieved_ids": retrieved, "relevant_ids": c["relevant_doc_ids"],
-                    "top_distance": hits[0].distance if hits else None})
-        ok = "PASS" if set(retrieved[:TOP_K]) & set(c["relevant_doc_ids"]) else "MISS"
+        vhits = vectors.query(vx, S.vector_bucket, S.hr_index, q_vec, top_k=over_k)
+        bhits = bm25.search(c["question"], k=over_k)
+        v_ids = _dedup_doc_ids(vhits, TOP_K)
+        b_ids = _dedup_doc_ids(bhits, TOP_K)
+        # fuse the fuller candidate lists, then truncate — mirrors retrieval._rrf_merge
+        h_ids = _rrf_doc_ids(_dedup_doc_ids(vhits, over_k), _dedup_doc_ids(bhits, over_k), TOP_K)
+        top_distance = vhits[0].distance if vhits else None
+        per_v.append({"retrieved_ids": v_ids, "relevant_ids": c["relevant_doc_ids"], "top_distance": top_distance})
+        per_b.append({"retrieved_ids": b_ids, "relevant_ids": c["relevant_doc_ids"], "top_distance": None})
+        per_h.append({"retrieved_ids": h_ids, "relevant_ids": c["relevant_doc_ids"], "top_distance": top_distance})
+        ok = "PASS" if set(h_ids) & set(c["relevant_doc_ids"]) else "MISS"
         print(f"  [{ok}] {c['question'][:60]}")
 
-    r = evaluation.aggregate_retrieval(per, TOP_K)
+    rv = evaluation.aggregate_retrieval(per_v, TOP_K)
+    rb = evaluation.aggregate_retrieval(per_b, TOP_K)
+    rh = evaluation.aggregate_retrieval(per_h, TOP_K)
     report = {
-        "type": "hr_live", "n_cases": len(cases), "top_k": TOP_K,
+        "type": "hr_live", "n_cases": len(cases), "top_k": TOP_K, "rrf_k": RRF_K,
         "index": f"{S.vector_bucket}/{S.hr_index}", "embedding_model": S.embedding_model_id,
-        "recall_at_k": round(r.recall_at_k, 3), "hit_rate": round(r.hit_rate, 3),
-        "mrr": round(r.mrr, 3),
-        "mean_top_distance": round(r.mean_top_distance, 4) if r.mean_top_distance is not None else None,
+        # hybrid is the shipped retriever → keep top-level keys as the headline metrics
+        "recall_at_k": round(rh.recall_at_k, 3), "hit_rate": round(rh.hit_rate, 3), "mrr": round(rh.mrr, 3),
+        "mean_top_distance": round(rh.mean_top_distance, 4) if rh.mean_top_distance is not None else None,
+        "vector": {"recall_at_k": round(rv.recall_at_k, 3), "hit_rate": round(rv.hit_rate, 3), "mrr": round(rv.mrr, 3)},
+        "bm25": {"recall_at_k": round(rb.recall_at_k, 3), "hit_rate": round(rb.hit_rate, 3), "mrr": round(rb.mrr, 3)},
+        "hybrid": {"recall_at_k": round(rh.recall_at_k, 3), "hit_rate": round(rh.hit_rate, 3), "mrr": round(rh.mrr, 3)},
     }
-    print(f"\nLIVE: recall@{TOP_K}={report['recall_at_k']} hit_rate={report['hit_rate']} mrr={report['mrr']}")
+    print(f"\nLIVE recall@{TOP_K} | hit@{TOP_K} | mrr")
+    print(f"  vector : {rv.recall_at_k:.3f} | {rv.hit_rate:.3f} | {rv.mrr:.3f}")
+    print(f"  bm25   : {rb.recall_at_k:.3f} | {rb.hit_rate:.3f} | {rb.mrr:.3f}")
+    print(f"  hybrid : {rh.recall_at_k:.3f} | {rh.hit_rate:.3f} | {rh.mrr:.3f}  (shipped, RRF k={RRF_K})")
     return report
 
 

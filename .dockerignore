@@ -1,0 +1,13 @@
+# Keeps the repo-root Docker build context small. Only the data-ingest worker image
+# (Infra/templates/13-data-ingest.yaml, DockerContext: repo root) builds from here; it
+# needs rag_src/arbiter_rag + Infra/functions/data_ingest, nothing else.
+.git
+.aws-sam
+**/.venv
+**/node_modules
+**/__pycache__
+**/*.pyc
+ui
+data
+BaselineFiles
+Documents

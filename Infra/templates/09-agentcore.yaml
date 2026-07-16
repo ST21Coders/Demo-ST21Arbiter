@@ -374,6 +374,25 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-hr-vectors"
                   - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-hr-vectors/index/*"
+              # Per-group DocuSearch / Structured-Analytics indexes created by the data-ingest
+              # worker (13-data-ingest owns the WRITE grant). QUERY-ONLY here so the reusable
+              # hr/sales agents can serve ANY group's index. ListVectors is required for the HR
+              # agent's cold-start BM25 rebuild. NOTE: this is the SHARED runtime role (hr, sales,
+              # structured, sharepoint, zscaler, paloalto, master), so all of them can read these
+              # two buckets — acceptable for the POC; tighten with per-agent roles if needed.
+              - Sid: DataGroupS3VectorsQuery
+                Effect: Allow
+                Action:
+                  - s3vectors:QueryVectors
+                  - s3vectors:GetVectors
+                  - s3vectors:ListVectors
+                  - s3vectors:GetIndex
+                  - s3vectors:GetVectorBucket
+                Resource:
+                  - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-docs-vectors"
+                  - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-docs-vectors/index/*"
+                  - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-analytics-vectors"
+                  - !Sub "arn:aws:s3vectors:${AWS::Region}:${AWS::AccountId}:bucket/${Environment}-${ProjectName}-analytics-vectors/index/*"
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-agentcore-runtime-role"

@@ -1,6 +1,6 @@
 """ARBITER Sales Specialist — runs on Bedrock AgentCore Runtime.
 
-A self-contained HYBRID RAG agent for a fictional Hawaiian electronics-components
+A self-contained HYBRID RAG agent for a fictional electronics-components
 retailer. It routes each question to one of two tools (the split that keeps structured-data
 RAG from returning confidently-wrong numbers):
 
@@ -35,9 +35,11 @@ from __future__ import annotations
 
 import logging
 import os
+from dataclasses import replace
 from functools import lru_cache
 from typing import Any
 
+import boto3
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from strands import Agent
 from strands.models.bedrock import BedrockModel
@@ -65,8 +67,8 @@ GUARDRAIL_ID = os.environ.get("GUARDRAIL_ID")
 GUARDRAIL_VERSION = os.environ.get("GUARDRAIL_VERSION", "DRAFT")
 
 SYSTEM_PROMPT = """You are the Sales specialist for ARBITER — a retail sales analyst for a
-Hawaiian electronics-components retailer (Arduino boards, sensors, MOSFETs, marine
-electronics, solar, tools) across island branches.
+electronics-components retailer (Arduino boards, sensors, MOSFETs, marine
+electronics, solar, tools) across US including Hawaii
 
 You have exactly two tools. Choose the RIGHT one for each question:
 
@@ -85,15 +87,134 @@ query_sales_sql. Cite the SQL or the retrieved fact sources. If a tool returns n
 plainly; never invent figures.
 """
 
+# Used when the agent is retargeted per-request at a user-selected data group (Structured
+# Analytics: vector + Glue) instead of the built-in Hawaii sales demo. Same two-tool split,
+# no Hawaii/electronics framing that would bias retrieval-grounded answers over other datasets.
+NEUTRAL_SYSTEM_PROMPT = """You are a data analyst for ARBITER answering questions about a
+user-selected data group. You have exactly two tools — choose the RIGHT one:
+
+- query_sales_sql — for EXACT NUMBERS over the whole dataset: totals, sums, counts, averages,
+  top-N, rankings, breakdowns, percentages. It runs a validated read-only SQL query over the
+  group's table and returns the true figures. ALWAYS use it for aggregation.
+- search_sales_facts — for FUZZY, descriptive, qualitative questions ("how did X perform",
+  "tell me about Y"). It returns semantically-retrieved facts from the group's vector index.
+
+Never answer a numeric/aggregation question from search_sales_facts. Cite the SQL or the
+retrieved fact sources. If a tool returns nothing, say so plainly; never invent figures. Base
+every answer only on the selected group's data.
+"""
+
 app = BedrockAgentCoreApp()
+
+# Reused across requests; the actual per-group DB/table is passed to get_table each call.
+_glue_client: Any | None = None
+
+
+def _glue():
+    global _glue_client
+    if _glue_client is None:
+        _glue_client = boto3.client("glue", region_name=REGION)
+    return _glue_client
+
+
+# Value-grounding for text-to-SQL: the model is given column NAMES but not the stored
+# VALUES, so "sales in Indiana" becomes `WHERE state = 'Indiana'` when the column actually
+# holds 'IN' → zero rows. We probe low-cardinality string columns once per table and inject
+# their real distinct values into the schema so the model filters on the stored form.
+CATEGORICAL_MAX_DISTINCT = 40   # skip high-cardinality columns (names, ids, free text)
+CATEGORICAL_MAX_COLUMNS = 25    # bound the probe query width
+CATEGORICAL_VALUES_SHOWN = 30   # values listed per column in the prompt
+
+
+def _is_string_type(t: str) -> bool:
+    return str(t or "").lower().startswith(("string", "varchar", "char"))
+
+
+@lru_cache(maxsize=64)
+def _categorical_values(database: str, table: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """Distinct values of low-cardinality STRING columns of `table`, so text-to-SQL grounds
+    filter literals in the stored representation (e.g. state → 'IN', not 'Indiana').
+
+    One bounded Athena query (UNION of per-column DISTINCT probes over the SAME table, so it
+    passes run_query's single-table guard). Cached per (db, table). Returns () on any failure —
+    the caller then emits the schema without value hints. Never raises.
+    """
+    try:
+        meta = _glue().get_table(DatabaseName=database, Name=table).get("Table") or {}
+        cols = meta.get("StorageDescriptor", {}).get("Columns") or []
+    except Exception as e:  # noqa: BLE001
+        log.warning("categorical probe: Glue lookup failed for %s.%s: %s", database, table, e)
+        return ()
+    str_cols = [c["Name"] for c in cols if c.get("Name") and _is_string_type(c.get("Type"))]
+    str_cols = str_cols[:CATEGORICAL_MAX_COLUMNS]
+    if not str_cols:
+        return ()
+    limit = CATEGORICAL_MAX_DISTINCT + 1  # +1 sentinel → detect (and drop) high-cardinality cols
+    subqueries = [
+        f"SELECT '{c}' AS col, val FROM "
+        f"(SELECT DISTINCT CAST(\"{c}\" AS VARCHAR) AS val FROM \"{table}\" "
+        f"WHERE \"{c}\" IS NOT NULL LIMIT {limit})"
+        for c in str_cols
+    ]
+    sql = " UNION ALL ".join(subqueries)
+    S = replace(_base_settings(), glue_database=database, glue_table=table)
+    try:
+        result = athena_sql.run_query(
+            sql, S, database=database, workgroup=ATHENA_WORKGROUP,
+            output_location=ATHENA_OUTPUT or None,
+        )
+    except Exception as e:  # noqa: BLE001 — probe is best-effort; never break the chat
+        log.warning("categorical probe query failed for %s.%s: %s", database, table, e)
+        return ()
+    by_col: dict[str, list[str]] = {}
+    for r in result.rows:
+        col, val = r.get("col"), r.get("val")
+        if col is None or val is None:
+            continue
+        by_col.setdefault(col, []).append(val)
+    out: list[tuple[str, tuple[str, ...]]] = []
+    for c in str_cols:
+        vals = by_col.get(c, [])
+        if 0 < len(vals) <= CATEGORICAL_MAX_DISTINCT:  # drop empty + high-card (hit the +1 cap)
+            out.append((c, tuple(sorted(vals))))
+    return tuple(out)
+
+
+def _glue_schema_block(database: str, table: str) -> str | None:
+    """Real column list for `table` from Glue, formatted for the text-to-SQL prompt, with
+    distinct values annotated on low-cardinality string columns for value grounding.
+
+    Returns None if the table can't be introspected — the caller then falls back to
+    athena_sql's default schema (only correct for the built-in hawaii_sales route).
+    """
+    try:
+        meta = _glue().get_table(DatabaseName=database, Name=table).get("Table") or {}
+        cols = meta.get("StorageDescriptor", {}).get("Columns") or []
+    except Exception as e:  # noqa: BLE001 — never crash the chat
+        log.warning("Glue schema lookup failed for %s.%s: %s", database, table, e)
+        return None
+    categorical = dict(_categorical_values(database, table))
+    lines = []
+    for c in cols:
+        name = c.get("Name")
+        if not name:
+            continue
+        line = f"  {name} ({c.get('Type') or 'string'})"
+        vals = categorical.get(name)
+        if vals:
+            shown = ", ".join(vals[:CATEGORICAL_VALUES_SHOWN])
+            more = "" if len(vals) <= CATEGORICAL_VALUES_SHOWN else ", …"
+            line += f" -- values: {shown}{more}"
+        lines.append(line)
+    if not lines:
+        return None
+    return "Table: {t}\nColumns:\n{c}".format(t=table, c="\n".join(lines))
 
 
 @lru_cache(maxsize=1)
-def _settings() -> Settings:
-    """Build an arbiter_rag Settings from os.environ (never reads settings.toml).
-
-    Only the query-path fields matter; ingest-only fields get harmless defaults so the
-    frozen dataclass constructs cleanly.
+def _base_settings() -> Settings:
+    """Env-derived arbiter_rag Settings (never reads settings.toml). Per-request overrides
+    (vector bucket/index, glue db/table) are applied on top of this via `_settings_for`.
     """
     return Settings(
         env=os.environ.get("ARBITER_ENV", "dev"),
@@ -131,83 +252,116 @@ def _settings() -> Settings:
     )
 
 
-@tool
-def search_sales_facts(query: str, max_results: int = 5) -> str:
-    """Semantic search over the sales-facts vector index for FUZZY/descriptive questions.
-
-    Use for qualitative lookups ("how did marine electronics do at the Kailua branch?"),
-    NOT for exact totals/counts/rankings — route those to query_sales_sql.
-
-    Args:
-        query: Natural-language sales question.
-        max_results: Number of facts to return (1-10).
+def _resolve_target(payload: dict[str, Any]) -> dict[str, Any]:
+    """Per-request resource target. Optional payload fields (forwarded by api_handler for a
+    selected data group) override the env defaults; absent → the built-in Hawaii sales route.
     """
-    if not SALES_VECTOR_BUCKET:
-        return "(SALES_VECTOR_BUCKET not configured)"
-    S = _settings()
-    top_k = min(max(int(max_results), 1), 10)
-    try:
-        rt = embeddings.make_runtime_client(REGION)
-        vx = vectors.make_client(REGION)
-        q_vec = embeddings.embed_text(query, S, rt)
-        hits = vectors.query(vx, SALES_VECTOR_BUCKET, SALES_VECTOR_INDEX, q_vec, top_k=top_k)
-    except Exception as e:  # noqa: BLE001 — never crash the chat
-        log.exception("sales semantic search failed")
-        return f"(semantic search error: {type(e).__name__}: {e})"
-    if not hits:
-        return "No matching sales facts found."
-    lines = []
-    for i, h in enumerate(hits, 1):
-        dist = f"{h.distance:.4f}" if h.distance is not None else "n/a"
-        lines.append(f"[{i}] (distance={dist}, id={h.key})\n{h.text}")
-    return "\n\n---\n\n".join(lines)
+    vb = (payload.get("vector_bucket") or "").strip()
+    vi = (payload.get("vector_index") or "").strip()
+    gd = (payload.get("glue_database") or "").strip()
+    gt = (payload.get("glue_table") or "").strip()
+    return {
+        "vector_bucket": vb or SALES_VECTOR_BUCKET,
+        "vector_index": vi or SALES_VECTOR_INDEX,
+        "glue_database": gd or GLUE_DATABASE,
+        "glue_table": gt or GLUE_TABLE,
+        "custom": bool(vb or vi or gt),  # a real per-group request, not the Hawaii demo
+    }
 
 
-@tool
-def query_sales_sql(question: str) -> str:
-    """Answer EXACT-aggregation sales questions via validated read-only Athena SQL.
+def _settings_for(target: dict[str, Any]) -> Settings:
+    """Base Settings with the request's vector/glue resources patched in. run_query re-validates
+    against settings.glue_table, so glue_table MUST match the target table."""
+    return replace(
+        _base_settings(),
+        vector_bucket=target["vector_bucket"],
+        sales_index=target["vector_index"],
+        glue_database=target["glue_database"],
+        glue_table=target["glue_table"],
+    )
 
-    Use for totals, counts, averages, top-N, rankings, breakdowns ("total revenue by
-    category", "which branch sold the most units", "how many marine electronics were sold").
-    The generated SQL is validated (single read-only SELECT over the sales table only) before
-    it runs.
 
-    Args:
-        question: Natural-language question requiring precise numbers.
+def build_agent(target: dict[str, Any]) -> Agent:
+    """Build a per-request Sales agent whose two tools are closures bound to `target` — so one
+    warm container serves any group's S3 Vectors index + Glue table without shared mutable state.
     """
-    if not GLUE_DATABASE:
-        return "(GLUE_DATABASE not configured)"
-    S = _settings()
-    try:
-        sql = athena_sql.generate_sql(question, S)
-    except Exception as e:  # noqa: BLE001
-        log.exception("SQL generation failed")
-        return f"(SQL generation error: {type(e).__name__}: {e})"
-    try:
-        athena_sql.validate_sql(sql, S.glue_table)  # explicit guard → clean error message
-    except athena_sql.SqlValidationError as e:
-        return f"(refused unsafe SQL: {e})\nSQL was: {sql}"
-    try:
-        result = athena_sql.run_query(
-            sql, S, database=GLUE_DATABASE, workgroup=ATHENA_WORKGROUP,
-            output_location=ATHENA_OUTPUT or None,
-        )
-    except Exception as e:  # noqa: BLE001
-        log.exception("Athena query failed")
-        return f"(query error: {type(e).__name__}: {e})\nSQL was: {sql}"
-    header = " | ".join(result.columns)
-    rows = "\n".join(" | ".join(str(r.get(c, "")) for c in result.columns) for r in result.rows[:50])
-    return f"SQL:\n{result.sql}\n\nResult ({len(result.rows)} row(s)):\n{header}\n{rows or '(no rows)'}"
+    S = _settings_for(target)
+    v_bucket, v_index = target["vector_bucket"], target["vector_index"]
+    g_db, g_table = target["glue_database"], target["glue_table"]
 
+    @tool
+    def search_sales_facts(query: str, max_results: int = 5) -> str:
+        """Semantic search over the group's vector index for FUZZY/descriptive questions.
 
-def build_agent() -> Agent:
+        Use for qualitative lookups ("how did marine electronics do at the Kailua branch?"),
+        NOT for exact totals/counts/rankings — route those to query_sales_sql.
+
+        Args:
+            query: Natural-language question.
+            max_results: Number of facts to return (1-10).
+        """
+        if not v_bucket:
+            return "(vector bucket not configured)"
+        top_k = min(max(int(max_results), 1), 10)
+        try:
+            rt = embeddings.make_runtime_client(REGION)
+            vx = vectors.make_client(REGION)
+            q_vec = embeddings.embed_text(query, S, rt)
+            hits = vectors.query(vx, v_bucket, v_index, q_vec, top_k=top_k)
+        except Exception as e:  # noqa: BLE001 — never crash the chat
+            log.exception("sales semantic search failed")
+            return f"(semantic search error: {type(e).__name__}: {e})"
+        if not hits:
+            return "No matching facts found."
+        lines = []
+        for i, h in enumerate(hits, 1):
+            dist = f"{h.distance:.4f}" if h.distance is not None else "n/a"
+            lines.append(f"[{i}] (distance={dist}, id={h.key})\n{h.text}")
+        return "\n\n---\n\n".join(lines)
+
+    @tool
+    def query_sales_sql(question: str) -> str:
+        """Answer EXACT-aggregation questions via validated read-only Athena SQL.
+
+        Use for totals, counts, averages, top-N, rankings, breakdowns. The generated SQL is
+        validated (single read-only SELECT over the group's table only) before it runs.
+
+        Args:
+            question: Natural-language question requiring precise numbers.
+        """
+        if not g_db:
+            return "(glue database not configured)"
+        # Introspect the real columns so text-to-SQL targets THIS table's schema, not the
+        # built-in hawaii_sales one (None → athena_sql falls back to the Hawaii default).
+        schema = _glue_schema_block(g_db, g_table)
+        try:
+            sql = athena_sql.generate_sql(question, S, schema=schema)
+        except Exception as e:  # noqa: BLE001
+            log.exception("SQL generation failed")
+            return f"(SQL generation error: {type(e).__name__}: {e})"
+        try:
+            athena_sql.validate_sql(sql, g_table)  # explicit guard → clean error message
+        except athena_sql.SqlValidationError as e:
+            return f"(refused unsafe SQL: {e})\nSQL was: {sql}"
+        try:
+            result = athena_sql.run_query(
+                sql, S, database=g_db, workgroup=ATHENA_WORKGROUP,
+                output_location=ATHENA_OUTPUT or None,
+            )
+        except Exception as e:  # noqa: BLE001
+            log.exception("Athena query failed")
+            return f"(query error: {type(e).__name__}: {e})\nSQL was: {sql}"
+        header = " | ".join(result.columns)
+        rows = "\n".join(" | ".join(str(r.get(c, "")) for c in result.columns) for r in result.rows[:50])
+        return f"SQL:\n{result.sql}\n\nResult ({len(result.rows)} row(s)):\n{header}\n{rows or '(no rows)'}"
+
     model_kwargs: dict[str, Any] = {"model_id": MODEL_ID, "region_name": REGION}
     if GUARDRAIL_ID:
         model_kwargs["guardrail_id"] = GUARDRAIL_ID
         model_kwargs["guardrail_version"] = GUARDRAIL_VERSION
     return Agent(
         model=BedrockModel(**model_kwargs),
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=NEUTRAL_SYSTEM_PROMPT if target["custom"] else SYSTEM_PROMPT,
         tools=[search_sales_facts, query_sales_sql],
     )
 
@@ -224,8 +378,13 @@ def invoke(payload: dict[str, Any]) -> dict[str, Any]:
     session_id = (payload.get("session_id") or "adhoc")[:128]
     chat_type = (payload.get("chat_type") or "analyst")[:16]
     user_email = (payload.get("user_email") or "")[:200]
-    log.info("Sales specialist: persona=%s session=%s prompt=%s", persona, session_id, prompt[:200])
-    agent = build_agent()
+    target = _resolve_target(payload)
+    log.info(
+        "Sales specialist: persona=%s session=%s target=%s/%s glue=%s.%s prompt=%s",
+        persona, session_id, target["vector_bucket"], target["vector_index"],
+        target["glue_database"], target["glue_table"], prompt[:200],
+    )
+    agent = build_agent(target)
     agent_result = agent(prompt)
     record_from_agent_result(
         agent_result, agent="sales", persona=persona, actor_id=actor_id,

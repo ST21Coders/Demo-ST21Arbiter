@@ -70,6 +70,7 @@ export const ROUTE_ACCESS = {
   '/whatif':      'whatif',
   '/llm-control': 'llm-control',
   '/pipeline':    'pipeline',
+  '/data-jobs':   'pipeline',   // Data Jobs shares Data Pipeline's RBAC
   '/data-grouping': 'data-grouping',
   '/config-drift': 'config-drift',
   '/mcp-chat':    'mcp-chat',
