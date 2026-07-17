@@ -383,7 +383,8 @@ set_demo_passwords() {
       "emp_sarah@meridianinsurance.com" \
       "grc_priya@meridianinsurance.com" \
       "soc_marcus@meridianinsurance.com" \
-      "ciso_diana@meridianinsurance.com"; do
+      "ciso_diana@meridianinsurance.com" \
+      "admin_sridhar@meridianinsurance.com"; do
     log "  → ${email}"
     aws cognito-idp admin-set-user-password \
       --user-pool-id "${user_pool_id}" \
