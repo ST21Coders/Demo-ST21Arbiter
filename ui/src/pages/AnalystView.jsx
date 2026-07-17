@@ -18,12 +18,16 @@ import { sendChat, createJiraTicket, listDataGroupingProjects } from '../hooks/u
 // agent (sales/hr over the group's S3 Vectors index + Glue table) instead of the master
 // orchestrator — same backend routing MCPChat already uses. No group selected → master.
 const DEFAULT_DATA_PROJECT_ID = 'discovery'
+const DEFAULT_DATA_PROJECT_NAME = 'Discovery'
 // Same localStorage key the Data Pipeline / MCPChat use — groups created during an upload
 // in THIS browser live here even before the remote /data-grouping/projects list catches up.
 const DATA_GROUPING_GROUPS_KEY = 'arbiter.dataGrouping.v2.savedGroups'
 
 function projectOptionsFromGroups(groups = []) {
-  const byId = new Map()
+  // Always surface the default Discovery project so it's selectable even before any
+  // group lands under it — mirrors the Data Pipeline / Data Grouping pages, which
+  // seed the default project into their dropdowns too.
+  const byId = new Map([[DEFAULT_DATA_PROJECT_ID, { id: DEFAULT_DATA_PROJECT_ID, name: DEFAULT_DATA_PROJECT_NAME }]])
   groups.forEach(g => {
     const id = g.projectId || DEFAULT_DATA_PROJECT_ID
     if (!byId.has(id)) byId.set(id, { id, name: g.projectName || id })

@@ -385,13 +385,16 @@ function mergeDataGroupOptions(primary = [], fallback = []) {
 }
 
 function projectOptionsFromGroups(groups = []) {
-  const byId = new Map()
+  // Always surface the default Discovery project so it's selectable even before any
+  // group lands under it — mirrors the Data Pipeline / Data Grouping pages, which
+  // seed the default project into their dropdowns too. Group-derived projects add on
+  // top (and refine Discovery's display name if a group carries one).
+  const byId = new Map([[DEFAULT_DATA_PROJECT_ID, { id: DEFAULT_DATA_PROJECT_ID, name: DEFAULT_DATA_PROJECT_NAME }]])
   groups.forEach(group => {
     const projectId = group.projectId || DEFAULT_DATA_PROJECT_ID
     const projectName = group.projectName || projectId || DEFAULT_DATA_PROJECT_NAME
     if (projectId) byId.set(projectId, { id: projectId, name: projectName })
   })
-  if (!byId.size) byId.set(DEFAULT_DATA_PROJECT_ID, { id: DEFAULT_DATA_PROJECT_ID, name: DEFAULT_DATA_PROJECT_NAME })
   return [...byId.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)))
 }
 
