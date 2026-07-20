@@ -3,7 +3,7 @@ import {
   LayoutDashboard, ShieldAlert, Activity, Wrench, Scale,
   GitBranch, ScrollText, MessageSquare, Cpu, Terminal,
   Settings, Wifi, WifiOff, Shield, Users, Coins, Plug, FlaskConical,
-  Network, FileText, FolderTree, ShieldCheck, Radar, Boxes,
+  Network, FileText, FolderTree, ShieldCheck, Radar, Boxes, Rabbit,
 } from 'lucide-react'
 import { CHAT_URL, USE_MOCK, APP_VERSION } from '../config'
 import { usePersona } from '../contexts/PersonaContext'
@@ -34,6 +34,7 @@ const NAV_GROUPS = [
     label: 'INTELLIGENCE',
     items: [
       { to: '/analyst',         icon: MessageSquare, label: 'Analyst Chat' },
+      { to: '/smart-rabbit',    icon: Rabbit,        label: 'Smart Rabbit' },
       { to: '/impact-analysis', icon: Network,       label: 'Impact Analysis' },
       { to: '/cmdb-drift',      icon: Radar,         label: 'CMDB Drift Scan' },
       { to: '/whatif',          icon: FlaskConical,  label: 'What-If Scan' },
@@ -62,6 +63,7 @@ const PAGE_TITLES = {
   '/reports':    'Reports',
   '/audit':      'Audit Logs',
   '/analyst':    'Analyst Chat',
+  '/smart-rabbit': 'Smart Rabbit',
   '/impact-analysis': 'Impact Analysis',
   '/cmdb-drift': 'CMDB Drift Scan',
   '/whatif':     'What-If Scan',

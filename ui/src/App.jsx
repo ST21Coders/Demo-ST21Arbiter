@@ -19,6 +19,7 @@ import DataGrouping from './pages/DataGrouping'
 import ConfigDrift from './pages/ConfigDrift'
 import AuditLogs from './pages/AuditLogs'
 import AnalystView from './pages/AnalystView'
+import SmartRabbit from './pages/SmartRabbit'
 import WhatIf from './pages/WhatIf'
 import LLMControl from './pages/LLMControl'
 import MCPChat from './pages/MCPChat'
@@ -176,6 +177,7 @@ function Shell() {
             <Route path="/config-drift" element={<Guarded path="/config-drift"><ConfigDrift /></Guarded>} />
             <Route path="/audit"       element={<Guarded path="/audit"><AuditLogs /></Guarded>} />
             <Route path="/analyst"     element={<Guarded path="/analyst"><AnalystView /></Guarded>} />
+            <Route path="/smart-rabbit" element={<Guarded path="/smart-rabbit"><SmartRabbit /></Guarded>} />
             <Route path="/whatif"      element={<Guarded path="/whatif"><WhatIf /></Guarded>} />
             <Route path="/llm-control" element={<Guarded path="/llm-control"><LLMControl /></Guarded>} />
             <Route path="/mcp-chat"    element={<Guarded path="/mcp-chat"><MCPChat /></Guarded>} />

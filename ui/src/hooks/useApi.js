@@ -730,6 +730,7 @@ export function useAgentStatus() {
         setStatusById({
           sharepoint: 'READY', zscaler: 'READY', awsconfig: 'READY',
           structured: 'READY', sales: 'READY', hr: 'READY', paloalto: 'READY', jira: 'READY', servicenow: 'READY',
+          claim: 'READY', fraud: 'READY', debug: 'READY',
         })
         return
       }

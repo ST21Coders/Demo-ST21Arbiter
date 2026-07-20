@@ -13,6 +13,7 @@ const ROUTE_META = {
   '/governance': { title: 'Compliance',    section: 'Governance' },
   '/audit':      { title: 'Audit Logs',    section: 'Governance' },
   '/analyst':    { title: 'Analyst Chat',  section: 'Intelligence' },
+  '/smart-rabbit': { title: 'Smart Rabbit', section: 'Intelligence' },
   '/llm-control':{ title: 'LLM Control',   section: 'Intelligence' },
   '/pipeline':   { title: 'Data Pipeline', section: 'Infrastructure' },
   '/data-grouping': { title: 'Data Grouping', section: 'Infrastructure' },
