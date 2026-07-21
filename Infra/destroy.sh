@@ -14,7 +14,7 @@ SAM_BUCKET="${STACK_PREFIX}-cfn-templates"
 # Reverse order of deployment (bootstrap last — it owns the deployer user + CF role)
 STACKS=(
   # "08-observability"
-  # "07-bedrock"
+  "07-bedrock"          # S3-Vectors KB + unstructured bucket (deletes vector bucket + index)
   "06-api"
   "05-compute"
   "04-storage"
@@ -78,6 +78,11 @@ main() {
 
   # Empty S3 buckets that have Object Lock / versioning (must be emptied before stack delete)
   log "──── Pre-cleanup: emptying S3 buckets ────"
+  # Note: the S3 Vectors bucket (${STACK_PREFIX}-vectors-kb) is NOT a regular S3
+  # bucket — it is emptied/deleted by the 07-bedrock stack delete (index + bucket),
+  # not by aws s3 rm. The -unstructured docs bucket is PRE-EXISTING (created
+  # out-of-band, not owned by any stack) so it is intentionally left untouched
+  # here — delete it manually if teardown should remove it.
   for bucket in "${STACK_PREFIX}-raw" "${STACK_PREFIX}-processed" "${STACK_PREFIX}-cloudtrail"; do
     empty_and_delete_bucket "${bucket}" || true
   done

@@ -4,7 +4,7 @@ What this proves
 ----------------
 Send a compliance-themed prompt that should trigger the master orchestrator
 to use the SharePoint specialist (which queries the seeded Bedrock KB
-`2ADHACW6LB`). Assert the reply contains at least one KB-grounding marker
+`SQCLG3W09Y`). Assert the reply contains at least one KB-grounding marker
 (citation, "source:", "according to", domain phrase like "gdpr" / "retention").
 
 PASS    — reply contains a KB-grounding marker.

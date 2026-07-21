@@ -1,0 +1,139 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ServiceNow Table API (read-only subset)",
+    "description": "Minimal read-only surface of the ServiceNow Table API fronted by the ARBITER AgentCore Gateway. Reads (record listing/filtering by sysparm_query, e.g. CMDB CIs by sys_class_name, and single-record fetch) go through the gateway so the ServiceNow API key is injected at the edge; writes deliberately stay on the servicenow_specialist's direct REST path.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://INSTANCE.service-now.com"
+    }
+  ],
+  "paths": {
+    "/api/now/table/{tableName}": {
+      "get": {
+        "operationId": "getTableRecords",
+        "summary": "List records from a ServiceNow table",
+        "description": "Query any ServiceNow table (e.g. cmdb_ci, cmdb_rel_ci, change_request, incident, problem, alm_asset) with an encoded sysparm_query filter such as sys_class_name=cmdb_ci_web_server.",
+        "parameters": [
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "description": "ServiceNow table name, e.g. cmdb_ci, change_request, incident.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "sysparm_query",
+            "in": "query",
+            "required": false,
+            "description": "Encoded query filter, e.g. sys_class_name=cmdb_ci_web_server or nameLIKEweb.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "sysparm_fields",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated list of fields to return.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "sysparm_limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of records to return.",
+            "schema": { "type": "integer", "default": 20 }
+          },
+          {
+            "name": "sysparm_display_value",
+            "in": "query",
+            "required": false,
+            "description": "Return display values (true), raw values (false), or both (all).",
+            "schema": { "type": "string", "enum": ["true", "false", "all"], "default": "false" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "array",
+                      "items": { "type": "object", "additionalProperties": true }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/now/table/{tableName}/{sysId}": {
+      "get": {
+        "operationId": "getRecordById",
+        "summary": "Fetch a single record by sys_id",
+        "parameters": [
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "description": "ServiceNow table name.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "sysId",
+            "in": "path",
+            "required": true,
+            "description": "sys_id of the record.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "sysparm_fields",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated list of fields to return.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "sysparm_display_value",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["true", "false", "all"], "default": "false" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": { "type": "object", "additionalProperties": true }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-sn-apikey"
+      }
+    }
+  },
+  "security": [
+    { "apiKeyAuth": [] }
+  ]
+}

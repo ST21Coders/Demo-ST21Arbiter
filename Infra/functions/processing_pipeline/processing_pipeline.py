@@ -41,6 +41,11 @@ logger.setLevel(logging.INFO)
 
 RAW_BUCKET = os.environ["RAW_BUCKET"]
 PROCESSED_BUCKET = os.environ["PROCESSED_BUCKET"]
+# Curated policy-document bucket that backs the S3-Vectors policy KB. Objects
+# landing here are already inside the KB data source's source bucket, so they
+# are NOT moved — the ObjectCreated event just (re)ingests the KB + re-scans.
+# Empty disables that branch gracefully.
+UNSTRUCTURED_BUCKET = os.environ.get("UNSTRUCTURED_BUCKET", "").strip()
 REPORTS_PREFIX = os.environ.get("REPORTS_PREFIX", "File_Transfer_Reports/")
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 COGNITO_ISSUER_URL = os.environ.get("COGNITO_ISSUER_URL", "")
@@ -242,6 +247,12 @@ def _handle_single_object_event(event: dict) -> dict:
     if not key or key.startswith(REPORTS_PREFIX) or key.endswith("/"):
         return _resp(200, {"skipped": True, "reason": "filtered key", "key": key})
 
+    # Unstructured-docs bucket: the object already lives in the policy KB's source
+    # bucket, so we don't move it (and don't split .csv off to Glue — these are
+    # curated policy docs). Just (re)ingest the KB + re-scan.
+    if UNSTRUCTURED_BUCKET and bucket == UNSTRUCTURED_BUCKET:
+        return _handle_unstructured_kb_object(key)
+
     # Structured (.csv) exports take the Glue/Athena path, not the KB path.
     if _is_structured(key):
         return _handle_structured_object(bucket, key)
@@ -263,6 +274,38 @@ def _handle_single_object_event(event: dict) -> dict:
     if action == "FAILED":
         return _resp(502, summary)
 
+    if not (KB_ID and KB_DATA_SOURCE_ID):
+        logger.info("KB_ID / KB_DATA_SOURCE_ID unset — skipping ingestion + scan chain")
+        return _resp(200, summary)
+
+    job = _start_kb_ingestion()
+    if job:
+        summary["kb_triggered"] = True
+        summary["ingestion_job_id"] = job
+        final_status = _wait_for_ingestion(job)
+        summary["ingestion_status"] = final_status
+        if final_status == "COMPLETE":
+            ok = _invoke_scanner(triggered_by=f"auto-ingest:{key}")
+            summary["scanner_triggered"] = ok
+    return _resp(200, summary)
+
+
+def _handle_unstructured_kb_object(key: str) -> dict:
+    """Handle one ObjectCreated event on the unstructured-docs bucket.
+
+    The object is already inside the KB data source's source bucket, so there is
+    nothing to move: start a Bedrock KB ingestion job (the data source re-syncs
+    the whole bucket), poll to COMPLETE, then async-invoke the scanner. Returns
+    200 even on partial failure so EventBridge does not retry forever.
+    """
+    logger.info("Unstructured-docs auto-detect: bucket=%s key=%s", UNSTRUCTURED_BUCKET, key)
+    summary: dict = {
+        "key": key,
+        "bucket": UNSTRUCTURED_BUCKET,
+        "unstructured": True,
+        "kb_triggered": False,
+        "scanner_triggered": False,
+    }
     if not (KB_ID and KB_DATA_SOURCE_ID):
         logger.info("KB_ID / KB_DATA_SOURCE_ID unset — skipping ingestion + scan chain")
         return _resp(200, summary)

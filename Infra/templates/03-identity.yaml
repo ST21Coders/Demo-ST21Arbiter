@@ -101,6 +101,40 @@ Resources:
       IdTokenValidity: 1
       RefreshTokenValidity: 7
 
+  # ──────────────────────────── AgentCore Gateway M2M client ───
+  # Machine-to-machine app client used by agent runtimes to obtain a
+  # client-credentials access token for the AgentCore Gateway's CUSTOM_JWT
+  # inbound authorizer. The client secret is never copied anywhere: the
+  # servicenow runtime role reads it at cold start via
+  # cognito-idp:DescribeUserPoolClient (granted in 09-agentcore.yaml).
+  GatewayResourceServer:
+    Type: AWS::Cognito::UserPoolResourceServer
+    Properties:
+      UserPoolId: !Ref UserPool
+      Identifier: !Sub "${Environment}-${ProjectName}-gateway"
+      Name: !Sub "${Environment}-${ProjectName}-gateway"
+      Scopes:
+        - ScopeName: invoke
+          ScopeDescription: Invoke AgentCore Gateway tools
+
+  GatewayM2MClient:
+    Type: AWS::Cognito::UserPoolClient
+    DependsOn: GatewayResourceServer
+    Properties:
+      ClientName: !Sub "${Environment}-${ProjectName}-gateway-m2m"
+      UserPoolId: !Ref UserPool
+      GenerateSecret: true
+      AllowedOAuthFlows:
+        - client_credentials
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - !Sub "${Environment}-${ProjectName}-gateway/invoke"
+      SupportedIdentityProviders:
+        - COGNITO
+      TokenValidityUnits:
+        AccessToken: hours
+      AccessTokenValidity: 1
+
   # ──────────────────────────── Persona Groups ────────────────
   # Group names match persona ids in ui/src/contexts/PersonaContext.jsx so the
   # UI can read cognito:groups from the IdToken and pin personaId directly.
@@ -234,6 +268,11 @@ Outputs:
     Value: !Ref UserPoolClient
     Export:
       Name: !Sub "${Environment}-${ProjectName}-UserPoolClientId"
+  GatewayM2MClientId:
+    Description: Client id of the gateway machine-to-machine app client.
+    Value: !Ref GatewayM2MClient
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-GatewayM2MClientId"
   CognitoIssuerURL:
     Value: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}"
     Export:

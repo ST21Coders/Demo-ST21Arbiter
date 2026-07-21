@@ -57,10 +57,6 @@
     "ParameterValue": "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0"
   },
   {
-    "ParameterKey": "OpenSearchIndexName",
-    "ParameterValue": "policy-vectors"
-  },
-  {
     "_comment_observability": "Alarm fan-out target; replace with the demo operator's email.",
     "ParameterKey": "AlarmEmail",
     "ParameterValue": "sridharn@smartek21.com"
@@ -83,11 +79,11 @@
   {
     "_comment_kb_auto_ingest": "Bedrock KB and data-source IDs for the F1 auto-detect chain. Created out-of-band by scripts/setup_bedrock_kb.py; processing_pipeline calls bedrock-agent start_ingestion_job after copying new files. Refresh after KB recreation.",
     "ParameterKey": "KbId",
-    "ParameterValue": "2ADHACW6LB"
+    "ParameterValue": "SQCLG3W09Y"
   },
   {
     "ParameterKey": "KbDataSourceId",
-    "ParameterValue": "KLUEZ1RNM5"
+    "ParameterValue": "NM2FVXL5T6"
   },
   {
     "_comment_models": "Foundation model per AgentCore runtime. scripts/deploy_agents.py sets MODEL_ID on each runtime from these (blank → DefaultModelId); Infra/post_deploy_ui.py mirrors them into the UI's Agent Registry. To switch a model: edit the value here and re-run scripts/deploy_agents.py. Default is Amazon Nova 2 Lite (first-party, no Marketplace subscription).",
@@ -132,6 +128,18 @@
   },
   {
     "ParameterKey": "ServicenowModelId",
+    "ParameterValue": "us.amazon.nova-2-lite-v1:0"
+  },
+  {
+    "ParameterKey": "ClaimModelId",
+    "ParameterValue": "us.amazon.nova-2-lite-v1:0"
+  },
+  {
+    "ParameterKey": "FraudModelId",
+    "ParameterValue": "us.amazon.nova-2-lite-v1:0"
+  },
+  {
+    "ParameterKey": "DebugModelId",
     "ParameterValue": "us.amazon.nova-2-lite-v1:0"
   },
   {

@@ -11,7 +11,7 @@ Authoritative references:
 
 ## Project Overview
 
-**ARBITER (ST21)** is a multi-agent **compliance / policy-conflict-detection** demo that has grown a second surface: **per-group data analytics RAG**. A React SPA talks to a single Lambda API which orchestrates a fleet of Bedrock AgentCore Runtimes (1 master orchestrator + 9 specialists = 10 runtimes) backed by a Bedrock Knowledge Base and Amazon S3 Vectors. Everything provisions into a single AWS account via CloudFormation/SAM. Single-AZ, dev-only.
+**ARBITER (ST21)** is a multi-agent **compliance / policy-conflict-detection** demo that has grown a second surface: **per-group data analytics RAG**. A React SPA talks to a single Lambda API which orchestrates a fleet of Bedrock AgentCore Runtimes (1 master orchestrator + 12 specialists = 13 runtimes) backed by a Bedrock Knowledge Base and Amazon S3 Vectors. Everything provisions into a single AWS account via CloudFormation/SAM. Single-AZ, dev-only.
 
 Two things the product does:
 1. **Compliance orchestration** — the Analyst page asks the **master orchestrator**, which fans out to specialists (`sharepoint_lookup`, `awsconfig_lookup`, `zscaler_lookup`, `paloalto_lookup`, `structured_lookup`, `sales_lookup`, `hr_lookup`, `jira_lookup`, `servicenow_lookup`) to find policy conflicts across SharePoint docs, AWS Config, Zscaler/Palo Alto rules, HR policy, and structured data, then recommends actions (Change Requests, JIRA tickets, ServiceNow, Confluence).
@@ -38,7 +38,7 @@ Everything is glued by **Cognito JWT auth** and a **Persona/RBAC** model: the Co
 
 2. **API plane** ([`Infra/functions/`](Infra/functions/)) — the [`api_handler`](Infra/functions/api_handler/) Lambda serves ~40 routes (`/findings`, `/change-requests`, `/audit-logs`, `/conversations`, `/chat`, `/dashboard`, `/scan[-runs]`, `/config-drift/*`, `/servicenow/*`, `/jira/*`, `/compliance/*`, `/reports/*`, `/token-usage/*`, `/agent-status`, and the data-grouping/pipeline routes `/data-grouping/*`, `/data-pipeline/ingest`, `/data-jobs`). Supporting Lambdas: [`processing_pipeline`](Infra/functions/processing_pipeline/) (S3 → text-extract → KB sync), [`scanner`](Infra/functions/scanner/) (autonomous conflict re-scan), [`data_ingest`](Infra/functions/data_ingest/) (async chunk/embed → S3 Vectors worker; container-image Lambda), [`audit_cognito_subscriber`](Infra/functions/audit_cognito_subscriber/).
 
-3. **Agent plane** ([`agents/`](agents/)) — 1 master + 9 specialists, each its own AgentCore Runtime. Master fans out via `@tool`s to specialists. Compliance specialists (`sharepoint`/`awsconfig`/`zscaler`/`paloalto`) hit the Bedrock KB; `structured`/`sales`/`hr` do S3-Vectors + Athena RAG (parameterized per request for any group's index/table); `jira`/`servicenow` are integration agents. Shared helpers in [`agents/_shared/`](agents/_shared/) (e.g. token-usage recording).
+3. **Agent plane** ([`agents/`](agents/)) — 1 master + 12 specialists, each its own AgentCore Runtime. Master fans out via `@tool`s to specialists. Compliance specialists (`sharepoint`/`awsconfig`/`zscaler`/`paloalto`) hit the Bedrock KB; `structured`/`sales`/`hr` do S3-Vectors + Athena RAG (parameterized per request for any group's index/table); `jira`/`servicenow` are integration agents; `claim`/`fraud`/`debug` are lightweight advisory agents (Smart Rabbit catalog). Shared helpers in [`agents/_shared/`](agents/_shared/) (e.g. token-usage recording).
 
 4. **Persona/RBAC plane** — see Project Overview.
 
@@ -126,7 +126,7 @@ Demo-ST21Arbiter/
 │  │                       data_ingest, audit_cognito_subscriber
 │  ├─ params/<env>.json    Stack params (ProjectName, CIDRs, GuardrailId, …)
 │  ├─ deploy.sh / destroy.sh / post_deploy_ui.py
-├─ agents/                 1 master + 10 specialists, each with agent.py + Dockerfile + requirements.txt
+├─ agents/                 1 master + 12 specialists, each with agent.py + Dockerfile + requirements.txt
 │  ├─ master_orchestrator/  sharepoint_/awsconfig_/zscaler_/paloalto_specialist   (KB compliance)
 │  ├─ structured_/sales_/hr_specialist   (S3 Vectors + Athena RAG, per-group)
 │  ├─ jira_/servicenow_specialist        (integrations; jira = MCP-based)

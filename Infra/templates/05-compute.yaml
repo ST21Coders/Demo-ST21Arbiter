@@ -116,6 +116,12 @@ Resources:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-RawBucketName"
           PROCESSED_BUCKET:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketName"
+          # Curated policy-document bucket backing the S3-Vectors KB. Objects
+          # landing here are already in the KB data source's source bucket, so
+          # the single-object handler ingests the KB + re-scans WITHOUT moving
+          # them (see processing_pipeline._handle_unstructured_kb_object).
+          # Pre-existing bucket — deterministic name, not a CFN export.
+          UNSTRUCTURED_BUCKET: !Sub "${Environment}-${ProjectName}-unstructured"
           S3_KMS_KEY_ARN:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-S3KeyArn"
           REPORTS_PREFIX: "File_Transfer_Reports/"
@@ -214,6 +220,46 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt RawBucketObjectCreatedRule.Arn
+
+  # ──────────────── Unstructured-docs bucket → processing_pipeline ─────
+  # Curated policy docs land in the PRE-EXISTING dev-<env>-<project>-unstructured
+  # bucket (via /uploads/presign destination=unstructured). This rule fires on
+  # every new object there and invokes processing_pipeline, whose unstructured
+  # branch (_handle_unstructured_kb_object) starts a KB ingestion job on the
+  # S3-Vectors policy KB + invokes the scanner — WITHOUT moving the object.
+  #
+  # NOTE: the unstructured bucket is not managed by CloudFormation, so its
+  # EventBridge notification must be enabled out-of-band (one-time):
+  #   aws s3api put-bucket-notification-configuration \
+  #     --bucket dev-<env>-<project>-unstructured \
+  #     --notification-configuration '{"EventBridgeConfiguration":{}}'
+  # See Documents/sunset_opensearch.md.
+  UnstructuredBucketObjectCreatedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${Environment}-${ProjectName}-unstructured-object-created"
+      Description: "Auto-detect: every new policy doc in the unstructured bucket triggers KB ingest + scan"
+      State: ENABLED
+      EventPattern:
+        source:
+          - aws.s3
+        detail-type:
+          - Object Created
+        detail:
+          bucket:
+            name:
+              - !Sub "${Environment}-${ProjectName}-unstructured"
+      Targets:
+        - Arn: !GetAtt ProcessingPipelineFunction.Arn
+          Id: ProcessingPipelineUnstructuredTarget
+
+  UnstructuredBucketObjectCreatedRulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProcessingPipelineFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt UnstructuredBucketObjectCreatedRule.Arn
 
   ProcessingPipelineLogGroup:
     Type: AWS::Logs::LogGroup

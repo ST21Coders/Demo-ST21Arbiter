@@ -41,6 +41,20 @@ function ingestJobTypeForMix(fileMix) {
   return VECTOR_INGEST_JOB_TYPE[fileMix] || null
 }
 
+// Group-content mixes whose files are curated policy documents that back the
+// S3-Vectors policy Knowledge Base (SQCLG3W09Y / data source NM2FVXL5T6). Their
+// uploads are stored in the dedicated dev-<env>-<project>-unstructured bucket
+// (point 1), where the unstructured-bucket ObjectCreated rule auto-triggers KB
+// ingest (new KB) + scan. csv_only / unstructured_vector / structured_vector_glue
+// are intentionally excluded — they do NOT use this KB (point 3).
+export const POLICY_DOC_FILE_MIXES = new Set(['text_only', 'csv_text', 'csv_text_media'])
+
+// Presign destination for a group-content mix: 'unstructured' routes the upload
+// into the policy-KB bucket; '' (default) keeps the existing raw-bucket flow.
+export function uploadDestinationForMix(fileMix) {
+  return POLICY_DOC_FILE_MIXES.has(fileMix) ? 'unstructured' : ''
+}
+
 // Max files accepted per group upload batch (points 5b / 6c).
 const MAX_UPLOAD_FILES = 200
 const GROUP_KEY_FILE_SAMPLE_LIMIT = 40
@@ -453,6 +467,18 @@ const STEP_DEFS = [
   { key: 'scan',      label: 'Scan',      desc: 'scanner_lambda finished; conflicts re-evaluated'    },
 ]
 
+// Displayed steps for the Policy Documents path card. Curated policy docs (the
+// Text / CSV+Text / CSV+Text+docs group mixes) are stored in the unstructured
+// bucket (Raw → Unstructured), which the S3-Vectors policy KB
+// (SQCLG3W09Y / data source NM2FVXL5T6) ingests, then a re-scan runs. Kept
+// separate from STEP_DEFS, which drives the live per-upload row status.
+const STEP_DEFS_POLICY = [
+  { key: 'raw',          label: 'Raw',          desc: 'Policy document uploaded'                                  },
+  { key: 'unstructured', label: 'Unstructured', desc: 'Stored in the dev-<env>-<project>-unstructured S3 bucket'  },
+  { key: 'kb',           label: 'KB ingest',    desc: 'S3-Vectors KB (SQCLG3W09Y / NM2FVXL5T6) ingestion complete'},
+  { key: 'scan',         label: 'Scan',         desc: 'scanner_lambda finished; conflicts re-evaluated'           },
+]
+
 // Structured exports (.csv) take the Glue/Athena path — NOT the KB. They land in
 // processed/structured/<dataset>/ and trigger a Glue crawler; the re-scan is run
 // separately ("Run AI Scan"), so there's no KB or scan step here.
@@ -483,7 +509,15 @@ function isStructuredUpload(u) {
   return (u.filename || '').toLowerCase().endsWith('.csv')
 }
 
-function stepDefsFor(u) {
+// Policy-doc uploads (Text / CSV+Text / CSV+Text+docs mixes) are PUT straight
+// into the unstructured bucket, so they follow Raw → Unstructured → KB → Scan
+// (never raw→processed). The unstructured-bucket auto-trigger drives KB + scan.
+export function isPolicyDocUpload(u) {
+  return u?.destination === 'unstructured'
+}
+
+export function stepDefsFor(u) {
+  if (isPolicyDocUpload(u)) return STEP_DEFS_POLICY
   return isStructuredUpload(u) ? STEP_DEFS_STRUCTURED : STEP_DEFS
 }
 
@@ -523,7 +557,36 @@ function StepChip({ status, label }) {
 }
 
 // Map an upload's progress to the 4 step statuses based on what we know.
-function stepStatesFor(upload) {
+export function stepStatesFor(upload) {
+  // Policy docs (unstructured bucket): raw → unstructured → kb → scan. The PUT
+  // lands the file directly in the unstructured bucket, so raw + unstructured are
+  // done as soon as the upload succeeds; KB ingest + scan are driven by the
+  // scan-run the unstructured-bucket auto-trigger creates (triggered_by
+  // auto-ingest:<key>). No /uploads/status here — the file is never in
+  // raw/processed, so that endpoint would report it missing forever.
+  if (isPolicyDocUpload(upload)) {
+    const s = { raw: 'pending', unstructured: 'pending', kb: 'pending', scan: 'pending' }
+    if (upload.state === 'uploading') { s.raw = 'running'; return s }
+    if (upload.state === 'upload_failed' && !uploadHasPublishedBackendObject(upload)) {
+      s.raw = 'done'
+      s.unstructured = 'failed'
+      return s
+    }
+    s.raw = 'done'
+    s.unstructured = 'done'
+    const run = upload.scanRun
+    if (!run) {
+      // Waiting on the auto-trigger's KB ingestion job + scan.
+      s.kb = 'running'
+      return s
+    }
+    s.kb = 'done'
+    if (run.status === 'COMPLETED') s.scan = 'done'
+    else if (run.status === 'FAILED') s.scan = 'failed'
+    else s.scan = 'running'
+    return s
+  }
+
   // Structured (.csv): raw → processed → catalog. The processing_pipeline copies
   // to processed/structured/ and starts the Glue crawler on the S3 ObjectCreated
   // event. Poll /uploads/status so we do not mark cataloging complete before
@@ -801,7 +864,9 @@ function UploadDropzone({
 function UploadRow({ upload }) {
   const stepDefs = stepDefsFor(upload)
   const states = stepStatesFor(upload)
-  const structured = isStructuredUpload(upload)
+  // A policy-doc .csv goes to the KB (unstructured bucket), not the Glue/Athena
+  // structured path — so don't render the structured-specific row UI for it.
+  const structured = isStructuredUpload(upload) && !isPolicyDocUpload(upload)
   const finished = stepDefs.every(d => states[d.key] === 'done') || stepDefs.some(d => states[d.key] === 'failed')
   const readyForPublish = uploadReadyForGroupPublish(upload)
   const ts = upload.startedAt ? new Date(upload.startedAt) : null
@@ -902,8 +967,8 @@ const PATH_DEFS = [
   {
     id: 'policy',
     title: 'Policy Documents',
-    subtitle: '.pdf · .docx · .txt · .md · .json → Knowledge Base',
-    steps: STEP_DEFS,
+    subtitle: 'Text · CSV+Text · CSV+Text+docs → unstructured bucket → S3-Vectors KB',
+    steps: STEP_DEFS_POLICY,
     Icon: FileText,
     accent: { bg: '#eef2ff', icon: '#4f46e5', border: '#c7d2fe' },
   },
@@ -933,7 +998,7 @@ const PATH_DEFS = [
   },
 ]
 
-const STEP_ICON = { raw: Upload, processed: Server, kb: Database, catalog: Database, scan: CheckCircle, embed: Sparkles, vector: Boxes }
+const STEP_ICON = { raw: Upload, processed: Server, unstructured: Server, kb: Database, catalog: Database, scan: CheckCircle, embed: Sparkles, vector: Boxes }
 
 function PathCard({ path }) {
   const HeaderIcon = path.Icon
@@ -1121,6 +1186,9 @@ export default function DataPipeline() {
       })
     }
     const id = `upl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    // Fixed at upload time so the row's step defs + status stay stable even if the
+    // content-mix selector changes afterward.
+    const destination = uploadDestinationForMix(groupFileMix)
     const upload = {
       id,
       filename: file.name,
@@ -1129,6 +1197,7 @@ export default function DataPipeline() {
       state: 'uploading',
       startedAt: new Date().toISOString(),
       key: null,
+      destination,
       scanRun: null,
       processingStatus: null,
       projectId: projectTarget.id,
@@ -1142,10 +1211,15 @@ export default function DataPipeline() {
     }
     setUploads(prev => [upload, ...prev])
 
-    // 1. presign
+    // 1. presign — policy-doc mixes land in the unstructured bucket (policy KB);
+    //    every other mix keeps the existing raw-bucket flow (point 3).
     let pre
     try {
-      pre = await presignUpload({ filename: file.name, contentType: file.type })
+      pre = await presignUpload({
+        filename: file.name,
+        contentType: file.type,
+        destination,
+      })
     } catch (err) {
       updateUpload(id, { state: 'upload_failed', error: 'presign failed: ' + err.message })
       return
@@ -1416,9 +1490,10 @@ export default function DataPipeline() {
     const active = uploads.some(u => {
       if (u.state === 'upload_failed') return false
       if (uploadReadyForGroupPublish(u)) return false
-      if (isStructuredUpload(u)) {
+      if (isStructuredUpload(u) && !isPolicyDocUpload(u)) {
         return !['catalog_done', 'catalog_failed'].includes(u.processingStatus?.status)
       }
+      // Policy docs + unstructured docs: keep polling until the scan-run lands.
       return !u.scanRun || (u.scanRun.status !== 'COMPLETED' && u.scanRun.status !== 'FAILED')
     })
     if (!active) return
@@ -1428,8 +1503,13 @@ export default function DataPipeline() {
         const data = await listScanRuns(20)
         const runs = data?.scan_runs || []
         if (cancelled) return
+        // Policy-doc uploads live in the unstructured bucket, so /uploads/status
+        // (raw + processed only) would always report them missing and the row
+        // would stick on "running". Skip the status probe for them and let the
+        // scan-run match below drive KB ingest + scan.
         const statusUploads = uploads.filter(u =>
           u.key &&
+          !isPolicyDocUpload(u) &&
           (
             isStructuredUpload(u)
             || (!u.groupMaterialized && !u.groupError)

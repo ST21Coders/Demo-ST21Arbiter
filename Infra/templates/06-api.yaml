@@ -423,6 +423,11 @@ Resources:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-RawBucketName"
           PROCESSED_BUCKET:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketName"
+          # Curated policy-document bucket backing the S3-Vectors KB. Pre-existing
+          # (created out-of-band; referenced by deterministic name, not a CFN
+          # export). /uploads/presign routes policy-doc uploads here; the bucket's
+          # own default encryption applies (no SSE-KMS header echoed by the browser).
+          UNSTRUCTURED_BUCKET: !Sub "${Environment}-${ProjectName}-unstructured"
           S3_KMS_KEY_ARN:
             Fn::ImportValue: !Sub "${Environment}-${ProjectName}-S3KeyArn"
           # Synchronous compliance report generation (/reports/* + /compliance/report).

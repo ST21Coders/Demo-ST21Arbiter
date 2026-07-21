@@ -391,6 +391,24 @@ Runtimes and patches the api_handler Lambda with the resulting runtime ARNs
 > over an STS cross-account role; it populates the same `cmdb_ci` / `cmdb_rel_ci`
 > contract, so no ARBITER code changes are needed to switch.
 
+> **ServiceNow AgentCore Gateway (optional, read-path hardening):** the
+> specialist's Table-API **reads** can be fronted by a Bedrock AgentCore
+> Gateway with an OpenAPI target so the ServiceNow credential is injected at
+> the edge (agent code never sees it). Writes stay on the direct REST path.
+> Requires a ServiceNow **Inbound REST API key** merged into the secret as
+> `api_key`, plus the updated 03-identity/09-agentcore stacks (gateway M2M
+> client + `ServicenowGatewayRole` exports):
+> ```bash
+> source scripts/.venv/bin/activate
+> AWS_REGION=us-east-1 ENVIRONMENT=dev PROJECT=st21arbiter-poc \
+>   python3 scripts/setup_servicenow_gateway.py
+> # then re-run deploy_agents.py — it discovers the READY gateway and wires
+> # SERVICENOW_GW* env onto the runtime. No gateway → direct REST (unchanged).
+> ```
+> Inbound auth is CUSTOM_JWT via the Cognito `gateway-m2m` client-credentials
+> client; the specialist fetches its token at cold start and falls back to
+> direct REST on any gateway error.
+
 ```bash
 cd ST21-ARBITER
 KB_ID=<KB_ID> \
@@ -411,7 +429,10 @@ aws bedrock-agentcore-control list-agent-runtimes --region us-east-1 \
   --output table
 ```
 
-Runtimes in `READY` state (sharepoint, awsconfig, zscaler, paloalto, structured, jira, servicenow, master).
+Runtimes in `READY` state (sharepoint, awsconfig, zscaler, paloalto, structured,
+sales, hr, jira, servicenow, claim, fraud, debug, master — 13 total; claim/fraud/
+debug are the lightweight Insurance/OnCall assist agents behind the Smart Rabbit
+page's catalog).
 
 ```bash
 aws lambda get-function-configuration --function-name dev-st21arbiter-poc-api-handler \
@@ -447,7 +468,7 @@ DEMO_PASSWORD='<your-shared-demo-password>' ./deploy.sh
 The preflight banner should now read:
 
 ```
-[…]   ✓ KbId=2ADHACW6LB / DataSource=KLUEZ1RNM5 → F1 auto-ingest chain ENABLED
+[…]   ✓ KbId=SQCLG3W09Y / DataSource=NM2FVXL5T6 → F1 auto-ingest chain ENABLED
 […]   ✓ MasterAgentRuntimeArn=arn:aws:bedrock-agentcore:… → scheduled scanner ENABLED
 ```
 

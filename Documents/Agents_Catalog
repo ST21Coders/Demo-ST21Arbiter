@@ -1,0 +1,21 @@
+Enhance servicenow_specialist:
+1. Explore options to securely connect to Service Now Instance (API call via Gateway or MCP call via Gateway)
+2. Agent should have permissions to retrieve data from ServiceNow . Example Query to list CI items responded below. Make it work
+example: List all CIs of the `Web Server` class. However, the available tools don't include a direct way to query CIs by CMDB class. The `query_ci` function only resolves individual CIs by name/ID/ARN, and `get_affected_cis` traverses relationships from a specific CI.
+
+To list all CIs of the `Web Server` class, you would need to:
+
+1. Use the ServiceNow UI directly (Navigate to CMDB > CIs > List > Filter by `Class = Web Server`)
+
+2. Or use a REST API query against the `cmdb_ci` table with a filter like `class=Web Server` "
+
+Task 3: Think like a Principle Solutions Architect. 
+1. Seggregate Agents into "AgentsCatalog" with groups as mentoned below. 
+a. IT_Assist_Admin: Sharepoint, ZScaler,AWSconfig, PaloAlto
+b. IT_Assist_Work: ServiceNow, Jira
+c. Employee_Assist: HR
+d. Data_Assist: Strucutured Data, Sales
+e. Insurance_Assist: New agents to be added (Claim specialist, Fraud Specialist)
+f. OnCall_Assist: New agents to be added (Debug specialist)
+2. Add a new page "Smart Rabbit" under "INTELLIGENCE". Add agent catalog items and allow users to select and initiate a chat with specific catalog group & specific agent. Probably two dropdowns. If needed add new orchestrator agent with name "rabbit21" which acts as Ochestrator and invokes user prompts to selected group & agent.
+3. Queries submitted should be forwarded to specific agent. Just like Analys chat page, user can swich catalog group and agent in a single conversation.

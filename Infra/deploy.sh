@@ -33,7 +33,7 @@ SAM_STACKS=(
   "13-data-ingest"  # async data-ingest worker (container-image Lambda); needs Docker + ECR
 )
 CF_STACKS_POST=(
-  # "07-bedrock"       # deferred: KB requires OpenSearch index pre-creation; see scripts/setup_bedrock_kb.py
+  "07-bedrock"         # S3-Vectors-backed KB + unstructured docs bucket (fully IaC; no pre-created index)
   # "08-observability" # deferred: dashboards/alarms — revisit after AgentCore is up
   "09-agentcore"       # IAM role + SG + ECR repos for AgentCore Runtime
   "10-ui-hosting"      # S3 + CloudFront SPA distribution (WAF gated by AttachWaf)

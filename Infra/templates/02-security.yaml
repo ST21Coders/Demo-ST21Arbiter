@@ -159,7 +159,9 @@ Resources:
               # Needed for /uploads/presign and /uploads/list. PutObject must
               # be allowed on the role so the presigned URL the role signs is
               # actually usable; the URL itself enforces the key prefix and
-              # KMS settings, but IAM still has to permit the action.
+              # KMS settings, but IAM still has to permit the action. The
+              # -unstructured bucket (pre-existing; backs the S3-Vectors policy
+              # KB) is included so policy-doc presigned PUTs succeed.
               - Sid: RawProcessedBucketUploads
                 Effect: Allow
                 Action:
@@ -172,6 +174,8 @@ Resources:
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-raw/*"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed"
                   - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-processed/*"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-unstructured"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-unstructured/*"
               # Data Grouping materializes project folders and starts the same
               # structured crawler used by the processing pipeline.
               - Sid: DataGroupingCrawlerStart

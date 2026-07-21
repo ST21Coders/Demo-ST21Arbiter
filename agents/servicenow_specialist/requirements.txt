@@ -5,6 +5,10 @@ boto3>=1.34.0
 # client wrapped by ServiceNowClient in agent.py. (No live-REST specialist
 # existed before this one — zscaler's REST path is a stub — so this is a new dep.)
 requests>=2.33.0               # CVE-2024-47081 (.netrc leak) + CVE-2026-25645 (temp-file reuse) fixed in 2.33.0
+# MCP client for the AgentCore Gateway read path (streamable HTTP) — the
+# gateway fronts the Table API reads and injects the API key at the edge.
+# strands-agents provides MCPClient; mcp provides the transport.
+mcp>=1.0.0
 # AWS distro of OpenTelemetry — enables AgentCore Observability traces in the
 # Console. Used together with `opentelemetry-instrument` in the Dockerfile CMD.
 aws-opentelemetry-distro>=0.12.0
