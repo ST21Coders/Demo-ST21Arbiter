@@ -1,7 +1,16 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-  ARBITER – Bedrock: Knowledge Base (policy-kb) backed by OpenSearch Serverless,
-  Guardrails v2 (content, PII, denied topics, grounding).
+  ARBITER – Bedrock Knowledge Base (policy-kb) backed by Amazon S3 Vectors.
+  Replaces the OpenSearch-Serverless-backed KB (created out-of-band by
+  scripts/setup_bedrock_kb.py). Provisions an S3 Vectors bucket + index
+  (Titan v2 / 1024 dims / cosine), the KB service role, the Knowledge Base, and
+  an S3 data source over the PRE-EXISTING unstructured-documents bucket
+  (dev-<env>-<project>-unstructured — created out-of-band; referenced here, NOT
+  managed by this stack). Fully IaC — S3 Vectors removes the OpenSearch index
+  chicken-and-egg, so no pre-created index or out-of-band script step is required.
+  Guardrails are intentionally NOT defined here — they remain owned by
+  scripts/setup_bedrock_kb.py so this stack does not create a second, orphan
+  guardrail.
 
 Parameters:
   Environment:
@@ -14,16 +23,68 @@ Parameters:
   EmbeddingModelArn:
     Type: String
     Default: "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0"
-  OpenSearchIndexName:
+    Description: >
+      Bedrock embedding model. Titan Text Embeddings v2 → 1024 dims, float32.
+      Must match the VectorIndex Dimension below.
+  VectorIndexName:
     Type: String
     Default: "policy-vectors"
+    Description: Name of the S3 Vectors index that backs the Knowledge Base.
 
 Resources:
-  # ──────────────────────────── KB Service Role ────────────────
+  # ──────────────────────────── S3: Unstructured Documents Bucket ─
+  # NOTE: the unstructured docs bucket (dev-<env>-<project>-unstructured) is
+  # PRE-EXISTING — created out-of-band, NOT managed by this stack. It is only
+  # referenced (by deterministic name/ARN) from the KB data source, the KB role,
+  # and the outputs below. It is the curated source-of-record for the KB: ONLY
+  # unstructured formats (.pdf/.txt/.md/.json/.doc/.docx/.xlsx). Bedrock's S3
+  # data source can also ingest .csv, so the "unstructured only" guarantee is
+  # enforced by keeping tabular files OUT of the bucket (see
+  # Documents/sunset_opensearch.md, Phase 1 populate step). If it ever needs to
+  # be managed by CloudFormation, use a `cloudformation create-change-set
+  # --import-existing-resources` resource-import instead of a plain create.
+
+  # ──────────────────────────── S3 Vectors: Vector Bucket ────────
+  # SSE-S3 (AES256) by default (EncryptionConfiguration omitted) — avoids adding
+  # the s3vectors service principal to the shared CMK policy in 02-security.yaml.
+  # The embeddings themselves are non-sensitive derived data; the source docs
+  # bucket keeps its own (out-of-band) encryption. To use SSE-KMS here instead,
+  # add EncryptionConfiguration + grant s3vectors.amazonaws.com on the CMK.
+  PolicyVectorBucket:
+    Type: AWS::S3Vectors::VectorBucket
+    Properties:
+      VectorBucketName: !Sub "${Environment}-${ProjectName}-vectors-kb"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-vectors-kb"
+
+  # ──────────────────────────── S3 Vectors: Index ────────────────
+  # Immutable schema. 1024 dims / float32 / cosine matches Titan v2 and the
+  # repo's other S3-Vectors indexes (rag_src/arbiter_rag/vectors.py). The two
+  # NonFilterableMetadataKeys are REQUIRED by Bedrock for a bring-your-own index
+  # (AMAZON_BEDROCK_TEXT holds the chunk text, AMAZON_BEDROCK_METADATA the doc
+  # metadata) — without them ingestion fails.
+  PolicyVectorIndex:
+    Type: AWS::S3Vectors::Index
+    Properties:
+      VectorBucketArn: !Ref PolicyVectorBucket
+      IndexName: !Ref VectorIndexName
+      DataType: float32
+      Dimension: 1024
+      DistanceMetric: cosine
+      MetadataConfiguration:
+        NonFilterableMetadataKeys:
+          - AMAZON_BEDROCK_TEXT
+          - AMAZON_BEDROCK_METADATA
+
+  # ──────────────────────────── KB Service Role ─────────────────
+  # Distinct name (-kb-s3v-role): the old imperative role -kb-role is still in
+  # use by the OpenSearch KB throughout the phased migration — reusing the name
+  # would fail CREATE.
   KnowledgeBaseRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${Environment}-${ProjectName}-kb-role"
+      RoleName: !Sub "${Environment}-${ProjectName}-kb-s3v-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -34,6 +95,8 @@ Resources:
             Condition:
               StringEquals:
                 aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:knowledge-base/*"
       Policies:
         - PolicyName: KBPolicy
           PolicyDocument:
@@ -44,73 +107,76 @@ Resources:
                 Action:
                   - bedrock:InvokeModel
                 Resource: !Ref EmbeddingModelArn
-              - Sid: OpenSearchAccess
+              - Sid: S3VectorsReadWrite
                 Effect: Allow
                 Action:
-                  - aoss:APIAccessAll
+                  - s3vectors:PutVectors
+                  - s3vectors:GetVectors
+                  - s3vectors:DeleteVectors
+                  - s3vectors:QueryVectors
+                  - s3vectors:ListVectors
+                  - s3vectors:GetIndex
                 Resource:
-                  Fn::ImportValue: !Sub "${Environment}-${ProjectName}-OpenSearchCollectionArn"
-              - Sid: S3Read
+                  # Some s3vectors calls authorize at bucket scope, others at
+                  # index scope — grant both.
+                  - !Ref PolicyVectorBucket
+                  - !Ref PolicyVectorIndex
+              - Sid: S3ReadSourceDocs
                 Effect: Allow
                 Action:
                   - s3:GetObject
                   - s3:ListBucket
                 Resource:
-                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketArn"
-                  - !Sub
-                    - "${BucketArn}/*"
-                    - BucketArn:
-                        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketArn"
-              - Sid: KMSDecrypt
+                  # Pre-existing bucket — referenced by deterministic ARN.
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-unstructured"
+                  - !Sub "arn:aws:s3:::${Environment}-${ProjectName}-unstructured/*"
+              - Sid: KMSDecryptSourceDocs
                 Effect: Allow
                 Action:
                   - kms:Decrypt
+                  - kms:GenerateDataKey
                   - kms:DescribeKey
                 Resource:
                   - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-S3KeyArn"
-                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
       Tags:
         - Key: Name
-          Value: !Sub "${Environment}-${ProjectName}-kb-role"
+          Value: !Sub "${Environment}-${ProjectName}-kb-s3v-role"
 
-  # ──────────────────────────── Bedrock Knowledge Base ─────────
+  # ──────────────────────────── Bedrock Knowledge Base ──────────
+  # Distinct name (-policy-kb-s3v) — see KnowledgeBaseRole comment.
+  # Ordering is enforced implicitly: IndexArn (!Ref PolicyVectorIndex) and
+  # RoleArn (!GetAtt KnowledgeBaseRole.Arn) create the dependencies.
   PolicyKnowledgeBase:
     Type: AWS::Bedrock::KnowledgeBase
     Properties:
-      Name: !Sub "${Environment}-${ProjectName}-policy-kb"
-      Description: Policy document knowledge base for ARBITER conflict resolution
+      Name: !Sub "${Environment}-${ProjectName}-policy-kb-s3v"
+      Description: Policy document knowledge base (S3 Vectors) for ARBITER conflict resolution
       RoleArn: !GetAtt KnowledgeBaseRole.Arn
       KnowledgeBaseConfiguration:
         Type: VECTOR
         VectorKnowledgeBaseConfiguration:
           EmbeddingModelArn: !Ref EmbeddingModelArn
       StorageConfiguration:
-        Type: OPENSEARCH_SERVERLESS
-        OpensearchServerlessConfiguration:
-          CollectionArn:
-            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-OpenSearchCollectionArn"
-          VectorIndexName: !Ref OpenSearchIndexName
-          FieldMapping:
-            VectorField: embedding
-            TextField: text
-            MetadataField: metadata
+        Type: S3_VECTORS
+        S3VectorsConfiguration:
+          IndexArn: !Ref PolicyVectorIndex
       Tags:
-        Name: !Sub "${Environment}-${ProjectName}-policy-kb"
+        Name: !Sub "${Environment}-${ProjectName}-policy-kb-s3v"
 
-  # ──────────────────────────── KB Data Source ─────────────────
+  # ──────────────────────────── KB Data Source ──────────────────
+  # No InclusionPrefixes: the whole UnstructuredBucket is the curated corpus.
+  # Chunking matches the retired setup_bedrock_kb.py (FIXED_SIZE 512 / 20%).
   PolicyKBDataSource:
     Type: AWS::Bedrock::DataSource
     Properties:
       KnowledgeBaseId: !Ref PolicyKnowledgeBase
-      Name: !Sub "${Environment}-${ProjectName}-processed-docs"
-      Description: Processed policy documents from S3
+      Name: !Sub "${Environment}-${ProjectName}-unstructured-docs"
+      Description: Unstructured policy documents from the dedicated unstructured S3 bucket
       DataSourceConfiguration:
         Type: S3
         S3Configuration:
-          BucketArn:
-            Fn::ImportValue: !Sub "${Environment}-${ProjectName}-ProcessedBucketArn"
-          InclusionPrefixes:
-            - policies/
+          # Pre-existing bucket — referenced by deterministic ARN, not created here.
+          BucketArn: !Sub "arn:aws:s3:::${Environment}-${ProjectName}-unstructured"
       VectorIngestionConfiguration:
         ChunkingConfiguration:
           ChunkingStrategy: FIXED_SIZE
@@ -118,84 +184,35 @@ Resources:
             MaxTokens: 512
             OverlapPercentage: 20
 
-  # ──────────────────────────── Bedrock Guardrails ─────────────
-  ArbiterGuardrail:
-    Type: AWS::Bedrock::Guardrail
-    Properties:
-      Name: !Sub "${Environment}-${ProjectName}-guardrail"
-      Description: Content safety, PII filtering, denied topics, and grounding for ARBITER agents
-      BlockedInputMessaging: "Your request was blocked by content safety policies."
-      BlockedOutputsMessaging: "The response was blocked by content safety policies."
-      ContentPolicyConfig:
-        FiltersConfig:
-          - Type: SEXUAL
-            InputStrength: HIGH
-            OutputStrength: HIGH
-          - Type: VIOLENCE
-            InputStrength: HIGH
-            OutputStrength: HIGH
-          - Type: HATE
-            InputStrength: HIGH
-            OutputStrength: HIGH
-          - Type: INSULTS
-            InputStrength: HIGH
-            OutputStrength: HIGH
-          - Type: MISCONDUCT
-            InputStrength: HIGH
-            OutputStrength: HIGH
-          - Type: PROMPT_ATTACK
-            InputStrength: HIGH
-            OutputStrength: NONE
-      SensitiveInformationPolicyConfig:
-        PiiEntitiesConfig:
-          - Type: US_SOCIAL_SECURITY_NUMBER
-            Action: ANONYMIZE
-          - Type: CREDIT_DEBIT_CARD_NUMBER
-            Action: ANONYMIZE
-          - Type: AWS_ACCESS_KEY
-            Action: BLOCK
-          - Type: AWS_SECRET_KEY
-            Action: BLOCK
-        RegexesConfig:
-          - Name: PrivateIPv4
-            Description: Block private IPv4 addresses in outputs
-            Pattern: "\\b(10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|172\\.(1[6-9]|2\\d|3[01])\\.\\d{1,3}\\.\\d{1,3}|192\\.168\\.\\d{1,3}\\.\\d{1,3})\\b"
-            Action: ANONYMIZE
-      TopicPolicyConfig:
-        TopicsConfig:
-          - Name: CredentialDisclosure
-            Definition: Requests asking the agent to reveal stored credentials, API keys, or secrets
-            Type: DENY
-          - Name: InfrastructureDestruction
-            Definition: Requests to delete VPCs, subnets, production databases, or critical infrastructure
-            Type: DENY
-          - Name: PrivilegeEscalation
-            Definition: Requests to grant admin or root access, create IAM users with full permissions, or bypass security controls
-            Type: DENY
-      Tags:
-        - Key: Name
-          Value: !Sub "${Environment}-${ProjectName}-guardrail"
-
-  GuardrailVersion:
-    Type: AWS::Bedrock::GuardrailVersion
-    Properties:
-      GuardrailIdentifier: !GetAtt ArbiterGuardrail.GuardrailId
-      Description: Initial version
-
 Outputs:
+  # KB id + DataSource id only exist post-create — the operator reads these
+  # outputs to repoint the 4 agents (KB_ID) and to run StartIngestionJob (DS id).
   KnowledgeBaseId:
     Value: !Ref PolicyKnowledgeBase
     Export:
-      Name: !Sub "${Environment}-${ProjectName}-KnowledgeBaseId"
+      Name: !Sub "${Environment}-${ProjectName}-S3VKnowledgeBaseId"
   KnowledgeBaseArn:
     Value: !GetAtt PolicyKnowledgeBase.KnowledgeBaseArn
     Export:
-      Name: !Sub "${Environment}-${ProjectName}-KnowledgeBaseArn"
-  GuardrailId:
-    Value: !GetAtt ArbiterGuardrail.GuardrailId
+      Name: !Sub "${Environment}-${ProjectName}-S3VKnowledgeBaseArn"
+  DataSourceId:
+    Value: !GetAtt PolicyKBDataSource.DataSourceId
     Export:
-      Name: !Sub "${Environment}-${ProjectName}-GuardrailId"
-  GuardrailVersionId:
-    Value: !GetAtt GuardrailVersion.Version
+      Name: !Sub "${Environment}-${ProjectName}-S3VDataSourceId"
+  VectorBucketArn:
+    Value: !Ref PolicyVectorBucket
     Export:
-      Name: !Sub "${Environment}-${ProjectName}-GuardrailVersionId"
+      Name: !Sub "${Environment}-${ProjectName}-S3VVectorBucketArn"
+  IndexArn:
+    Value: !Ref PolicyVectorIndex
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-S3VIndexArn"
+  # Pre-existing bucket (not a stack resource) — echoed for operator convenience.
+  UnstructuredBucketName:
+    Value: !Sub "${Environment}-${ProjectName}-unstructured"
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-UnstructuredBucketName"
+  UnstructuredBucketArn:
+    Value: !Sub "arn:aws:s3:::${Environment}-${ProjectName}-unstructured"
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-UnstructuredBucketArn"

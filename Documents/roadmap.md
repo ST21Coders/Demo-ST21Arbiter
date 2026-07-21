@@ -24,7 +24,7 @@ This roadmap was produced by a 5-architect design panel + adversarial critique +
 | 5 | **Team/tag ownership & routing** (owner vs consumer vs platform team; tag → tool) | ❌ Findings carry `domains` only — no team/owner/tags | **Customer's #1 concern** — full ownership layer |
 | 6 | **Analyst/Dev persona** + "test a policy before pushing to Zscaler" | ✅ 4 personas (ciso/soc/grc/employee); deterministic scan engine does no DB writes in `_run_scan` | Analyst persona + **what-if dry-run** scan |
 
-**Key architectural leverage (verified live):** the F1 ingest→scan chain is already wired and the env is set — `KB_ID=2ADHACW6LB`, `KB_DATA_SOURCE_ID=KLUEZ1RNM5`, `SCANNER_LAMBDA_NAME` set, `MASTER_AGENT_RUNTIME_ARN` patched, **all 5 runtimes READY**. The scan engine (`run_rule_pack`) is a pure deterministic function. RBAC is table-driven ([PersonaContext.jsx](../ui/src/contexts/PersonaContext.jsx)). This is why several slices are real, not façade, inside the window.
+**Key architectural leverage (verified live):** the F1 ingest→scan chain is already wired and the env is set — `KB_ID=SQCLG3W09Y`, `KB_DATA_SOURCE_ID=NM2FVXL5T6`, `SCANNER_LAMBDA_NAME` set, `MASTER_AGENT_RUNTIME_ARN` patched, **all 5 runtimes READY**. The scan engine (`run_rule_pack`) is a pure deterministic function. RBAC is table-driven ([PersonaContext.jsx](../ui/src/contexts/PersonaContext.jsx)). This is why several slices are real, not façade, inside the window.
 
 ### 1a. Team ownership model — Owner / Consumer / Platform
 

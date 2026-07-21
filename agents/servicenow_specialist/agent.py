@@ -43,6 +43,16 @@ Environment variables:
                        configured)" mode (mock CHG ids, like jira).
   SERVICENOW_MAX_DEPTH cmdb_rel_ci BFS depth cap (default 3).
   SERVICENOW_SNAPSHOT_LIMIT  Per-table row cap for cmdb_snapshot (default 200).
+  SERVICENOW_GATEWAY_URL     AgentCore Gateway MCP endpoint fronting the Table
+                             API reads (setup_servicenow_gateway.py). When set,
+                             get_table/get_one route via the gateway (API key
+                             injected at the edge) and fall back to direct REST
+                             on any error. Unset = direct REST only.
+  SERVICENOW_GW_TOKEN_URL    Cognito /oauth2/token endpoint for the M2M client.
+  SERVICENOW_GW_CLIENT_ID    Gateway M2M app client id (03-identity).
+  SERVICENOW_GW_USER_POOL_ID User pool id — used to read the M2M client secret
+                             at cold start via cognito-idp:DescribeUserPoolClient.
+  SERVICENOW_GW_SCOPE        OAuth scope for the client-credentials grant.
 """
 from __future__ import annotations
 
@@ -71,6 +81,14 @@ GUARDRAIL_ID = os.environ.get("GUARDRAIL_ID")
 GUARDRAIL_VERSION = os.environ.get("GUARDRAIL_VERSION", "DRAFT")
 SERVICENOW_API_BASE = os.environ.get("SERVICENOW_API_BASE", "").strip().rstrip("/")
 SERVICENOW_SECRET_ID = os.environ.get("SERVICENOW_SECRET_ID", "").strip()
+# AgentCore Gateway (read path). All five must be set for gateway mode;
+# deploy_agents.py wires them only when the gateway is READY.
+SERVICENOW_GATEWAY_URL = os.environ.get("SERVICENOW_GATEWAY_URL", "").strip()
+SERVICENOW_GW_TOKEN_URL = os.environ.get("SERVICENOW_GW_TOKEN_URL", "").strip()
+SERVICENOW_GW_CLIENT_ID = os.environ.get("SERVICENOW_GW_CLIENT_ID", "").strip()
+SERVICENOW_GW_USER_POOL_ID = os.environ.get("SERVICENOW_GW_USER_POOL_ID", "").strip()
+SERVICENOW_GW_SCOPE = os.environ.get("SERVICENOW_GW_SCOPE", "").strip()
+GW_TOOL_PREFIX = "servicenow-table___"  # gateway target name + MCP separator
 # Bounded blast-radius traversal — cap depth so a richly-related CMDB can't
 # explode the query count. Per-node fan-out is capped in the client.
 MAX_DEPTH = max(1, int(os.environ.get("SERVICENOW_MAX_DEPTH", "3") or "3"))
@@ -83,6 +101,9 @@ operator working the live ServiceNow instance over its REST API.
 
 You can READ and WRITE across CMDB, Incident, Problem, Change, and Asset Management:
   - query_ci / get_ci_details: resolve an AWS resource id/ARN or name to a CMDB CI.
+  - list_cis_by_class: list ALL CIs of a CMDB class ("List all CIs of the Web Server
+    class") — accepts friendly names (web server, application, load balancer, database,
+    network, server) or raw sys_class_name values like cmdb_ci_web_server.
   - get_affected_cis: walk cmdb_rel_ci for the blast radius of a change — what
     depends on, and what is depended on by, a CI.
   - get_ci_owner: the support/assignment group that owns a CI (who does the work).
@@ -105,6 +126,88 @@ Keep answers concise and factual.
 
 app = BedrockAgentCoreApp()
 secrets_client = boto3.client("secretsmanager", region_name=REGION)
+
+
+# ──────────────────────────── AgentCore Gateway reader ───────────
+class GatewayReader:
+    """Read-only ServiceNow reach via the AgentCore Gateway's MCP endpoint.
+
+    The gateway fronts a read-only subset of the Table API (OpenAPI target
+    servicenow-table) and injects the ServiceNow API key at the edge — this
+    process never sees the ServiceNow credential. Inbound auth is a Cognito
+    client-credentials token; the M2M client secret is read once at cold start
+    via cognito-idp:DescribeUserPoolClient (never stored anywhere).
+    """
+
+    def __init__(self):
+        self._client_secret: str | None = None
+        self._token: str | None = None
+        self._token_expiry = 0.0
+
+    @staticmethod
+    def configured() -> bool:
+        return bool(SERVICENOW_GATEWAY_URL and SERVICENOW_GW_TOKEN_URL
+                    and SERVICENOW_GW_CLIENT_ID and SERVICENOW_GW_USER_POOL_ID)
+
+    def _get_client_secret(self) -> str:
+        if self._client_secret is None:
+            cognito = boto3.client("cognito-idp", region_name=REGION)
+            resp = cognito.describe_user_pool_client(
+                UserPoolId=SERVICENOW_GW_USER_POOL_ID,
+                ClientId=SERVICENOW_GW_CLIENT_ID)
+            self._client_secret = resp["UserPoolClient"]["ClientSecret"]
+        return self._client_secret
+
+    def _get_token(self) -> str:
+        import time
+        if self._token and time.time() < self._token_expiry - 60:
+            return self._token
+        data = {"grant_type": "client_credentials"}
+        if SERVICENOW_GW_SCOPE:
+            data["scope"] = SERVICENOW_GW_SCOPE
+        resp = requests.post(
+            SERVICENOW_GW_TOKEN_URL, data=data,
+            auth=(SERVICENOW_GW_CLIENT_ID, self._get_client_secret()),
+            timeout=HTTP_TIMEOUT)
+        resp.raise_for_status()
+        body = resp.json()
+        self._token = body["access_token"]
+        self._token_expiry = time.time() + int(body.get("expires_in", 3600))
+        return self._token
+
+    def call(self, tool: str, arguments: dict[str, Any]) -> Any:
+        """Invoke one gateway tool; returns the parsed Table API JSON body."""
+        # Lazy imports so a direct-REST-only deploy without the mcp package
+        # keeps working (requirements ship it, but degrade gracefully anyway).
+        from mcp.client.streamable_http import streamablehttp_client
+        from strands.tools.mcp import MCPClient
+
+        token = self._get_token()
+        mcp_client = MCPClient(lambda: streamablehttp_client(
+            SERVICENOW_GATEWAY_URL,
+            headers={"Authorization": f"Bearer {token}"}))
+        with mcp_client:
+            result = mcp_client.call_tool_sync(
+                tool_use_id=f"arbiter-{tool}",
+                name=f"{GW_TOOL_PREFIX}{tool}",
+                arguments=arguments,
+                read_timeout_seconds=HTTP_TIMEOUT,
+            )
+        parts: list[str] = []
+        for block in result.get("content") or []:
+            if isinstance(block, dict) and "text" in block:
+                parts.append(str(block["text"]))
+            elif isinstance(block, dict) and "json" in block:
+                return block["json"]
+        text = "\n".join(parts).strip()
+        if result.get("status") == "error":
+            raise RuntimeError(f"gateway tool {tool} error: {text[:300]}")
+        return json.loads(text) if text else {}
+
+
+_GATEWAY: GatewayReader | None = GatewayReader() if GatewayReader.configured() else None
+if _GATEWAY:
+    log.info("ServiceNow gateway mode enabled: %s", SERVICENOW_GATEWAY_URL)
 
 
 # ──────────────────────────── ServiceNow REST client ─────────────
@@ -159,7 +262,26 @@ class ServiceNowClient:
 
     def get_table(self, table: str, *, query: str = "", fields: str = "",
                   limit: int = 50, display_value: str = "false") -> list[dict[str, Any]]:
-        """GET /api/now/table/{table} with sysparm_query/fields/limit."""
+        """GET /api/now/table/{table} with sysparm_query/fields/limit.
+
+        Reads route via the AgentCore Gateway when configured (API key injected
+        at the edge), falling back to direct REST on any gateway error.
+        """
+        if _GATEWAY:
+            try:
+                args: dict[str, Any] = {
+                    "tableName": table,
+                    "sysparm_limit": limit,
+                    "sysparm_display_value": display_value,
+                }
+                if query:
+                    args["sysparm_query"] = query
+                if fields:
+                    args["sysparm_fields"] = fields
+                body = _GATEWAY.call("getTableRecords", args)
+                return (body or {}).get("result", [])
+            except Exception as e:
+                log.warning("Gateway read failed (%s) — falling back to direct REST", e)
         params = {"sysparm_limit": str(limit), "sysparm_display_value": display_value}
         if query:
             params["sysparm_query"] = query
@@ -202,7 +324,20 @@ class ServiceNowClient:
 
     def get_one(self, table: str, sys_id: str, *, fields: str = "",
                 display_value: str = "true") -> dict[str, Any]:
-        """GET a single record by sys_id."""
+        """GET a single record by sys_id (gateway-first, like get_table)."""
+        if _GATEWAY:
+            try:
+                args: dict[str, Any] = {
+                    "tableName": table,
+                    "sysId": sys_id,
+                    "sysparm_display_value": display_value,
+                }
+                if fields:
+                    args["sysparm_fields"] = fields
+                body = _GATEWAY.call("getRecordById", args)
+                return (body or {}).get("result", {})
+            except Exception as e:
+                log.warning("Gateway read failed (%s) — falling back to direct REST", e)
         params = {"sysparm_display_value": display_value}
         if fields:
             params["sysparm_fields"] = fields
@@ -401,6 +536,64 @@ def query_ci(resource: str) -> str:
     return (f"CI: {ci.get('name')} (class={ci.get('sys_class_name')}, "
             f"sys_id={ci.get('sys_id')}, correlation_id={ci.get('correlation_id')}). "
             f"Owning team: {owner['owner_team'] or 'unassigned'}.")
+
+
+# Friendly class-name → cmdb_ci sys_class_name. Raw cmdb_ci_* values pass
+# through untouched, so any class works even if unmapped here.
+_CI_CLASS_ALIASES = {
+    "web server": "cmdb_ci_web_server",
+    "webserver": "cmdb_ci_web_server",
+    "application": "cmdb_ci_appl",
+    "app": "cmdb_ci_appl",
+    "load balancer": "cmdb_ci_lb",
+    "loadbalancer": "cmdb_ci_lb",
+    "lb": "cmdb_ci_lb",
+    "database": "cmdb_ci_db_instance",
+    "db": "cmdb_ci_db_instance",
+    "network": "cmdb_ci_network",
+    "server": "cmdb_ci_server",
+    "hardware": "cmdb_ci_hardware",
+}
+
+
+@tool
+def list_cis_by_class(ci_class: str, fields: str = "", limit: int = 20) -> str:
+    """List all CMDB CIs of a given class, e.g. "List all CIs of the Web Server class".
+
+    Args:
+        ci_class: CMDB class — a friendly name ("Web Server", "Application",
+            "Load Balancer", "Database", "Network", "Server", "Hardware") or a
+            raw sys_class_name like "cmdb_ci_web_server".
+        fields: Optional comma-separated extra fields to return.
+        limit: Max CIs to return (1-100, default 20).
+    """
+    client = _get_client()
+    if not client:
+        return "(ServiceNow not configured)"
+    raw = (ci_class or "").strip()
+    cls = raw if raw.lower().startswith("cmdb_ci") else _CI_CLASS_ALIASES.get(raw.lower(), "")
+    if not cls:
+        known = ", ".join(sorted(set(_CI_CLASS_ALIASES.values())))
+        return (f"Unknown CMDB class '{raw}'. Use a raw sys_class_name "
+                f"(e.g. one of: {known}) or a friendly name like 'Web Server'.")
+    limit = max(1, min(100, limit))
+    default_fields = "name,sys_class_name,operational_status,support_group,correlation_id,sys_id"
+    want = default_fields + (f",{fields.strip()}" if fields.strip() else "")
+    try:
+        rows = client.get_table("cmdb_ci", query=f"sys_class_name={cls}",
+                                fields=want, limit=limit)
+    except Exception as e:
+        return f"(ServiceNow error listing class {cls}: {type(e).__name__}: {e})"
+    if not rows:
+        return f"No CIs found in class {cls}."
+    lines = [f"CIs in class {cls}: {len(rows)} (limit {limit})"]
+    for r in rows:
+        grp = r.get("support_group.name") or r.get("support_group") or "unassigned"
+        if isinstance(grp, dict):
+            grp = grp.get("display_value") or grp.get("value") or "unassigned"
+        lines.append(f"- {r.get('name')} [status={r.get('operational_status') or '?'}, "
+                     f"group={grp}, correlation_id={r.get('correlation_id') or '-'}]")
+    return "\n".join(lines)
 
 
 @tool
@@ -1023,7 +1216,7 @@ def build_agent() -> Agent:
     return Agent(
         model=BedrockModel(**_model_kwargs()),
         system_prompt=SYSTEM_PROMPT,
-        tools=[query_ci, get_affected_cis, get_ci_owner, get_ci_details, query_change,
+        tools=[query_ci, list_cis_by_class, get_affected_cis, get_ci_owner, get_ci_details, query_change,
                query_incident, update_incident, comment_incident,
                query_problem, comment_problem, query_asset, detect_drift],
     )

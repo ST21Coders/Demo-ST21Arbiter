@@ -94,6 +94,9 @@ SPECIALIST_RUNTIME_ARNS = {
     "hr":         os.environ.get("HR_RUNTIME_ARN", "").strip(),
     "jira":       os.environ.get("JIRA_RUNTIME_ARN", "").strip(),
     "servicenow": os.environ.get("SERVICENOW_RUNTIME_ARN", "").strip(),
+    "claim":      os.environ.get("CLAIM_RUNTIME_ARN", "").strip(),
+    "fraud":      os.environ.get("FRAUD_RUNTIME_ARN", "").strip(),
+    "debug":      os.environ.get("DEBUG_RUNTIME_ARN", "").strip(),
 }
 SESSIONS_TABLE = os.environ.get("SESSIONS_TABLE", "")
 CONFLICTS_TABLE = os.environ.get("CONFLICTS_TABLE", "")
@@ -106,6 +109,10 @@ TOKEN_USAGE_TABLE = os.environ.get("TOKEN_USAGE_TABLE", "")
 MEMORY_ID = os.environ.get("MEMORY_ID", "").strip()
 RAW_BUCKET = os.environ.get("RAW_BUCKET", "").strip()
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", "").strip()
+# Curated policy-document bucket that backs the S3-Vectors policy KB. Uploads
+# for the policy-doc group mixes are presigned into this bucket (see
+# _handle_uploads_presign) instead of RAW_BUCKET. Empty falls back to RAW.
+UNSTRUCTURED_BUCKET = os.environ.get("UNSTRUCTURED_BUCKET", "").strip()
 REPORTS_BUCKET = os.environ.get("REPORTS_BUCKET", "").strip()
 GLUE_CRAWLER_NAME = (
     os.environ.get("GLUE_CRAWLER_NAME", "").strip()
@@ -446,7 +453,12 @@ def _handle_chat(event):
     # specialist to invoke; the Analyst page sends none → master orchestrator.
     # An unknown target falls back to master for backward compatibility.
     target = (body.get("target") or "master").strip().lower()
-    if selected_data_group or _looks_like_structured_inventory_prompt(prompt):
+    # Structured override applies only when the caller did NOT ask for a
+    # specific specialist (Smart Rabbit / MCP page targets must stick): a
+    # selected data group or inventory-style prompt reroutes master/structured
+    # traffic to the structured agent, never an explicit specialist target.
+    if target in ("master", "structured") and (
+            selected_data_group or _looks_like_structured_inventory_prompt(prompt)):
         target = "structured"
     # Content-type routing (backend-authoritative): a selected group with a SUCCEEDED
     # vector-ingest job is served by the capability-matched reusable agent pointed at THAT
@@ -648,13 +660,19 @@ def _remember_structured_group_context(session_id: str, user_id: str, chat_type:
 
 # ──────────────────────────── /uploads ──────────────────────────
 def _handle_uploads_presign(event):
-    """Return a presigned PUT URL into the raw bucket.
+    """Return a presigned PUT URL into the raw bucket (or the unstructured bucket).
 
-    Body: {"filename": "...", "contentType": "application/octet-stream"}
+    Body: {"filename": "...", "contentType": "application/octet-stream",
+           "destination": "raw" | "unstructured"}
     Response: {"url", "method": "PUT", "key", "bucket", "expires_in", "headers"}
 
     The browser then does:
         fetch(url, { method: "PUT", headers, body: file })
+
+    destination "unstructured" routes the upload into the curated policy-document
+    bucket that backs the S3-Vectors policy KB — its ObjectCreated rule triggers
+    KB ingest (new KB) + scan. Any other value (or an unset UNSTRUCTURED_BUCKET)
+    falls back to RAW_BUCKET and the existing F1 auto-detect chain.
 
     Keys are namespaced per caller (users/<sub>/<ts>-<safe-filename>) so the
     /uploads/list endpoint can return only what the caller uploaded.
@@ -673,18 +691,25 @@ def _handle_uploads_presign(event):
     if not raw_name:
         return _err(400, "Missing 'filename' in request body")
     content_type = (body.get("contentType") or "application/octet-stream").strip()
+    destination = (body.get("destination") or "raw").strip().lower()
 
     safe_name = _SAFE_FILENAME_RE.sub("_", raw_name)[-200:].lstrip("_") or "file"
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     key = f"{UPLOAD_PREFIX}{user_id}/{ts}-{safe_name}"
 
+    # Policy-doc uploads go to the unstructured-docs bucket when it is configured;
+    # everything else stays on RAW_BUCKET. The unstructured bucket relies on its
+    # own default encryption (no explicit SSE-KMS header echoed by the browser).
+    to_unstructured = destination == "unstructured" and bool(UNSTRUCTURED_BUCKET)
+    bucket = UNSTRUCTURED_BUCKET if to_unstructured else RAW_BUCKET
+
     put_params: dict[str, Any] = {
-        "Bucket": RAW_BUCKET,
+        "Bucket": bucket,
         "Key": key,
         "ContentType": content_type,
     }
     headers: dict[str, str] = {"Content-Type": content_type}
-    if S3_KMS_KEY_ARN:
+    if S3_KMS_KEY_ARN and not to_unstructured:
         put_params["ServerSideEncryption"] = "aws:kms"
         put_params["SSEKMSKeyId"] = S3_KMS_KEY_ARN
         # Browser must echo the same SSE headers it agreed to in the signature.
@@ -705,7 +730,7 @@ def _handle_uploads_presign(event):
     return _ok({
         "url": url,
         "method": "PUT",
-        "bucket": RAW_BUCKET,
+        "bucket": bucket,
         "key": key,
         "expires_in": UPLOAD_URL_EXPIRES_SECONDS,
         "headers": headers,
@@ -4089,7 +4114,7 @@ def _handle_list_conversations(event):
         return _err(502, f"{type(e).__name__}: {e}")
 
     sessions = [_session_summary(item) for item in resp.get("Items", [])]
-    if requested_type in ("analyst", "mcp"):
+    if requested_type in ("analyst", "mcp", "rabbit"):
         sessions = [s for s in sessions if (s.get("chat_type") or "analyst") == requested_type]
     return _ok({"sessions": sessions})
 
@@ -4813,6 +4838,9 @@ _AGENT_DISPLAY_NAMES = {
     "paloalto":   "Palo Alto NGFW Specialist",
     "jira":       "JIRA Specialist",
     "servicenow": "ServiceNow Specialist",
+    "claim":      "Claim Specialist",
+    "fraud":      "Fraud Specialist",
+    "debug":      "Debug Specialist",
 }
 
 

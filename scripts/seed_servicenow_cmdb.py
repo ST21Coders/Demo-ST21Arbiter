@@ -72,6 +72,11 @@ CIS = [
     # OWNERSHIP DRIFT: seeded under Network Engineering, but AWS owner tag = Data
     # Governance in the inventory → drift "ownership_drift".
     ("rds-mig-prod-reporting-replica-003", "cmdb_ci_db_instance", "network-eng", f"arn:aws:rds:{REGION}:{ACCOUNT}:db:rds-mig-prod-reporting-replica-003"),
+    # ── Web Server class fixtures (list_cis_by_class demo: "List all CIs of
+    # the Web Server class"). Fronted by the claims ALB via RELS below.
+    ("web-mig-prod-portal-001",       "cmdb_ci_web_server",  "app-dev",         f"arn:aws:ec2:{REGION}:{ACCOUNT}:instance/i-0webportal001"),
+    ("web-mig-prod-portal-002",       "cmdb_ci_web_server",  "app-dev",         f"arn:aws:ec2:{REGION}:{ACCOUNT}:instance/i-0webportal002"),
+    ("web-mig-dev-portal-003",        "cmdb_ci_web_server",  "cloud-infra",     f"arn:aws:ec2:{REGION}:{ACCOUNT}:instance/i-0webportal003"),
 ]
 
 # Assets (alm_hardware). (asset_tag, display_name, install_status, linked-CI-name|"").
@@ -92,6 +97,9 @@ RELS = [
     ("Claims API", "Depends on::Used by", "mig-prod-claims-data-primary"),
     ("pcx-mig-prod-dev-001", "Connects to::Connected by", "vpc-mig-prod-001"),
     ("pcx-mig-prod-dev-001", "Connects to::Connected by", "vpc-mig-dev-002"),
+    # Web servers sit behind the claims ALB, so their blast radius reaches it.
+    ("web-mig-prod-portal-001", "Depends on::Used by", "alb-mig-prod-claims-api-001"),
+    ("web-mig-prod-portal-002", "Depends on::Used by", "alb-mig-prod-claims-api-001"),
 ]
 
 

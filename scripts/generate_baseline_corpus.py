@@ -22,8 +22,8 @@ Env vars:
   PROJECT            default: st21arbiter-poc
   ENVIRONMENT        default: dev
   AWS_REGION         default: us-east-1
-  KB_ID              default: 2ADHACW6LB (override if KB recreated)
-  KB_DATA_SOURCE_ID  default: KLUEZ1RNM5
+  KB_ID              default: SQCLG3W09Y
+  KB_DATA_SOURCE_ID  default: NM2FVXL5T6
 """
 from __future__ import annotations
 
@@ -43,8 +43,8 @@ from botocore.exceptions import ClientError
 REGION  = os.environ.get("AWS_REGION", "us-east-1")
 ENV     = os.environ.get("ENVIRONMENT", "dev")
 PROJECT = os.environ.get("PROJECT", "st21arbiter-poc")
-KB_ID   = os.environ.get("KB_ID", "2ADHACW6LB")
-KB_DS   = os.environ.get("KB_DATA_SOURCE_ID", "KLUEZ1RNM5")
+KB_ID   = os.environ.get("KB_ID", "SQCLG3W09Y")
+KB_DS   = os.environ.get("KB_DATA_SOURCE_ID", "NM2FVXL5T6")
 PROCESSED_BUCKET = os.environ.get("PROCESSED_BUCKET", f"{ENV}-{PROJECT}-processed")
 
 REPO = Path(__file__).resolve().parent.parent

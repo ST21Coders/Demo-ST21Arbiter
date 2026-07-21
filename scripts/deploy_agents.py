@@ -256,6 +256,34 @@ AGENTS = [
         },
     },
     {
+        "name": "claim-specialist",
+        "src": "agents/claim_specialist",
+        "repo_export": f"{PREFIX}-ClaimSpecialistRepoUri",  # from 09-agentcore
+        "model_param": "ClaimModelId",
+        "env_model_var": "CLAIM_MODEL_ID",
+        # Lightweight advisory agent (Insurance_Assist catalog group): model +
+        # guardrail + domain prompt only — no data backends, shared role.
+        "env_overrides": {},
+    },
+    {
+        "name": "fraud-specialist",
+        "src": "agents/fraud_specialist",
+        "repo_export": f"{PREFIX}-FraudSpecialistRepoUri",  # from 09-agentcore
+        "model_param": "FraudModelId",
+        "env_model_var": "FRAUD_MODEL_ID",
+        # Lightweight advisory agent (Insurance_Assist catalog group).
+        "env_overrides": {},
+    },
+    {
+        "name": "debug-specialist",
+        "src": "agents/debug_specialist",
+        "repo_export": f"{PREFIX}-DebugSpecialistRepoUri",  # from 09-agentcore
+        "model_param": "DebugModelId",
+        "env_model_var": "DEBUG_MODEL_ID",
+        # Lightweight advisory agent (OnCall_Assist catalog group).
+        "env_overrides": {},
+    },
+    {
         "name": "master-orchestrator",
         "src": "agents/master_orchestrator",
         "repo_export": f"{PREFIX}-MasterOrchestratorRepoUri",  # from 05-compute
@@ -559,6 +587,55 @@ def deploy_runtime(
     raise SystemExit(f"Timeout waiting for {runtime_name}")
 
 
+# ──────────────────────────── ServiceNow gateway discovery ──────
+def _find_servicenow_gateway() -> dict[str, str] | None:
+    """Return the SERVICENOW_GW* env vars for the servicenow_specialist if the
+    AgentCore Gateway (created by scripts/setup_servicenow_gateway.py) is READY.
+
+    Returns None when the gateway (or any of its wiring exports) is absent so
+    the specialist deploys in direct-REST-only mode — the agent treats a
+    missing SERVICENOW_GATEWAY_URL as "no gateway" and keeps working.
+    """
+    gw_name = f"{PREFIX}-servicenow-gw"
+    try:
+        paginator = agentcore_control.get_paginator("list_gateways")
+        gateway = None
+        for page in paginator.paginate():
+            for item in page.get("items", []):
+                if item.get("name") == gw_name:
+                    gateway = item
+                    break
+        if not gateway:
+            log.info("ServiceNow gateway %s not found — direct REST mode", gw_name)
+            return None
+        detail = agentcore_control.get_gateway(gatewayIdentifier=gateway["gatewayId"])
+        if detail.get("status") != "READY":
+            log.warning("ServiceNow gateway %s status=%s — skipping gateway wiring",
+                        gw_name, detail.get("status"))
+            return None
+        gateway_url = detail.get("gatewayUrl", "")
+        m2m_client_id = cf_export(f"{PREFIX}-GatewayM2MClientId")
+        user_pool_id = cf_export(f"{PREFIX}-UserPoolId")
+        domain_prefix = PARAMS.get("CognitoDomainPrefix", "")
+        if not (gateway_url and m2m_client_id and domain_prefix):
+            log.warning("ServiceNow gateway wiring incomplete (url=%s client=%s domain=%s) "
+                        "— skipping", bool(gateway_url), bool(m2m_client_id), bool(domain_prefix))
+            return None
+        env = {
+            "SERVICENOW_GATEWAY_URL": gateway_url,
+            "SERVICENOW_GW_TOKEN_URL":
+                f"https://{domain_prefix}.auth.{REGION}.amazoncognito.com/oauth2/token",
+            "SERVICENOW_GW_CLIENT_ID": m2m_client_id,
+            "SERVICENOW_GW_USER_POOL_ID": user_pool_id,
+            "SERVICENOW_GW_SCOPE": f"{PREFIX}-gateway/invoke",
+        }
+        log.info("ServiceNow gateway wired: %s", gateway_url)
+        return env
+    except (SystemExit, ClientError) as e:
+        log.warning("ServiceNow gateway discovery failed (%s) — direct REST mode", e)
+        return None
+
+
 # ──────────────────────────── api_handler env-var patch ─────────
 def _patch_api_handler_lambda(runtime_arns: dict[str, str]) -> None:
     """Set the master + specialist runtime ARNs (and MEMORY_ID) on the api_handler.
@@ -596,6 +673,9 @@ def _patch_api_handler_lambda(runtime_arns: dict[str, str]) -> None:
         "hr-specialist":         "HR_RUNTIME_ARN",
         "jira-specialist":       "JIRA_RUNTIME_ARN",
         "servicenow-specialist": "SERVICENOW_RUNTIME_ARN",
+        "claim-specialist":      "CLAIM_RUNTIME_ARN",
+        "fraud-specialist":      "FRAUD_RUNTIME_ARN",
+        "debug-specialist":      "DEBUG_RUNTIME_ARN",
     }
     desired = {}
     for name, env_key in arn_env_map.items():
@@ -747,6 +827,15 @@ def main() -> None:
 
         # Specialist-specific env
         env_vars.update(agent["env_overrides"])
+
+        # ServiceNow gateway wiring: if the AgentCore Gateway created by
+        # scripts/setup_servicenow_gateway.py is READY, point the specialist at
+        # it (reads route via gateway MCP; writes stay direct REST). Absent or
+        # not-READY gateway → set nothing and the agent uses direct REST only.
+        if agent["name"] == "servicenow-specialist":
+            gw = _find_servicenow_gateway()
+            if gw:
+                env_vars.update(gw)
 
         # The master orchestrator needs the specialist ARNs. If a specialist
         # wasn't deployed in this run (e.g. --agents master-orchestrator), look

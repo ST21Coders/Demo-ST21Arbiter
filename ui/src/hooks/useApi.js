@@ -749,18 +749,23 @@ export function useAgentStatus() {
   return statusById
 }
 
-// Upload helpers — POST /uploads/presign returns a presigned S3 PUT URL into
-// the raw bucket under users/<sub>/<ts>-<filename>. The browser then PUTs the
-// file directly to S3. The F1 auto-detect chain (EventBridge → processing_pipeline
-// → KB ingestion → scanner) picks it up automatically.
-export async function presignUpload({ filename, contentType }) {
+// Upload helpers — POST /uploads/presign returns a presigned S3 PUT URL. The
+// browser then PUTs the file directly to S3.
+//   destination omitted / 'raw' → raw bucket (default). The F1 auto-detect chain
+//     (EventBridge → processing_pipeline → KB ingestion → scanner) picks it up.
+//   destination 'unstructured'  → the dedicated unstructured-docs bucket that
+//     backs the S3-Vectors policy KB. The unstructured-bucket ObjectCreated rule
+//     triggers KB ingestion (new KB) + scan.
+export async function presignUpload({ filename, contentType, destination }) {
   if (USE_MOCK) {
     return { url: '#mock', method: 'PUT', key: `users/mock/${Date.now()}-${filename}`,
-             bucket: 'mock', expires_in: 900, headers: {} }
+             bucket: destination === 'unstructured' ? 'mock-unstructured' : 'mock', expires_in: 900, headers: {} }
   }
+  const body = { filename, contentType: contentType || 'application/octet-stream' }
+  if (destination) body.destination = destination
   return apiFetch('/uploads/presign', {
     method: 'POST',
-    body: JSON.stringify({ filename, contentType: contentType || 'application/octet-stream' }),
+    body: JSON.stringify(body),
   })
 }
 

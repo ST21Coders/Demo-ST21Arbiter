@@ -152,6 +152,51 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-servicenow-specialist"
 
+  ClaimSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/claim-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-claim-specialist"
+
+  FraudSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/fraud-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-fraud-specialist"
+
+  DebugSpecialistRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${Environment}-${ProjectName}/debug-specialist"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      EncryptionConfiguration:
+        EncryptionType: KMS
+        KmsKey:
+          Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
+      ImageTagMutability: MUTABLE
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-debug-specialist"
+
   # ──────────────────────────── AgentCore Runtime Role ─────────
   # Assumed by the bedrock-agentcore service to run agent containers.
   # Permissions cover: model invocation, KB retrieval, ECR image pull,
@@ -550,6 +595,15 @@ Resources:
                   - secretsmanager:GetSecretValue
                 Resource:
                   - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${Environment}/${ProjectName}/servicenow-*"
+              - Sid: CognitoM2MClientRead
+                # Reads the gateway M2M app client's secret at cold start to
+                # mint client-credentials tokens for the AgentCore Gateway's
+                # CUSTOM_JWT inbound authorizer. Client defined in 03-identity.
+                Effect: Allow
+                Action:
+                  - cognito-idp:DescribeUserPoolClient
+                Resource:
+                  - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-UserPoolArn"
               - Sid: TokenUsageWrite
                 Effect: Allow
                 Action:
@@ -609,6 +663,65 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-servicenow-agent-runtime-role"
+
+  # ──────────────────────────── ServiceNow Gateway Role ────────
+  # Execution role for the AgentCore GATEWAY fronting the ServiceNow Table
+  # API (created out-of-band by scripts/setup_servicenow_gateway.py). The
+  # gateway resolves its outbound API key from the AgentCore Identity token
+  # vault (which stores provider secrets under bedrock-agentcore-identity!*
+  # in Secrets Manager) and injects it as the x-sn-apikey header at the edge
+  # — agent code never sees the ServiceNow credential.
+  ServicenowGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Environment}-${ProjectName}-servicenow-gateway-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: bedrock-agentcore.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: ServicenowGatewayPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: TokenVaultApiKey
+                Effect: Allow
+                Action:
+                  - bedrock-agentcore:GetResourceApiKey
+                  - bedrock-agentcore:GetResourceOauth2Token
+                  - bedrock-agentcore:GetWorkloadAccessToken
+                  - bedrock-agentcore:GetWorkloadAccessTokenForJWT
+                  - bedrock-agentcore:GetWorkloadAccessTokenForUserId
+                Resource:
+                  - !Sub "arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:token-vault/default"
+                  - !Sub "arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:token-vault/default/*"
+                  - !Sub "arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:workload-identity-directory/default"
+                  - !Sub "arn:aws:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:workload-identity-directory/default/*"
+              - Sid: IdentitySecretsRead
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:bedrock-agentcore-identity!*"
+              - Sid: GatewayLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                Resource:
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/gateways/*"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/gateways/*:*"
+      Tags:
+        - Key: Name
+          Value: !Sub "${Environment}-${ProjectName}-servicenow-gateway-role"
 
   # ──────────────────────────── AWS Config / Resource-Posture Role ──
   # Dedicated role for the awsconfig_specialist, which performs broad READ-ONLY
@@ -850,3 +963,19 @@ Outputs:
     Value: !GetAtt ServicenowSpecialistRepo.RepositoryUri
     Export:
       Name: !Sub "${Environment}-${ProjectName}-ServicenowSpecialistRepoUri"
+  ClaimSpecialistRepoUri:
+    Value: !GetAtt ClaimSpecialistRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ClaimSpecialistRepoUri"
+  FraudSpecialistRepoUri:
+    Value: !GetAtt FraudSpecialistRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-FraudSpecialistRepoUri"
+  DebugSpecialistRepoUri:
+    Value: !GetAtt DebugSpecialistRepo.RepositoryUri
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-DebugSpecialistRepoUri"
+  ServicenowGatewayRoleArn:
+    Value: !GetAtt ServicenowGatewayRole.Arn
+    Export:
+      Name: !Sub "${Environment}-${ProjectName}-ServicenowGatewayRoleArn"
