@@ -500,87 +500,6 @@ Resources:
         - Key: Name
           Value: !Sub "${Environment}-${ProjectName}-ownership-rules"
 
-  # ──────────────────────────── OpenSearch Serverless ──────────
-  OpenSearchCollection:
-    Type: AWS::OpenSearchServerless::Collection
-    DependsOn:
-      - OpenSearchEncryptionPolicy
-      - OpenSearchNetworkPolicy
-    Properties:
-      Name: !Sub "${Environment}-${ProjectName}-kb"
-      Type: VECTORSEARCH
-      Description: Vector store for Bedrock Knowledge Base
-      Tags:
-        - Key: Name
-          Value: !Sub "${Environment}-${ProjectName}-kb"
-
-  OpenSearchEncryptionPolicy:
-    Type: AWS::OpenSearchServerless::SecurityPolicy
-    Properties:
-      Name: !Sub "${Environment}-${ProjectName}-enc"
-      Type: encryption
-      Policy:
-        Fn::Sub:
-          - >
-            {
-              "Rules": [
-                {"ResourceType":"collection","Resource":["collection/${Environment}-${ProjectName}-kb"]}
-              ],
-              "AWSOwnedKey": false,
-              "KmsARN": "${KeyArn}"
-            }
-          - KeyArn:
-              Fn::ImportValue: !Sub "${Environment}-${ProjectName}-DataAtRestKeyArn"
-
-  OpenSearchNetworkPolicy:
-    Type: AWS::OpenSearchServerless::SecurityPolicy
-    Properties:
-      Name: !Sub "${Environment}-${ProjectName}-net"
-      Type: network
-      Policy: !Sub >
-        [
-          {
-            "Rules": [
-              {"ResourceType":"collection","Resource":["collection/${Environment}-${ProjectName}-kb"]},
-              {"ResourceType":"dashboard","Resource":["collection/${Environment}-${ProjectName}-kb"]}
-            ],
-            "AllowFromPublic": false,
-            "SourceVPCEs": ["${OpenSearchVPCEndpoint}"]
-          }
-        ]
-
-  # Bedrock SLR (AWSServiceRoleForAmazonBedrock) is omitted from Principal:
-  # it doesn't exist until a Bedrock KB is first created. Re-add when enabling 07-bedrock.
-  OpenSearchDataAccessPolicy:
-    Type: AWS::OpenSearchServerless::AccessPolicy
-    Properties:
-      Name: !Sub "${Environment}-${ProjectName}-data"
-      Type: data
-      Policy: !Sub >
-        [
-          {
-            "Rules": [
-              {"ResourceType":"index","Resource":["index/${Environment}-${ProjectName}-kb/*"],"Permission":["aoss:*"]},
-              {"ResourceType":"collection","Resource":["collection/${Environment}-${ProjectName}-kb"],"Permission":["aoss:*"]}
-            ],
-            "Principal": [
-              "arn:aws:iam::${AWS::AccountId}:role/${Environment}-${ProjectName}-api-handler-role",
-              "arn:aws:iam::${AWS::AccountId}:role/${Environment}-${ProjectName}-processing-pipeline-role"
-            ]
-          }
-        ]
-
-  OpenSearchVPCEndpoint:
-    Type: AWS::OpenSearchServerless::VpcEndpoint
-    Properties:
-      Name: !Sub "${Environment}-${ProjectName}-oss-vpce"
-      VpcId:
-        Fn::ImportValue: !Sub "${Environment}-${ProjectName}-VpcId"
-      SubnetIds:
-        - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-PrivateSubnet1Id"
-      SecurityGroupIds:
-        - Fn::ImportValue: !Sub "${Environment}-${ProjectName}-OpenSearchSGId"
-
   # ──────────────────────────── Structured ingestion (Glue + Athena) ────────────
   # The STRUCTURED plane: technical-control exports (e.g. zscaler_rules.csv) land
   # in s3://<processed>/structured/<dataset>/, the crawler catalogues them, and the
@@ -595,7 +514,11 @@ Resources:
     Properties:
       CatalogId: !Ref AWS::AccountId
       DatabaseInput:
-        Name: !Join ["_", !Split ["-", !Sub "${Environment}-${ProjectName}-structured"]]
+        Name:
+          !Join [
+            "_",
+            !Split ["-", !Sub "${Environment}-${ProjectName}-structured"],
+          ]
         Description: ARBITER structured control exports catalogued for Athena.
 
   # Service role the crawler assumes — read the encrypted CSVs + write catalog.
@@ -663,7 +586,7 @@ Resources:
       WorkGroupConfiguration:
         EnforceWorkGroupConfiguration: true
         PublishCloudWatchMetricsEnabled: true
-        BytesScannedCutoffPerQuery: 104857600  # 100 MB hard cap
+        BytesScannedCutoffPerQuery: 104857600 # 100 MB hard cap
         ResultConfiguration:
           OutputLocation: !Sub "s3://${ProcessedBucket}/athena-results/"
           EncryptionConfiguration:
@@ -712,14 +635,6 @@ Outputs:
     Value: !Sub "s3://${ProcessedBucket}/athena-results/"
     Export:
       Name: !Sub "${Environment}-${ProjectName}-StructuredAthenaOutputLocation"
-  OpenSearchCollectionArn:
-    Value: !GetAtt OpenSearchCollection.Arn
-    Export:
-      Name: !Sub "${Environment}-${ProjectName}-OpenSearchCollectionArn"
-  OpenSearchCollectionEndpoint:
-    Value: !GetAtt OpenSearchCollection.CollectionEndpoint
-    Export:
-      Name: !Sub "${Environment}-${ProjectName}-OpenSearchEndpoint"
   ConflictsTableName:
     Value: !Ref ConflictsTable
     Export:
